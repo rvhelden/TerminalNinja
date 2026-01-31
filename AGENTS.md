@@ -81,6 +81,11 @@ dotnet run --project Sample/Sample.csproj
 global using TUnit.Core;
 global using TUnit.Assertions;
 global using TUnit.Assertions.Extensions;
+global using TerminalNinja.Core.Primitives;
+global using TerminalNinja.Core.Buffers;
+global using TerminalNinja.Core.Elements;
+global using TerminalNinja.Core.Styling;
+global using TerminalNinja.Core.Tests.Helpers;
 ```
 
 **Guidelines:**
