@@ -103,6 +103,48 @@ var footer = new Rectangle
     }
 };
 
+// Create toolbar demonstrating Rectangle + Stack + multiple elements pattern
+// This shows the power of composition: Rectangle → Stack → [Label, Label, Label]
+var toolbarColor = new Color(25, 25, 45);  // Dark blue-gray
+var toolbar = new Rectangle
+{
+    BackgroundColor = toolbarColor,
+    ForegroundColor = Color.Cyan,
+    Border = Border.Single(Color.Cyan),
+    Child = new Stack
+    {
+        Orientation = StackOrientation.Horizontal,
+        Children =
+        [
+            // Left: Auto-sized buttons
+            StackChild.Auto(new Label
+            {
+                Text = " [File] [Edit] [View] ",
+                ForegroundColor = Color.White,
+                BackgroundColor = toolbarColor
+            }),
+            
+            // Center: Stretched title
+            StackChild.Stretch(new Label
+            {
+                Text = "Rectangle + Stack Composition Demo",
+                ForegroundColor = Color.Cyan,
+                BackgroundColor = toolbarColor,
+                HorizontalTextAlignment = TextAlignment.Center,
+                VerticalTextAlignment = TextAlignment.Center
+            }),
+            
+            // Right: Auto-sized help/close buttons
+            StackChild.Auto(new Label
+            {
+                Text = " [?] [X] ",
+                ForegroundColor = Color.White,
+                BackgroundColor = toolbarColor
+            })
+        ]
+    }
+};
+
 // Build middle row: left sidebar | main content | right sidebar
 var middleRow = new Stack
 {
@@ -115,7 +157,7 @@ var middleRow = new Stack
     ]
 };
 
-// Build the complete Holy Grail layout: header | middle row | footer
+// Build the complete Holy Grail layout: header | middle row | toolbar | footer
 var holyGrailLayout = new Stack
 {
     Orientation = StackOrientation.Vertical,
@@ -123,6 +165,7 @@ var holyGrailLayout = new Stack
     [
         StackChild.Fixed(header, 5),           // Header: 5 cells tall
         StackChild.Stretch(middleRow),         // Middle row: fills remaining space
+        StackChild.Fixed(toolbar, 3),          // Toolbar: 3 cells tall (NEW!)
         StackChild.Fixed(footer, 3)            // Footer: 3 cells tall
     ]
 };
@@ -141,17 +184,21 @@ Console.WriteLine("  │   LEFT   │                  │   RIGHT   │");
 Console.WriteLine("  │ SIDEBAR  │  MAIN CONTENT    │ SIDEBAR   │ ← Stretch (fills remaining)");
 Console.WriteLine("  │ (20 col) │   (stretch)      │ (25 col)  │");
 Console.WriteLine("  ├──────────┴──────────────────┴───────────┤");
+Console.WriteLine("  │    TOOLBAR: [L] | Title | [R]           │ ← Fixed height (3 rows)");
+Console.WriteLine("  ├───────────────────────────────────────────┤");
 Console.WriteLine("  │             FOOTER (3 rows)             │ ← Fixed height");
 Console.WriteLine("  └─────────────────────────────────────────┘");
 
 Console.WriteLine("\nFeatures demonstrated:");
 Console.WriteLine("  ✓ Nested Stack containers (Vertical → Horizontal)");
 Console.WriteLine("  ✓ Rectangle elements with child Label composition");
+Console.WriteLine("  ✓ Rectangle + Stack + multiple elements (toolbar pattern)");
 Console.WriteLine("  ✓ Label elements with text rendering");
 Console.WriteLine("  ✓ Text alignment (horizontal and vertical)");
 Console.WriteLine("  ✓ Text wrapping for long content");
 Console.WriteLine("  ✓ Padding and spacing");
-Console.WriteLine("  ✓ Fixed sizing (header: 5, footer: 3, sidebars: 20 & 25)");
+Console.WriteLine("  ✓ Auto-sized and Stretch children in Stack");
+Console.WriteLine("  ✓ Fixed sizing (header: 5, toolbar: 3, footer: 3, sidebars: 20 & 25)");
 Console.WriteLine("  ✓ Stretch sizing (middle row and main content)");
 Console.WriteLine("  ✓ Mixed border styles (Single, Double, Rounded)");
 Console.WriteLine("  ✓ 24-bit true color support");

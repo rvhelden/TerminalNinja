@@ -804,4 +804,191 @@ public class RectangleTests
     }
 
     #endregion
+
+    #region Render - Stack Child Composition
+
+    [Test]
+    public async Task Render_WithStackChild_RendersAllStackChildren()
+    {
+        // Create a Rectangle with a horizontal Stack containing 3 Labels
+        var stack = new Stack
+        {
+            Orientation = StackOrientation.Horizontal,
+            Children =
+            [
+                StackChild.Fixed(new Label { Text = "A", ForegroundColor = Color.Red }, 5),
+                StackChild.Fixed(new Label { Text = "B", ForegroundColor = Color.Green }, 5),
+                StackChild.Fixed(new Label { Text = "C", ForegroundColor = Color.Blue }, 5)
+            ]
+        };
+
+        var rect = new Rectangle
+        {
+            Width = Size.Absolute(15),
+            Height = Size.Absolute(3),
+            BackgroundColor = Color.Black,
+            Child = stack
+        };
+
+        rect.Render(_buffer, new Rect(0, 0, BufferWidth, BufferHeight));
+
+        // Verify all three labels are rendered
+        await Assert.That(_buffer.GetCell(0, 0).Character).IsEqualTo('A');
+        await Assert.That(_buffer.GetCell(0, 0).Foreground).IsEqualTo(Color.Red);
+        
+        await Assert.That(_buffer.GetCell(5, 0).Character).IsEqualTo('B');
+        await Assert.That(_buffer.GetCell(5, 0).Foreground).IsEqualTo(Color.Green);
+        
+        await Assert.That(_buffer.GetCell(10, 0).Character).IsEqualTo('C');
+        await Assert.That(_buffer.GetCell(10, 0).Foreground).IsEqualTo(Color.Blue);
+    }
+
+    [Test]
+    public async Task Render_StackChildAutoAndStretch_DistributesSpaceCorrectly()
+    {
+        // Create a toolbar-like pattern: Auto | Stretch | Auto
+        var leftLabel = new Label { Text = "Left", BackgroundColor = Color.Red };
+        var centerLabel = new Label { Text = "Center", BackgroundColor = Color.Green };
+        var rightLabel = new Label { Text = "Right", BackgroundColor = Color.Blue };
+
+        var stack = new Stack
+        {
+            Orientation = StackOrientation.Horizontal,
+            Children =
+            [
+                StackChild.Auto(leftLabel),    // Width = 4 (text length)
+                StackChild.Stretch(centerLabel), // Should fill remaining
+                StackChild.Auto(rightLabel)    // Width = 5 (text length)
+            ]
+        };
+
+        var rect = new Rectangle
+        {
+            Width = Size.Absolute(20),
+            Height = Size.Absolute(1),
+            Child = stack
+        };
+
+        rect.Render(_buffer, new Rect(0, 0, BufferWidth, BufferHeight));
+
+        // Left label should be at x=0, width=4
+        await Assert.That(_buffer.GetCell(0, 0).Character).IsEqualTo('L');
+        await Assert.That(_buffer.GetCell(0, 0).Background).IsEqualTo(Color.Red);
+        await Assert.That(_buffer.GetCell(3, 0).Background).IsEqualTo(Color.Red);
+        
+        // Center should start at x=4 and stretch to x=14 (width = 20 - 4 - 5 = 11)
+        await Assert.That(_buffer.GetCell(4, 0).Background).IsEqualTo(Color.Green);
+        await Assert.That(_buffer.GetCell(14, 0).Background).IsEqualTo(Color.Green);
+        
+        // Right label should be at x=15, width=5
+        await Assert.That(_buffer.GetCell(15, 0).Character).IsEqualTo('R');
+        await Assert.That(_buffer.GetCell(15, 0).Background).IsEqualTo(Color.Blue);
+        await Assert.That(_buffer.GetCell(19, 0).Background).IsEqualTo(Color.Blue);
+    }
+
+    [Test]
+    public async Task Render_NestedRectangleStackRectangles_RendersCorrectly()
+    {
+        // Create the full pattern: Rectangle → Stack → [Rectangle, Rectangle, Rectangle]
+        var leftRect = new Rectangle
+        {
+            BackgroundColor = Color.Red,
+            Border = Border.Single(Color.Red)
+        };
+
+        var centerRect = new Rectangle
+        {
+            BackgroundColor = Color.Green,
+            Border = Border.Single(Color.Green)
+        };
+
+        var rightRect = new Rectangle
+        {
+            BackgroundColor = Color.Blue,
+            Border = Border.Single(Color.Blue)
+        };
+
+        var stack = new Stack
+        {
+            Orientation = StackOrientation.Horizontal,
+            Children =
+            [
+                StackChild.Fixed(leftRect, 5),
+                StackChild.Stretch(centerRect),
+                StackChild.Fixed(rightRect, 5)
+            ]
+        };
+
+        var outerRect = new Rectangle
+        {
+            Width = Size.Absolute(20),
+            Height = Size.Absolute(5),
+            BackgroundColor = Color.Black,
+            Border = Border.Double(Color.White),
+            Child = stack
+        };
+
+        outerRect.Render(_buffer, new Rect(0, 0, BufferWidth, BufferHeight));
+
+        // Outer border should be double-line
+        await Assert.That(_buffer.GetCell(0, 0).Character).IsEqualTo('╔');
+        await Assert.That(_buffer.GetCell(19, 0).Character).IsEqualTo('╗');
+
+        // Left rectangle (inside outer border, at x=1, width=5)
+        await Assert.That(_buffer.GetCell(1, 1).Character).IsEqualTo('┌');
+        await Assert.That(_buffer.GetCell(1, 1).Foreground).IsEqualTo(Color.Red);
+
+        // Center rectangle should start at x=6 (1 + 5) with stretch width
+        await Assert.That(_buffer.GetCell(6, 1).Character).IsEqualTo('┌');
+        await Assert.That(_buffer.GetCell(6, 1).Foreground).IsEqualTo(Color.Green);
+
+        // Right rectangle should be at x=14 (20 - 1 - 5 = 14), width=5
+        await Assert.That(_buffer.GetCell(14, 1).Character).IsEqualTo('┌');
+        await Assert.That(_buffer.GetCell(14, 1).Foreground).IsEqualTo(Color.Blue);
+    }
+
+    [Test]
+    public async Task Render_StackChildInsideBorder_RespectsInnerBounds()
+    {
+        // Stack should get inner bounds (after border subtraction)
+        var label = new Label
+        {
+            Text = "Test",
+            ForegroundColor = Color.White,
+            BackgroundColor = Color.Blue
+        };
+
+        var stack = new Stack
+        {
+            Orientation = StackOrientation.Horizontal,
+            Children = [StackChild.Stretch(label)]
+        };
+
+        var rect = new Rectangle
+        {
+            Width = Size.Absolute(10),
+            Height = Size.Absolute(3),
+            Border = Border.Single(Color.Cyan),
+            BackgroundColor = Color.Blue,
+            Child = stack
+        };
+
+        rect.Render(_buffer, new Rect(0, 0, BufferWidth, BufferHeight));
+
+        // Border should be at edges
+        await Assert.That(_buffer.GetCell(0, 0).Character).IsEqualTo('┌');
+        await Assert.That(_buffer.GetCell(9, 0).Character).IsEqualTo('┐');
+
+        // Label text should start at x=1, y=1 (inside border)
+        await Assert.That(_buffer.GetCell(1, 1).Character).IsEqualTo('T');
+        await Assert.That(_buffer.GetCell(2, 1).Character).IsEqualTo('e');
+        await Assert.That(_buffer.GetCell(3, 1).Character).IsEqualTo('s');
+        await Assert.That(_buffer.GetCell(4, 1).Character).IsEqualTo('t');
+
+        // Border edges should not be overwritten
+        await Assert.That(_buffer.GetCell(0, 1).Character).IsEqualTo('│');
+        await Assert.That(_buffer.GetCell(9, 1).Character).IsEqualTo('│');
+    }
+
+    #endregion
 }
