@@ -1,0 +1,5 @@
+{
+  "msbuild-sdks": {
+    "Microsoft.Testing.Platform.MSBuild": "2.0.2"
+  }
+}
