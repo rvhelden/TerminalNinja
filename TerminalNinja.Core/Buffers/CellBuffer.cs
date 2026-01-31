@@ -34,6 +34,12 @@ public sealed class CellBuffer
         var size = width * height;
         _current = new Cell[size];
         _previous = new Cell[size];
+        
+        // Initialize both buffers to Cell.Empty so they start in sync
+        _current.AsSpan().Fill(Cell.Empty);
+        _previous.AsSpan().Fill(Cell.Empty);
+        
+        // Clear() will set dirty rect for the entire buffer
         Clear();
     }
     
@@ -195,7 +201,7 @@ public sealed class CellBuffer
                 _x++;
                 if (_x >= _dirtyRegion.Right)
                 {
-                    _x = _dirtyRegion.X;
+                    _x = _dirtyRegion.X - 1;  // Set to -1 so next _x++ makes it 0
                     _y++;
                     continue;
                 }

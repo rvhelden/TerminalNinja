@@ -351,7 +351,7 @@ public class StackToAnsiTests
     [Test]
     public async Task Stack_SameBackgroundAcrossChildren_OptimizesColorOutput()
     {
-        // Arrange - Two children with same background color
+        // Arrange - Two children with same background color (red, different from default)
         var stack = new Stack
         {
             Orientation = StackOrientation.Horizontal,
@@ -361,14 +361,14 @@ public class StackToAnsiTests
                 {
                     Width = Size.Stretch,
                     Height = Size.Stretch,
-                    BackgroundColor = Color.Black,
+                    BackgroundColor = new Color(255, 0, 0),  // Red
                     Border = Border.None
                 }, 5),
                 StackChild.Fixed(new Rectangle
                 {
                     Width = Size.Stretch,
                     Height = Size.Stretch,
-                    BackgroundColor = Color.Black,
+                    BackgroundColor = new Color(255, 0, 0),  // Red (same)
                     Border = Border.None
                 }, 5)
             ]
@@ -377,9 +377,9 @@ public class StackToAnsiTests
         // Act
         var output = RenderStackToAnsi(stack, 10, 2);
         
-        // Assert - Black background color should only be set once
-        var blackBgCount = CountOccurrences(output, "\e[48;2;0;0;0m");
-        await Assert.That(blackBgCount).IsEqualTo(1); // Optimized
+        // Assert - Red background color should only be set once (optimized)
+        var redBgCount = CountOccurrences(output, "\e[48;2;255;0;0m");
+        await Assert.That(redBgCount).IsEqualTo(1);
     }
     
     [Test]

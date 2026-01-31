@@ -278,11 +278,11 @@ public class ClearPresentOptimizationTests
         
         // Assert - Some cells were rendered (only the rectangle area)
         await Assert.That(renderCells).IsGreaterThan(0);
-        await Assert.That(renderCells).IsLessThan(10); // Less than buffer width
+        await Assert.That(renderCells).IsEqualTo(9); // 3x3 rectangle
         
-        // Assert - Clear outputs more cells because Clear() marks entire buffer dirty
-        // This documents current behavior - Clear() is not optimized to track which cells actually need clearing
-        await Assert.That(clearCells).IsGreaterThan(renderCells);
+        // Assert - Clear outputs same number of cells (only cells that differ)
+        // With the fix, Clear() efficiently detects only changed cells
+        await Assert.That(clearCells).IsEqualTo(renderCells);
         await Assert.That(stream3.Length).IsGreaterThan(0);
     }
     
@@ -304,11 +304,10 @@ public class ClearPresentOptimizationTests
         }
         writer.Flush();
         
-        // Assert - On fresh buffer, Clear() should detect all cells as "changed"
-        // because _previous is uninitialized (all default cells)
-        // This test documents current behavior - may want to optimize later
-        await Assert.That(cellsWritten).IsGreaterThan(0);
-        await Assert.That(stream.Length).IsGreaterThan(0);
+        // Assert - On fresh buffer, both _current and _previous are initialized to Cell.Empty
+        // So Clear() outputs nothing (both buffers already clear)
+        await Assert.That(cellsWritten).IsEqualTo(0);
+        await Assert.That(stream.Length).IsEqualTo(0);
     }
     
     [Test]

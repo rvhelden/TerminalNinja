@@ -215,12 +215,12 @@ public class RectangleToAnsiTests
     [Test]
     public async Task Rectangle_FirstCellPosition_UsesOneBasedCoordinates()
     {
-        // Arrange - Rectangle at origin
+        // Arrange - Rectangle at origin with white background (different from default black)
         var rect = new Rectangle
         {
             Width = Size.Absolute(2),
             Height = Size.Absolute(2),
-            BackgroundColor = Color.Black,
+            BackgroundColor = Color.White,  // Different from default Cell.Empty background
             Border = Border.None
         };
         
