@@ -1,7 +1,12 @@
+using System.Text;
 using TerminalNinja.Core.App;
 using TerminalNinja.Core.Elements;
 using TerminalNinja.Core.Primitives;
 using TerminalNinja.Core.Styling;
+
+// Set console encoding to UTF-8 for proper Unicode character rendering
+Console.OutputEncoding = Encoding.UTF8;
+Console.InputEncoding = Encoding.UTF8;
 
 // TerminalNinja Interactive Application Showcase
 Console.WriteLine("╔═══════════════════════════════════════════════════════════╗");
@@ -11,6 +16,7 @@ Console.WriteLine("Features:");
 Console.WriteLine("  • Keyboard Navigation (TAB/Shift+TAB)");
 Console.WriteLine("  • Mouse Support (Click & Hover)");
 Console.WriteLine("  • Focus Management");
+Console.WriteLine("  • Window Resize Detection");
 Console.WriteLine("  • Event-Driven Architecture");
 Console.WriteLine("  • Zero-Allocation Rendering\n");
 Console.WriteLine("Controls:");
@@ -18,6 +24,7 @@ Console.WriteLine("  TAB        - Next button");
 Console.WriteLine("  Shift+TAB  - Previous button");
 Console.WriteLine("  Enter/Space- Activate focused button");
 Console.WriteLine("  Mouse      - Click and hover over buttons");
+Console.WriteLine("  Resize     - Try resizing the terminal window");
 Console.WriteLine("  ESC        - Exit application\n");
 Console.WriteLine("Watch the buttons change color:");
 Console.WriteLine("  WHITE  - Normal state");
@@ -303,6 +310,8 @@ void UpdateLayout()
     };
     
     // Status bar
+    var terminalWidth = TerminalNinja.Core.Console.Terminal.Width;
+    var terminalHeight = TerminalNinja.Core.Console.Terminal.Height;
     var statusBar = new Rectangle
     {
         Height = Size.Absolute(3),
@@ -311,7 +320,7 @@ void UpdateLayout()
         Border = Border.Single(Color.Yellow),
         Child = new Label
         {
-            Text = $"Clicks: {clickCount} | Action: {lastAction} | Focus: {currentFocus} | Hover: {currentHover}",
+            Text = $"Clicks: {clickCount} | {lastAction} | Focus: {currentFocus} | Hover: {currentHover} | Size: {terminalWidth}x{terminalHeight}",
             ForegroundColor = Color.Yellow,
             BackgroundColor = new Color(40, 40, 40),
             HorizontalTextAlignment = TextAlignment.Center,

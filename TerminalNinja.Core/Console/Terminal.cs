@@ -3,7 +3,7 @@ using System.Runtime.InteropServices;
 namespace TerminalNinja.Core.Console;
 
 /// <summary>
-/// Low-level terminal access and ANSI mode configuration.
+/// Low-level terminal access and ANSI output mode configuration.
 /// </summary>
 public static class Terminal
 {
@@ -22,7 +22,7 @@ public static class Terminal
             }
         }
     }
-    
+
     /// <summary>Gets the current terminal height in rows.</summary>
     public static int Height
     {
@@ -38,103 +38,70 @@ public static class Terminal
             }
         }
     }
-    
+
     /// <summary>Opens the standard output stream for direct writing.</summary>
     public static Stream OpenStdout() => System.Console.OpenStandardOutput();
-    
-    // Windows P/Invoke declarations
+
+    // Windows P/Invoke declarations for output handle
     [DllImport("kernel32.dll", SetLastError = true)]
     private static extern bool GetConsoleMode(IntPtr handle, out uint mode);
-    
+
     [DllImport("kernel32.dll", SetLastError = true)]
     private static extern bool SetConsoleMode(IntPtr handle, uint mode);
-    
+
     [DllImport("kernel32.dll", SetLastError = true)]
     private static extern IntPtr GetStdHandle(int handle);
-    
+
     private const int STD_OUTPUT_HANDLE = -11;
     private const uint ENABLE_VIRTUAL_TERMINAL_PROCESSING = 0x0004;
     private const uint DISABLE_NEWLINE_AUTO_RETURN = 0x0008;
-    private const uint ENABLE_MOUSE_INPUT  = 0x0010;
-    
+
     private static uint _originalMode;
     private static bool _modeChanged;
-    
+
     /// <summary>
-    /// Enables ANSI escape sequence processing.
+    /// Enables ANSI escape sequence processing for output.
     /// On Windows, this enables VT100 processing. On Unix, ANSI is already enabled.
+    /// Note: Input backends manage their own console modes separately.
     /// </summary>
     /// <returns>True if successful, false otherwise.</returns>
     public static bool EnableAnsiMode()
     {
         // Unix systems have ANSI support by default
-        if (!OperatingSystem.IsWindows()) 
+        if (!OperatingSystem.IsWindows())
             return true;
-        
+
         var handle = GetStdHandle(STD_OUTPUT_HANDLE);
-        if (handle == IntPtr.Zero) 
+        if (handle == IntPtr.Zero)
             return false;
-        
-        if (!GetConsoleMode(handle, out _originalMode)) 
+
+        if (!GetConsoleMode(handle, out _originalMode))
             return false;
-        
-        var newMode = _originalMode | ENABLE_VIRTUAL_TERMINAL_PROCESSING | DISABLE_NEWLINE_AUTO_RETURN | ENABLE_MOUSE_INPUT;
-        
+
+        var newMode = _originalMode | ENABLE_VIRTUAL_TERMINAL_PROCESSING | DISABLE_NEWLINE_AUTO_RETURN;
+
         if (SetConsoleMode(handle, newMode))
         {
             _modeChanged = true;
             return true;
         }
-        
+
         return false;
     }
-    
+
     /// <summary>
-    /// Disables ANSI escape sequence processing and restores original mode.
+    /// Disables ANSI escape sequence processing and restores original output mode.
     /// </summary>
     public static void DisableAnsiMode()
     {
-        if (!OperatingSystem.IsWindows() || !_modeChanged) 
+        if (!OperatingSystem.IsWindows() || !_modeChanged)
             return;
-        
+
         var handle = GetStdHandle(STD_OUTPUT_HANDLE);
         if (handle != IntPtr.Zero)
         {
             SetConsoleMode(handle, _originalMode);
             _modeChanged = false;
         }
-    }
-    
-    /// <summary>
-    /// Enables mouse tracking in the terminal.
-    /// Sends ANSI escape sequences to enable any-event mouse tracking and SGR extended mode.
-    /// </summary>
-    public static void EnableMouseTracking()
-    {
-        var stdout = System.Console.Out;
-        
-        // Enable any-event tracking (includes hover)
-        stdout.Write("\e[?1003h");
-        
-        // Enable SGR extended mouse mode (supports large terminals)
-        stdout.Write("\e[?1006h");
-        
-        stdout.Flush();
-    }
-    
-    /// <summary>
-    /// Disables mouse tracking in the terminal.
-    /// </summary>
-    public static void DisableMouseTracking()
-    {
-        var stdout = System.Console.Out;
-        
-        // Disable any-event tracking
-        stdout.Write("\e[?1003l");
-        
-        // Disable SGR extended mouse mode
-        stdout.Write("\e[?1006l");
-        
-        stdout.Flush();
     }
 }

@@ -1,3 +1,4 @@
+using System.Text;
 using TerminalNinja.Core.Elements;
 using TerminalNinja.Core.Input;
 using TerminalNinja.Core.Rendering;
@@ -55,6 +56,10 @@ public sealed class Application : IDisposable
     /// <param name="options">The configuration options.</param>
     public Application(ApplicationOptions options)
     {
+        // Ensure UTF-8 encoding for proper Unicode character rendering
+        System.Console.OutputEncoding = Encoding.UTF8;
+        System.Console.InputEncoding = Encoding.UTF8;
+
         _options = options;
         _renderer = new Renderer();
         _inputReader = new InputReader();
@@ -116,11 +121,14 @@ public sealed class Application : IDisposable
     {
         while (true)
         {
-            var inputEvent = _inputReader.TryRead();
-            if (inputEvent is null)
+            var inputEvents = _inputReader.TryRead();
+            if (inputEvents is null || inputEvents.Count == 0)
                 break;
-            
-            HandleInputEvent(inputEvent);
+
+            foreach (var inputEvent in inputEvents)
+            {
+                HandleInputEvent(inputEvent);
+            }
         }
     }
     
@@ -197,8 +205,8 @@ public sealed class Application : IDisposable
     /// </summary>
     private void HandleResizeEvent(ResizeEvent resizeEvent)
     {
-        // Resize is handled by checking terminal size in the main loop
-        // This method is here for future extensions
+        // Terminal size has changed - trigger a full re-render
+        // The renderer will automatically use the new terminal dimensions
         Invalidate();
     }
     
