@@ -5,4 +5,5 @@ global using TerminalNinja.Core.Primitives;
 global using TerminalNinja.Core.Buffers;
 global using TerminalNinja.Core.Elements;
 global using TerminalNinja.Core.Styling;
+global using TerminalNinja.Core.Input;
 global using TerminalNinja.Core.Tests.Helpers;
