@@ -3,9 +3,9 @@ using TerminalNinja.Core.Primitives;
 using TerminalNinja.Core.Rendering;
 using TerminalNinja.Core.Styling;
 
-// TerminalNinja Sample - Holy Grail Layout Demo
-Console.WriteLine("TerminalNinja Sample - Holy Grail Layout Demo");
-Console.WriteLine("Demonstrating nested Stack containers for classic web layout\n");
+// TerminalNinja Sample - Holy Grail Layout with Labels Demo
+Console.WriteLine("TerminalNinja Sample - Holy Grail Layout with Labels Demo");
+Console.WriteLine("Demonstrating nested Stack containers and text labels\n");
 
 using var renderer = new Renderer();
 
@@ -19,44 +19,88 @@ var leftSidebarColor = new Color(20, 60, 20); // Dark green
 var rightSidebarColor = new Color(60, 20, 20); // Dark red
 var mainContentColor = new Color(15, 15, 15);  // Very dark gray
 
-// Create header
+// Create header with background and label
 var header = new Rectangle
 {
     BackgroundColor = headerColor,
     ForegroundColor = Color.Cyan,
-    Border = Border.Single(Color.Cyan)
+    Border = Border.Single(Color.Cyan),
+    Child = new Label
+    {
+        Text = "TerminalNinja Demo - Header",
+        ForegroundColor = Color.Cyan,
+        BackgroundColor = headerColor,
+        HorizontalTextAlignment = TextAlignment.Center,
+        VerticalTextAlignment = TextAlignment.Center
+    }
 };
 
-// Create left sidebar
+// Create left sidebar with background and label
 var leftSidebar = new Rectangle
 {
     BackgroundColor = leftSidebarColor,
     ForegroundColor = Color.Green,
-    Border = Border.Single(Color.Green)
+    Border = Border.Single(Color.Green),
+    Child = new Label
+    {
+        Text = "Menu",
+        ForegroundColor = Color.Green,
+        BackgroundColor = leftSidebarColor,
+        HorizontalTextAlignment = TextAlignment.Center,
+        VerticalTextAlignment = TextAlignment.Start,
+        Padding = new Thickness(1, 1, 1, 0)
+    }
 };
 
-// Create main content area
+// Create main content area with background and label
 var mainContent = new Rectangle
 {
     BackgroundColor = mainContentColor,
     ForegroundColor = Color.White,
-    Border = Border.Rounded(Color.White)
+    Border = Border.Rounded(Color.White),
+    Child = new Label
+    {
+        Text = "Main Content Area - This is where your primary content goes. Try resizing the terminal!",
+        ForegroundColor = Color.White,
+        BackgroundColor = mainContentColor,
+        HorizontalTextAlignment = TextAlignment.Center,
+        VerticalTextAlignment = TextAlignment.Center,
+        TextWrapping = TextWrapping.Wrap,
+        Padding = new Thickness(2)
+    }
 };
 
-// Create right sidebar
+// Create right sidebar with background and label
 var rightSidebar = new Rectangle
 {
     BackgroundColor = rightSidebarColor,
     ForegroundColor = Color.Red,
-    Border = Border.Single(Color.Red)
+    Border = Border.Single(Color.Red),
+    Child = new Label
+    {
+        Text = "Actions",
+        ForegroundColor = Color.Red,
+        BackgroundColor = rightSidebarColor,
+        HorizontalTextAlignment = TextAlignment.Center,
+        VerticalTextAlignment = TextAlignment.Start,
+        Padding = new Thickness(1, 1, 1, 0)
+    }
 };
 
-// Create footer
+// Create footer with background and label
 var footer = new Rectangle
 {
     BackgroundColor = footerColor,
     ForegroundColor = Color.Yellow,
-    Border = Border.Double(Color.Yellow)
+    Border = Border.Double(Color.Yellow),
+    Child = new Label
+    {
+        Text = "Status: Ready | Press any key to exit",
+        ForegroundColor = Color.Yellow,
+        BackgroundColor = footerColor,
+        HorizontalTextAlignment = TextAlignment.Center,
+        VerticalTextAlignment = TextAlignment.Center
+    }
 };
 
 // Build middle row: left sidebar | main content | right sidebar
@@ -102,6 +146,11 @@ Console.WriteLine("  └──────────────────�
 
 Console.WriteLine("\nFeatures demonstrated:");
 Console.WriteLine("  ✓ Nested Stack containers (Vertical → Horizontal)");
+Console.WriteLine("  ✓ Rectangle elements with child Label composition");
+Console.WriteLine("  ✓ Label elements with text rendering");
+Console.WriteLine("  ✓ Text alignment (horizontal and vertical)");
+Console.WriteLine("  ✓ Text wrapping for long content");
+Console.WriteLine("  ✓ Padding and spacing");
 Console.WriteLine("  ✓ Fixed sizing (header: 5, footer: 3, sidebars: 20 & 25)");
 Console.WriteLine("  ✓ Stretch sizing (middle row and main content)");
 Console.WriteLine("  ✓ Mixed border styles (Single, Double, Rounded)");

@@ -36,6 +36,9 @@ public sealed class Rectangle : IElement
     /// <summary>Gets or sets the foreground color (used for borders).</summary>
     public Color ForegroundColor { get; init; } = Color.White;
     
+    /// <summary>Gets or sets the child element to render inside this rectangle.</summary>
+    public IElement? Child { get; init; }
+    
     /// <summary>
     /// Returns the preferred size of this rectangle within the given parent bounds.
     /// Uses resolved Width/Height if Absolute, otherwise returns the parent size.
@@ -106,6 +109,17 @@ public sealed class Rectangle : IElement
         if (Border.HasBorder && bounds.Width >= 2 && bounds.Height >= 2)
         {
             RenderBorder(buffer, bounds);
+        }
+        
+        // Render child element if present
+        if (Child != null)
+        {
+            // Calculate inner bounds (subtract border if present)
+            var childBounds = Border.HasBorder && bounds.Width >= 2 && bounds.Height >= 2
+                ? new Rect(bounds.X + 1, bounds.Y + 1, bounds.Width - 2, bounds.Height - 2)
+                : bounds;
+            
+            Child.Render(buffer, childBounds);
         }
     }
     

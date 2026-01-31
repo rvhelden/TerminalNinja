@@ -576,4 +576,232 @@ public class RectangleTests
     }
 
     #endregion
+
+    #region Render - Child Element
+
+    [Test]
+    public async Task Render_WithNullChild_DoesNotCrash()
+    {
+        var rect = new Rectangle
+        {
+            Width = Size.Absolute(10),
+            Height = Size.Absolute(5),
+            BackgroundColor = Color.Blue,
+            Child = null
+        };
+
+        rect.Render(_buffer, new Rect(0, 0, BufferWidth, BufferHeight));
+
+        // Should render normally without child
+        await Assert.That(_buffer.GetCell(0, 0).Background).IsEqualTo(Color.Blue);
+    }
+
+    [Test]
+    public async Task Render_WithLabelChild_RendersTextInsideRectangle()
+    {
+        var label = new Label
+        {
+            Text = "Test",
+            ForegroundColor = Color.White,
+            BackgroundColor = Color.Blue
+        };
+        var rect = new Rectangle
+        {
+            Width = Size.Absolute(10),
+            Height = Size.Absolute(5),
+            BackgroundColor = Color.Blue,
+            Child = label
+        };
+
+        rect.Render(_buffer, new Rect(0, 0, BufferWidth, BufferHeight));
+
+        // Verify label text is rendered
+        await Assert.That(_buffer.GetCell(0, 0).Character).IsEqualTo('T');
+        await Assert.That(_buffer.GetCell(1, 0).Character).IsEqualTo('e');
+        await Assert.That(_buffer.GetCell(2, 0).Character).IsEqualTo('s');
+        await Assert.That(_buffer.GetCell(3, 0).Character).IsEqualTo('t');
+    }
+
+    [Test]
+    public async Task Render_ChildWithBorder_RendersInInnerBounds()
+    {
+        var label = new Label
+        {
+            Text = "X",
+            ForegroundColor = Color.White,
+            BackgroundColor = Color.Blue
+        };
+        var rect = new Rectangle
+        {
+            Width = Size.Absolute(5),
+            Height = Size.Absolute(3),
+            Border = Border.Single(Color.Cyan),
+            BackgroundColor = Color.Blue,
+            Child = label
+        };
+
+        rect.Render(_buffer, new Rect(0, 0, BufferWidth, BufferHeight));
+
+        // Border characters should be at edges
+        await Assert.That(_buffer.GetCell(0, 0).Character).IsEqualTo('┌');
+        await Assert.That(_buffer.GetCell(4, 0).Character).IsEqualTo('┐');
+        
+        // Label should render inside border (at position 1,1 instead of 0,0)
+        await Assert.That(_buffer.GetCell(1, 1).Character).IsEqualTo('X');
+        
+        // Border edges should not be overwritten by label
+        await Assert.That(_buffer.GetCell(0, 1).Character).IsEqualTo('│');
+        await Assert.That(_buffer.GetCell(4, 1).Character).IsEqualTo('│');
+    }
+
+    [Test]
+    public async Task Render_ChildWithoutBorder_UsesFullRectangleBounds()
+    {
+        var label = new Label
+        {
+            Text = "ABC",
+            ForegroundColor = Color.White,
+            BackgroundColor = Color.Red
+        };
+        var rect = new Rectangle
+        {
+            Width = Size.Absolute(5),
+            Height = Size.Absolute(3),
+            BackgroundColor = Color.Red,
+            Border = Border.None,
+            Child = label
+        };
+
+        rect.Render(_buffer, new Rect(0, 0, BufferWidth, BufferHeight));
+
+        // Label should start at (0,0) - full bounds
+        await Assert.That(_buffer.GetCell(0, 0).Character).IsEqualTo('A');
+        await Assert.That(_buffer.GetCell(1, 0).Character).IsEqualTo('B');
+        await Assert.That(_buffer.GetCell(2, 0).Character).IsEqualTo('C');
+    }
+
+    [Test]
+    public async Task Render_NestedRectangles_RendersCorrectly()
+    {
+        var innerLabel = new Label
+        {
+            Text = "Inner",
+            ForegroundColor = Color.Yellow,
+            BackgroundColor = Color.Red
+        };
+        var innerRect = new Rectangle
+        {
+            Width = Size.Absolute(7),
+            Height = Size.Absolute(3),
+            BackgroundColor = Color.Red,
+            Border = Border.Single(Color.Yellow),
+            Child = innerLabel
+        };
+        var outerRect = new Rectangle
+        {
+            Width = Size.Absolute(15),
+            Height = Size.Absolute(7),
+            BackgroundColor = Color.Blue,
+            Border = Border.Double(Color.Cyan),
+            Child = innerRect
+        };
+
+        outerRect.Render(_buffer, new Rect(0, 0, BufferWidth, BufferHeight));
+
+        // Outer border (double)
+        await Assert.That(_buffer.GetCell(0, 0).Character).IsEqualTo('╔');
+        await Assert.That(_buffer.GetCell(14, 0).Character).IsEqualTo('╗');
+        
+        // Inner rect starts at (1,1) because of outer border
+        // Inner border (single) at (1,1)
+        await Assert.That(_buffer.GetCell(1, 1).Character).IsEqualTo('┌');
+        
+        // Inner label text starts at (2,2) because of both borders
+        await Assert.That(_buffer.GetCell(2, 2).Character).IsEqualTo('I');
+        await Assert.That(_buffer.GetCell(3, 2).Character).IsEqualTo('n');
+    }
+
+    [Test]
+    public async Task Render_ChildWithCenteredAlignment_RespectsBounds()
+    {
+        var label = new Label
+        {
+            Text = "Hi",
+            ForegroundColor = Color.White,
+            BackgroundColor = Color.Green,
+            HorizontalTextAlignment = TextAlignment.Center,
+            VerticalTextAlignment = TextAlignment.Center
+        };
+        var rect = new Rectangle
+        {
+            Width = Size.Absolute(10),
+            Height = Size.Absolute(5),
+            BackgroundColor = Color.Green,
+            Border = Border.Single(Color.White),
+            Child = label
+        };
+
+        rect.Render(_buffer, new Rect(0, 0, BufferWidth, BufferHeight));
+
+        // Border takes up edges, inner is 8x3
+        // "Hi" (2 chars) centered in 8 width = (8-2)/2 + 1 (border offset) = 4
+        // Centered in 3 height = (3-1)/2 + 1 (border offset) = 2
+        await Assert.That(_buffer.GetCell(4, 2).Character).IsEqualTo('H');
+        await Assert.That(_buffer.GetCell(5, 2).Character).IsEqualTo('i');
+    }
+
+    [Test]
+    public async Task Render_ChildTooSmallForBorder_GetsEmptyBounds()
+    {
+        var label = new Label
+        {
+            Text = "X",
+            ForegroundColor = Color.White
+        };
+        var rect = new Rectangle
+        {
+            Width = Size.Absolute(1),
+            Height = Size.Absolute(1),
+            Border = Border.Single(Color.White),
+            Child = label
+        };
+
+        rect.Render(_buffer, new Rect(0, 0, BufferWidth, BufferHeight));
+
+        // Rectangle is 1x1, which is too small for border (needs 2x2 minimum)
+        // Border is skipped, background fills, but child would get 1x1 bounds
+        // Label should still attempt to render in the 1x1 space
+        await Assert.That(_buffer.GetCell(0, 0).Character).IsEqualTo('X');
+    }
+
+    [Test]
+    public async Task Render_ChildWithMinimumBorderSize_GetsZeroInnerBounds()
+    {
+        var label = new Label
+        {
+            Text = "Test",
+            ForegroundColor = Color.White,
+            BackgroundColor = Color.Blue
+        };
+        var rect = new Rectangle
+        {
+            Width = Size.Absolute(2),
+            Height = Size.Absolute(2),
+            Border = Border.Single(Color.White),
+            BackgroundColor = Color.Blue,
+            Child = label
+        };
+
+        rect.Render(_buffer, new Rect(0, 0, BufferWidth, BufferHeight));
+
+        // 2x2 rectangle with border leaves 0x0 inner space
+        // Border should render
+        await Assert.That(_buffer.GetCell(0, 0).Character).IsEqualTo('┌');
+        await Assert.That(_buffer.GetCell(1, 1).Character).IsEqualTo('┘');
+        
+        // Child gets bounds of (1, 1, 0, 0) - should not render anything
+        // No label text should be visible
+    }
+
+    #endregion
 }
