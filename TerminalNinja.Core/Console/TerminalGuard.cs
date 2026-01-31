@@ -9,25 +9,28 @@ namespace TerminalNinja.Core.Console;
 public sealed class TerminalGuard : IDisposable
 {
     private readonly AnsiWriter _writer;
+    private readonly ITerminal? _terminal;
     private bool _disposed;
     
-    private TerminalGuard(AnsiWriter writer)
+    private TerminalGuard(AnsiWriter writer, ITerminal? terminal)
     {
         _writer = writer;
+        _terminal = terminal;
     }
     
     /// <summary>
     /// Enters terminal mode: enables ANSI, hides cursor, and clears screen.
     /// </summary>
     /// <param name="writer">The ANSI writer to use for setup commands.</param>
+    /// <param name="terminal">The terminal abstraction to use.</param>
     /// <returns>A guard that will restore terminal state when disposed.</returns>
-    public static TerminalGuard Enter(AnsiWriter writer)
+    public static TerminalGuard Enter(AnsiWriter writer, ITerminal terminal)
     {
-        Terminal.EnableAnsiMode();
+        terminal.EnableAnsiMode();
         writer.HideCursor();
         writer.ClearScreen();
         writer.Flush();
-        return new TerminalGuard(writer);
+        return new TerminalGuard(writer, terminal);
     }
     
     /// <summary>
@@ -41,6 +44,6 @@ public sealed class TerminalGuard : IDisposable
         _writer.Reset();
         _writer.ShowCursor();
         _writer.Flush();
-        Terminal.DisableAnsiMode();
+        _terminal?.DisableAnsiMode();
     }
 }

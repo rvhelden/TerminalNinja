@@ -13,7 +13,8 @@ public sealed class Renderer : IDisposable
 {
     private readonly CellBuffer _buffer;
     private readonly AnsiWriter _writer;
-    private readonly TerminalGuard _guard;
+    private readonly TerminalGuard? _guard;
+    private readonly ITerminal? _terminal;
     private bool _disposed;
     
     /// <summary>Gets the width of the rendering viewport.</summary>
@@ -26,14 +27,32 @@ public sealed class Renderer : IDisposable
     public Rect Viewport => new(0, 0, Width, Height);
     
     /// <summary>
-    /// Creates a new renderer and initializes the terminal for rendering.
+    /// Creates a new renderer using the system terminal (production use).
     /// </summary>
-    public Renderer()
+    public Renderer() : this(SystemTerminal.Instance)
     {
-        var stdout = Terminal.OpenStdout();
+    }
+    
+    /// <summary>
+    /// Creates a new renderer with dependency injection for testing.
+    /// </summary>
+    /// <param name="terminal">The terminal abstraction to use.</param>
+    public Renderer(ITerminal terminal)
+    {
+        _terminal = terminal;
+        var stdout = terminal.OpenOutput();
         _writer = new AnsiWriter(stdout);
-        _guard = TerminalGuard.Enter(_writer);
-        _buffer = new CellBuffer(Terminal.Width, Terminal.Height);
+        _guard = TerminalGuard.Enter(_writer, terminal);
+        _buffer = new CellBuffer(terminal.Width, terminal.Height);
+    }
+    
+    /// <summary>
+    /// Creates a test renderer with explicit stream and dimensions (no terminal interaction).
+    /// </summary>
+    internal Renderer(Stream output, int width, int height)
+    {
+        _writer = new AnsiWriter(output);
+        _buffer = new CellBuffer(width, height);
     }
     
     /// <summary>
@@ -84,8 +103,11 @@ public sealed class Renderer : IDisposable
     /// </summary>
     public void HandleResize()
     {
-        var newWidth = Terminal.Width;
-        var newHeight = Terminal.Height;
+        if (_terminal == null)
+            return; // Test renderer, no resize support
+            
+        var newWidth = _terminal.Width;
+        var newHeight = _terminal.Height;
         
         if (newWidth != Width || newHeight != Height)
         {
@@ -102,7 +124,7 @@ public sealed class Renderer : IDisposable
         if (_disposed) return;
         _disposed = true;
         
-        _guard.Dispose();
+        _guard?.Dispose();
         _writer.Dispose();
     }
 }
