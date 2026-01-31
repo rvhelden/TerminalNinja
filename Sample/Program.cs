@@ -3,98 +3,110 @@ using TerminalNinja.Core.Primitives;
 using TerminalNinja.Core.Rendering;
 using TerminalNinja.Core.Styling;
 
-// TerminalNinja Sample - High-Performance TUI Framework Demo
-Console.WriteLine("TerminalNinja Sample - Rendering demo...");
+// TerminalNinja Sample - Holy Grail Layout Demo
+Console.WriteLine("TerminalNinja Sample - Holy Grail Layout Demo");
+Console.WriteLine("Demonstrating nested Stack containers for classic web layout\n");
 
 using var renderer = new Renderer();
 
-// Create a centered title box
-var titleBox = new Rectangle
+Console.WriteLine($"Terminal size: {renderer.Width}x{renderer.Height}");
+Console.WriteLine($"Viewport: {renderer.Viewport}\n");
+
+// Define colors for each section
+var headerColor = new Color(30, 30, 80);      // Dark blue
+var footerColor = new Color(40, 40, 40);       // Dark gray
+var leftSidebarColor = new Color(20, 60, 20); // Dark green
+var rightSidebarColor = new Color(60, 20, 20); // Dark red
+var mainContentColor = new Color(15, 15, 15);  // Very dark gray
+
+// Create header
+var header = new Rectangle
 {
-    X = Size.Percent(20),
-    Y = Size.Absolute(2),
-    Width = Size.Percent(60),
-    Height = Size.Absolute(5),
-    HorizontalAlignment = Alignment.Start,
-    VerticalAlignment = Alignment.Start,
-    Border = Border.Single(Color.Cyan),
-    BackgroundColor = new Color(20, 20, 40),
-    ForegroundColor = Color.Cyan
+    BackgroundColor = headerColor,
+    ForegroundColor = Color.Cyan,
+    Border = Border.Single(Color.Cyan)
 };
 
-// Create a main content box
-var contentBox = new Rectangle
+// Create left sidebar
+var leftSidebar = new Rectangle
 {
-    X = Size.Percent(10),
-    Y = Size.Absolute(9),
-    Width = Size.Percent(80),
-    Height = Size.Absolute(15),
-    HorizontalAlignment = Alignment.Start,
-    VerticalAlignment = Alignment.Start,
-    Border = Border.Rounded(Color.Green),
-    BackgroundColor = new Color(10, 30, 10),
-    ForegroundColor = Color.Green
+    BackgroundColor = leftSidebarColor,
+    ForegroundColor = Color.Green,
+    Border = Border.Single(Color.Green)
 };
 
-// Create a footer box at the bottom
-var footerBox = new Rectangle
+// Create main content area
+var mainContent = new Rectangle
 {
-    X = Size.Percent(5),
-    Y = Size.Percent(85),
-    Width = Size.Percent(90),
-    Height = Size.Absolute(3),
-    HorizontalAlignment = Alignment.Start,
-    VerticalAlignment = Alignment.Start,
-    Border = Border.Double(Color.Yellow),
-    BackgroundColor = new Color(40, 40, 20),
-    ForegroundColor = Color.Yellow
+    BackgroundColor = mainContentColor,
+    ForegroundColor = Color.White,
+    Border = Border.Rounded(Color.White)
 };
 
-// Create small accent boxes
-var accentBox1 = new Rectangle
+// Create right sidebar
+var rightSidebar = new Rectangle
 {
-    X = Size.Percent(5),
-    Y = Size.Percent(50),
-    Width = Size.Absolute(20),
-    Height = Size.Absolute(8),
-    HorizontalAlignment = Alignment.Start,
-    VerticalAlignment = Alignment.Start,
-    Border = Border.Single(Color.Magenta),
-    BackgroundColor = new Color(40, 10, 40),
-    ForegroundColor = Color.Magenta
+    BackgroundColor = rightSidebarColor,
+    ForegroundColor = Color.Red,
+    Border = Border.Single(Color.Red)
 };
 
-var accentBox2 = new Rectangle
+// Create footer
+var footer = new Rectangle
 {
-    X = Size.Percent(75),
-    Y = Size.Percent(50),
-    Width = Size.Absolute(20),
-    Height = Size.Absolute(8),
-    HorizontalAlignment = Alignment.Start,
-    VerticalAlignment = Alignment.Start,
-    Border = Border.Single(Color.Red),
-    BackgroundColor = new Color(40, 10, 10),
-    ForegroundColor = Color.Red
+    BackgroundColor = footerColor,
+    ForegroundColor = Color.Yellow,
+    Border = Border.Double(Color.Yellow)
 };
 
-// Clear and draw all elements
+// Build middle row: left sidebar | main content | right sidebar
+var middleRow = new Stack
+{
+    Orientation = StackOrientation.Horizontal,
+    Children =
+    [
+        StackChild.Fixed(leftSidebar, 20),    // Left sidebar: 20 cells wide
+        StackChild.Stretch(mainContent),       // Main content: fills remaining space
+        StackChild.Fixed(rightSidebar, 25)     // Right sidebar: 25 cells wide
+    ]
+};
+
+// Build the complete Holy Grail layout: header | middle row | footer
+var holyGrailLayout = new Stack
+{
+    Orientation = StackOrientation.Vertical,
+    Children =
+    [
+        StackChild.Fixed(header, 5),           // Header: 5 cells tall
+        StackChild.Stretch(middleRow),         // Middle row: fills remaining space
+        StackChild.Fixed(footer, 3)            // Footer: 3 cells tall
+    ]
+};
+
+// Clear and render the Holy Grail layout
 renderer.Clear();
-renderer.Draw(titleBox);
-renderer.Draw(contentBox);
-renderer.Draw(footerBox);
-renderer.Draw(accentBox1);
-renderer.Draw(accentBox2);
-
-// Present to screen with zero-allocation diffing
+renderer.Draw(holyGrailLayout);
 renderer.Present();
 
-Console.WriteLine("\nRendering complete! The TUI framework is working.");
-Console.WriteLine("Features demonstrated:");
-Console.WriteLine("  - Zero-allocation cell-level diffing");
-Console.WriteLine("  - 24-bit true color support");
-Console.WriteLine("  - Multiple border styles (single, double, rounded)");
-Console.WriteLine("  - Absolute and relative positioning/sizing");
-Console.WriteLine("  - C# 13 \\e escape sequences");
+Console.WriteLine("\nHoly Grail Layout rendered successfully!");
+Console.WriteLine("\nLayout Structure:");
+Console.WriteLine("  ┌─────────────────────────────────────────┐");
+Console.WriteLine("  │              HEADER (5 rows)            │ ← Fixed height");
+Console.WriteLine("  ├──────────┬──────────────────┬───────────┤");
+Console.WriteLine("  │   LEFT   │                  │   RIGHT   │");
+Console.WriteLine("  │ SIDEBAR  │  MAIN CONTENT    │ SIDEBAR   │ ← Stretch (fills remaining)");
+Console.WriteLine("  │ (20 col) │   (stretch)      │ (25 col)  │");
+Console.WriteLine("  ├──────────┴──────────────────┴───────────┤");
+Console.WriteLine("  │             FOOTER (3 rows)             │ ← Fixed height");
+Console.WriteLine("  └─────────────────────────────────────────┘");
+
+Console.WriteLine("\nFeatures demonstrated:");
+Console.WriteLine("  ✓ Nested Stack containers (Vertical → Horizontal)");
+Console.WriteLine("  ✓ Fixed sizing (header: 5, footer: 3, sidebars: 20 & 25)");
+Console.WriteLine("  ✓ Stretch sizing (middle row and main content)");
+Console.WriteLine("  ✓ Mixed border styles (Single, Double, Rounded)");
+Console.WriteLine("  ✓ 24-bit true color support");
+Console.WriteLine("  ✓ Zero-allocation rendering pipeline");
 
 // Wait a moment to see output, then exit gracefully
 if (!Console.IsInputRedirected)
@@ -104,5 +116,5 @@ if (!Console.IsInputRedirected)
 }
 else
 {
-    Thread.Sleep(1000);
+    Thread.Sleep(2000);
 }

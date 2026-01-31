@@ -7,7 +7,7 @@ namespace TerminalNinja.Core.Elements;
 /// <summary>
 /// A rectangle UI element with positioning, sizing, borders, and background color.
 /// </summary>
-public sealed class Rectangle
+public sealed class Rectangle : IElement
 {
     /// <summary>Gets or sets the X position (absolute, relative, or stretch).</summary>
     public Size X { get; init; } = Size.Absolute(0);
@@ -35,6 +35,19 @@ public sealed class Rectangle
     
     /// <summary>Gets or sets the foreground color (used for borders).</summary>
     public Color ForegroundColor { get; init; } = Color.White;
+    
+    /// <summary>
+    /// Returns the preferred size of this rectangle within the given parent bounds.
+    /// Uses resolved Width/Height if Absolute, otherwise returns the parent size.
+    /// </summary>
+    /// <param name="parent">The parent container bounds.</param>
+    /// <returns>The preferred width and height in cells.</returns>
+    public Size2D GetPreferredSize(Rect parent)
+    {
+        var w = Width.Mode == SizeMode.Absolute ? Width.Resolve(parent.Width) : parent.Width;
+        var h = Height.Mode == SizeMode.Absolute ? Height.Resolve(parent.Height) : parent.Height;
+        return new Size2D(w, h);
+    }
     
     /// <summary>
     /// Calculates the absolute bounds of this rectangle within the parent bounds.

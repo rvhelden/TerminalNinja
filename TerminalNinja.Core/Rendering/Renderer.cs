@@ -45,9 +45,19 @@ public sealed class Renderer : IDisposable
     }
     
     /// <summary>
+    /// Draws an element to the buffer (does not display until Present() is called).
+    /// </summary>
+    /// <param name="element">The element to draw.</param>
+    public void Draw(IElement element)
+    {
+        element.Render(_buffer, Viewport);
+    }
+    
+    /// <summary>
     /// Draws a rectangle element to the buffer (does not display until Present() is called).
     /// </summary>
     /// <param name="element">The rectangle element to draw.</param>
+    [Obsolete("Use Draw(IElement) instead for better flexibility")]
     public void Draw(Rectangle element)
     {
         element.Render(_buffer, Viewport);
