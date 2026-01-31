@@ -13,18 +13,21 @@ public struct AnsiStyle
     /// <summary>The current background color.</summary>
     public Color Background;
     
-    /// <summary>Whether any style has been set.</summary>
-    public bool IsSet;
+    /// <summary>Whether foreground has been set.</summary>
+    public bool ForegroundSet;
+    
+    /// <summary>Whether background has been set.</summary>
+    public bool BackgroundSet;
     
     /// <summary>
     /// Checks if the foreground color needs to be updated.
     /// </summary>
-    public readonly bool NeedsForeground(Color color) => !IsSet || Foreground != color;
+    public readonly bool NeedsForeground(Color color) => !ForegroundSet || Foreground != color;
     
     /// <summary>
     /// Checks if the background color needs to be updated.
     /// </summary>
-    public readonly bool NeedsBackground(Color color) => !IsSet || Background != color;
+    public readonly bool NeedsBackground(Color color) => !BackgroundSet || Background != color;
     
     /// <summary>
     /// Updates the tracked style.
@@ -33,11 +36,16 @@ public struct AnsiStyle
     {
         Foreground = fg;
         Background = bg;
-        IsSet = true;
+        ForegroundSet = true;
+        BackgroundSet = true;
     }
     
     /// <summary>
     /// Resets the tracked style (after a reset escape sequence).
     /// </summary>
-    public void Reset() => IsSet = false;
+    public void Reset()
+    {
+        ForegroundSet = false;
+        BackgroundSet = false;
+    }
 }

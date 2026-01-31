@@ -140,6 +140,7 @@ public sealed class AnsiWriter : IDisposable
         WriteByte((byte)'m');
         
         _currentStyle.Foreground = color;
+        _currentStyle.ForegroundSet = true;
     }
     
     /// <summary>
@@ -159,6 +160,7 @@ public sealed class AnsiWriter : IDisposable
         WriteByte((byte)'m');
         
         _currentStyle.Background = color;
+        _currentStyle.BackgroundSet = true;
     }
     
     /// <summary>
