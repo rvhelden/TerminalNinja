@@ -99,6 +99,20 @@ public sealed class Renderer : IDisposable
     }
     
     /// <summary>
+    /// Resizes the renderer to the specified dimensions.
+    /// </summary>
+    /// <param name="newWidth">The new width in columns.</param>
+    /// <param name="newHeight">The new height in rows.</param>
+    public void Resize(int newWidth, int newHeight)
+    {
+        if (newWidth == Width && newHeight == Height)
+            return; // No change needed
+        
+        _buffer.Resize(newWidth, newHeight);
+        _writer.ClearScreen();
+    }
+    
+    /// <summary>
     /// Handles terminal resize events by recreating the buffer.
     /// </summary>
     public void HandleResize()
@@ -109,11 +123,7 @@ public sealed class Renderer : IDisposable
         var newWidth = _terminal.Width;
         var newHeight = _terminal.Height;
         
-        if (newWidth != Width || newHeight != Height)
-        {
-            _buffer.Resize(newWidth, newHeight);
-            _writer.ClearScreen();
-        }
+        Resize(newWidth, newHeight);
     }
     
     /// <summary>

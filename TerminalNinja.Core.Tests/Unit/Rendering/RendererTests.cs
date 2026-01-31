@@ -203,6 +203,96 @@ public class RendererTests
     }
 
     [Test]
+    public async Task Resize_UpdatesDimensions()
+    {
+        // Arrange
+        var output = new MemoryStream();
+        using var renderer = new Core.Rendering.Renderer(output, 80, 24);
+
+        // Act
+        renderer.Resize(100, 30);
+
+        // Assert
+        await Assert.That(renderer.Width).IsEqualTo(100);
+        await Assert.That(renderer.Height).IsEqualTo(30);
+    }
+
+    [Test]
+    public async Task Resize_UpdatesViewport()
+    {
+        // Arrange
+        var output = new MemoryStream();
+        using var renderer = new Core.Rendering.Renderer(output, 80, 24);
+
+        // Act
+        renderer.Resize(120, 40);
+        var viewport = renderer.Viewport;
+
+        // Assert
+        await Assert.That(viewport.Width).IsEqualTo(120);
+        await Assert.That(viewport.Height).IsEqualTo(40);
+    }
+
+    [Test]
+    public async Task Resize_NoChange_DoesNotResize()
+    {
+        // Arrange
+        var output = new MemoryStream();
+        using var renderer = new Core.Rendering.Renderer(output, 80, 24);
+        var originalOutputLength = output.Length;
+
+        // Act - Resize to same dimensions
+        renderer.Resize(80, 24);
+
+        // Assert - No clear screen should have been written
+        await Assert.That(output.Length).IsEqualTo(originalOutputLength);
+    }
+
+    [Test]
+    public async Task Resize_ClearsScreenOnNextPresent()
+    {
+        // Arrange
+        var output = new MemoryStream();
+        using var renderer = new Core.Rendering.Renderer(output, 80, 24);
+        
+        // Draw and present first
+        renderer.Present();
+        var lengthBeforeResize = output.Length;
+
+        // Act - Resize and present
+        renderer.Resize(100, 30);
+        renderer.Present();
+
+        // Assert - Output should increase after resize + present (clear screen is written)
+        await Assert.That(output.Length).IsGreaterThan(lengthBeforeResize);
+    }
+
+    [Test]
+    public async Task Resize_InvalidatesBuffer()
+    {
+        // Arrange
+        var output = new MemoryStream();
+        using var renderer = new Core.Rendering.Renderer(output, 80, 24);
+        
+        // Draw something before resize
+        var rect = new Rectangle { BackgroundColor = Color.Red };
+        renderer.Draw((IElement)rect);
+        renderer.Present();
+
+        // Act - Resize
+        renderer.Resize(100, 30);
+        
+        // Draw again and present
+        renderer.Clear();
+        renderer.Draw((IElement)rect);
+        renderer.Present();
+
+        // Assert - Should be able to render at new size without errors
+        await Assert.That(renderer.Width).IsEqualTo(100);
+        await Assert.That(renderer.Height).IsEqualTo(30);
+    }
+
+    [Test]
     public async Task Dispose_DisablesAnsiMode()
     {
         // Arrange

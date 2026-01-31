@@ -205,8 +205,10 @@ public sealed class Application : IDisposable
     /// </summary>
     private void HandleResizeEvent(ResizeEvent resizeEvent)
     {
-        // Terminal size has changed - trigger a full re-render
-        // The renderer will automatically use the new terminal dimensions
+        // Terminal size has changed - resize the renderer's buffer
+        _renderer.Resize(resizeEvent.Width, resizeEvent.Height);
+        
+        // Trigger a full re-render with new dimensions
         Invalidate();
     }
     
