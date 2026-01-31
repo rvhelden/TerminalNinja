@@ -64,6 +64,16 @@ public sealed class CellBuffer
     }
     
     /// <summary>
+    /// Gets the cell at the specified position.
+    /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public Cell GetCell(int x, int y)
+    {
+        if (!IsInBounds(x, y)) return Cell.Empty;
+        return _current[Index(x, y)];
+    }
+    
+    /// <summary>
     /// Sets a cell with individual character and colors.
     /// </summary>
     public void SetChar(int x, int y, char c, Color fg, Color bg)
