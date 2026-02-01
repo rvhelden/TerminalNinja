@@ -105,13 +105,6 @@ public sealed class AnsiWriter : IDisposable
         // Skip if already at position
         if (_cursorX == x && _cursorY == y) return;
         
-        // Optimize: if moving to next column on same line, just write character
-        if (_cursorY == y && _cursorX + 1 == x)
-        {
-            _cursorX = x;
-            return;
-        }
-        
         // \e[{row};{col}H  (1-based coordinates for ANSI)
         WriteSpan(AnsiCodes.EscapeStart);
         WriteInt(y + 1);

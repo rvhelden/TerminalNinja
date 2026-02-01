@@ -59,11 +59,11 @@ public class AnsiWriterTests
         {
             w.MoveTo(0, 0);     // \e[1;1H
             w.WriteChar('A');   // Cursor advances to (1, 0)
-            w.MoveTo(1, 0);     // Should be optimized away (already at position)
+            w.MoveTo(1, 0);     // Already at position - optimized away
             w.WriteChar('B');   // Just write the character
         });
         
-        // Assert - Only one cursor command, then two characters
+        // Assert - Only one cursor command needed since writes are truly consecutive
         await Assert.That(output).IsEqualTo("\e[1;1HAB");
     }
     
@@ -79,6 +79,65 @@ public class AnsiWriterTests
         
         // Assert
         await Assert.That(output).IsEqualTo("\e[1;1H\e[2;1H");
+    }
+    
+    [Test]
+    public async Task MoveTo_NonConsecutivePositions_AlwaysOutputsCursorCommand()
+    {
+        // This test reproduces the bug where the optimization in MoveTo() incorrectly
+        // assumes the cursor is at x+1 when it's actually not (due to skipped cells in diffing)
+        
+        // Arrange & Act
+        var output = AnsiTestHelpers.CaptureAnsiOutput(w =>
+        {
+            // Simulate what happens during diffing:
+            // 1. Write cell at position 5
+            w.MoveTo(5, 0);
+            w.WriteChar('A');   // _cursorX is now 6 (WriteChar increments it)
+            
+            // 2. Skip position 6 (unchanged cell, no write)
+            
+            // 3. Try to write at position 7
+            // The buggy optimization will trigger: _cursorY == 0 && _cursorX (6) + 1 == 7
+            // So it skips emitting the cursor positioning command
+            // But the REAL terminal cursor is still at position 6, not 7!
+            w.MoveTo(7, 0);     // BUG: optimization skips this, but terminal cursor is at 6, not 7
+            w.WriteChar('B');   // This will write at position 6, not 7!
+        });
+        
+        // Assert - Must have TWO cursor commands to properly position both characters
+        var cursorCommands = AnsiTestHelpers.CountOccurrences(output, "\e[");
+        await Assert.That(cursorCommands).IsEqualTo(2);
+        await Assert.That(output).IsEqualTo("\e[1;6HA\e[1;8HB");
+    }
+    
+    [Test]
+    public async Task WriteCell_WithSkippedPositions_PositionsCorrectly()
+    {
+        // This test simulates the exact scenario from the bug report:
+        // When updating a status bar with diffing, some cells are unchanged and skipped
+        
+        // Arrange
+        var cell1 = new Cell('C', Color.White, Color.Black);
+        var cell2 = new Cell('l', Color.White, Color.Black);
+        var cell3 = new Cell('s', Color.White, Color.Black);  // At position 10, should be at 10 not wrong place
+        
+        // Act - Simulate differential rendering with gaps
+        var output = AnsiTestHelpers.CaptureAnsiOutput(w =>
+        {
+            // Write "Cl" at positions 0-1
+            w.WriteCell(0, 0, cell1);
+            w.WriteCell(1, 0, cell2);
+            
+            // Skip positions 2-9 (unchanged cells in diff)
+            
+            // Write "s" at position 10
+            w.WriteCell(10, 0, cell3);
+        });
+        
+        // Assert - The character 's' must be positioned at column 10 (11 in 1-based ANSI)
+        // Without the fix, the optimization would skip the MoveTo and write 's' at wrong position
+        await Assert.That(output).Contains("\e[1;11H");  // Must reposition to column 11
     }
     
     #endregion
