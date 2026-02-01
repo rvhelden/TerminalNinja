@@ -227,24 +227,24 @@ public sealed class FocusManager
             result.Add((focusable, bounds));
         }
         
-        // Recursively search children in Stack elements
-        if (control is Stack stack)
+        // Recursively search children in StackPanel elements
+        if (control is StackPanel stackPanel)
         {
             var stackBounds = control.CalculateBounds(parentBounds);
             
-            // Mirror the layout logic from Stack.Render() to calculate actual child positions
-            var childSizes = stack.CalculateChildSizes(stackBounds);
-            var position = stack.Orientation == StackOrientation.Horizontal ? stackBounds.X : stackBounds.Y;
+            // Mirror the layout logic from StackPanel.Render() to calculate actual child positions
+            var childSizes = stackPanel.CalculateChildSizes(stackBounds);
+            var position = stackPanel.Orientation == Orientation.Horizontal ? stackBounds.X : stackBounds.Y;
             
-            for (var i = 0; i < stack.Children.Count; i++)
+            for (var i = 0; i < stackPanel.Children.Count; i++)
             {
-                var child = stack.Children[i];
+                var child = stackPanel.Children[i];
                 var size = childSizes[i];
                 
                 if (size <= 0) continue; // Skip zero-size children
                 
-                var childBounds = stack.CreateChildBounds(stackBounds, position, size);
-                var childResults = CollectFocusableControls(child.Content, childBounds);
+                var childBounds = stackPanel.CreateChildBounds(stackBounds, position, size);
+                var childResults = CollectFocusableControls(child, childBounds);
                 result.AddRange(childResults);
                 
                 position += size;

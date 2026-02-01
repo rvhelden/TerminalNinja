@@ -1,6 +1,11 @@
 <Window xmlns="http://schemas.terminalninja.dev/xaml"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         x:Name="App"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:sample="clr-namespace:Sample"
+        mc:Ignorable="d"
+        d:DataContext="{d:DesignInstance sample:DemoViewModel}"
         Title="TerminalNinja Demo">
     
     <!-- Window-level Resources -->
@@ -14,10 +19,10 @@
         <Color x:Key="HighlightColor">Yellow</Color>
     </Window.Resources>
     
-    <Stack Orientation="Vertical">
+    <StackPanel Orientation="Vertical">
         
         <!-- Header with data binding -->
-        <Rectangle Stack.SizeMode="Fixed" Stack.FixedSize="5"
+        <Rectangle StackPanel.SizeMode="Fixed" StackPanel.FixedSize="5"
                    BackgroundColor="{StaticResource HeaderBackground}"
                    ForegroundColor="{StaticResource AccentColor}"
                    Border="Double">
@@ -29,16 +34,16 @@
         </Rectangle>
         
         <!-- Toolbar with command binding -->
-        <Rectangle Stack.SizeMode="Fixed" Stack.FixedSize="5"
+        <Rectangle StackPanel.SizeMode="Fixed" StackPanel.FixedSize="5"
                    BackgroundColor="{StaticResource ToolbarBackground}"
                    Border="Single">
-            <Stack Orientation="Horizontal">
-                <Rectangle Stack.SizeMode="Auto"
+            <StackPanel Orientation="Horizontal">
+                <Rectangle StackPanel.SizeMode="Auto"
                            Width="2"
                            BackgroundColor="{StaticResource ToolbarBackground}" />
                 
                 <Button x:Name="newButton"
-                        Stack.SizeMode="Auto"
+                        StackPanel.SizeMode="Auto"
                         Text="New"
                         Width="12"
                         Height="3"
@@ -50,7 +55,7 @@
                         Command="{Binding Path=NewCommand}" />
                 
                 <Button x:Name="openButton"
-                        Stack.SizeMode="Auto"
+                        StackPanel.SizeMode="Auto"
                         Text="Open"
                         Width="12"
                         Height="3"
@@ -62,7 +67,7 @@
                         Command="{Binding Path=OpenCommand}" />
                 
                 <Button x:Name="saveButton"
-                        Stack.SizeMode="Auto"
+                        StackPanel.SizeMode="Auto"
                         Text="Save"
                         Width="12"
                         Height="3"
@@ -73,13 +78,13 @@
                         BackgroundColor="{StaticResource ButtonBackground}"
                         Command="{Binding Path=SaveCommand}" />
                 
-                <Rectangle Stack.SizeMode="Stretch"
+                <Rectangle StackPanel.SizeMode="Stretch"
                            BackgroundColor="{StaticResource ToolbarBackground}" />
-            </Stack>
+            </StackPanel>
         </Rectangle>
         
         <!-- Content Area with data binding -->
-        <Rectangle Stack.SizeMode="Stretch"
+        <Rectangle StackPanel.SizeMode="Stretch"
                    BackgroundColor="{StaticResource ContentBackground}"
                    Border="Rounded">
             <Label x:Name="contentLabel"
@@ -92,7 +97,7 @@
         </Rectangle>
         
         <!-- Status Bar with data binding -->
-        <Rectangle Stack.SizeMode="Fixed" Stack.FixedSize="3"
+        <Rectangle StackPanel.SizeMode="Fixed" StackPanel.FixedSize="3"
                    BackgroundColor="{StaticResource StatusBackground}"
                    ForegroundColor="{StaticResource HighlightColor}"
                    Border="Single">
@@ -103,5 +108,5 @@
                    VerticalTextAlignment="Center" />
         </Rectangle>
         
-    </Stack>
+    </StackPanel>
 </Window>

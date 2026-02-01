@@ -36,10 +36,10 @@ public static class ControlExtensions
                 if (rectResult != null) return rectResult;
                 break;
                 
-            case Stack stack:
-                foreach (var child in stack.Children)
+            case StackPanel stackPanel:
+                foreach (var child in stackPanel.Children)
                 {
-                    var stackResult = FindByNameRecursive(child.Content, name);
+                    var stackResult = FindByNameRecursive(child, name);
                     if (stackResult != null) return stackResult;
                 }
                 break;

@@ -102,19 +102,19 @@ public class BindingTests
     {
         // Arrange
         var xaml = """
-            <Stack xmlns="http://schemas.terminalninja.dev/xaml">
+            <StackPanel xmlns="http://schemas.terminalninja.dev/xaml">
                 <Label Text="{Binding Path=Text}" />
                 <Button Text="Test" Command="{Binding Path=TestCommand}" />
-            </Stack>
+            </StackPanel>
             """;
         
         var viewModel = new TestViewModel();
         var bindingManager = new BindingManager();
         
         // Act
-        var stack = TerminalXaml.Load<Stack>(xaml, viewModel, bindingManager);
-        var label = (Label)stack.Children[0].Content;
-        var button = (Button)stack.Children[1].Content;
+        var stackPanel = TerminalXaml.Load<StackPanel>(xaml, viewModel, bindingManager);
+        var label = (Label)stackPanel.Children[0];
+        var button = (Button)stackPanel.Children[1];
         
         // Assert - initial state
         await Assert.That(label.Text).IsEqualTo("Initial");

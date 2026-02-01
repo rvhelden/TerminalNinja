@@ -13,9 +13,9 @@
     </ItemGroup>
 
     <ItemGroup>
-      <Page Include="DemoLayout.xaml">
-        <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-      </Page>
+      <EmbeddedResource Include="DemoLayout.xaml">
+        <LogicalName>Sample.DemoLayout.xaml</LogicalName>
+      </EmbeddedResource>
     </ItemGroup>
 
     <ItemGroup>

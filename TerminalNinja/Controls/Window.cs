@@ -1,6 +1,7 @@
 using Portable.Xaml.Markup;
 using TerminalNinja.Buffers;
 using TerminalNinja.Primitives;
+using SWM = System.Windows.Markup;
 
 namespace TerminalNinja.Controls;
 
@@ -9,7 +10,9 @@ namespace TerminalNinja.Controls;
 /// Window is a logical container that holds Content and provides window-scoped resources.
 /// </summary>
 [ContentProperty("Content")]
+[SWM.ContentProperty("Content")]
 [RuntimeNameProperty("Name")]
+[SWM.RuntimeNameProperty("Name")]
 public class Window : FrameworkElement
 {
     private string _title = "";

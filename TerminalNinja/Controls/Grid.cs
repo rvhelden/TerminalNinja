@@ -2,6 +2,7 @@ using Portable.Xaml;
 using Portable.Xaml.Markup;
 using TerminalNinja.Buffers;
 using TerminalNinja.Primitives;
+using SWM = System.Windows.Markup;
 
 namespace TerminalNinja.Controls;
 
@@ -10,12 +11,13 @@ namespace TerminalNinja.Controls;
 /// Supports attached properties Grid.Row, Grid.Column, Grid.RowSpan, and Grid.ColumnSpan.
 /// </summary>
 [ContentProperty("Children")]
+[SWM.ContentProperty("Children")]
 [RuntimeNameProperty("Name")]
-public sealed class Grid : FrameworkElement
+[SWM.RuntimeNameProperty("Name")]
+public sealed class Grid : Panel
 {
     private readonly List<RowDefinition> _rowDefinitions = new();
     private readonly List<ColumnDefinition> _columnDefinitions = new();
-    private readonly List<IControl> _children = new();
     
     /// <summary>
     /// Gets the collection of row definitions for this grid.
@@ -28,11 +30,6 @@ public sealed class Grid : FrameworkElement
     /// If empty, the grid has a single column that fills available width.
     /// </summary>
     public IList<ColumnDefinition> ColumnDefinitions => _columnDefinitions;
-    
-    /// <summary>
-    /// Gets the collection of child elements in this grid.
-    /// </summary>
-    public IList<IControl> Children => _children;
     
     #region Attached Properties using AttachablePropertyServices
     
@@ -134,9 +131,8 @@ public sealed class Grid : FrameworkElement
     /// </summary>
     public override void Render(CellBuffer buffer, Rect parentBounds)
     {
-        if (_children.Count == 0) return;
-        
         var bounds = CalculateBounds(parentBounds);
+        if (Children.Count == 0) return;
         
         // Ensure we have at least one row and column definition
         var rows = _rowDefinitions.Count > 0 ? _rowDefinitions : [new RowDefinition()];
@@ -150,11 +146,9 @@ public sealed class Grid : FrameworkElement
         CalculateOffsets(rows, bounds.Y, (r, o) => r.Offset = o, r => r.ActualHeight);
         CalculateOffsets(cols, bounds.X, (c, o) => c.Offset = o, c => c.ActualWidth);
         
-        // Wire up parent relationships and render each child
-        foreach (var child in _children)
+        // Render each child
+        foreach (var child in Children)
         {
-            child.Parent = this;
-            
             var row = Math.Min(GetRow(child), rows.Count - 1);
             var col = Math.Min(GetColumn(child), cols.Count - 1);
             var rowSpan = Math.Min(GetRowSpan(child), rows.Count - row);

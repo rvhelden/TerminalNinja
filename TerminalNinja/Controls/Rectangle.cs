@@ -2,6 +2,7 @@ using Portable.Xaml.Markup;
 using TerminalNinja.Buffers;
 using TerminalNinja.Primitives;
 using TerminalNinja.Styling;
+using SWM = System.Windows.Markup;
 
 namespace TerminalNinja.Controls;
 
@@ -9,7 +10,9 @@ namespace TerminalNinja.Controls;
 /// A rectangle UI control with positioning, sizing, borders, and background color.
 /// </summary>
 [ContentProperty("Child")]
+[SWM.ContentProperty("Child")]
 [RuntimeNameProperty("Name")]
+[SWM.RuntimeNameProperty("Name")]
 public sealed class Rectangle : FrameworkElement
 {
     // Bindable properties (with change notification)

@@ -126,10 +126,9 @@ public sealed class Application : IDisposable
             case Rectangle rect when rect.Child != null:
                 WireInvalidation(rect.Child);
                 break;
-            case Stack stack:
-                foreach (var child in stack.Children)
-                    if (child.Content != null)
-                        WireInvalidation(child.Content);
+            case StackPanel stackPanel:
+                foreach (var child in stackPanel.Children)
+                    WireInvalidation(child);
                 break;
         }
     }

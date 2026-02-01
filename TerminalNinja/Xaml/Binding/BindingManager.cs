@@ -107,10 +107,9 @@ public sealed class BindingManager : IDisposable
                 SetDataContextRecursive(rect.Child, dataContext);
                 break;
             
-            case Stack stack:
-                foreach (var child in stack.Children)
-                    if (child.Content != null)
-                        SetDataContextRecursive(child.Content, dataContext);
+            case StackPanel stackPanel:
+                foreach (var child in stackPanel.Children)
+                    SetDataContextRecursive(child, dataContext);
                 break;
         }
     }

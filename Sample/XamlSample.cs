@@ -1,3 +1,4 @@
+using System.Reflection;
 using TerminalNinja.App;
 using TerminalNinja.Controls;
 using TerminalNinja.Xaml;
@@ -20,20 +21,26 @@ public static class XamlSample
         // Create ViewModel
         var viewModel = new DemoViewModel();
 
-        // Load UI from XAML file with Window as root
-        var xamlPath = Path.Combine(AppContext.BaseDirectory, "DemoLayout.xaml");
+        // Load UI from embedded XAML resource
+        var assembly = Assembly.GetExecutingAssembly();
+        var resourceName = "Sample.DemoLayout.xaml";
         
-        if (!File.Exists(xamlPath))
+        using var stream = assembly.GetManifestResourceStream(resourceName);
+        if (stream == null)
         {
-            Console.WriteLine($"ERROR: Could not find {xamlPath}");
-            Console.WriteLine("Make sure DemoLayout.xaml is copied to the output directory.");
+            Console.WriteLine($"ERROR: Could not find embedded resource '{resourceName}'");
+            Console.WriteLine("Available resources:");
+            foreach (var name in assembly.GetManifestResourceNames())
+            {
+                Console.WriteLine($"  - {name}");
+            }
             Thread.Sleep(3000);
             return;
         }
-
-        // Load XAML with binding support - now returns Window instead of Stack
+        
+        // Load XAML with binding support from embedded resource stream
         var bindingManager = new BindingManager();
-        var window = TerminalXaml.LoadFromFile<Window>(xamlPath, viewModel, bindingManager);
+        var window = TerminalXaml.LoadFromStream<Window>(stream, viewModel, bindingManager);
 
         // Use the WPF-style Window.Show() pattern
         // This sets app.RootControl = window internally
@@ -50,7 +57,7 @@ public static class XamlSample
             }
         };
 
-        Console.WriteLine("Window loaded with StaticResource support! Starting application...\n");
+        Console.WriteLine("Window loaded from embedded resource with StaticResource support! Starting application...\n");
         Console.WriteLine("Click the buttons to see automatic UI updates via binding!\n");
         Console.WriteLine("Colors are now defined in Window.Resources and referenced via {StaticResource}!\n");
         Thread.Sleep(1000);

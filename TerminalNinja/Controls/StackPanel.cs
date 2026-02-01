@@ -2,46 +2,29 @@ using Portable.Xaml;
 using Portable.Xaml.Markup;
 using TerminalNinja.Buffers;
 using TerminalNinja.Primitives;
+using SWM = System.Windows.Markup;
 
 namespace TerminalNinja.Controls;
 
 /// <summary>
-/// A layout container that arranges child elements horizontally or vertically.
+/// A panel that arranges child elements sequentially in a horizontal or vertical orientation.
+/// Children can be sized using StackPanel.SizeMode and StackPanel.FixedSize attached properties.
 /// </summary>
 [ContentProperty("Children")]
+[SWM.ContentProperty("Children")]
 [RuntimeNameProperty("Name")]
-public sealed class Stack : FrameworkElement
+[SWM.RuntimeNameProperty("Name")]
+public class StackPanel : Panel
 {
-    // Layout properties (kept as init for now)
-    /// <summary>Gets or sets the orientation (Horizontal or Vertical).</summary>
-    public StackOrientation Orientation { get; init; } = StackOrientation.Horizontal;
+    /// <summary>
+    /// Gets or sets the orientation (Horizontal or Vertical) of the stack.
+    /// </summary>
+    public Orientation Orientation { get; set; } = Orientation.Vertical;
     
-    /// <summary>Gets or sets the alignment of children on the cross-axis.</summary>
-    public Alignment CrossAxisAlignment { get; init; } = Alignment.Start;
-    
-    private List<StackChild> _children = [];
-    /// <summary>Gets or sets the list of child elements with their sizing modes.</summary>
-    public List<StackChild> Children
-    {
-        get => _children;
-        init
-        {
-            // Wire up Parent for each child control
-            foreach (var child in _children)
-            {
-                if (child.Content != null)
-                    child.Content.Parent = null;
-            }
-            
-            _children = value;
-            
-            foreach (var child in _children)
-            {
-                if (child.Content != null)
-                    child.Content.Parent = this;
-            }
-        }
-    }
+    /// <summary>
+    /// Gets or sets the alignment of children on the cross-axis.
+    /// </summary>
+    public Alignment CrossAxisAlignment { get; set; } = Alignment.Start;
     
     /// <summary>
     /// Returns the preferred size of this stack (sum of children's preferred sizes).
@@ -56,36 +39,37 @@ public sealed class Stack : FrameworkElement
         
         foreach (var child in Children)
         {
-            var preferredSize = child.Content.GetPreferredSize(parent);
+            var sizeMode = GetSizeMode(child);
+            var preferredSize = child.GetPreferredSize(parent);
             
-            if (Orientation == StackOrientation.Horizontal)
+            if (Orientation == Orientation.Horizontal)
             {
-                totalMainAxis += child.SizeMode == ChildSizeMode.Fixed 
-                    ? child.FixedSize 
+                totalMainAxis += sizeMode == ChildSizeMode.Fixed 
+                    ? GetFixedSize(child)
                     : preferredSize.Width;
                 maxCrossAxis = Math.Max(maxCrossAxis, preferredSize.Height);
             }
             else
             {
-                totalMainAxis += child.SizeMode == ChildSizeMode.Fixed 
-                    ? child.FixedSize 
+                totalMainAxis += sizeMode == ChildSizeMode.Fixed 
+                    ? GetFixedSize(child)
                     : preferredSize.Height;
                 maxCrossAxis = Math.Max(maxCrossAxis, preferredSize.Width);
             }
         }
         
-        return Orientation == StackOrientation.Horizontal
+        return Orientation == Orientation.Horizontal
             ? new Size2D(totalMainAxis, maxCrossAxis)
             : new Size2D(maxCrossAxis, totalMainAxis);
     }
     
     /// <summary>
-    /// Calculates bounds (Stack always fills parent).
+    /// Calculates bounds (StackPanel always fills parent).
     /// </summary>
     public override Rect CalculateBounds(Rect parent) => parent;
     
     /// <summary>
-    /// Renders the stack and all its children.
+    /// Renders the stack panel and all its children.
     /// </summary>
     public override void Render(CellBuffer buffer, Rect parentBounds)
     {
@@ -97,7 +81,7 @@ public sealed class Stack : FrameworkElement
         var childSizes = CalculateChildSizes(bounds);
         
         // Render each child at its calculated position
-        var position = Orientation == StackOrientation.Horizontal ? bounds.X : bounds.Y;
+        var position = Orientation == Orientation.Horizontal ? bounds.X : bounds.Y;
         
         for (var i = 0; i < Children.Count; i++)
         {
@@ -107,7 +91,7 @@ public sealed class Stack : FrameworkElement
             if (size <= 0) continue; // Skip zero-size children
             
             var childBounds = CreateChildBounds(bounds, position, size);
-            child.Content.Render(buffer, childBounds);
+            child.Render(buffer, childBounds);
             
             position += size;
         }
@@ -119,7 +103,7 @@ public sealed class Stack : FrameworkElement
     internal int[] CalculateChildSizes(Rect bounds)
     {
         var sizes = new int[Children.Count];
-        var mainAxisSize = Orientation == StackOrientation.Horizontal ? bounds.Width : bounds.Height;
+        var mainAxisSize = Orientation == Orientation.Horizontal ? bounds.Width : bounds.Height;
         
         var totalFixed = 0;
         var stretchCount = 0;
@@ -128,17 +112,18 @@ public sealed class Stack : FrameworkElement
         for (var i = 0; i < Children.Count; i++)
         {
             var child = Children[i];
+            var sizeMode = GetSizeMode(child);
             
-            switch (child.SizeMode)
+            switch (sizeMode)
             {
                 case ChildSizeMode.Fixed:
-                    sizes[i] = child.FixedSize;
-                    totalFixed += child.FixedSize;
+                    sizes[i] = GetFixedSize(child);
+                    totalFixed += sizes[i];
                     break;
                 
                 case ChildSizeMode.Auto:
-                    var preferredSize = child.Content.GetPreferredSize(bounds);
-                    sizes[i] = Orientation == StackOrientation.Horizontal 
+                    var preferredSize = child.GetPreferredSize(bounds);
+                    sizes[i] = Orientation == Orientation.Horizontal 
                         ? preferredSize.Width 
                         : preferredSize.Height;
                     totalFixed += sizes[i];
@@ -156,7 +141,7 @@ public sealed class Stack : FrameworkElement
         
         for (var i = 0; i < Children.Count; i++)
         {
-            if (Children[i].SizeMode == ChildSizeMode.Stretch)
+            if (GetSizeMode(Children[i]) == ChildSizeMode.Stretch)
             {
                 sizes[i] = stretchSize;
             }
@@ -171,7 +156,7 @@ public sealed class Stack : FrameworkElement
     /// </summary>
     internal Rect CreateChildBounds(Rect stackBounds, int position, int size)
     {
-        if (Orientation == StackOrientation.Horizontal)
+        if (Orientation == Orientation.Horizontal)
         {
             // Horizontal stack: position is X coordinate, size is width
             // Child fills the full height of the stack
@@ -187,11 +172,11 @@ public sealed class Stack : FrameworkElement
     
     #region Attached Properties using AttachablePropertyServices
     
-    private static readonly AttachableMemberIdentifier SizeModeId = new(typeof(Stack), "SizeMode");
-    private static readonly AttachableMemberIdentifier FixedSizeId = new(typeof(Stack), "FixedSize");
+    private static readonly AttachableMemberIdentifier SizeModeId = new(typeof(StackPanel), "SizeMode");
+    private static readonly AttachableMemberIdentifier FixedSizeId = new(typeof(StackPanel), "FixedSize");
     
     /// <summary>
-    /// Gets the Stack.SizeMode attached property value for an control.
+    /// Gets the StackPanel.SizeMode attached property value for a control.
     /// </summary>
     public static ChildSizeMode GetSizeMode(object control)
     {
@@ -202,7 +187,7 @@ public sealed class Stack : FrameworkElement
     }
     
     /// <summary>
-    /// Sets the Stack.SizeMode attached property value for an control.
+    /// Sets the StackPanel.SizeMode attached property value for a control.
     /// </summary>
     public static void SetSizeMode(object control, ChildSizeMode mode)
     {
@@ -211,7 +196,7 @@ public sealed class Stack : FrameworkElement
     }
     
     /// <summary>
-    /// Gets the Stack.FixedSize attached property value for an control.
+    /// Gets the StackPanel.FixedSize attached property value for a control.
     /// </summary>
     public static int GetFixedSize(object control)
     {
@@ -222,7 +207,7 @@ public sealed class Stack : FrameworkElement
     }
     
     /// <summary>
-    /// Sets the Stack.FixedSize attached property value for an control.
+    /// Sets the StackPanel.FixedSize attached property value for a control.
     /// </summary>
     public static void SetFixedSize(object control, int size)
     {

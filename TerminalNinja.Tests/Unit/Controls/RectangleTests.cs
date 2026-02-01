@@ -810,16 +810,22 @@ public class RectangleTests
     [Test]
     public async Task Render_WithStackChild_RendersAllStackChildren()
     {
-        // Create a Rectangle with a horizontal Stack containing 3 Labels
-        var stack = new Stack
+        // Create a Rectangle with a horizontal StackPanel containing 3 Labels
+        var labelA = new Label { Text = "A", ForegroundColor = Color.Red };
+        var labelB = new Label { Text = "B", ForegroundColor = Color.Green };
+        var labelC = new Label { Text = "C", ForegroundColor = Color.Blue };
+        
+        StackPanel.SetSizeMode(labelA, ChildSizeMode.Fixed);
+        StackPanel.SetFixedSize(labelA, 5);
+        StackPanel.SetSizeMode(labelB, ChildSizeMode.Fixed);
+        StackPanel.SetFixedSize(labelB, 5);
+        StackPanel.SetSizeMode(labelC, ChildSizeMode.Fixed);
+        StackPanel.SetFixedSize(labelC, 5);
+        
+        var stackPanel = new StackPanel
         {
-            Orientation = StackOrientation.Horizontal,
-            Children =
-            [
-                StackChild.Fixed(new Label { Text = "A", ForegroundColor = Color.Red }, 5),
-                StackChild.Fixed(new Label { Text = "B", ForegroundColor = Color.Green }, 5),
-                StackChild.Fixed(new Label { Text = "C", ForegroundColor = Color.Blue }, 5)
-            ]
+            Orientation = Orientation.Horizontal,
+            Children = { labelA, labelB, labelC }
         };
 
         var rect = new Rectangle
@@ -827,7 +833,7 @@ public class RectangleTests
             Width = Size.Absolute(15),
             Height = Size.Absolute(3),
             BackgroundColor = Color.Black,
-            Child = stack
+            Child = stackPanel
         };
 
         rect.Render(_buffer, new Rect(0, 0, BufferWidth, BufferHeight));
@@ -851,22 +857,21 @@ public class RectangleTests
         var centerLabel = new Label { Text = "Center", BackgroundColor = Color.Green };
         var rightLabel = new Label { Text = "Right", BackgroundColor = Color.Blue };
 
-        var stack = new Stack
+        StackPanel.SetSizeMode(leftLabel, ChildSizeMode.Auto);
+        StackPanel.SetSizeMode(centerLabel, ChildSizeMode.Stretch);
+        StackPanel.SetSizeMode(rightLabel, ChildSizeMode.Auto);
+
+        var stackPanel = new StackPanel
         {
-            Orientation = StackOrientation.Horizontal,
-            Children =
-            [
-                StackChild.Auto(leftLabel),    // Width = 4 (text length)
-                StackChild.Stretch(centerLabel), // Should fill remaining
-                StackChild.Auto(rightLabel)    // Width = 5 (text length)
-            ]
+            Orientation = Orientation.Horizontal,
+            Children = { leftLabel, centerLabel, rightLabel }
         };
 
         var rect = new Rectangle
         {
             Width = Size.Absolute(20),
             Height = Size.Absolute(1),
-            Child = stack
+            Child = stackPanel
         };
 
         rect.Render(_buffer, new Rect(0, 0, BufferWidth, BufferHeight));
@@ -908,15 +913,16 @@ public class RectangleTests
             Border = Border.Single(Color.Blue)
         };
 
-        var stack = new Stack
+        StackPanel.SetSizeMode(leftRect, ChildSizeMode.Fixed);
+        StackPanel.SetFixedSize(leftRect, 5);
+        StackPanel.SetSizeMode(centerRect, ChildSizeMode.Stretch);
+        StackPanel.SetSizeMode(rightRect, ChildSizeMode.Fixed);
+        StackPanel.SetFixedSize(rightRect, 5);
+
+        var stackPanel = new StackPanel
         {
-            Orientation = StackOrientation.Horizontal,
-            Children =
-            [
-                StackChild.Fixed(leftRect, 5),
-                StackChild.Stretch(centerRect),
-                StackChild.Fixed(rightRect, 5)
-            ]
+            Orientation = Orientation.Horizontal,
+            Children = { leftRect, centerRect, rightRect }
         };
 
         var outerRect = new Rectangle
@@ -925,7 +931,7 @@ public class RectangleTests
             Height = Size.Absolute(5),
             BackgroundColor = Color.Black,
             Border = Border.Double(Color.White),
-            Child = stack
+            Child = stackPanel
         };
 
         outerRect.Render(_buffer, new Rect(0, 0, BufferWidth, BufferHeight));
@@ -950,7 +956,7 @@ public class RectangleTests
     [Test]
     public async Task Render_StackChildInsideBorder_RespectsInnerBounds()
     {
-        // Stack should get inner bounds (after border subtraction)
+        // StackPanel should get inner bounds (after border subtraction)
         var label = new Label
         {
             Text = "Test",
@@ -958,10 +964,12 @@ public class RectangleTests
             BackgroundColor = Color.Blue
         };
 
-        var stack = new Stack
+        StackPanel.SetSizeMode(label, ChildSizeMode.Stretch);
+
+        var stackPanel = new StackPanel
         {
-            Orientation = StackOrientation.Horizontal,
-            Children = [StackChild.Stretch(label)]
+            Orientation = Orientation.Horizontal,
+            Children = { label }
         };
 
         var rect = new Rectangle
@@ -970,7 +978,7 @@ public class RectangleTests
             Height = Size.Absolute(3),
             Border = Border.Single(Color.Cyan),
             BackgroundColor = Color.Blue,
-            Child = stack
+            Child = stackPanel
         };
 
         rect.Render(_buffer, new Rect(0, 0, BufferWidth, BufferHeight));

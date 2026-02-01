@@ -11,7 +11,7 @@ This document provides essential information for AI coding agents working in the
 - **IDE**: JetBrains Rider (optional)
 - **Solution Structure**: 
   - `TerminalNinja/` - Core library (terminal UI framework with XAML support)
-  - `TerminalNinja.Tests/` - Test project (486 tests, all passing)
+  - `TerminalNinja.Tests/` - Test project (497 tests, all passing)
   - `Sample/` - Sample console application demonstrating XAML usage
 
 ## Build & Test Commands
@@ -84,7 +84,7 @@ dotnet run --project Sample/Sample.csproj
 
 TerminalNinja is a WPF-like terminal UI framework with XAML support:
 
-- **Controls** (`TerminalNinja.Controls`): UI controls (Stack, Grid, Window, Rectangle, Button, Label)
+- **Controls** (`TerminalNinja.Controls`): UI controls (StackPanel, Grid, ItemsControl, Window, Rectangle, Button, Label)
 - **Primitives** (`TerminalNinja.Primitives`): Basic types (Color, Size, Rect, Thickness, Border, etc.)
 - **Buffers** (`TerminalNinja.Buffers`): Cell-based rendering buffers
 - **Styling** (`TerminalNinja.Styling`): Style and Setter for control theming
@@ -98,7 +98,7 @@ TerminalNinja is a WPF-like terminal UI framework with XAML support:
 
 - **WPF-inspired**: Uses WPF terminology (Control, FrameworkElement, Content, etc.)
 - **XAML-first**: Supports declarative UI with XAML markup
-- **Attached properties**: Stack.SizeMode, Grid.Row/Column for layout control
+- **Attached properties**: StackPanel.SizeMode, Grid.Row/Column for layout control
 - **Data binding**: `{Binding PropertyName}` support with INotifyPropertyChanged
 - **Static resources**: `{StaticResource KeyName}` for reusable values
 - **Styles**: Apply consistent theming with Style/Setter pattern
@@ -379,7 +379,6 @@ Existing converters:
 - `ThicknessTypeConverter` - Parses thickness like "5", "5,10", "5,10,5,10"
 - `BorderTypeConverter` - Parses borders like "Single", "Double", "Rounded"
 - `GridLengthTypeConverter` - Parses grid lengths like "Auto", "*", "2*", "100"
-- `StackChildTypeConverter` - Converts IControl to StackChild by reading attached properties
 
 ### XAML Namespace
 
@@ -420,6 +419,81 @@ window.Show();  // Sets Application.Current.RootControl = window
 
 ## Recent Changes (Feb 2026)
 
+### Panel/StackPanel/ItemsControl Refactoring (Feb 1, 2026)
+
+Major architectural refactoring to align with WPF patterns by introducing `Panel` base class and removing the old `Stack` system:
+
+**New Classes Created:**
+- `Panel` (abstract) - Base class for all layout containers with automatic `Children` collection management
+- `StackPanel` - WPF-aligned stack layout with `Orientation` property (Horizontal/Vertical)
+- `ItemsControl` - Data-bound collection display with `ItemsSource`, `ItemTemplate`, and `ItemsPanel` properties
+- `DataTemplate` - Template system for visualizing data items
+- `Orientation` enum - `Horizontal` and `Vertical` values
+
+**Deleted Classes:**
+- `Stack` - Replaced by `StackPanel`
+- `StackChild` - No longer needed (children added directly to `Children` collection)
+- `StackOrientation` - Replaced by `Orientation` enum
+- `StackChildTypeConverter` - No longer needed
+- `ContentPropertyAttribute` - Now provided by System.Xaml in Windows Desktop framework
+
+**Grid Updated:**
+- Changed base class from `FrameworkElement` to `Panel`
+- Now inherits `Children` collection from `Panel`
+- Removed duplicate `_children` field
+
+**Key Pattern Changes:**
+
+Old Stack pattern:
+```csharp
+var stack = new Stack {
+    Orientation = StackOrientation.Vertical,
+    Children = [
+        StackChild.Fixed(new Label { Text = "A" }, 5),
+        StackChild.Stretch(new Label { Text = "B" })
+    ]
+};
+```
+
+New StackPanel pattern:
+```csharp
+var label1 = new Label { Text = "A" };
+var label2 = new Label { Text = "B" };
+StackPanel.SetSizeMode(label1, ChildSizeMode.Fixed);
+StackPanel.SetFixedSize(label1, 5);
+StackPanel.SetSizeMode(label2, ChildSizeMode.Stretch);
+
+var stackPanel = new StackPanel {
+    Orientation = Orientation.Vertical,
+    Children = { label1, label2 }
+};
+```
+
+XAML changes:
+- `<Stack>` → `<StackPanel>`
+- `Stack.SizeMode` → `StackPanel.SizeMode`
+- `Stack.FixedSize` → `StackPanel.FixedSize`
+
+**New Class Hierarchy:**
+```
+IControl
+  └── ControlBase (INPC + invalidation)
+        └── FrameworkElement (resources, styles, data binding)
+              ├── Panel (abstract - Children collection, Background property)
+              │     ├── StackPanel (Orientation, sequential layout)
+              │     └── Grid (rows/columns layout)
+              │
+              ├── ItemsControl (ItemsSource, ItemTemplate, ItemsPanel)
+              │
+              └── Other controls (Rectangle, Label, Button, Window, etc.)
+```
+
+**Test Coverage:**
+- Added `PanelTests.cs` (32 tests) - Tests Panel base class and ObservableControlCollection
+- Added `StackPanelTests.cs` (34 tests) - Tests StackPanel layout, attached properties, and rendering
+- Removed old Stack tests (StackTests, StackChildTests, etc.)
+- **Total Tests**: 497 (up from 431)
+
 ### Windows Desktop Framework for IDE Support (Feb 1, 2026)
 
 Added `Microsoft.WindowsDesktop.App` framework reference to enable IDE XAML IntelliSense:
@@ -455,12 +529,12 @@ Moved from runtime registration to declarative attributes:
 
 - **StaticResource**: `{StaticResource KeyName}` markup extension with resource lookup
 - **Data Binding**: `{Binding PropertyName}` with INotifyPropertyChanged support
-- **Attached Properties**: Stack.SizeMode, Stack.FixedSize, Grid.Row, Grid.Column, etc.
+- **Attached Properties**: StackPanel.SizeMode, StackPanel.FixedSize, Grid.Row, Grid.Column, etc.
 - **Styles**: Style/Setter pattern with TargetType validation
 - **Window pattern**: Window.Show() / Window.Close() with Application.Current.RootControl
 
 ## Current Test Stats
 
-- **Total Tests**: 486
+- **Total Tests**: 497
 - **Status**: All passing ✅
 - **Test Coverage**: Unit tests for Controls, Styling, Resources, XAML loading, and rendering

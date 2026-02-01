@@ -119,14 +119,14 @@ public class StaticResourceExtensionTests
         var window = new Window();
         window.Resources.Add("RootColor", Color.Green);
         
-        var stack = new Stack { Orientation = StackOrientation.Vertical };
+        var stackPanel = new StackPanel { Orientation = Orientation.Vertical };
         var label = new Label();
-        stack.Children.Add(StackChild.Auto(label));
-        window.Content = stack;
+        stackPanel.Children.Add(label);
+        window.Content = stackPanel;
         
         // Manually set parent relationships
-        stack.Parent = window;
-        label.Parent = stack;
+        stackPanel.Parent = window;
+        label.Parent = stackPanel;
         
         // Act
         var result = label.TryFindResource("RootColor");
@@ -142,13 +142,13 @@ public class StaticResourceExtensionTests
         var window = new Window();
         window.Resources.Add("Color", Color.Red);
         
-        var stack = new Stack { Orientation = StackOrientation.Vertical };
-        stack.Resources.Add("Color", Color.Blue); // Override
-        stack.Parent = window;
+        var stackPanel = new StackPanel { Orientation = Orientation.Vertical };
+        stackPanel.Resources.Add("Color", Color.Blue); // Override
+        stackPanel.Parent = window;
         
         // Act
         var windowResult = window.TryFindResource("Color");
-        var stackResult = stack.TryFindResource("Color");
+        var stackResult = stackPanel.TryFindResource("Color");
         
         // Assert
         await Assert.That(windowResult).IsEqualTo(Color.Red);
