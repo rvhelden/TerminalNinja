@@ -1,0 +1,13 @@
+using Portable.Xaml.Markup;
+
+// Map all CLR namespaces to a single XAML namespace URL for IntelliSense
+[assembly: XmlnsDefinition("http://schemas.terminalninja.dev/xaml", "TerminalNinja.Elements")]
+[assembly: XmlnsDefinition("http://schemas.terminalninja.dev/xaml", "TerminalNinja.Primitives")]
+[assembly: XmlnsDefinition("http://schemas.terminalninja.dev/xaml", "TerminalNinja.Styling")]
+[assembly: XmlnsDefinition("http://schemas.terminalninja.dev/xaml", "TerminalNinja.Commands")]
+[assembly: XmlnsDefinition("http://schemas.terminalninja.dev/xaml", "TerminalNinja.Xaml.Markup")]
+[assembly: XmlnsDefinition("http://schemas.terminalninja.dev/xaml", "TerminalNinja.Xaml.Binding")]
+[assembly: XmlnsDefinition("http://schemas.terminalninja.dev/xaml", "TerminalNinja.Xaml.Mvvm")]
+
+// Suggest default prefix when adding namespace
+[assembly: XmlnsPrefix("http://schemas.terminalninja.dev/xaml", "tn")]

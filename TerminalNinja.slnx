@@ -1,7 +1,5 @@
 <Solution>
   <Project Path="Sample/Sample.csproj" />
-  <Project Path="TerminalNinja.Core.Tests/TerminalNinja.Core.Tests.csproj" />
-  <Project Path="TerminalNinja.Core/TerminalNinja.Core.csproj" />
-  <Project Path="TerminalNinja.Xaml.Tests/TerminalNinja.Xaml.Tests.csproj" />
-  <Project Path="TerminalNinja.Xaml/TerminalNinja.Xaml.csproj" />
+  <Project Path="TerminalNinja.Tests/TerminalNinja.Tests.csproj" />
+  <Project Path="TerminalNinja/TerminalNinja.csproj" />
 </Solution>

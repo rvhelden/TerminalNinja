@@ -9,8 +9,7 @@
     </PropertyGroup>
 
     <ItemGroup>
-      <ProjectReference Include="..\TerminalNinja.Core\TerminalNinja.Core.csproj" />
-      <ProjectReference Include="..\TerminalNinja.Xaml\TerminalNinja.Xaml.csproj" />
+      <ProjectReference Include="..\TerminalNinja\TerminalNinja.csproj" />
     </ItemGroup>
 
     <ItemGroup>

@@ -1,5 +1,5 @@
 using System.ComponentModel;
-using TerminalNinja.Core.Commands;
+using TerminalNinja.Commands;
 using TerminalNinja.Xaml.Mvvm;
 
 namespace Sample;

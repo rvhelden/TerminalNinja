@@ -1,6 +1,5 @@
-using System.Text;
-using TerminalNinja.Core.App;
-using TerminalNinja.Core.Elements;
+using TerminalNinja.App;
+using TerminalNinja.Elements;
 using TerminalNinja.Xaml;
 using TerminalNinja.Xaml.Binding;
 
@@ -10,29 +9,6 @@ public static class XamlSample
 {
     public static void Run()
     {
-        // Set console encoding to UTF-8 for proper Unicode character rendering
-        Console.OutputEncoding = Encoding.UTF8;
-        Console.InputEncoding = Encoding.UTF8;
-
-        Console.WriteLine("╔═══════════════════════════════════════════════════════════╗");
-        Console.WriteLine("║       TerminalNinja MVVM Data Binding Demo               ║");
-        Console.WriteLine("╚═══════════════════════════════════════════════════════════╝\n");
-        Console.WriteLine("This demo demonstrates full MVVM data binding!\n");
-        Console.WriteLine("Features:");
-        Console.WriteLine("  • Data binding with {Binding Path=...}");
-        Console.WriteLine("  • INotifyPropertyChanged (ViewModelBase)");
-        Console.WriteLine("  • ICommand pattern for button actions");
-        Console.WriteLine("  • Automatic UI updates on property changes");
-        Console.WriteLine("  • TwoWay binding support");
-        Console.WriteLine("  • Nested property paths (User.Address.City)\n");
-        Console.WriteLine("Controls:");
-        Console.WriteLine("  TAB        - Next button");
-        Console.WriteLine("  Mouse      - Click buttons");
-        Console.WriteLine("  ESC        - Exit application\n");
-        Console.WriteLine("Loading UI from XAML with data binding...\n");
-
-        Thread.Sleep(1500);
-
         // Create application
         using var app = new Application(new ApplicationOptions
         {
@@ -81,19 +57,5 @@ public static class XamlSample
 
         // Cleanup
         bindingManager.Dispose();
-        
-        Console.Clear();
-        Console.WriteLine("\n╔═══════════════════════════════════════════════════════════╗");
-        Console.WriteLine("║      TerminalNinja MVVM Binding Demo Completed           ║");
-        Console.WriteLine("╚═══════════════════════════════════════════════════════════╝\n");
-        Console.WriteLine($"Total button clicks: {viewModel.ClickCount}");
-        Console.WriteLine($"Final status: {viewModel.StatusText}\n");
-        Console.WriteLine("Key features demonstrated:");
-        Console.WriteLine("  ✓ Loading UI from XAML with data binding");
-        Console.WriteLine("  ✓ {Binding Path=...} markup extension");
-        Console.WriteLine("  ✓ ViewModelBase with INotifyPropertyChanged");
-        Console.WriteLine("  ✓ ICommand pattern (NewCommand, OpenCommand, SaveCommand)");
-        Console.WriteLine("  ✓ Automatic UI updates when ViewModel properties change");
-        Console.WriteLine("  ✓ Full MVVM architecture support\n");
     }
 }

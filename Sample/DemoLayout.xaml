@@ -1,32 +1,30 @@
-<Stack xmlns="clr-namespace:TerminalNinja.Core.Elements;assembly=TerminalNinja.Core"
+<Stack xmlns="http://schemas.terminalninja.dev/xaml"
        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-       xmlns:e="clr-namespace:TerminalNinja.Core.Elements;assembly=TerminalNinja.Core"
-       xmlns:b="clr-namespace:TerminalNinja.Xaml.Markup;assembly=TerminalNinja.Xaml"
        Orientation="Vertical">
     
     <!-- Header with data binding -->
-    <Rectangle e:Stack.SizeMode="Fixed" e:Stack.FixedSize="5"
+    <Rectangle Stack.SizeMode="Fixed" Stack.FixedSize="5"
                BackgroundColor="#1E1E50"
                ForegroundColor="Cyan"
                Border="Double">
         <Label x:Name="headerLabel"
-               Text="{b:Binding Path=HeaderText}"
+               Text="{Binding Path=HeaderText}"
                ForegroundColor="Cyan"
                HorizontalTextAlignment="Center"
                VerticalTextAlignment="Center" />
     </Rectangle>
     
     <!-- Toolbar with command binding -->
-    <Rectangle e:Stack.SizeMode="Fixed" e:Stack.FixedSize="5"
+    <Rectangle Stack.SizeMode="Fixed" Stack.FixedSize="5"
                BackgroundColor="#19192D"
                Border="Single">
         <Stack Orientation="Horizontal">
-            <Rectangle e:Stack.SizeMode="Auto"
+            <Rectangle Stack.SizeMode="Auto"
                        Width="2"
                        BackgroundColor="#19192D" />
             
             <Button x:Name="newButton"
-                    e:Stack.SizeMode="Auto"
+                    Stack.SizeMode="Auto"
                     Text="New"
                     Width="12"
                     Height="3"
@@ -35,10 +33,10 @@
                     HoverColor="Yellow"
                     ForegroundColor="White"
                     BackgroundColor="#141414"
-                    Command="{b:Binding Path=NewCommand}" />
+                    Command="{Binding Path=NewCommand}" />
             
             <Button x:Name="openButton"
-                    e:Stack.SizeMode="Auto"
+                    Stack.SizeMode="Auto"
                     Text="Open"
                     Width="12"
                     Height="3"
@@ -47,10 +45,10 @@
                     HoverColor="Yellow"
                     ForegroundColor="White"
                     BackgroundColor="#141414"
-                    Command="{b:Binding Path=OpenCommand}" />
+                    Command="{Binding Path=OpenCommand}" />
             
             <Button x:Name="saveButton"
-                    e:Stack.SizeMode="Auto"
+                    Stack.SizeMode="Auto"
                     Text="Save"
                     Width="12"
                     Height="3"
@@ -59,19 +57,19 @@
                     HoverColor="Yellow"
                     ForegroundColor="White"
                     BackgroundColor="#141414"
-                    Command="{b:Binding Path=SaveCommand}" />
+                    Command="{Binding Path=SaveCommand}" />
             
-            <Rectangle e:Stack.SizeMode="Stretch"
+            <Rectangle Stack.SizeMode="Stretch"
                        BackgroundColor="#19192D" />
         </Stack>
     </Rectangle>
     
     <!-- Content Area with data binding -->
-    <Rectangle e:Stack.SizeMode="Stretch"
+    <Rectangle Stack.SizeMode="Stretch"
                BackgroundColor="#0F0F0F"
                Border="Rounded">
         <Label x:Name="contentLabel"
-               Text="{b:Binding Path=ContentText}"
+               Text="{Binding Path=ContentText}"
                ForegroundColor="White"
                HorizontalTextAlignment="Center"
                VerticalTextAlignment="Center"
@@ -80,12 +78,12 @@
     </Rectangle>
     
     <!-- Status Bar with data binding -->
-    <Rectangle e:Stack.SizeMode="Fixed" e:Stack.FixedSize="3"
+    <Rectangle Stack.SizeMode="Fixed" Stack.FixedSize="3"
                BackgroundColor="#282828"
                ForegroundColor="Yellow"
                Border="Single">
         <Label x:Name="statusLabel"
-               Text="{b:Binding Path=StatusText}"
+               Text="{Binding Path=StatusText}"
                ForegroundColor="Yellow"
                HorizontalTextAlignment="Center"
                VerticalTextAlignment="Center" />
