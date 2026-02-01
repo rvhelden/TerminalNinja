@@ -5,7 +5,8 @@ This document provides essential information for AI coding agents working in the
 ## Project Overview
 
 - **Language**: C# 13 (latest)
-- **Framework**: .NET 10.0
+- **Framework**: .NET 10.0-windows (requires Windows Desktop framework for IDE XAML support)
+- **Platform**: Windows-only (due to System.Windows.Markup dependency for IDE IntelliSense)
 - **Test Framework**: TUnit v1.12.93
 - **IDE**: JetBrains Rider (optional)
 - **Solution Structure**: 
@@ -385,11 +386,24 @@ Existing converters:
 All CLR namespaces are mapped to a single XAML namespace in `Properties/AssemblyInfo.cs`:
 
 ```csharp
+using Portable.Xaml.Markup;
+using SWM = System.Windows.Markup;
+
+// --- Portable.Xaml attributes (for runtime) ---
 [assembly: XmlnsDefinition("http://schemas.terminalninja.dev/xaml", "TerminalNinja.Controls")]
 [assembly: XmlnsDefinition("http://schemas.terminalninja.dev/xaml", "TerminalNinja.Primitives")]
-[assembly: XmlnsDefinition("http://schemas.terminalninja.dev/xaml", "TerminalNinja.Styling")]
+// etc.
+
+// --- System.Windows.Markup attributes (for IDE IntelliSense) ---
+[assembly: SWM.XmlnsDefinition("http://schemas.terminalninja.dev/xaml", "TerminalNinja.Controls")]
+[assembly: SWM.XmlnsDefinition("http://schemas.terminalninja.dev/xaml", "TerminalNinja.Primitives")]
 // etc.
 ```
+
+**Why duplicate attributes?**
+- `Portable.Xaml.Markup.XmlnsDefinition` - Used by Portable.Xaml at runtime
+- `System.Windows.Markup.XmlnsDefinition` - Recognized by Rider/Visual Studio for XAML IntelliSense
+- Both are required for full IDE + runtime support
 
 ### Loading XAML
 
@@ -405,6 +419,19 @@ window.Show();  // Sets Application.Current.RootControl = window
 ```
 
 ## Recent Changes (Feb 2026)
+
+### Windows Desktop Framework for IDE Support (Feb 1, 2026)
+
+Added `Microsoft.WindowsDesktop.App` framework reference to enable IDE XAML IntelliSense:
+- Changed TargetFramework from `net10.0` to `net10.0-windows` (Windows-only)
+- Added duplicate `System.Windows.Markup.XmlnsDefinition` attributes alongside `Portable.Xaml.Markup` versions
+- Rider/Visual Studio now recognize the XAML namespace and provide IntelliSense
+- Runtime behavior unchanged - Portable.Xaml still used for XAML parsing
+
+**Why Windows-only?**
+- IDE XAML language services require `System.Windows.Markup` attributes
+- These are only available in the Windows Desktop framework
+- Portable.Xaml alone doesn't provide IDE support
 
 ### Element → Control Rename
 
