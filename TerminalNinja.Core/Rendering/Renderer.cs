@@ -113,6 +113,32 @@ public sealed class Renderer : IDisposable
     }
     
     /// <summary>
+    /// Dumps the current screen buffer contents to a file for debugging.
+    /// The dump includes a human-readable representation of the screen with color information.
+    /// </summary>
+    /// <param name="filePath">The path where the dump file will be saved. If null, uses a timestamped filename.</param>
+    /// <returns>The path to the created dump file.</returns>
+    public string DumpScreen(string? filePath = null)
+    {
+        // Generate default filename if not provided
+        if (string.IsNullOrEmpty(filePath))
+        {
+            var timestamp = DateTime.Now.ToString("yyyyMMdd_HHmmss");
+            filePath = $"screen_dump_{timestamp}.txt";
+        }
+        
+        _buffer.SwapBuffers(); // Ensure we dump the latest buffer
+        // Get the dump string from the buffer
+        var dumpContent = _buffer.DumpToString();
+        _buffer.SwapBuffers(); // Ensure we dump the latest buffer
+        
+        // Write to file
+        File.WriteAllText(filePath, dumpContent);
+        
+        return filePath;
+    }
+    
+    /// <summary>
     /// Handles terminal resize events by recreating the buffer.
     /// </summary>
     public void HandleResize()

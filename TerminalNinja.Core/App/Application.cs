@@ -21,6 +21,11 @@ public sealed class Application : IDisposable
     private bool _disposed;
     
     /// <summary>
+    /// Event raised when a key is pressed. Set Handled to true to prevent default handling.
+    /// </summary>
+    public event Action<KeyEvent, KeyEventArgs>? KeyDown;
+    
+    /// <summary>
     /// Gets the focus manager for this application.
     /// </summary>
     public FocusManager FocusManager => _focusManager;
@@ -158,6 +163,15 @@ public sealed class Application : IDisposable
     /// </summary>
     private void HandleKeyEvent(KeyEvent keyEvent)
     {
+        // Allow custom handling first
+        if (KeyDown is not null)
+        {
+            var args = new KeyEventArgs();
+            KeyDown(keyEvent, args);
+            if (args.Handled)
+                return;
+        }
+        
         // Escape key exits the application
         if (keyEvent.Key == ConsoleKey.Escape && !keyEvent.HasModifiers)
         {

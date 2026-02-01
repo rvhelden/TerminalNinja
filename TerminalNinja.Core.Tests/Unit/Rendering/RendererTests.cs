@@ -350,4 +350,65 @@ public class RendererTests
         var outputBytes = output.ToArray();
         await Assert.That(outputBytes.Length).IsGreaterThan(0);
     }
+
+    [Test]
+    public async Task DumpScreen_CreatesFile()
+    {
+        // Arrange
+        var output = new MemoryStream();
+        using var renderer = new Core.Rendering.Renderer(output, 20, 10);
+        
+        // Draw something to make it interesting
+        var rect = new Rectangle { BackgroundColor = Color.Cyan };
+        renderer.Draw((IElement)rect);
+        renderer.Present();
+        
+        var dumpPath = "test_dump.txt";
+        
+        try
+        {
+            // Act
+            var resultPath = renderer.DumpScreen(dumpPath);
+            
+            // Assert
+            await Assert.That(File.Exists(resultPath)).IsTrue();
+            
+            var content = File.ReadAllText(resultPath);
+            await Assert.That(content).Contains("=== TERMINAL BUFFER DUMP ===");
+            await Assert.That(content).Contains("Dimensions: 20 x 10");
+        }
+        finally
+        {
+            // Cleanup
+            if (File.Exists(dumpPath))
+                File.Delete(dumpPath);
+        }
+    }
+
+    [Test]
+    public async Task DumpScreen_WithoutPath_GeneratesTimestampedFilename()
+    {
+        // Arrange
+        var output = new MemoryStream();
+        using var renderer = new Core.Rendering.Renderer(output, 20, 10);
+        
+        string? generatedPath = null;
+        
+        try
+        {
+            // Act
+            generatedPath = renderer.DumpScreen();
+            
+            // Assert
+            await Assert.That(File.Exists(generatedPath)).IsTrue();
+            await Assert.That(generatedPath).Contains("screen_dump_");
+            await Assert.That(generatedPath).Contains(".txt");
+        }
+        finally
+        {
+            // Cleanup
+            if (generatedPath != null && File.Exists(generatedPath))
+                File.Delete(generatedPath);
+        }
+    }
 }

@@ -165,6 +165,109 @@ public sealed class CellBuffer
     }
     
     /// <summary>
+    /// Dumps the current buffer contents to a human-readable string format.
+    /// Includes dimensions, and a visual representation with color information.
+    /// </summary>
+    public string DumpToString()
+    {
+        var sb = new System.Text.StringBuilder();
+        
+        // Header with size information
+        sb.AppendLine("=== TERMINAL BUFFER DUMP ===");
+        sb.AppendLine($"Dimensions: {Width} x {Height}");
+        sb.AppendLine($"Timestamp: {DateTime.Now:yyyy-MM-dd HH:mm:ss}");
+        sb.AppendLine();
+        
+        // Horizontal ruler
+        sb.AppendLine("    " + new string('-', Width));
+        
+        // Buffer content with row numbers
+        for (int y = 0; y < Height; y++)
+        {
+            sb.Append($"{y,3}|");
+            
+            for (int x = 0; x < Width; x++)
+            {
+                var cell = GetCell(x, y);
+                var ch = cell.Character;
+                
+                // Make certain control characters visible
+                if (ch == '\0' || ch < ' ')
+                    ch = '·'; // Middle dot for empty/control chars
+                    
+                sb.Append(ch);
+            }
+            
+            sb.AppendLine("|");
+        }
+        
+        // Bottom ruler
+        sb.AppendLine("    " + new string('-', Width));
+        
+        // Color information section (only non-empty cells with non-default colors)
+        sb.AppendLine();
+        sb.AppendLine("=== COLOR INFORMATION ===");
+        
+        var hasColors = false;
+        for (int y = 0; y < Height; y++)
+        {
+            for (int x = 0; x < Width; x++)
+            {
+                var cell = GetCell(x, y);
+                
+                // Skip cells with default colors (white on black) and empty characters
+                if (cell.Character == ' ' && 
+                    cell.Foreground == Color.White && 
+                    cell.Background == Color.Black)
+                    continue;
+                
+                // Show cells with non-default styling
+                if (cell.Foreground != Color.White || 
+                    cell.Background != Color.Black)
+                {
+                    hasColors = true;
+                    var colorName = GetColorName(cell.Foreground);
+                    var bgColorName = GetColorName(cell.Background);
+                    
+                    sb.AppendLine($"  [{x,3},{y,3}] '{cell.Character}' " +
+                                  $"FG:{colorName} BG:{bgColorName}");
+                }
+            }
+        }
+        
+        if (!hasColors)
+        {
+            sb.AppendLine("  (All cells use default colors: White on Black)");
+        }
+        
+        sb.AppendLine();
+        sb.AppendLine("=== END DUMP ===");
+        
+        return sb.ToString();
+    }
+    
+    /// <summary>
+    /// Helper to get a human-readable color name or hex value.
+    /// </summary>
+    private static string GetColorName(Color color)
+    {
+        // Check known colors
+        if (color == Color.Black) return "Black";
+        if (color == Color.White) return "White";
+        if (color == Color.Red) return "Red";
+        if (color == Color.Green) return "Green";
+        if (color == Color.Blue) return "Blue";
+        if (color == Color.Cyan) return "Cyan";
+        if (color == Color.Magenta) return "Magenta";
+        if (color == Color.Yellow) return "Yellow";
+        if (color == Color.Gray) return "Gray";
+        if (color == Color.DarkGray) return "DarkGray";
+        
+        // Return hex for custom colors
+        return color.ToHex();
+    }
+    
+    /// <summary>
     /// Zero-allocation struct enumerator for cell differences.
     /// </summary>
     public ref struct CellDiffEnumerator

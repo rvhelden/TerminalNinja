@@ -25,6 +25,7 @@ Console.WriteLine("  Shift+TAB  - Previous button");
 Console.WriteLine("  Enter/Space- Activate focused button");
 Console.WriteLine("  Mouse      - Click and hover over buttons");
 Console.WriteLine("  Resize     - Try resizing the terminal window");
+Console.WriteLine("  F12        - Dump screen to file (for debugging)");
 Console.WriteLine("  ESC        - Exit application\n");
 Console.WriteLine("Watch the buttons change color:");
 Console.WriteLine("  WHITE  - Normal state");
@@ -347,6 +348,27 @@ void UpdateLayout()
 
 // Set initial layout
 UpdateLayout();
+
+// Add F12 key handler for screen dump
+app.KeyDown += (keyEvent, args) =>
+{
+    if (keyEvent.Key == ConsoleKey.F12)
+    {
+        try
+        {
+            var dumpPath = app.Renderer.DumpScreen();
+            lastAction = $"Screen dumped to: {dumpPath}";
+            UpdateLayout();
+            args.Handled = true;
+        }
+        catch (Exception ex)
+        {
+            lastAction = $"Dump failed: {ex.Message}";
+            UpdateLayout();
+            args.Handled = true;
+        }
+    }
+};
 
 // Run the application event loop
 app.Run();
