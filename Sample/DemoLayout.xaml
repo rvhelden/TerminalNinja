@@ -1,92 +1,106 @@
-<Stack xmlns="http://schemas.terminalninja.dev/xaml"
-       xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-       Orientation="Vertical">
+<Window xmlns="http://schemas.terminalninja.dev/xaml"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="TerminalNinja Demo">
     
-    <!-- Header with data binding -->
-    <Rectangle Stack.SizeMode="Fixed" Stack.FixedSize="5"
-               BackgroundColor="#1E1E50"
-               ForegroundColor="Cyan"
-               Border="Double">
-        <Label x:Name="headerLabel"
-               Text="{Binding Path=HeaderText}"
-               ForegroundColor="Cyan"
-               HorizontalTextAlignment="Center"
-               VerticalTextAlignment="Center" />
-    </Rectangle>
+    <!-- Window-level Resources -->
+    <Window.Resources>
+        <Color x:Key="HeaderBackground">#1E1E50</Color>
+        <Color x:Key="ToolbarBackground">#19192D</Color>
+        <Color x:Key="ContentBackground">#0F0F0F</Color>
+        <Color x:Key="StatusBackground">#282828</Color>
+        <Color x:Key="ButtonBackground">#141414</Color>
+        <Color x:Key="AccentColor">Cyan</Color>
+        <Color x:Key="HighlightColor">Yellow</Color>
+    </Window.Resources>
     
-    <!-- Toolbar with command binding -->
-    <Rectangle Stack.SizeMode="Fixed" Stack.FixedSize="5"
-               BackgroundColor="#19192D"
-               Border="Single">
-        <Stack Orientation="Horizontal">
-            <Rectangle Stack.SizeMode="Auto"
-                       Width="2"
-                       BackgroundColor="#19192D" />
-            
-            <Button x:Name="newButton"
-                    Stack.SizeMode="Auto"
-                    Text="New"
-                    Width="12"
-                    Height="3"
-                    TabIndex="0"
-                    FocusColor="Cyan"
-                    HoverColor="Yellow"
-                    ForegroundColor="White"
-                    BackgroundColor="#141414"
-                    Command="{Binding Path=NewCommand}" />
-            
-            <Button x:Name="openButton"
-                    Stack.SizeMode="Auto"
-                    Text="Open"
-                    Width="12"
-                    Height="3"
-                    TabIndex="1"
-                    FocusColor="Cyan"
-                    HoverColor="Yellow"
-                    ForegroundColor="White"
-                    BackgroundColor="#141414"
-                    Command="{Binding Path=OpenCommand}" />
-            
-            <Button x:Name="saveButton"
-                    Stack.SizeMode="Auto"
-                    Text="Save"
-                    Width="12"
-                    Height="3"
-                    TabIndex="2"
-                    FocusColor="Cyan"
-                    HoverColor="Yellow"
-                    ForegroundColor="White"
-                    BackgroundColor="#141414"
-                    Command="{Binding Path=SaveCommand}" />
-            
-            <Rectangle Stack.SizeMode="Stretch"
-                       BackgroundColor="#19192D" />
-        </Stack>
-    </Rectangle>
-    
-    <!-- Content Area with data binding -->
-    <Rectangle Stack.SizeMode="Stretch"
-               BackgroundColor="#0F0F0F"
-               Border="Rounded">
-        <Label x:Name="contentLabel"
-               Text="{Binding Path=ContentText}"
-               ForegroundColor="White"
-               HorizontalTextAlignment="Center"
-               VerticalTextAlignment="Center"
-               TextWrapping="Wrap"
-               Padding="4,2,4,2" />
-    </Rectangle>
-    
-    <!-- Status Bar with data binding -->
-    <Rectangle Stack.SizeMode="Fixed" Stack.FixedSize="3"
-               BackgroundColor="#282828"
-               ForegroundColor="Yellow"
-               Border="Single">
-        <Label x:Name="statusLabel"
-               Text="{Binding Path=StatusText}"
-               ForegroundColor="Yellow"
-               HorizontalTextAlignment="Center"
-               VerticalTextAlignment="Center" />
-    </Rectangle>
-    
-</Stack>
+    <Stack Orientation="Vertical">
+        
+        <!-- Header with data binding -->
+        <Rectangle Stack.SizeMode="Fixed" Stack.FixedSize="5"
+                   BackgroundColor="{StaticResource HeaderBackground}"
+                   ForegroundColor="{StaticResource AccentColor}"
+                   Border="Double">
+            <Label x:Name="headerLabel"
+                   Text="{Binding Path=HeaderText}"
+                   ForegroundColor="{StaticResource AccentColor}"
+                   HorizontalTextAlignment="Center"
+                   VerticalTextAlignment="Center" />
+        </Rectangle>
+        
+        <!-- Toolbar with command binding -->
+        <Rectangle Stack.SizeMode="Fixed" Stack.FixedSize="5"
+                   BackgroundColor="{StaticResource ToolbarBackground}"
+                   Border="Single">
+            <Stack Orientation="Horizontal">
+                <Rectangle Stack.SizeMode="Auto"
+                           Width="2"
+                           BackgroundColor="{StaticResource ToolbarBackground}" />
+                
+                <Button x:Name="newButton"
+                        Stack.SizeMode="Auto"
+                        Text="New"
+                        Width="12"
+                        Height="3"
+                        TabIndex="0"
+                        FocusColor="{StaticResource AccentColor}"
+                        HoverColor="{StaticResource HighlightColor}"
+                        ForegroundColor="White"
+                        BackgroundColor="{StaticResource ButtonBackground}"
+                        Command="{Binding Path=NewCommand}" />
+                
+                <Button x:Name="openButton"
+                        Stack.SizeMode="Auto"
+                        Text="Open"
+                        Width="12"
+                        Height="3"
+                        TabIndex="1"
+                        FocusColor="{StaticResource AccentColor}"
+                        HoverColor="{StaticResource HighlightColor}"
+                        ForegroundColor="White"
+                        BackgroundColor="{StaticResource ButtonBackground}"
+                        Command="{Binding Path=OpenCommand}" />
+                
+                <Button x:Name="saveButton"
+                        Stack.SizeMode="Auto"
+                        Text="Save"
+                        Width="12"
+                        Height="3"
+                        TabIndex="2"
+                        FocusColor="{StaticResource AccentColor}"
+                        HoverColor="{StaticResource HighlightColor}"
+                        ForegroundColor="White"
+                        BackgroundColor="{StaticResource ButtonBackground}"
+                        Command="{Binding Path=SaveCommand}" />
+                
+                <Rectangle Stack.SizeMode="Stretch"
+                           BackgroundColor="{StaticResource ToolbarBackground}" />
+            </Stack>
+        </Rectangle>
+        
+        <!-- Content Area with data binding -->
+        <Rectangle Stack.SizeMode="Stretch"
+                   BackgroundColor="{StaticResource ContentBackground}"
+                   Border="Rounded">
+            <Label x:Name="contentLabel"
+                   Text="{Binding Path=ContentText}"
+                   ForegroundColor="White"
+                   HorizontalTextAlignment="Center"
+                   VerticalTextAlignment="Center"
+                   TextWrapping="Wrap"
+                   Padding="4,2,4,2" />
+        </Rectangle>
+        
+        <!-- Status Bar with data binding -->
+        <Rectangle Stack.SizeMode="Fixed" Stack.FixedSize="3"
+                   BackgroundColor="{StaticResource StatusBackground}"
+                   ForegroundColor="{StaticResource HighlightColor}"
+                   Border="Single">
+            <Label x:Name="statusLabel"
+                   Text="{Binding Path=StatusText}"
+                   ForegroundColor="{StaticResource HighlightColor}"
+                   HorizontalTextAlignment="Center"
+                   VerticalTextAlignment="Center" />
+        </Rectangle>
+        
+    </Stack>
+</Window>

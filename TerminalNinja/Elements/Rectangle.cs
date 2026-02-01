@@ -10,7 +10,7 @@ namespace TerminalNinja.Elements;
 /// </summary>
 [ContentProperty("Child")]
 [RuntimeNameProperty("Name")]
-public sealed class Rectangle : ElementBase
+public sealed class Rectangle : FrameworkElement
 {
     // Bindable properties (with change notification)
     private Color _backgroundColor = Color.Black;

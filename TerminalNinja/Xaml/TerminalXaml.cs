@@ -155,6 +155,9 @@ public static class TerminalXaml
         // Post-process to handle Stack attached properties
         StackChildProcessor.ProcessElement(result);
         
+        // Process StaticResource lookups
+        ProcessStaticResources(result);
+        
         // Process bindings if dataContext is provided
         if (dataContext != null)
         {
@@ -192,6 +195,51 @@ public static class TerminalXaml
                     info.Converter,
                     info.ConverterParameter);
             }
+        }
+    }
+    
+    /// <summary>
+    /// Processes pending static resource lookups from StaticResourceExtension.
+    /// Walks the visual tree to resolve resources and sets property values.
+    /// </summary>
+    private static void ProcessStaticResources(IElement root)
+    {
+        var pendingLookups = StaticResourceExtension.GetAndClearPendingLookups();
+        
+        foreach (var lookup in pendingLookups)
+        {
+            // Only resolve for FrameworkElements
+            if (lookup.TargetObject is not FrameworkElement targetElement)
+                continue;
+            
+            // Find the resource
+            var resource = targetElement.TryFindResource(lookup.ResourceKey);
+            if (resource == null)
+            {
+                throw new InvalidOperationException(
+                    $"StaticResource '{lookup.ResourceKey}' not found for property '{lookup.PropertyName}'");
+            }
+            
+            // Get the property and set the value
+            var property = lookup.TargetObject.GetType().GetProperty(lookup.PropertyName);
+            if (property == null || !property.CanWrite)
+            {
+                throw new InvalidOperationException(
+                    $"Property '{lookup.PropertyName}' not found or is read-only on type '{lookup.TargetObject.GetType().Name}'");
+            }
+            
+            // Convert value if needed
+            var value = resource;
+            if (!property.PropertyType.IsInstanceOfType(value))
+            {
+                var converter = System.ComponentModel.TypeDescriptor.GetConverter(property.PropertyType);
+                if (converter.CanConvertFrom(value.GetType()))
+                {
+                    value = converter.ConvertFrom(value);
+                }
+            }
+            
+            property.SetValue(lookup.TargetObject, value);
         }
     }
 }

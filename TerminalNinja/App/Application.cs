@@ -2,18 +2,29 @@ using System.Text;
 using TerminalNinja.Elements;
 using TerminalNinja.Input;
 using TerminalNinja.Rendering;
+using TerminalNinja.Resources;
 
 namespace TerminalNinja.App;
 
 /// <summary>
 /// Main application class that manages the event loop for interactive terminal UI applications.
+/// Provides a singleton instance accessible via Current property and manages application-level resources.
 /// </summary>
 public sealed class Application : IDisposable
 {
+    private static Application? _current;
+    
+    /// <summary>
+    /// Gets the current application instance (singleton).
+    /// Returns null if no Application has been created.
+    /// </summary>
+    public static Application? Current => _current;
+    
     private readonly ApplicationOptions _options;
     private readonly Renderer _renderer;
     private readonly InputReader _inputReader;
     private readonly FocusManager _focusManager;
+    private readonly ResourceDictionary _resources = new();
     
     private IElement? _rootElement;
     private bool _running;
@@ -39,6 +50,12 @@ public sealed class Application : IDisposable
     /// Gets the renderer for this application.
     /// </summary>
     public Renderer Renderer => _renderer;
+    
+    /// <summary>
+    /// Gets the application-level resource dictionary.
+    /// Resources defined here are available to all elements in the application.
+    /// </summary>
+    public ResourceDictionary Resources => _resources;
     
     /// <summary>
     /// Gets or sets the root element to display.
@@ -68,6 +85,12 @@ public sealed class Application : IDisposable
     /// <param name="options">The configuration options.</param>
     public Application(ApplicationOptions options)
     {
+        // Set singleton (allow replacement for testing scenarios)
+        _current = this;
+        
+        // Hook up resource lookup for FrameworkElement
+        FrameworkElement.ApplicationResourceLookup = key => _resources.TryGetValue(key, out var value) ? value : null;
+        
         // Ensure UTF-8 encoding for proper Unicode character rendering
         System.Console.OutputEncoding = Encoding.UTF8;
         System.Console.InputEncoding = Encoding.UTF8;
@@ -265,6 +288,14 @@ public sealed class Application : IDisposable
             return;
         
         _disposed = true;
+        
+        // Clean up singleton and resource lookup hook
+        if (_current == this)
+        {
+            _current = null;
+            FrameworkElement.ApplicationResourceLookup = null;
+        }
+        
         _inputReader.Dispose();
         _renderer.Dispose();
     }

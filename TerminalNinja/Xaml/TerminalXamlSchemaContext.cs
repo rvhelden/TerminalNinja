@@ -37,6 +37,7 @@ public class TerminalXamlSchemaContext : XamlSchemaContext
                 TypeDescriptor.AddAttributes(typeof(ChildSizeMode), new TypeConverterAttribute(typeof(EnumTypeConverter<ChildSizeMode>)));
                 TypeDescriptor.AddAttributes(typeof(StackOrientation), new TypeConverterAttribute(typeof(EnumTypeConverter<StackOrientation>)));
                 TypeDescriptor.AddAttributes(typeof(StackChild), new TypeConverterAttribute(typeof(StackChildTypeConverter)));
+                TypeDescriptor.AddAttributes(typeof(GridLength), new TypeConverterAttribute(typeof(GridLengthTypeConverter)));
                 
                 _typeConvertersRegistered = true;
             }

@@ -11,7 +11,7 @@ namespace TerminalNinja.Elements;
 /// An interactive button element that responds to focus, hover, and click events.
 /// </summary>
 [RuntimeNameProperty("Name")]
-public sealed class Button : ElementBase, IFocusable
+public sealed class Button : FrameworkElement, IFocusable
 {
     // Bindable properties (with change notification)
     private string _text = "";

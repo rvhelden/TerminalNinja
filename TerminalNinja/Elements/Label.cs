@@ -8,7 +8,7 @@ namespace TerminalNinja.Elements;
 /// A text label UI element with alignment, wrapping, truncation, and padding support.
 /// </summary>
 [RuntimeNameProperty("Name")]
-public sealed class Label : ElementBase
+public sealed class Label : FrameworkElement
 {
     // Bindable properties (with change notification)
     private string _text = "";

@@ -1,3 +1,4 @@
+using Portable.Xaml;
 using Portable.Xaml.Markup;
 using TerminalNinja.Buffers;
 using TerminalNinja.Primitives;
@@ -9,7 +10,7 @@ namespace TerminalNinja.Elements;
 /// </summary>
 [ContentProperty("Children")]
 [RuntimeNameProperty("Name")]
-public sealed class Stack : ElementBase
+public sealed class Stack : FrameworkElement
 {
     // Layout properties (kept as init for now)
     /// <summary>Gets or sets the orientation (Horizontal or Vertical).</summary>
@@ -184,60 +185,49 @@ public sealed class Stack : ElementBase
         }
     }
     
-    #region Attached Properties for XAML Support
+    #region Attached Properties using AttachablePropertyServices
+    
+    private static readonly AttachableMemberIdentifier SizeModeId = new(typeof(Stack), "SizeMode");
+    private static readonly AttachableMemberIdentifier FixedSizeId = new(typeof(Stack), "FixedSize");
     
     /// <summary>
-    /// Storage for attached properties on child elements.
+    /// Gets the Stack.SizeMode attached property value for an element.
     /// </summary>
-    private sealed class StackChildProperties
-    {
-        public ChildSizeMode SizeMode { get; set; } = ChildSizeMode.Auto;
-        public int FixedSize { get; set; }
-    }
-    
-    private static readonly System.Runtime.CompilerServices.ConditionalWeakTable<IElement, StackChildProperties> 
-        _attachedProperties = new();
-    
-    /// <summary>
-    /// Sets the size mode for a child element in a Stack (attached property).
-    /// </summary>
-    public static void SetSizeMode(IElement element, ChildSizeMode mode)
+    public static ChildSizeMode GetSizeMode(object element)
     {
         ArgumentNullException.ThrowIfNull(element);
-        var props = _attachedProperties.GetOrCreateValue(element);
-        props.SizeMode = mode;
-    }
-    
-    /// <summary>
-    /// Gets the size mode for a child element in a Stack (attached property).
-    /// </summary>
-    public static ChildSizeMode GetSizeMode(IElement element)
-    {
-        ArgumentNullException.ThrowIfNull(element);
-        return _attachedProperties.TryGetValue(element, out var props) 
-            ? props.SizeMode 
+        return AttachablePropertyServices.TryGetProperty<ChildSizeMode>(element, SizeModeId, out var value) 
+            ? value 
             : ChildSizeMode.Auto;
     }
     
     /// <summary>
-    /// Sets the fixed size for a child element in a Stack (attached property).
+    /// Sets the Stack.SizeMode attached property value for an element.
     /// </summary>
-    public static void SetFixedSize(IElement element, int size)
+    public static void SetSizeMode(object element, ChildSizeMode mode)
     {
         ArgumentNullException.ThrowIfNull(element);
-        var props = _attachedProperties.GetOrCreateValue(element);
-        props.FixedSize = size;
+        AttachablePropertyServices.SetProperty(element, SizeModeId, mode);
     }
     
     /// <summary>
-    /// Gets the fixed size for a child element in a Stack (attached property).
+    /// Gets the Stack.FixedSize attached property value for an element.
     /// </summary>
-    public static int GetFixedSize(IElement element)
+    public static int GetFixedSize(object element)
     {
         ArgumentNullException.ThrowIfNull(element);
-        return _attachedProperties.TryGetValue(element, out var props) 
-            ? props.FixedSize 
+        return AttachablePropertyServices.TryGetProperty<int>(element, FixedSizeId, out var value) 
+            ? value 
             : 0;
+    }
+    
+    /// <summary>
+    /// Sets the Stack.FixedSize attached property value for an element.
+    /// </summary>
+    public static void SetFixedSize(object element, int size)
+    {
+        ArgumentNullException.ThrowIfNull(element);
+        AttachablePropertyServices.SetProperty(element, FixedSizeId, Math.Max(0, size));
     }
     
     #endregion

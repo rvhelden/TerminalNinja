@@ -8,4 +8,5 @@ global using TerminalNinja.Styling;
 global using TerminalNinja.Input;
 global using TerminalNinja.Xaml;
 global using TerminalNinja.Xaml.Extensions;
+global using TerminalNinja.Resources;
 global using TerminalNinja.Tests.Helpers;

@@ -9,7 +9,7 @@ public static class XamlSample
 {
     public static void Run()
     {
-        // Create application
+        // Create application with options
         using var app = new Application(new ApplicationOptions
         {
             TargetFps = 60,
@@ -20,7 +20,7 @@ public static class XamlSample
         // Create ViewModel
         var viewModel = new DemoViewModel();
 
-        // Load UI from XAML file WITH DATA BINDING
+        // Load UI from XAML file with Window as root
         var xamlPath = Path.Combine(AppContext.BaseDirectory, "DemoLayout.xaml");
         
         if (!File.Exists(xamlPath))
@@ -31,26 +31,29 @@ public static class XamlSample
             return;
         }
 
-        // Load XAML with binding support - pass viewModel as dataContext
+        // Load XAML with binding support - now returns Window instead of Stack
         var bindingManager = new BindingManager();
-        var layout = TerminalXaml.LoadFromFile<Stack>(xamlPath, viewModel, bindingManager);
+        var window = TerminalXaml.LoadFromFile<Window>(xamlPath, viewModel, bindingManager);
 
-        // Set the loaded layout as root
-        app.RootElement = layout;
+        // Use the WPF-style Window.Show() pattern
+        // This sets app.RootElement = window internally
+        window.Show();
 
         // Add ESC handler to exit
         app.KeyDown += (keyEvent, args) =>
         {
             if (keyEvent.Key == ConsoleKey.Escape)
             {
+                window.Close();
                 app.Exit();
                 args.Handled = true;
             }
         };
 
-        Console.WriteLine("UI loaded successfully with data binding! Starting application...\n");
+        Console.WriteLine("Window loaded with StaticResource support! Starting application...\n");
         Console.WriteLine("Click the buttons to see automatic UI updates via binding!\n");
-        Thread.Sleep(500);
+        Console.WriteLine("Colors are now defined in Window.Resources and referenced via {StaticResource}!\n");
+        Thread.Sleep(1000);
 
         // Run the application
         app.Run();
