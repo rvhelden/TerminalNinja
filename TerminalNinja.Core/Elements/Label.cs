@@ -8,6 +8,9 @@ namespace TerminalNinja.Core.Elements;
 /// </summary>
 public sealed class Label : IElement
 {
+    /// <summary>Gets or sets the name of this element for lookup purposes.</summary>
+    public string? Name { get; set; }
+    
     /// <summary>Gets or sets the text content to display.</summary>
     public string Text { get; init; } = "";
     

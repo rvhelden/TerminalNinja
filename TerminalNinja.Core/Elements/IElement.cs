@@ -9,6 +9,11 @@ namespace TerminalNinja.Core.Elements;
 public interface IElement
 {
     /// <summary>
+    /// Gets or sets the name of this element for lookup purposes (e.g., XAML x:Name).
+    /// </summary>
+    string? Name { get; set; }
+    
+    /// <summary>
     /// Returns the element's preferred size within the given parent bounds.
     /// Used by layout containers to determine Auto-sized children.
     /// </summary>

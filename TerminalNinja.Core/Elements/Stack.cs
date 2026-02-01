@@ -8,6 +8,9 @@ namespace TerminalNinja.Core.Elements;
 /// </summary>
 public sealed class Stack : IElement
 {
+    /// <summary>Gets or sets the name of this element for lookup purposes.</summary>
+    public string? Name { get; set; }
+    
     /// <summary>Gets or sets the orientation (Horizontal or Vertical).</summary>
     public StackOrientation Orientation { get; init; } = StackOrientation.Horizontal;
     
@@ -158,4 +161,62 @@ public sealed class Stack : IElement
             return new Rect(stackBounds.X, position, stackBounds.Width, size);
         }
     }
+    
+    #region Attached Properties for XAML Support
+    
+    /// <summary>
+    /// Storage for attached properties on child elements.
+    /// </summary>
+    private sealed class StackChildProperties
+    {
+        public ChildSizeMode SizeMode { get; set; } = ChildSizeMode.Auto;
+        public int FixedSize { get; set; }
+    }
+    
+    private static readonly System.Runtime.CompilerServices.ConditionalWeakTable<IElement, StackChildProperties> 
+        _attachedProperties = new();
+    
+    /// <summary>
+    /// Sets the size mode for a child element in a Stack (attached property).
+    /// </summary>
+    public static void SetSizeMode(IElement element, ChildSizeMode mode)
+    {
+        ArgumentNullException.ThrowIfNull(element);
+        var props = _attachedProperties.GetOrCreateValue(element);
+        props.SizeMode = mode;
+    }
+    
+    /// <summary>
+    /// Gets the size mode for a child element in a Stack (attached property).
+    /// </summary>
+    public static ChildSizeMode GetSizeMode(IElement element)
+    {
+        ArgumentNullException.ThrowIfNull(element);
+        return _attachedProperties.TryGetValue(element, out var props) 
+            ? props.SizeMode 
+            : ChildSizeMode.Auto;
+    }
+    
+    /// <summary>
+    /// Sets the fixed size for a child element in a Stack (attached property).
+    /// </summary>
+    public static void SetFixedSize(IElement element, int size)
+    {
+        ArgumentNullException.ThrowIfNull(element);
+        var props = _attachedProperties.GetOrCreateValue(element);
+        props.FixedSize = size;
+    }
+    
+    /// <summary>
+    /// Gets the fixed size for a child element in a Stack (attached property).
+    /// </summary>
+    public static int GetFixedSize(IElement element)
+    {
+        ArgumentNullException.ThrowIfNull(element);
+        return _attachedProperties.TryGetValue(element, out var props) 
+            ? props.FixedSize 
+            : 0;
+    }
+    
+    #endregion
 }

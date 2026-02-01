@@ -10,6 +10,7 @@ public class FocusManagerTests
     /// </summary>
     private class MockFocusable : IFocusable
     {
+        public string? Name { get; set; }
         public bool IsFocused { get; set; }
         public bool IsHovered { get; set; }
         public bool CanFocus { get; init; } = true;

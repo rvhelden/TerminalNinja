@@ -10,6 +10,9 @@ namespace TerminalNinja.Core.Elements;
 /// </summary>
 public sealed class Button : IFocusable
 {
+    /// <summary>Gets or sets the name of this element for lookup purposes.</summary>
+    public string? Name { get; set; }
+    
     /// <summary>Gets or sets the button label text.</summary>
     public string Text { get; init; } = "";
     

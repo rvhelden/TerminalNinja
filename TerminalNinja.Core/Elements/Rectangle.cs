@@ -9,6 +9,9 @@ namespace TerminalNinja.Core.Elements;
 /// </summary>
 public sealed class Rectangle : IElement
 {
+    /// <summary>Gets or sets the name of this element for lookup purposes.</summary>
+    public string? Name { get; set; }
+    
     /// <summary>Gets or sets the X position (absolute, relative, or stretch).</summary>
     public Size X { get; init; } = Size.Absolute(0);
     
