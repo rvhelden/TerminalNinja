@@ -232,10 +232,22 @@ public sealed class FocusManager
         {
             var stackBounds = element.CalculateBounds(parentBounds);
             
-            foreach (var child in stack.Children)
+            // Mirror the layout logic from Stack.Render() to calculate actual child positions
+            var childSizes = stack.CalculateChildSizes(stackBounds);
+            var position = stack.Orientation == StackOrientation.Horizontal ? stackBounds.X : stackBounds.Y;
+            
+            for (var i = 0; i < stack.Children.Count; i++)
             {
-                var childResults = CollectFocusableElements(child.Element, stackBounds);
+                var child = stack.Children[i];
+                var size = childSizes[i];
+                
+                if (size <= 0) continue; // Skip zero-size children
+                
+                var childBounds = stack.CreateChildBounds(stackBounds, position, size);
+                var childResults = CollectFocusableElements(child.Element, childBounds);
                 result.AddRange(childResults);
+                
+                position += size;
             }
         }
         

@@ -90,7 +90,7 @@ public sealed class Stack : IElement
     /// <summary>
     /// Calculates the size for each child along the main axis.
     /// </summary>
-    private int[] CalculateChildSizes(Rect bounds)
+    internal int[] CalculateChildSizes(Rect bounds)
     {
         var sizes = new int[Children.Count];
         var mainAxisSize = Orientation == StackOrientation.Horizontal ? bounds.Width : bounds.Height;
@@ -143,7 +143,7 @@ public sealed class Stack : IElement
     /// Creates bounds for a child element based on stack orientation.
     /// Children fill the entire cross-axis (height for horizontal, width for vertical).
     /// </summary>
-    private Rect CreateChildBounds(Rect stackBounds, int position, int size)
+    internal Rect CreateChildBounds(Rect stackBounds, int position, int size)
     {
         if (Orientation == StackOrientation.Horizontal)
         {
