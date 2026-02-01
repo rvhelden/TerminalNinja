@@ -243,7 +243,11 @@ public sealed class FocusManager
         if (element is Rectangle rectangle && rectangle.Child is not null)
         {
             var rectBounds = element.CalculateBounds(parentBounds);
-            var childResults = CollectFocusableElements(rectangle.Child, rectBounds);
+            // Calculate inner bounds (subtract border if present) - same as Rectangle.Render()
+            var innerBounds = rectangle.Border.HasBorder && rectBounds.Width >= 2 && rectBounds.Height >= 2
+                ? new Rect(rectBounds.X + 1, rectBounds.Y + 1, rectBounds.Width - 2, rectBounds.Height - 2)
+                : rectBounds;
+            var childResults = CollectFocusableElements(rectangle.Child, innerBounds);
             result.AddRange(childResults);
         }
         

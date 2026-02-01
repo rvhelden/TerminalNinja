@@ -370,6 +370,12 @@ app.KeyDown += (keyEvent, args) =>
     }
 };
 
+// Handle window resize to update the size display
+app.Resize += _ =>
+{
+    UpdateLayout();
+};
+
 // Run the application event loop
 app.Run();
 

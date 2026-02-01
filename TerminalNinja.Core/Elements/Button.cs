@@ -65,7 +65,10 @@ public sealed class Button : IFocusable
     {
         // Button size is text length + 4 (2 chars padding on each side)
         var textWidth = Text.Length + 4;
-        return new Size2D(textWidth, 3);
+        // Respect explicit Width/Height when set to Absolute mode
+        var w = Width.Mode == SizeMode.Absolute ? Width.Resolve(parent.Width) : textWidth;
+        var h = Height.Mode == SizeMode.Absolute ? Height.Resolve(parent.Height) : 3;
+        return new Size2D(w, h);
     }
     
     /// <summary>

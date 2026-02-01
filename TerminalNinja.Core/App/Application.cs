@@ -26,6 +26,11 @@ public sealed class Application : IDisposable
     public event Action<KeyEvent, KeyEventArgs>? KeyDown;
     
     /// <summary>
+    /// Event raised when the terminal window is resized.
+    /// </summary>
+    public event Action<ResizeEvent>? Resize;
+    
+    /// <summary>
     /// Gets the focus manager for this application.
     /// </summary>
     public FocusManager FocusManager => _focusManager;
@@ -221,6 +226,9 @@ public sealed class Application : IDisposable
     {
         // Terminal size has changed - resize the renderer's buffer
         _renderer.Resize(resizeEvent.Width, resizeEvent.Height);
+        
+        // Notify subscribers of the resize
+        Resize?.Invoke(resizeEvent);
         
         // Trigger a full re-render with new dimensions
         Invalidate();
