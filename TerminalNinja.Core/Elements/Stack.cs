@@ -18,7 +18,7 @@ public sealed class Stack : IElement
     public Alignment CrossAxisAlignment { get; init; } = Alignment.Start;
     
     /// <summary>Gets the list of child elements with their sizing modes.</summary>
-    public IReadOnlyList<StackChild> Children { get; init; } = [];
+    public List<StackChild> Children { get; init; } = [];
     
     /// <summary>
     /// Returns the preferred size of this stack (sum of children's preferred sizes).

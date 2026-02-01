@@ -10,6 +10,13 @@
 
     <ItemGroup>
       <ProjectReference Include="..\TerminalNinja.Core\TerminalNinja.Core.csproj" />
+      <ProjectReference Include="..\TerminalNinja.Xaml\TerminalNinja.Xaml.csproj" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <Content Include="DemoLayout.xaml">
+        <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      </Content>
     </ItemGroup>
 
 </Project>

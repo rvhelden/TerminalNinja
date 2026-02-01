@@ -36,6 +36,7 @@ public class TerminalXamlSchemaContext : XamlSchemaContext
                 TypeDescriptor.AddAttributes(typeof(TextTrimming), new TypeConverterAttribute(typeof(EnumTypeConverter<TextTrimming>)));
                 TypeDescriptor.AddAttributes(typeof(ChildSizeMode), new TypeConverterAttribute(typeof(EnumTypeConverter<ChildSizeMode>)));
                 TypeDescriptor.AddAttributes(typeof(StackOrientation), new TypeConverterAttribute(typeof(EnumTypeConverter<StackOrientation>)));
+                TypeDescriptor.AddAttributes(typeof(StackChild), new TypeConverterAttribute(typeof(StackChildTypeConverter)));
                 
                 _typeConvertersRegistered = true;
             }
@@ -76,6 +77,10 @@ public class TerminalXamlSchemaContext : XamlSchemaContext
             if (_type == typeof(Rectangle))
             {
                 attrs.Add(new Portable.Xaml.Markup.ContentPropertyAttribute(nameof(Rectangle.Child)));
+            }
+            else if (_type == typeof(Stack))
+            {
+                attrs.Add(new Portable.Xaml.Markup.ContentPropertyAttribute(nameof(Stack.Children)));
             }
             
             return attrs.ToArray();
