@@ -1,10 +1,13 @@
+using System.ComponentModel;
 using TerminalNinja.Primitives;
+using TerminalNinja.Xaml.TypeConverters;
 
 namespace TerminalNinja.Styling;
 
 /// <summary>
 /// Defines a border with width, color, and style.
 /// </summary>
+[TypeConverter(typeof(BorderTypeConverter))]
 public readonly record struct Border
 {
     /// <summary>Gets the border width (0 = no border, 1 = single line).</summary>

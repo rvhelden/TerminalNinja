@@ -98,7 +98,7 @@ public class RendererTests
         
         // Draw something first
         var rect = new Rectangle { BackgroundColor = Color.Red };
-        renderer.Draw((IElement)rect);
+        renderer.Draw((IControl)rect);
         renderer.Present();
         var sizeAfterDraw = output.Length;
 
@@ -125,7 +125,7 @@ public class RendererTests
         };
 
         // Act
-        renderer.Draw((IElement)rect);
+        renderer.Draw((IControl)rect);
         renderer.Present();
 
         // Assert - Output should contain ANSI codes
@@ -142,13 +142,13 @@ public class RendererTests
 
         // First frame
         var rect1 = new Rectangle { BackgroundColor = Color.Red };
-        renderer.Draw((IElement)rect1);
+        renderer.Draw((IControl)rect1);
         renderer.Present();
         var firstFrameSize = output.Length;
 
         // Second frame (same content)
         renderer.Clear();
-        renderer.Draw((IElement)rect1);
+        renderer.Draw((IControl)rect1);
         renderer.Present();
         var secondFrameSize = output.Length - firstFrameSize;
 
@@ -276,7 +276,7 @@ public class RendererTests
         
         // Draw something before resize
         var rect = new Rectangle { BackgroundColor = Color.Red };
-        renderer.Draw((IElement)rect);
+        renderer.Draw((IControl)rect);
         renderer.Present();
 
         // Act - Resize
@@ -284,7 +284,7 @@ public class RendererTests
         
         // Draw again and present
         renderer.Clear();
-        renderer.Draw((IElement)rect);
+        renderer.Draw((IControl)rect);
         renderer.Present();
 
         // Assert - Should be able to render at new size without errors
@@ -342,8 +342,8 @@ public class RendererTests
         };
 
         // Act
-        renderer.Draw((IElement)rect1);
-        renderer.Draw((IElement)rect2);
+        renderer.Draw((IControl)rect1);
+        renderer.Draw((IControl)rect2);
         renderer.Present();
 
         // Assert - Both elements should be rendered
@@ -360,7 +360,7 @@ public class RendererTests
         
         // Draw something to make it interesting
         var rect = new Rectangle { BackgroundColor = Color.Cyan };
-        renderer.Draw((IElement)rect);
+        renderer.Draw((IControl)rect);
         renderer.Present();
         
         var dumpPath = "test_dump.txt";

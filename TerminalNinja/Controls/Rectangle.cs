@@ -3,10 +3,10 @@ using TerminalNinja.Buffers;
 using TerminalNinja.Primitives;
 using TerminalNinja.Styling;
 
-namespace TerminalNinja.Elements;
+namespace TerminalNinja.Controls;
 
 /// <summary>
-/// A rectangle UI element with positioning, sizing, borders, and background color.
+/// A rectangle UI control with positioning, sizing, borders, and background color.
 /// </summary>
 [ContentProperty("Child")]
 [RuntimeNameProperty("Name")]
@@ -37,9 +37,9 @@ public sealed class Rectangle : FrameworkElement
         set => SetProperty(ref _border, value);
     }
     
-    private IElement? _child;
-    /// <summary>Gets or sets the child element to render inside this rectangle.</summary>
-    public IElement? Child
+    private IControl? _child;
+    /// <summary>Gets or sets the child control to render inside this rectangle.</summary>
+    public IControl? Child
     {
         get => _child;
         set
@@ -143,7 +143,7 @@ public sealed class Rectangle : FrameworkElement
             RenderBorder(buffer, bounds);
         }
         
-        // Render child element if present
+        // Render child control if present
         if (Child != null)
         {
             // Calculate inner bounds (subtract border if present)

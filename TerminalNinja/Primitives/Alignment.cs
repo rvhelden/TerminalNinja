@@ -1,8 +1,11 @@
+using System.ComponentModel;
+
 namespace TerminalNinja.Primitives;
 
 /// <summary>
-/// Specifies how an element is aligned within its parent container.
+/// Specifies how an control is aligned within its parent container.
 /// </summary>
+[TypeConverter(typeof(EnumConverter))]
 public enum Alignment : byte
 {
     /// <summary>Align to the start (left/top).</summary>

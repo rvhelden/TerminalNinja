@@ -1,4 +1,4 @@
-namespace TerminalNinja.Tests.Unit.Elements;
+namespace TerminalNinja.Tests.Unit.Controls;
 
 /// <summary>
 /// Tests for FocusManager hit testing with complex layouts (Stack, Rectangle, nested elements).

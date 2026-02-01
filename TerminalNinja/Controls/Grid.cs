@@ -3,7 +3,7 @@ using Portable.Xaml.Markup;
 using TerminalNinja.Buffers;
 using TerminalNinja.Primitives;
 
-namespace TerminalNinja.Elements;
+namespace TerminalNinja.Controls;
 
 /// <summary>
 /// A layout container that arranges child elements in rows and columns.
@@ -15,7 +15,7 @@ public sealed class Grid : FrameworkElement
 {
     private readonly List<RowDefinition> _rowDefinitions = new();
     private readonly List<ColumnDefinition> _columnDefinitions = new();
-    private readonly List<IElement> _children = new();
+    private readonly List<IControl> _children = new();
     
     /// <summary>
     /// Gets the collection of row definitions for this grid.
@@ -32,7 +32,7 @@ public sealed class Grid : FrameworkElement
     /// <summary>
     /// Gets the collection of child elements in this grid.
     /// </summary>
-    public IList<IElement> Children => _children;
+    public IList<IControl> Children => _children;
     
     #region Attached Properties using AttachablePropertyServices
     
@@ -42,75 +42,75 @@ public sealed class Grid : FrameworkElement
     private static readonly AttachableMemberIdentifier ColumnSpanId = new(typeof(Grid), "ColumnSpan");
     
     /// <summary>
-    /// Gets the Grid.Row attached property value for an element.
+    /// Gets the Grid.Row attached property value for an control.
     /// </summary>
-    public static int GetRow(object element)
+    public static int GetRow(object control)
     {
-        ArgumentNullException.ThrowIfNull(element);
-        return AttachablePropertyServices.TryGetProperty<int>(element, RowId, out var value) ? value : 0;
+        ArgumentNullException.ThrowIfNull(control);
+        return AttachablePropertyServices.TryGetProperty<int>(control, RowId, out var value) ? value : 0;
     }
     
     /// <summary>
-    /// Sets the Grid.Row attached property value for an element.
+    /// Sets the Grid.Row attached property value for an control.
     /// </summary>
-    public static void SetRow(object element, int value)
+    public static void SetRow(object control, int value)
     {
-        ArgumentNullException.ThrowIfNull(element);
-        AttachablePropertyServices.SetProperty(element, RowId, Math.Max(0, value));
+        ArgumentNullException.ThrowIfNull(control);
+        AttachablePropertyServices.SetProperty(control, RowId, Math.Max(0, value));
     }
     
     /// <summary>
-    /// Gets the Grid.Column attached property value for an element.
+    /// Gets the Grid.Column attached property value for an control.
     /// </summary>
-    public static int GetColumn(object element)
+    public static int GetColumn(object control)
     {
-        ArgumentNullException.ThrowIfNull(element);
-        return AttachablePropertyServices.TryGetProperty<int>(element, ColumnId, out var value) ? value : 0;
+        ArgumentNullException.ThrowIfNull(control);
+        return AttachablePropertyServices.TryGetProperty<int>(control, ColumnId, out var value) ? value : 0;
     }
     
     /// <summary>
-    /// Sets the Grid.Column attached property value for an element.
+    /// Sets the Grid.Column attached property value for an control.
     /// </summary>
-    public static void SetColumn(object element, int value)
+    public static void SetColumn(object control, int value)
     {
-        ArgumentNullException.ThrowIfNull(element);
-        AttachablePropertyServices.SetProperty(element, ColumnId, Math.Max(0, value));
+        ArgumentNullException.ThrowIfNull(control);
+        AttachablePropertyServices.SetProperty(control, ColumnId, Math.Max(0, value));
     }
     
     /// <summary>
-    /// Gets the Grid.RowSpan attached property value for an element.
+    /// Gets the Grid.RowSpan attached property value for an control.
     /// </summary>
-    public static int GetRowSpan(object element)
+    public static int GetRowSpan(object control)
     {
-        ArgumentNullException.ThrowIfNull(element);
-        return AttachablePropertyServices.TryGetProperty<int>(element, RowSpanId, out var value) ? Math.Max(1, value) : 1;
+        ArgumentNullException.ThrowIfNull(control);
+        return AttachablePropertyServices.TryGetProperty<int>(control, RowSpanId, out var value) ? Math.Max(1, value) : 1;
     }
     
     /// <summary>
-    /// Sets the Grid.RowSpan attached property value for an element.
+    /// Sets the Grid.RowSpan attached property value for an control.
     /// </summary>
-    public static void SetRowSpan(object element, int value)
+    public static void SetRowSpan(object control, int value)
     {
-        ArgumentNullException.ThrowIfNull(element);
-        AttachablePropertyServices.SetProperty(element, RowSpanId, Math.Max(1, value));
+        ArgumentNullException.ThrowIfNull(control);
+        AttachablePropertyServices.SetProperty(control, RowSpanId, Math.Max(1, value));
     }
     
     /// <summary>
-    /// Gets the Grid.ColumnSpan attached property value for an element.
+    /// Gets the Grid.ColumnSpan attached property value for an control.
     /// </summary>
-    public static int GetColumnSpan(object element)
+    public static int GetColumnSpan(object control)
     {
-        ArgumentNullException.ThrowIfNull(element);
-        return AttachablePropertyServices.TryGetProperty<int>(element, ColumnSpanId, out var value) ? Math.Max(1, value) : 1;
+        ArgumentNullException.ThrowIfNull(control);
+        return AttachablePropertyServices.TryGetProperty<int>(control, ColumnSpanId, out var value) ? Math.Max(1, value) : 1;
     }
     
     /// <summary>
-    /// Sets the Grid.ColumnSpan attached property value for an element.
+    /// Sets the Grid.ColumnSpan attached property value for an control.
     /// </summary>
-    public static void SetColumnSpan(object element, int value)
+    public static void SetColumnSpan(object control, int value)
     {
-        ArgumentNullException.ThrowIfNull(element);
-        AttachablePropertyServices.SetProperty(element, ColumnSpanId, Math.Max(1, value));
+        ArgumentNullException.ThrowIfNull(control);
+        AttachablePropertyServices.SetProperty(control, ColumnSpanId, Math.Max(1, value));
     }
     
     #endregion

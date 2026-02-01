@@ -1,4 +1,6 @@
+using System.ComponentModel;
 using System.Runtime.InteropServices;
+using TerminalNinja.Xaml.TypeConverters;
 
 namespace TerminalNinja.Primitives;
 
@@ -6,6 +8,7 @@ namespace TerminalNinja.Primitives;
 /// Represents a 24-bit RGB color (3 bytes total).
 /// </summary>
 [StructLayout(LayoutKind.Sequential, Pack = 1)]
+[TypeConverter(typeof(ColorTypeConverter))]
 public readonly record struct Color(byte R, byte G, byte B)
 {
     /// <summary>Gets the black color (0, 0, 0).</summary>

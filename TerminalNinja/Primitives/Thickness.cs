@@ -1,8 +1,12 @@
+using System.ComponentModel;
+using TerminalNinja.Xaml.TypeConverters;
+
 namespace TerminalNinja.Primitives;
 
 /// <summary>
 /// Represents padding or margin thickness on all four sides of a rectangular region.
 /// </summary>
+[TypeConverter(typeof(ThicknessTypeConverter))]
 public readonly record struct Thickness
 {
     /// <summary>Gets the left thickness value.</summary>

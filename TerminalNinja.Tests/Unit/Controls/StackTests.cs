@@ -1,7 +1,7 @@
-namespace TerminalNinja.Tests.Unit.Elements;
+namespace TerminalNinja.Tests.Unit.Controls;
 
 /// <summary>
-/// Comprehensive tests for Stack element covering:
+/// Comprehensive tests for Stack control covering:
 /// - GetPreferredSize with different orientations and child size modes
 /// - CalculateBounds (always returns parent)
 /// - Render with Horizontal and Vertical orientations
@@ -96,7 +96,7 @@ public class StackTests
         {
             Orientation = StackOrientation.Horizontal,
             Children = [
-                StackChild.Fixed(child, 15), // Fixed size overrides element's preferred size
+                StackChild.Fixed(child, 15), // Fixed size overrides control's preferred size
                 StackChild.Fixed(child, 25)
             ]
         };

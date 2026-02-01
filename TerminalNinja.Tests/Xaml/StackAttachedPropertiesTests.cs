@@ -26,18 +26,18 @@ public class StackAttachedPropertiesTests
         await Assert.That(stack.Children.Count).IsEqualTo(3);
         
         // First child: Auto
-        var label = stack.Children[0].Element as Label;
+        var label = stack.Children[0].Content as Label;
         await Assert.That(label).IsNotNull();
         await Assert.That(stack.Children[0].SizeMode).IsEqualTo(ChildSizeMode.Auto);
         
         // Second child: Fixed with size 5
-        var button = stack.Children[1].Element as Button;
+        var button = stack.Children[1].Content as Button;
         await Assert.That(button).IsNotNull();
         await Assert.That(stack.Children[1].SizeMode).IsEqualTo(ChildSizeMode.Fixed);
         await Assert.That(stack.Children[1].FixedSize).IsEqualTo(5);
         
         // Third child: Stretch
-        var rectangle = stack.Children[2].Element as Rectangle;
+        var rectangle = stack.Children[2].Content as Rectangle;
         await Assert.That(rectangle).IsNotNull();
         await Assert.That(stack.Children[2].SizeMode).IsEqualTo(ChildSizeMode.Stretch);
     }
@@ -83,16 +83,16 @@ public class StackAttachedPropertiesTests
         // Assert
         await Assert.That(stack.Children.Count).IsEqualTo(3);
         
-        var label1 = stack.Children[0].Element as Label;
+        var label1 = stack.Children[0].Content as Label;
         await Assert.That(label1).IsNotNull();
         await Assert.That(label1!.Text).IsEqualTo("Header");
         await Assert.That(stack.Children[0].SizeMode).IsEqualTo(ChildSizeMode.Auto);
         
-        var rect = stack.Children[1].Element as Rectangle;
+        var rect = stack.Children[1].Content as Rectangle;
         await Assert.That(rect).IsNotNull();
         await Assert.That(stack.Children[1].SizeMode).IsEqualTo(ChildSizeMode.Stretch);
         
-        var label2 = stack.Children[2].Element as Label;
+        var label2 = stack.Children[2].Content as Label;
         await Assert.That(label2).IsNotNull();
         await Assert.That(label2!.Text).IsEqualTo("Footer");
         await Assert.That(stack.Children[2].SizeMode).IsEqualTo(ChildSizeMode.Fixed);

@@ -1,30 +1,30 @@
 using System.ComponentModel;
 using System.Globalization;
-using TerminalNinja.Elements;
+using TerminalNinja.Controls;
 using TerminalNinja.Primitives;
 
 namespace TerminalNinja.Xaml.TypeConverters;
 
 /// <summary>
-/// Type converter that converts IElement to StackChild by reading attached properties.
+/// Type converter that converts IControl to StackChild by reading attached properties.
 /// </summary>
 public class StackChildTypeConverter : TypeConverter
 {
     public override bool CanConvertFrom(ITypeDescriptorContext? context, Type sourceType)
     {
-        return typeof(IElement).IsAssignableFrom(sourceType) || base.CanConvertFrom(context, sourceType);
+        return typeof(IControl).IsAssignableFrom(sourceType) || base.CanConvertFrom(context, sourceType);
     }
 
     public override object? ConvertFrom(ITypeDescriptorContext? context, CultureInfo? culture, object value)
     {
-        if (value is IElement element)
+        if (value is IControl control)
         {
-            var sizeMode = Stack.GetSizeMode(element);
-            var fixedSize = Stack.GetFixedSize(element);
+            var sizeMode = Stack.GetSizeMode(control);
+            var fixedSize = Stack.GetFixedSize(control);
             
             return new StackChild
             {
-                Element = element,
+                Content = control,
                 SizeMode = sizeMode,
                 FixedSize = fixedSize
             };

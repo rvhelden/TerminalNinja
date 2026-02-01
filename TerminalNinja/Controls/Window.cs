@@ -2,10 +2,10 @@ using Portable.Xaml.Markup;
 using TerminalNinja.Buffers;
 using TerminalNinja.Primitives;
 
-namespace TerminalNinja.Elements;
+namespace TerminalNinja.Controls;
 
 /// <summary>
-/// A top-level container element representing a window in the terminal UI.
+/// A top-level container control representing a window in the terminal UI.
 /// Window is a logical container that holds Content and provides window-scoped resources.
 /// </summary>
 [ContentProperty("Content")]
@@ -13,7 +13,7 @@ namespace TerminalNinja.Elements;
 public class Window : FrameworkElement
 {
     private string _title = "";
-    private IElement? _content;
+    private IControl? _content;
     
     /// <summary>
     /// Gets or sets the window title.
@@ -25,10 +25,10 @@ public class Window : FrameworkElement
     }
     
     /// <summary>
-    /// Gets or sets the content element of the window.
+    /// Gets or sets the content control of the window.
     /// The content fills the entire window area.
     /// </summary>
-    public IElement? Content
+    public IControl? Content
     {
         get => _content;
         set
@@ -92,14 +92,14 @@ public class Window : FrameworkElement
     }
     
     /// <summary>
-    /// Shows this window by setting it as the root element of the current Application.
+    /// Shows this window by setting it as the root control of the current Application.
     /// </summary>
     public void Show()
     {
         var app = App.Application.Current;
         if (app != null)
         {
-            app.RootElement = this;
+            app.RootControl = this;
         }
     }
     
@@ -109,9 +109,9 @@ public class Window : FrameworkElement
     public void Close()
     {
         var app = App.Application.Current;
-        if (app?.RootElement == this)
+        if (app?.RootControl == this)
         {
-            app.RootElement = null;
+            app.RootControl = null;
         }
     }
 }

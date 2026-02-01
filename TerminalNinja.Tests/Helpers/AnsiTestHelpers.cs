@@ -1,7 +1,7 @@
 using System.Text;
 using TerminalNinja.Ansi;
 using TerminalNinja.Buffers;
-using TerminalNinja.Elements;
+using TerminalNinja.Controls;
 using TerminalNinja.Primitives;
 
 namespace TerminalNinja.Tests.Helpers;
@@ -26,17 +26,17 @@ public static class AnsiTestHelpers
     }
     
     /// <summary>
-    /// Renders an element to a buffer and captures the ANSI output.
+    /// Renders an control to a buffer and captures the ANSI output.
     /// </summary>
-    /// <param name="element">The element to render.</param>
+    /// <param name="control">The control to render.</param>
     /// <param name="width">Buffer width.</param>
     /// <param name="height">Buffer height.</param>
     /// <returns>The ANSI output as a string.</returns>
-    public static string RenderElementToAnsi(IElement element, int width, int height)
+    public static string RenderControlToAnsi(IControl control, int width, int height)
     {
         var buffer = new CellBuffer(width, height);
         var viewport = new Rect(0, 0, width, height);
-        element.Render(buffer, viewport);
+        control.Render(buffer, viewport);
         
         using var stream = new MemoryStream();
         using var writer = new AnsiWriter(stream);

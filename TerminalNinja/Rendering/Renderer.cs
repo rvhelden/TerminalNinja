@@ -1,7 +1,7 @@
 using TerminalNinja.Ansi;
 using TerminalNinja.Buffers;
 using TerminalNinja.Console;
-using TerminalNinja.Elements;
+using TerminalNinja.Controls;
 using TerminalNinja.Primitives;
 
 namespace TerminalNinja.Rendering;
@@ -64,22 +64,22 @@ public sealed class Renderer : IDisposable
     }
     
     /// <summary>
-    /// Draws an element to the buffer (does not display until Present() is called).
+    /// Draws an control to the buffer (does not display until Present() is called).
     /// </summary>
-    /// <param name="element">The element to draw.</param>
-    public void Draw(IElement element)
+    /// <param name="control">The control to draw.</param>
+    public void Draw(IControl control)
     {
-        element.Render(_buffer, Viewport);
+        control.Render(_buffer, Viewport);
     }
     
     /// <summary>
-    /// Draws a rectangle element to the buffer (does not display until Present() is called).
+    /// Draws a rectangle control to the buffer (does not display until Present() is called).
     /// </summary>
-    /// <param name="element">The rectangle element to draw.</param>
-    [Obsolete("Use Draw(IElement) instead for better flexibility")]
-    public void Draw(Rectangle element)
+    /// <param name="control">The rectangle control to draw.</param>
+    [Obsolete("Use Draw(IControl) instead for better flexibility")]
+    public void Draw(Rectangle control)
     {
-        element.Render(_buffer, Viewport);
+        control.Render(_buffer, Viewport);
     }
     
     /// <summary>

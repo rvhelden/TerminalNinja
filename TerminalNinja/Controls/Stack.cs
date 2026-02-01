@@ -3,7 +3,7 @@ using Portable.Xaml.Markup;
 using TerminalNinja.Buffers;
 using TerminalNinja.Primitives;
 
-namespace TerminalNinja.Elements;
+namespace TerminalNinja.Controls;
 
 /// <summary>
 /// A layout container that arranges child elements horizontally or vertically.
@@ -26,19 +26,19 @@ public sealed class Stack : FrameworkElement
         get => _children;
         init
         {
-            // Wire up Parent for each child element
+            // Wire up Parent for each child control
             foreach (var child in _children)
             {
-                if (child.Element != null)
-                    child.Element.Parent = null;
+                if (child.Content != null)
+                    child.Content.Parent = null;
             }
             
             _children = value;
             
             foreach (var child in _children)
             {
-                if (child.Element != null)
-                    child.Element.Parent = this;
+                if (child.Content != null)
+                    child.Content.Parent = this;
             }
         }
     }
@@ -56,7 +56,7 @@ public sealed class Stack : FrameworkElement
         
         foreach (var child in Children)
         {
-            var preferredSize = child.Element.GetPreferredSize(parent);
+            var preferredSize = child.Content.GetPreferredSize(parent);
             
             if (Orientation == StackOrientation.Horizontal)
             {
@@ -107,7 +107,7 @@ public sealed class Stack : FrameworkElement
             if (size <= 0) continue; // Skip zero-size children
             
             var childBounds = CreateChildBounds(bounds, position, size);
-            child.Element.Render(buffer, childBounds);
+            child.Content.Render(buffer, childBounds);
             
             position += size;
         }
@@ -137,7 +137,7 @@ public sealed class Stack : FrameworkElement
                     break;
                 
                 case ChildSizeMode.Auto:
-                    var preferredSize = child.Element.GetPreferredSize(bounds);
+                    var preferredSize = child.Content.GetPreferredSize(bounds);
                     sizes[i] = Orientation == StackOrientation.Horizontal 
                         ? preferredSize.Width 
                         : preferredSize.Height;
@@ -166,7 +166,7 @@ public sealed class Stack : FrameworkElement
     }
     
     /// <summary>
-    /// Creates bounds for a child element based on stack orientation.
+    /// Creates bounds for a child control based on stack orientation.
     /// Children fill the entire cross-axis (height for horizontal, width for vertical).
     /// </summary>
     internal Rect CreateChildBounds(Rect stackBounds, int position, int size)
@@ -191,43 +191,43 @@ public sealed class Stack : FrameworkElement
     private static readonly AttachableMemberIdentifier FixedSizeId = new(typeof(Stack), "FixedSize");
     
     /// <summary>
-    /// Gets the Stack.SizeMode attached property value for an element.
+    /// Gets the Stack.SizeMode attached property value for an control.
     /// </summary>
-    public static ChildSizeMode GetSizeMode(object element)
+    public static ChildSizeMode GetSizeMode(object control)
     {
-        ArgumentNullException.ThrowIfNull(element);
-        return AttachablePropertyServices.TryGetProperty<ChildSizeMode>(element, SizeModeId, out var value) 
+        ArgumentNullException.ThrowIfNull(control);
+        return AttachablePropertyServices.TryGetProperty<ChildSizeMode>(control, SizeModeId, out var value) 
             ? value 
             : ChildSizeMode.Auto;
     }
     
     /// <summary>
-    /// Sets the Stack.SizeMode attached property value for an element.
+    /// Sets the Stack.SizeMode attached property value for an control.
     /// </summary>
-    public static void SetSizeMode(object element, ChildSizeMode mode)
+    public static void SetSizeMode(object control, ChildSizeMode mode)
     {
-        ArgumentNullException.ThrowIfNull(element);
-        AttachablePropertyServices.SetProperty(element, SizeModeId, mode);
+        ArgumentNullException.ThrowIfNull(control);
+        AttachablePropertyServices.SetProperty(control, SizeModeId, mode);
     }
     
     /// <summary>
-    /// Gets the Stack.FixedSize attached property value for an element.
+    /// Gets the Stack.FixedSize attached property value for an control.
     /// </summary>
-    public static int GetFixedSize(object element)
+    public static int GetFixedSize(object control)
     {
-        ArgumentNullException.ThrowIfNull(element);
-        return AttachablePropertyServices.TryGetProperty<int>(element, FixedSizeId, out var value) 
+        ArgumentNullException.ThrowIfNull(control);
+        return AttachablePropertyServices.TryGetProperty<int>(control, FixedSizeId, out var value) 
             ? value 
             : 0;
     }
     
     /// <summary>
-    /// Sets the Stack.FixedSize attached property value for an element.
+    /// Sets the Stack.FixedSize attached property value for an control.
     /// </summary>
-    public static void SetFixedSize(object element, int size)
+    public static void SetFixedSize(object control, int size)
     {
-        ArgumentNullException.ThrowIfNull(element);
-        AttachablePropertyServices.SetProperty(element, FixedSizeId, Math.Max(0, size));
+        ArgumentNullException.ThrowIfNull(control);
+        AttachablePropertyServices.SetProperty(control, FixedSizeId, Math.Max(0, size));
     }
     
     #endregion

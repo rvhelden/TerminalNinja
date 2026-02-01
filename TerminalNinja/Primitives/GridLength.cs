@@ -1,9 +1,13 @@
+using System.ComponentModel;
+using TerminalNinja.Xaml.TypeConverters;
+
 namespace TerminalNinja.Primitives;
 
 /// <summary>
 /// Represents the length of elements that support Star, Auto, and Pixel sizing.
 /// Similar to WPF's GridLength.
 /// </summary>
+[TypeConverter(typeof(GridLengthTypeConverter))]
 public readonly record struct GridLength : IEquatable<GridLength>
 {
     /// <summary>

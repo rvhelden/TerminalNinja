@@ -1,7 +1,6 @@
 using Portable.Xaml;
-using TerminalNinja.Elements;
+using TerminalNinja.Controls;
 using TerminalNinja.Xaml.Binding;
-using TerminalNinja.Xaml.Internal;
 using TerminalNinja.Xaml.Markup;
 
 namespace TerminalNinja.Xaml;
@@ -12,27 +11,27 @@ namespace TerminalNinja.Xaml;
 public static class TerminalXaml
 {
     /// <summary>
-    /// Loads a UI element from XAML string.
+    /// Loads a UI control from XAML string.
     /// </summary>
-    /// <typeparam name="T">The expected type of the root element.</typeparam>
+    /// <typeparam name="T">The expected type of the root control.</typeparam>
     /// <param name="xaml">The XAML markup string.</param>
-    /// <returns>The loaded element.</returns>
+    /// <returns>The loaded control.</returns>
     /// <exception cref="ArgumentNullException">Thrown when xaml is null.</exception>
-    /// <exception cref="InvalidCastException">Thrown when the loaded element is not of type T.</exception>
-    public static T Load<T>(string xaml) where T : class, IElement
+    /// <exception cref="InvalidCastException">Thrown when the loaded control is not of type T.</exception>
+    public static T Load<T>(string xaml) where T : class, IControl
     {
         return Load<T>(xaml, dataContext: null, bindingManager: null);
     }
     
     /// <summary>
-    /// Loads a UI element from XAML string with data binding support.
+    /// Loads a UI control from XAML string with data binding support.
     /// </summary>
-    /// <typeparam name="T">The expected type of the root element.</typeparam>
+    /// <typeparam name="T">The expected type of the root control.</typeparam>
     /// <param name="xaml">The XAML markup string.</param>
     /// <param name="dataContext">The data context for bindings.</param>
     /// <param name="bindingManager">Optional binding manager (creates new if null).</param>
-    /// <returns>The loaded element with bindings activated.</returns>
-    public static T Load<T>(string xaml, object? dataContext, BindingManager? bindingManager = null) where T : class, IElement
+    /// <returns>The loaded control with bindings activated.</returns>
+    public static T Load<T>(string xaml, object? dataContext, BindingManager? bindingManager = null) where T : class, IControl
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(xaml);
         
@@ -41,28 +40,28 @@ public static class TerminalXaml
     }
     
     /// <summary>
-    /// Loads a UI element from a XAML file.
+    /// Loads a UI control from a XAML file.
     /// </summary>
-    /// <typeparam name="T">The expected type of the root element.</typeparam>
+    /// <typeparam name="T">The expected type of the root control.</typeparam>
     /// <param name="path">The path to the XAML file.</param>
-    /// <returns>The loaded element.</returns>
+    /// <returns>The loaded control.</returns>
     /// <exception cref="ArgumentNullException">Thrown when path is null.</exception>
     /// <exception cref="FileNotFoundException">Thrown when the file doesn't exist.</exception>
-    /// <exception cref="InvalidCastException">Thrown when the loaded element is not of type T.</exception>
-    public static T LoadFromFile<T>(string path) where T : class, IElement
+    /// <exception cref="InvalidCastException">Thrown when the loaded control is not of type T.</exception>
+    public static T LoadFromFile<T>(string path) where T : class, IControl
     {
         return LoadFromFile<T>(path, dataContext: null, bindingManager: null);
     }
     
     /// <summary>
-    /// Loads a UI element from a XAML file with data binding support.
+    /// Loads a UI control from a XAML file with data binding support.
     /// </summary>
-    /// <typeparam name="T">The expected type of the root element.</typeparam>
+    /// <typeparam name="T">The expected type of the root control.</typeparam>
     /// <param name="path">The path to the XAML file.</param>
     /// <param name="dataContext">The data context for bindings.</param>
     /// <param name="bindingManager">Optional binding manager (creates new if null).</param>
-    /// <returns>The loaded element with bindings activated.</returns>
-    public static T LoadFromFile<T>(string path, object? dataContext, BindingManager? bindingManager = null) where T : class, IElement
+    /// <returns>The loaded control with bindings activated.</returns>
+    public static T LoadFromFile<T>(string path, object? dataContext, BindingManager? bindingManager = null) where T : class, IControl
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(path);
         
@@ -76,27 +75,27 @@ public static class TerminalXaml
     }
     
     /// <summary>
-    /// Loads a UI element from a stream.
+    /// Loads a UI control from a stream.
     /// </summary>
-    /// <typeparam name="T">The expected type of the root element.</typeparam>
+    /// <typeparam name="T">The expected type of the root control.</typeparam>
     /// <param name="stream">The stream containing XAML markup.</param>
-    /// <returns>The loaded element.</returns>
+    /// <returns>The loaded control.</returns>
     /// <exception cref="ArgumentNullException">Thrown when stream is null.</exception>
-    /// <exception cref="InvalidCastException">Thrown when the loaded element is not of type T.</exception>
-    public static T LoadFromStream<T>(Stream stream) where T : class, IElement
+    /// <exception cref="InvalidCastException">Thrown when the loaded control is not of type T.</exception>
+    public static T LoadFromStream<T>(Stream stream) where T : class, IControl
     {
         return LoadFromStream<T>(stream, dataContext: null, bindingManager: null);
     }
     
     /// <summary>
-    /// Loads a UI element from a stream with data binding support.
+    /// Loads a UI control from a stream with data binding support.
     /// </summary>
-    /// <typeparam name="T">The expected type of the root element.</typeparam>
+    /// <typeparam name="T">The expected type of the root control.</typeparam>
     /// <param name="stream">The stream containing XAML markup.</param>
     /// <param name="dataContext">The data context for bindings.</param>
     /// <param name="bindingManager">Optional binding manager (creates new if null).</param>
-    /// <returns>The loaded element with bindings activated.</returns>
-    public static T LoadFromStream<T>(Stream stream, object? dataContext, BindingManager? bindingManager = null) where T : class, IElement
+    /// <returns>The loaded control with bindings activated.</returns>
+    public static T LoadFromStream<T>(Stream stream, object? dataContext, BindingManager? bindingManager = null) where T : class, IControl
     {
         ArgumentNullException.ThrowIfNull(stream);
         
@@ -105,17 +104,17 @@ public static class TerminalXaml
     }
     
     /// <summary>
-    /// Loads a UI element from an embedded resource.
+    /// Loads a UI control from an embedded resource.
     /// </summary>
-    /// <typeparam name="T">The expected type of the root element.</typeparam>
+    /// <typeparam name="T">The expected type of the root control.</typeparam>
     /// <param name="resourceName">The fully qualified resource name.</param>
     /// <param name="assembly">The assembly containing the resource (defaults to calling assembly).</param>
-    /// <returns>The loaded element.</returns>
+    /// <returns>The loaded control.</returns>
     /// <exception cref="ArgumentNullException">Thrown when resourceName is null.</exception>
     /// <exception cref="FileNotFoundException">Thrown when the resource doesn't exist.</exception>
-    /// <exception cref="InvalidCastException">Thrown when the loaded element is not of type T.</exception>
+    /// <exception cref="InvalidCastException">Thrown when the loaded control is not of type T.</exception>
     public static T LoadFromEmbeddedResource<T>(string resourceName, System.Reflection.Assembly? assembly = null) 
-        where T : class, IElement
+        where T : class, IControl
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(resourceName);
         
@@ -130,14 +129,14 @@ public static class TerminalXaml
         return LoadFromStream<T>(stream);
     }
     
-    private static T LoadFromReader<T>(TextReader reader) where T : class, IElement
+    private static T LoadFromReader<T>(TextReader reader) where T : class, IControl
     {
         return LoadFromReader<T>(reader, dataContext: null, bindingManager: null);
     }
     
-    private static T LoadFromReader<T>(TextReader reader, object? dataContext, BindingManager? bindingManager) where T : class, IElement
+    private static T LoadFromReader<T>(TextReader reader, object? dataContext, BindingManager? bindingManager) where T : class, IControl
     {
-        var schemaContext = new TerminalXamlSchemaContext();
+        var schemaContext = new XamlSchemaContext();
         
         using var xamlReader = new XamlXmlReader(reader, schemaContext);
         using var writer = new XamlObjectWriter(schemaContext);
@@ -149,14 +148,11 @@ public static class TerminalXaml
         {
             var actualType = writer.Result?.GetType()?.Name ?? "null";
             throw new InvalidCastException(
-                $"XAML root element is of type {actualType}, expected {typeof(T).Name}");
+                $"XAML root control is of type {actualType}, expected {typeof(T).Name}");
         }
         
-        // Post-process to handle Stack attached properties
-        StackChildProcessor.ProcessElement(result);
-        
         // Process StaticResource lookups
-        ProcessStaticResources(result);
+        ProcessStaticResources();
         
         // Process bindings if dataContext is provided
         if (dataContext != null)
@@ -184,11 +180,11 @@ public static class TerminalXaml
             var key = kvp.Key;
             var info = kvp.Value;
             
-            // Only process if target is an IElement
-            if (key.TargetObject is IElement element)
+            // Only process if target is an IControl
+            if (key.TargetObject is IControl control)
             {
                 bindingManager.CreateBinding(
-                    element,
+                    control,
                     key.PropertyName,
                     info.Path,
                     info.Mode,
@@ -200,9 +196,9 @@ public static class TerminalXaml
     
     /// <summary>
     /// Processes pending static resource lookups from StaticResourceExtension.
-    /// Walks the visual tree to resolve resources and sets property values.
+    /// Each target element walks up its parent chain to resolve resources.
     /// </summary>
-    private static void ProcessStaticResources(IElement root)
+    private static void ProcessStaticResources()
     {
         var pendingLookups = StaticResourceExtension.GetAndClearPendingLookups();
         

@@ -3,7 +3,7 @@ global using TUnit.Assertions;
 global using TUnit.Assertions.Extensions;
 global using TerminalNinja.Primitives;
 global using TerminalNinja.Buffers;
-global using TerminalNinja.Elements;
+global using TerminalNinja.Controls;
 global using TerminalNinja.Styling;
 global using TerminalNinja.Input;
 global using TerminalNinja.Xaml;

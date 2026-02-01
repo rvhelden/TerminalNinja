@@ -1,10 +1,13 @@
+using System.ComponentModel;
 using System.Runtime.CompilerServices;
+using TerminalNinja.Xaml.TypeConverters;
 
 namespace TerminalNinja.Primitives;
 
 /// <summary>
 /// Represents a size value with a mode (absolute, relative, or stretch).
 /// </summary>
+[TypeConverter(typeof(SizeTypeConverter))]
 public readonly record struct Size
 {
     /// <summary>Gets the numeric value of the size.</summary>

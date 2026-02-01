@@ -5,10 +5,10 @@ using TerminalNinja.Input;
 using TerminalNinja.Primitives;
 using TerminalNinja.Styling;
 
-namespace TerminalNinja.Elements;
+namespace TerminalNinja.Controls;
 
 /// <summary>
-/// An interactive button element that responds to focus, hover, and click events.
+/// An interactive button control that responds to focus, hover, and click events.
 /// </summary>
 [RuntimeNameProperty("Name")]
 public sealed class Button : FrameworkElement, IFocusable

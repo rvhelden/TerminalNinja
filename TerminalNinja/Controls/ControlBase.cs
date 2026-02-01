@@ -3,17 +3,17 @@ using System.Runtime.CompilerServices;
 using TerminalNinja.Buffers;
 using TerminalNinja.Primitives;
 
-namespace TerminalNinja.Elements;
+namespace TerminalNinja.Controls;
 
 /// <summary>
-/// Base class for all elements providing INotifyPropertyChanged and invalidation support.
+/// Base class for all controls providing INotifyPropertyChanged and invalidation support.
 /// </summary>
-public abstract class ElementBase : IElement, INotifyPropertyChanged
+public abstract class ControlBase : IControl, INotifyPropertyChanged
 {
     /// <inheritdoc />
     public event PropertyChangedEventHandler? PropertyChanged;
     
-    // IElement properties
+    // IControl properties
     private string? _name;
     public string? Name
     {
@@ -28,12 +28,12 @@ public abstract class ElementBase : IElement, INotifyPropertyChanged
         set => SetProperty(ref _dataContext, value, invalidate: false);
     }
     
-    public IElement? Parent { get; set; }
+    public IControl? Parent { get; set; }
     
     public Action? InvalidationCallback { get; set; }
     
     /// <summary>
-    /// Signals that this element needs to be re-rendered.
+    /// Signals that this control needs to be re-rendered.
     /// </summary>
     public void InvalidateVisual()
     {
@@ -50,8 +50,8 @@ public abstract class ElementBase : IElement, INotifyPropertyChanged
         
         return Parent switch
         {
-            ElementBase eb => eb.GetEffectiveDataContext(),
-            IElement e => e.DataContext,
+            ControlBase cb => cb.GetEffectiveDataContext(),
+            IControl c => c.DataContext,
             _ => null
         };
     }

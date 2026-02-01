@@ -1,7 +1,7 @@
-namespace TerminalNinja.Tests.Unit.Elements;
+namespace TerminalNinja.Tests.Unit.Controls;
 
 /// <summary>
-/// Comprehensive tests for Label element covering:
+/// Comprehensive tests for Label control covering:
 /// - Basic text rendering
 /// - Horizontal text alignment (Start, Center, End)
 /// - Vertical text alignment (Start, Center, End)

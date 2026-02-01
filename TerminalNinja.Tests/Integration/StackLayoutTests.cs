@@ -1,5 +1,5 @@
 using TerminalNinja.Buffers;
-using TerminalNinja.Elements;
+using TerminalNinja.Controls;
 using TerminalNinja.Primitives;
 
 namespace TerminalNinja.Tests.Integration;

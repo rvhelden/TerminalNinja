@@ -1,7 +1,7 @@
-namespace TerminalNinja.Tests.Unit.Elements;
+namespace TerminalNinja.Tests.Unit.Controls;
 
 /// <summary>
-/// Comprehensive tests for Rectangle element covering:
+/// Comprehensive tests for Rectangle control covering:
 /// - Bounds calculation with absolute, percent, and stretch sizing
 /// - Horizontal and vertical alignment (Start, Center, End)
 /// - Position offsets with different alignments

@@ -1,6 +1,6 @@
 using TerminalNinja.Primitives;
 
-namespace TerminalNinja.Elements;
+namespace TerminalNinja.Controls;
 
 /// <summary>
 /// Defines a row in a Grid with height specification.

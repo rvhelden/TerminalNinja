@@ -1,6 +1,6 @@
 using TerminalNinja.Primitives;
 
-namespace TerminalNinja.Tests.Unit.Elements;
+namespace TerminalNinja.Tests.Unit.Controls;
 
 /// <summary>
 /// Tests for Grid layout container covering:
@@ -33,10 +33,10 @@ public class GridTests
     public async Task GetRow_DefaultValue_ReturnsZero()
     {
         // Arrange
-        var element = new Rectangle();
+        var control = new Rectangle();
         
         // Act
-        var row = Grid.GetRow(element);
+        var row = Grid.GetRow(control);
         
         // Assert
         await Assert.That(row).IsEqualTo(0);
@@ -46,36 +46,36 @@ public class GridTests
     public async Task SetRow_ValidValue_SetsRow()
     {
         // Arrange
-        var element = new Rectangle();
+        var control = new Rectangle();
         
         // Act
-        Grid.SetRow(element, 2);
+        Grid.SetRow(control, 2);
         
         // Assert
-        await Assert.That(Grid.GetRow(element)).IsEqualTo(2);
+        await Assert.That(Grid.GetRow(control)).IsEqualTo(2);
     }
 
     [Test]
     public async Task SetRow_NegativeValue_ClampsToZero()
     {
         // Arrange
-        var element = new Rectangle();
+        var control = new Rectangle();
         
         // Act
-        Grid.SetRow(element, -5);
+        Grid.SetRow(control, -5);
         
         // Assert
-        await Assert.That(Grid.GetRow(element)).IsEqualTo(0);
+        await Assert.That(Grid.GetRow(control)).IsEqualTo(0);
     }
 
     [Test]
     public async Task GetColumn_DefaultValue_ReturnsZero()
     {
         // Arrange
-        var element = new Rectangle();
+        var control = new Rectangle();
         
         // Act
-        var column = Grid.GetColumn(element);
+        var column = Grid.GetColumn(control);
         
         // Assert
         await Assert.That(column).IsEqualTo(0);
@@ -85,23 +85,23 @@ public class GridTests
     public async Task SetColumn_ValidValue_SetsColumn()
     {
         // Arrange
-        var element = new Rectangle();
+        var control = new Rectangle();
         
         // Act
-        Grid.SetColumn(element, 3);
+        Grid.SetColumn(control, 3);
         
         // Assert
-        await Assert.That(Grid.GetColumn(element)).IsEqualTo(3);
+        await Assert.That(Grid.GetColumn(control)).IsEqualTo(3);
     }
 
     [Test]
     public async Task GetRowSpan_DefaultValue_ReturnsOne()
     {
         // Arrange
-        var element = new Rectangle();
+        var control = new Rectangle();
         
         // Act
-        var rowSpan = Grid.GetRowSpan(element);
+        var rowSpan = Grid.GetRowSpan(control);
         
         // Assert
         await Assert.That(rowSpan).IsEqualTo(1);
@@ -111,36 +111,36 @@ public class GridTests
     public async Task SetRowSpan_ValidValue_SetsRowSpan()
     {
         // Arrange
-        var element = new Rectangle();
+        var control = new Rectangle();
         
         // Act
-        Grid.SetRowSpan(element, 2);
+        Grid.SetRowSpan(control, 2);
         
         // Assert
-        await Assert.That(Grid.GetRowSpan(element)).IsEqualTo(2);
+        await Assert.That(Grid.GetRowSpan(control)).IsEqualTo(2);
     }
 
     [Test]
     public async Task SetRowSpan_ZeroValue_ClampsToOne()
     {
         // Arrange
-        var element = new Rectangle();
+        var control = new Rectangle();
         
         // Act
-        Grid.SetRowSpan(element, 0);
+        Grid.SetRowSpan(control, 0);
         
         // Assert
-        await Assert.That(Grid.GetRowSpan(element)).IsEqualTo(1);
+        await Assert.That(Grid.GetRowSpan(control)).IsEqualTo(1);
     }
 
     [Test]
     public async Task GetColumnSpan_DefaultValue_ReturnsOne()
     {
         // Arrange
-        var element = new Rectangle();
+        var control = new Rectangle();
         
         // Act
-        var columnSpan = Grid.GetColumnSpan(element);
+        var columnSpan = Grid.GetColumnSpan(control);
         
         // Assert
         await Assert.That(columnSpan).IsEqualTo(1);
@@ -150,13 +150,13 @@ public class GridTests
     public async Task SetColumnSpan_ValidValue_SetsColumnSpan()
     {
         // Arrange
-        var element = new Rectangle();
+        var control = new Rectangle();
         
         // Act
-        Grid.SetColumnSpan(element, 3);
+        Grid.SetColumnSpan(control, 3);
         
         // Assert
-        await Assert.That(Grid.GetColumnSpan(element)).IsEqualTo(3);
+        await Assert.That(Grid.GetColumnSpan(control)).IsEqualTo(3);
     }
 
     [Test]

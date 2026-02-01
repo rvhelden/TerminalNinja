@@ -15,7 +15,7 @@ public class StackXamlTests
             </Stack>
             """;
         
-        // Act & Assert - This will likely fail because XAML can't add IElement to List<StackChild>
+        // Act & Assert - This will likely fail because XAML can't add IControl to List<StackChild>
         var stack = TerminalXaml.Load<Stack>(xaml);
         
         await Assert.That(stack).IsNotNull();

@@ -1,4 +1,4 @@
-using TerminalNinja.Elements;
+using TerminalNinja.Controls;
 
 namespace TerminalNinja.Xaml.Binding;
 
@@ -9,13 +9,13 @@ namespace TerminalNinja.Xaml.Binding;
 public sealed class BindingManager : IDisposable
 {
     private readonly List<BindingExpression> _bindings = new();
-    private readonly Dictionary<IElement, object?> _elementDataContexts = new();
+    private readonly Dictionary<IControl, object?> _elementDataContexts = new();
     
     /// <summary>
     /// Creates a new binding and adds it to the manager.
     /// </summary>
     public void CreateBinding(
-        IElement target,
+        IControl target,
         string targetPropertyName,
         string sourcePath,
         BindingMode mode = BindingMode.OneWay,
@@ -51,52 +51,52 @@ public sealed class BindingManager : IDisposable
     }
     
     /// <summary>
-    /// Sets the DataContext for an element and updates all bindings that depend on it.
+    /// Sets the DataContext for an control and updates all bindings that depend on it.
     /// </summary>
-    public void SetDataContext(IElement element, object? dataContext)
+    public void SetDataContext(IControl control, object? dataContext)
     {
-        ArgumentNullException.ThrowIfNull(element);
+        ArgumentNullException.ThrowIfNull(control);
         
-        _elementDataContexts[element] = dataContext;
-        element.DataContext = dataContext;
+        _elementDataContexts[control] = dataContext;
+        control.DataContext = dataContext;
         
-        // Update all bindings on this element
-        UpdateBindingsForElement(element);
+        // Update all bindings on this control
+        UpdateBindingsForElement(control);
     }
     
     /// <summary>
-    /// Gets the DataContext for an element (either explicit or inherited).
+    /// Gets the DataContext for an control (either explicit or inherited).
     /// </summary>
-    public object? GetDataContext(IElement element)
+    public object? GetDataContext(IControl control)
     {
         // Check explicit DataContext first
-        if (_elementDataContexts.TryGetValue(element, out var explicitContext))
+        if (_elementDataContexts.TryGetValue(control, out var explicitContext))
             return explicitContext;
         
-        // Fall back to element's own DataContext (which may be inherited via GetEffectiveDataContext)
-        if (element is ElementBase elementBase)
+        // Fall back to control's own DataContext (which may be inherited via GetEffectiveDataContext)
+        if (control is ControlBase elementBase)
             return elementBase.GetEffectiveDataContext();
         
-        return element.DataContext;
+        return control.DataContext;
     }
     
     /// <summary>
-    /// Updates all bindings for a specific element (reactivates them with current DataContext).
+    /// Updates all bindings for a specific control (reactivates them with current DataContext).
     /// </summary>
-    private void UpdateBindingsForElement(IElement element)
+    private void UpdateBindingsForElement(IControl control)
     {
-        var dataContext = GetDataContext(element);
+        var dataContext = GetDataContext(control);
         
-        foreach (var binding in _bindings.Where(b => ReferenceEquals(b.Target, element)))
+        foreach (var binding in _bindings.Where(b => ReferenceEquals(b.Target, control)))
         {
             binding.Activate(dataContext);
         }
     }
     
     /// <summary>
-    /// Recursively sets DataContext on an element tree.
+    /// Recursively sets DataContext on an control tree.
     /// </summary>
-    public void SetDataContextRecursive(IElement root, object? dataContext)
+    public void SetDataContextRecursive(IControl root, object? dataContext)
     {
         SetDataContext(root, dataContext);
         
@@ -109,8 +109,8 @@ public sealed class BindingManager : IDisposable
             
             case Stack stack:
                 foreach (var child in stack.Children)
-                    if (child.Element != null)
-                        SetDataContextRecursive(child.Element, dataContext);
+                    if (child.Content != null)
+                        SetDataContextRecursive(child.Content, dataContext);
                 break;
         }
     }

@@ -1,8 +1,11 @@
+using System.ComponentModel;
+
 namespace TerminalNinja.Primitives;
 
 /// <summary>
 /// Specifies how text is trimmed when it exceeds the available space.
 /// </summary>
+[TypeConverter(typeof(EnumConverter))]
 public enum TextTrimming : byte
 {
     /// <summary>Text is not trimmed; it is clipped at the container boundary.</summary>

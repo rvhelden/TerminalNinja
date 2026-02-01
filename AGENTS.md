@@ -9,9 +9,9 @@ This document provides essential information for AI coding agents working in the
 - **Test Framework**: TUnit v1.12.93
 - **IDE**: JetBrains Rider (optional)
 - **Solution Structure**: 
-  - `TerminalNinja.Core` - Core class library
-  - `TerminalNinja.Core.Tests` - Test project
-  - `Sample` - Sample console application
+  - `TerminalNinja/` - Core library (terminal UI framework with XAML support)
+  - `TerminalNinja.Tests/` - Test project (486 tests, all passing)
+  - `Sample/` - Sample console application demonstrating XAML usage
 
 ## Build & Test Commands
 
@@ -22,7 +22,7 @@ This document provides essential information for AI coding agents working in the
 dotnet build
 
 # Build specific project
-dotnet build TerminalNinja.Core/TerminalNinja.Core.csproj
+dotnet build TerminalNinja/TerminalNinja.csproj
 
 # Build in Release mode
 dotnet build -c Release
@@ -37,21 +37,40 @@ dotnet clean && dotnet build
 # Run all tests
 dotnet test
 
+# Run tests for specific project
+dotnet test TerminalNinja.Tests/TerminalNinja.Tests.csproj
+
 # Run tests with detailed output
 dotnet test -v detailed
-
-# Run a single test by filter
-dotnet test --filter "FullyQualifiedName=TerminalNinja.Core.Tests.Tests.MyTest"
-
-# Run tests matching a pattern
-dotnet test --filter "FullyQualifiedName~MyTest"
-
-# Run tests with code coverage
-dotnet test --collect:"Code Coverage"
 
 # List all discovered tests without running them
 dotnet test --list-tests
 ```
+
+#### TUnit test filtering
+TUnit supports several operators for building complex filters:
+
+Wildcard matching: Use * for pattern matching (e.g., LoginTests* matches LoginTests, LoginTestsSuite, etc.)
+Equality: Use = for exact match (e.g., [Category=Unit])
+Negation: Use != for excluding values (e.g., [Category!=Performance])
+AND operator: Use & to combine conditions (e.g., [Category=Unit]&[Priority=High])
+OR operator: Use | to match either condition within a single path segment - requires parentheses (e.g., /*/*/(Class1)|(Class2)/*)
+For full information on the treenode filters, see Microsoft's documentation
+
+So an example could be:
+
+dotnet run --treenode-filter /*/*/LoginTests/* - To run all tests in the class LoginTests
+
+or
+
+dotnet run --treenode-filter /*/*/*/AcceptCookiesTest - To run all tests with the name AcceptCookiesTest
+
+TUnit also supports filtering by your own properties. So you could do:
+
+dotnet run --treenode-filter /*/*/*/*[MyFilterName=*SomeValue*]
+
+And if your test had a property with the name "MyFilterName" and its value contained "SomeValue", then your test would be executed.
+
 
 ### Running the Sample Application
 
@@ -60,13 +79,39 @@ dotnet test --list-tests
 dotnet run --project Sample/Sample.csproj
 ```
 
-## Important reference sources
+## Architecture Overview
+
+TerminalNinja is a WPF-like terminal UI framework with XAML support:
+
+- **Controls** (`TerminalNinja.Controls`): UI controls (Stack, Grid, Window, Rectangle, Button, Label)
+- **Primitives** (`TerminalNinja.Primitives`): Basic types (Color, Size, Rect, Thickness, Border, etc.)
+- **Buffers** (`TerminalNinja.Buffers`): Cell-based rendering buffers
+- **Styling** (`TerminalNinja.Styling`): Style and Setter for control theming
+- **Resources** (`TerminalNinja.Resources`): ResourceDictionary for shared resources
+- **XAML** (`TerminalNinja.Xaml`): XAML loading, StaticResource, data binding support
+- **App** (`TerminalNinja.App`): Application class with event loop
+- **Rendering** (`TerminalNinja.Rendering`): ANSI terminal renderer
+- **Input** (`TerminalNinja.Input`): Keyboard and mouse input handling
+
+### Key Design Patterns
+
+- **WPF-inspired**: Uses WPF terminology (Control, FrameworkElement, Content, etc.)
+- **XAML-first**: Supports declarative UI with XAML markup
+- **Attached properties**: Stack.SizeMode, Grid.Row/Column for layout control
+- **Data binding**: `{Binding PropertyName}` support with INotifyPropertyChanged
+- **Static resources**: `{StaticResource KeyName}` for reusable values
+- **Styles**: Apply consistent theming with Style/Setter pattern
+
+## Important Reference Sources
 
 Portable.Xaml
 e:\thirdparty\Portable.Xaml\
 
 Spectre.Console
 e:\thirdparty\spectre\
+
+Wpf
+e:\thirdparty\wpf\src\Microsoft.DotNet.Wpf\
 
 ## Code Style Guidelines
 
@@ -89,11 +134,15 @@ e:\thirdparty\spectre\
 global using TUnit.Core;
 global using TUnit.Assertions;
 global using TUnit.Assertions.Extensions;
-global using TerminalNinja.Core.Primitives;
-global using TerminalNinja.Core.Buffers;
-global using TerminalNinja.Core.Elements;
-global using TerminalNinja.Core.Styling;
-global using TerminalNinja.Core.Tests.Helpers;
+global using TerminalNinja.Primitives;
+global using TerminalNinja.Buffers;
+global using TerminalNinja.Controls;  // Note: Controls not Elements
+global using TerminalNinja.Styling;
+global using TerminalNinja.Input;
+global using TerminalNinja.Xaml;
+global using TerminalNinja.Xaml.Extensions;
+global using TerminalNinja.Resources;
+global using TerminalNinja.Tests.Helpers;
 ```
 
 **Guidelines:**
@@ -105,7 +154,7 @@ global using TerminalNinja.Core.Tests.Helpers;
 ### Namespace and File Structure
 
 ```csharp
-namespace TerminalNinja.Core.ComponentName;
+namespace TerminalNinja.ComponentName;
 
 public class ClassName
 {
@@ -116,21 +165,26 @@ public class ClassName
 - Use **file-scoped namespaces** (single line, no braces)
 - One public type per file
 - File name must match the primary type name
-- Namespace should match folder structure: `TerminalNinja.Core.{FolderPath}`
+- Namespace should match folder structure: `TerminalNinja.{FolderPath}`
 
 ### Naming Conventions
 
 | Element            | Convention        | Example                               |
 |--------------------|-------------------|---------------------------------------|
-| Namespaces         | PascalCase        | `TerminalNinja.Core.Services`         |
-| Classes/Interfaces | PascalCase        | `CommandExecutor`, `ICommandHandler`  |
-| Methods            | PascalCase        | `ExecuteCommand`, `GetResultAsync`    |
-| Properties         | PascalCase        | `CommandName`, `IsEnabled`            |
-| Fields (private)   | camelCase with _  | `_commandQueue`, `_isInitialized`     |
-| Parameters         | camelCase         | `commandText`, `userName`             |
-| Local variables    | camelCase         | `result`, `commandLine`               |
+| Namespaces         | PascalCase        | `TerminalNinja.Controls`              |
+| Classes/Interfaces | PascalCase        | `IControl`, `ControlBase`, `Stack`    |
+| Methods            | PascalCase        | `Render`, `CalculateBounds`           |
+| Properties         | PascalCase        | `Content`, `Width`, `IsEnabled`       |
+| Fields (private)   | camelCase with _  | `_content`, `_children`               |
+| Parameters         | camelCase         | `control`, `parentBounds`             |
+| Local variables    | camelCase         | `result`, `bounds`                    |
 | Constants          | PascalCase        | `MaxRetryCount`, `DefaultTimeout`     |
-| Async methods      | Suffix with Async | `ExecuteAsync`, `ProcessCommandAsync` |
+| Async methods      | Suffix with Async | `RenderAsync`, `ProcessAsync`         |
+
+**Important Terminology:**
+- Use **"control"** not "element" (aligns with WPF conventions)
+- Use **"Content"** for child control properties (e.g., `StackChild.Content`, `Window.Content`)
+- `FrameworkElement` keeps its name (matches WPF exactly)
 
 ### Type and Null Safety
 
@@ -195,33 +249,34 @@ catch (Exception ex)
 ### Test Structure (TUnit Framework)
 
 ```csharp
-namespace TerminalNinja.Core.Tests;
+namespace TerminalNinja.Tests.Unit.Controls;
 
-public class CommandExecutorTests
+public class StackTests
 {
     [Test]
-    public async Task ExecuteCommand_ValidInput_ReturnsSuccess()
+    public async Task Render_AutoChild_UsesControlPreferredSize()
     {
         // Arrange
-        var executor = new CommandExecutor();
-        var command = "test-command";
+        var stack = new Stack();
+        var label = new Label { Text = "Test" };
+        stack.Children.Add(StackChild.Auto(label));
         
         // Act
-        var result = await executor.ExecuteAsync(command);
+        var buffer = new CellBuffer(20, 10);
+        stack.Render(buffer, new Rect(0, 0, 20, 10));
         
         // Assert
-        await Assert.That(result.IsSuccess).IsTrue();
-        await Assert.That(result.Output).IsNotNull();
+        await Assert.That(buffer.GetCell(0, 0).Char).IsEqualTo('T');
     }
     
     [Test]
-    public async Task ExecuteCommand_NullInput_ThrowsException()
+    public async Task Children_NullControl_ThrowsException()
     {
         // Arrange
-        var executor = new CommandExecutor();
+        var stack = new Stack();
         
         // Act & Assert
-        await Assert.That(() => executor.ExecuteAsync(null!))
+        await Assert.That(() => stack.Children.Add(null!))
             .ThrowsExactly<ArgumentNullException>();
     }
 }
@@ -231,7 +286,7 @@ public class CommandExecutorTests
 
 - Pattern: `MethodName_Scenario_ExpectedBehavior`
 - Examples:
-  - `Execute_ValidCommand_ReturnsSuccess`
+  - `Render_AutoChild_UsesControlPreferredSize`
   - `Parse_EmptyString_ThrowsArgumentException`
   - `ProcessAsync_WithCancellation_StopsGracefully`
 
@@ -257,15 +312,21 @@ await Assert.That(action).ThrowsExactly<ExceptionType>();
 await Assert.That(text).Contains("substring");
 ```
 
+### Special Test Considerations
+
+- **GridTests.cs** has `[NotInParallel]` attribute because `AttachablePropertyServices` uses a non-thread-safe static dictionary
+- All tests are **async** - use `async Task` and `await Assert.That(...)`
+- Tests should reference file locations: `TerminalNinja/Controls/Stack.cs:123`
+
 ## Git Workflow
 
 - **Branch naming**: `feature/description`, `bugfix/issue-name`, `refactor/component`
 - **Commit messages**: Use conventional commits format
-  - `feat: add command executor`
-  - `fix: handle null input in parser`
-  - `refactor: simplify command processing`
-  - `test: add tests for command validation`
-  - `docs: update API documentation`
+  - `feat: add Grid control with row/column support`
+  - `fix: handle null content in Rectangle rendering`
+  - `refactor: rename Element to Control for WPF alignment`
+  - `test: add tests for StaticResource resolution`
+  - `docs: update AGENTS.md with current project state`
 
 ## Important Notes
 
@@ -285,9 +346,94 @@ await Assert.That(text).Contains("substring");
 
 ## Adding New Files
 
-When creating new source files in `TerminalNinja.Core`:
+When creating new source files in `TerminalNinja/`:
 1. Place in appropriate folder matching the namespace
 2. Use file-scoped namespaces
 3. Ensure nullable reference types are handled correctly
-4. Add corresponding test file in `TerminalNinja.Core.Tests` with matching structure
+4. Add corresponding test file in `TerminalNinja.Tests/` with matching structure
 5. Follow naming convention: `ComponentName.cs` for implementation, `ComponentNameTests.cs` for tests
+
+When creating new controls:
+1. Place in `TerminalNinja/Controls/` folder
+2. Inherit from `FrameworkElement` (for resource/style support) or `ControlBase` (minimal)
+3. Implement `IFocusable` if the control should receive keyboard/mouse input
+4. Add `[ContentProperty]` and `[RuntimeNameProperty]` attributes if applicable
+5. Add `[TypeConverter]` attribute if custom XAML parsing is needed
+6. Update tests in `TerminalNinja.Tests/Unit/Controls/`
+
+## XAML Support
+
+### Type Converters
+
+All types that can be used in XAML should have a `[TypeConverter]` attribute:
+
+```csharp
+[TypeConverter(typeof(ColorTypeConverter))]
+public readonly record struct Color { ... }
+```
+
+Existing converters:
+- `ColorTypeConverter` - Parses colors like "Red", "#FF0000", "rgb(255,0,0)"
+- `SizeTypeConverter` - Parses sizes like "Auto", "Stretch", "10"
+- `ThicknessTypeConverter` - Parses thickness like "5", "5,10", "5,10,5,10"
+- `BorderTypeConverter` - Parses borders like "Single", "Double", "Rounded"
+- `GridLengthTypeConverter` - Parses grid lengths like "Auto", "*", "2*", "100"
+- `StackChildTypeConverter` - Converts IControl to StackChild by reading attached properties
+
+### XAML Namespace
+
+All CLR namespaces are mapped to a single XAML namespace in `Properties/AssemblyInfo.cs`:
+
+```csharp
+[assembly: XmlnsDefinition("http://schemas.terminalninja.dev/xaml", "TerminalNinja.Controls")]
+[assembly: XmlnsDefinition("http://schemas.terminalninja.dev/xaml", "TerminalNinja.Primitives")]
+[assembly: XmlnsDefinition("http://schemas.terminalninja.dev/xaml", "TerminalNinja.Styling")]
+// etc.
+```
+
+### Loading XAML
+
+```csharp
+// Load from string
+var window = TerminalXaml.Parse<Window>(xamlString);
+
+// Load from file
+var window = TerminalXaml.LoadFromFile<Window>("DemoLayout.xaml");
+
+// Show window
+window.Show();  // Sets Application.Current.RootControl = window
+```
+
+## Recent Changes (Feb 2026)
+
+### Element → Control Rename
+
+The entire codebase was renamed from "Element" terminology to "Control" terminology to align with WPF conventions:
+
+- **Namespaces**: `TerminalNinja.Elements` → `TerminalNinja.Controls`
+- **Types**: `IElement` → `IControl`, `ElementBase` → `ControlBase`
+- **Properties**: `StackChild.Element` → `StackChild.Content`, `Application.RootElement` → `Application.RootControl`
+- **Variables**: All `element` parameters/variables renamed to `control`
+- **Exception**: `FrameworkElement` keeps its name (matches WPF)
+
+### TypeConverter Refactoring
+
+Moved from runtime registration to declarative attributes:
+- All types now have `[TypeConverter]` attributes directly on them
+- Removed `TypeDescriptor.AddAttributes()` calls from `TerminalXamlSchemaContext`
+- Simplified schema context to just inherit from `XamlSchemaContext`
+- Deleted custom `EnumTypeConverter<T>` (using built-in `EnumConverter` now)
+
+### XAML Features
+
+- **StaticResource**: `{StaticResource KeyName}` markup extension with resource lookup
+- **Data Binding**: `{Binding PropertyName}` with INotifyPropertyChanged support
+- **Attached Properties**: Stack.SizeMode, Stack.FixedSize, Grid.Row, Grid.Column, etc.
+- **Styles**: Style/Setter pattern with TargetType validation
+- **Window pattern**: Window.Show() / Window.Close() with Application.Current.RootControl
+
+## Current Test Stats
+
+- **Total Tests**: 486
+- **Status**: All passing ✅
+- **Test Coverage**: Unit tests for Controls, Styling, Resources, XAML loading, and rendering

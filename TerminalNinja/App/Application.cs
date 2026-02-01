@@ -1,5 +1,5 @@
 using System.Text;
-using TerminalNinja.Elements;
+using TerminalNinja.Controls;
 using TerminalNinja.Input;
 using TerminalNinja.Rendering;
 using TerminalNinja.Resources;
@@ -26,7 +26,7 @@ public sealed class Application : IDisposable
     private readonly FocusManager _focusManager;
     private readonly ResourceDictionary _resources = new();
     
-    private IElement? _rootElement;
+    private IControl? _rootControl;
     private bool _running;
     private bool _invalidated = true;
     private bool _disposed;
@@ -53,21 +53,21 @@ public sealed class Application : IDisposable
     
     /// <summary>
     /// Gets the application-level resource dictionary.
-    /// Resources defined here are available to all elements in the application.
+    /// Resources defined here are available to all controls in the application.
     /// </summary>
     public ResourceDictionary Resources => _resources;
     
     /// <summary>
-    /// Gets or sets the root element to display.
+    /// Gets or sets the root control to display.
     /// </summary>
-    public IElement? RootElement
+    public IControl? RootControl
     {
-        get => _rootElement;
+        get => _rootControl;
         set
         {
-            _rootElement = value;
-            if (_rootElement != null)
-                WireInvalidation(_rootElement);
+            _rootControl = value;
+            if (_rootControl != null)
+                WireInvalidation(_rootControl);
             Invalidate();
         }
     }
@@ -117,19 +117,19 @@ public sealed class Application : IDisposable
     /// <summary>
     /// Recursively wires invalidation callbacks for all elements in the tree.
     /// </summary>
-    private void WireInvalidation(IElement element)
+    private void WireInvalidation(IControl control)
     {
-        element.InvalidationCallback = Invalidate;
+        control.InvalidationCallback = Invalidate;
         
-        switch (element)
+        switch (control)
         {
             case Rectangle rect when rect.Child != null:
                 WireInvalidation(rect.Child);
                 break;
             case Stack stack:
                 foreach (var child in stack.Children)
-                    if (child.Element != null)
-                        WireInvalidation(child.Element);
+                    if (child.Content != null)
+                        WireInvalidation(child.Content);
                 break;
         }
     }
@@ -156,10 +156,10 @@ public sealed class Application : IDisposable
             ProcessInput();
             
             // Render if needed
-            if (_invalidated && _rootElement is not null)
+            if (_invalidated && _rootControl is not null)
             {
                 _renderer.Clear();
-                _renderer.Draw(_rootElement);
+                _renderer.Draw(_rootControl);
                 _renderer.Present();
                 _invalidated = false;
             }
@@ -230,24 +230,24 @@ public sealed class Application : IDisposable
         }
         
         // Tab navigation
-        if (_options.EnableTabNavigation && _rootElement is not null)
+        if (_options.EnableTabNavigation && _rootControl is not null)
         {
             if (keyEvent.Key == ConsoleKey.Tab && keyEvent.Shift)
             {
-                _focusManager.FocusPrevious(_rootElement, _renderer.Viewport);
+                _focusManager.FocusPrevious(_rootControl, _renderer.Viewport);
                 Invalidate();
                 return;
             }
             
             if (keyEvent.Key == ConsoleKey.Tab && !keyEvent.HasModifiers)
             {
-                _focusManager.FocusNext(_rootElement, _renderer.Viewport);
+                _focusManager.FocusNext(_rootControl, _renderer.Viewport);
                 Invalidate();
                 return;
             }
         }
         
-        // Dispatch to focused element
+        // Dispatch to focused control
         _focusManager.HandleKeyEvent(keyEvent);
         Invalidate();
     }
@@ -257,10 +257,10 @@ public sealed class Application : IDisposable
     /// </summary>
     private void HandleMouseEvent(MouseEvent mouseEvent)
     {
-        if (_rootElement is null)
+        if (_rootControl is null)
             return;
         
-        _focusManager.HandleMouseEvent(_rootElement, _renderer.Viewport, mouseEvent);
+        _focusManager.HandleMouseEvent(_rootControl, _renderer.Viewport, mouseEvent);
         Invalidate();
     }
     

@@ -1,8 +1,11 @@
-namespace TerminalNinja.Elements;
+using System.ComponentModel;
+
+namespace TerminalNinja.Controls;
 
 /// <summary>
 /// Specifies the orientation of a Stack container.
 /// </summary>
+[TypeConverter(typeof(EnumConverter))]
 public enum StackOrientation : byte
 {
     /// <summary>Children are arranged left-to-right.</summary>

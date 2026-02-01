@@ -1,5 +1,5 @@
 using TerminalNinja.App;
-using TerminalNinja.Elements;
+using TerminalNinja.Controls;
 using TerminalNinja.Xaml;
 using TerminalNinja.Xaml.Binding;
 
@@ -36,7 +36,7 @@ public static class XamlSample
         var window = TerminalXaml.LoadFromFile<Window>(xamlPath, viewModel, bindingManager);
 
         // Use the WPF-style Window.Show() pattern
-        // This sets app.RootElement = window internally
+        // This sets app.RootControl = window internally
         window.Show();
 
         // Add ESC handler to exit

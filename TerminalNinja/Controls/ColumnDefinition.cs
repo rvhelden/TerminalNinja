@@ -1,6 +1,6 @@
 using TerminalNinja.Primitives;
 
-namespace TerminalNinja.Elements;
+namespace TerminalNinja.Controls;
 
 /// <summary>
 /// Defines a column in a Grid with width specification.

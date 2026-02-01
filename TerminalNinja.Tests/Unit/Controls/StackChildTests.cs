@@ -1,4 +1,4 @@
-namespace TerminalNinja.Tests.Unit.Elements;
+namespace TerminalNinja.Tests.Unit.Controls;
 
 public class StackChildTests
 {
@@ -6,14 +6,14 @@ public class StackChildTests
     public async Task Fixed_CreatesChildWithFixedSizeMode()
     {
         // Arrange
-        var element = new Rectangle { Width = Size.Absolute(10), Height = Size.Absolute(5) };
+        var control = new Rectangle { Width = Size.Absolute(10), Height = Size.Absolute(5) };
         var fixedSize = 20;
 
         // Act
-        var child = StackChild.Fixed(element, fixedSize);
+        var child = StackChild.Fixed(control, fixedSize);
 
         // Assert
-        await Assert.That(child.Element).IsEqualTo(element);
+        await Assert.That(child.Content).IsEqualTo(control);
         await Assert.That(child.SizeMode).IsEqualTo(ChildSizeMode.Fixed);
         await Assert.That(child.FixedSize).IsEqualTo(fixedSize);
     }
@@ -22,10 +22,10 @@ public class StackChildTests
     public async Task Fixed_WithZeroSize_CreatesValidChild()
     {
         // Arrange
-        var element = new Rectangle { Width = Size.Absolute(10), Height = Size.Absolute(5) };
+        var control = new Rectangle { Width = Size.Absolute(10), Height = Size.Absolute(5) };
 
         // Act
-        var child = StackChild.Fixed(element, 0);
+        var child = StackChild.Fixed(control, 0);
 
         // Assert
         await Assert.That(child.SizeMode).IsEqualTo(ChildSizeMode.Fixed);
@@ -36,13 +36,13 @@ public class StackChildTests
     public async Task Stretch_CreatesChildWithStretchSizeMode()
     {
         // Arrange
-        var element = new Rectangle { Width = Size.Absolute(10), Height = Size.Absolute(5) };
+        var control = new Rectangle { Width = Size.Absolute(10), Height = Size.Absolute(5) };
 
         // Act
-        var child = StackChild.Stretch(element);
+        var child = StackChild.Stretch(control);
 
         // Assert
-        await Assert.That(child.Element).IsEqualTo(element);
+        await Assert.That(child.Content).IsEqualTo(control);
         await Assert.That(child.SizeMode).IsEqualTo(ChildSizeMode.Stretch);
         await Assert.That(child.FixedSize).IsEqualTo(0); // Should be default value
     }
@@ -51,13 +51,13 @@ public class StackChildTests
     public async Task Auto_CreatesChildWithAutoSizeMode()
     {
         // Arrange
-        var element = new Rectangle { Width = Size.Absolute(10), Height = Size.Absolute(5) };
+        var control = new Rectangle { Width = Size.Absolute(10), Height = Size.Absolute(5) };
 
         // Act
-        var child = StackChild.Auto(element);
+        var child = StackChild.Auto(control);
 
         // Assert
-        await Assert.That(child.Element).IsEqualTo(element);
+        await Assert.That(child.Content).IsEqualTo(control);
         await Assert.That(child.SizeMode).IsEqualTo(ChildSizeMode.Auto);
         await Assert.That(child.FixedSize).IsEqualTo(0); // Should be default value
     }
@@ -66,8 +66,8 @@ public class StackChildTests
     public async Task StackChild_IsValueType()
     {
         // Arrange
-        var element = new Rectangle { Width = Size.Absolute(10), Height = Size.Absolute(5) };
-        var child1 = StackChild.Fixed(element, 10);
+        var control = new Rectangle { Width = Size.Absolute(10), Height = Size.Absolute(5) };
+        var child1 = StackChild.Fixed(control, 10);
 
         // Act
         var child2 = child1; // Copy
@@ -82,10 +82,10 @@ public class StackChildTests
     public async Task StackChild_EqualityWorks()
     {
         // Arrange
-        var element = new Rectangle { Width = Size.Absolute(10), Height = Size.Absolute(5) };
-        var child1 = StackChild.Fixed(element, 10);
-        var child2 = StackChild.Fixed(element, 10);
-        var child3 = StackChild.Fixed(element, 20);
+        var control = new Rectangle { Width = Size.Absolute(10), Height = Size.Absolute(5) };
+        var child1 = StackChild.Fixed(control, 10);
+        var child2 = StackChild.Fixed(control, 10);
+        var child3 = StackChild.Fixed(control, 20);
 
         // Assert
         await Assert.That(child1).IsEqualTo(child2);
@@ -101,25 +101,25 @@ public class StackChildTests
         var child = StackChild.Fixed(element1, 10);
 
         // Act
-        var modified = child with { Element = element2, FixedSize = 30 };
+        var modified = child with { Content = element2, FixedSize = 30 };
 
         // Assert
-        await Assert.That(modified.Element).IsEqualTo(element2);
+        await Assert.That(modified.Content).IsEqualTo(element2);
         await Assert.That(modified.FixedSize).IsEqualTo(30);
         await Assert.That(modified.SizeMode).IsEqualTo(ChildSizeMode.Fixed); // Unchanged
-        await Assert.That(child.Element).IsEqualTo(element1); // Original unchanged
+        await Assert.That(child.Content).IsEqualTo(element1); // Original unchanged
     }
 
     [Test]
     public async Task StackChild_DifferentFactoryMethods_ProduceDifferentSizeModes()
     {
         // Arrange
-        var element = new Rectangle { Width = Size.Absolute(10), Height = Size.Absolute(5) };
+        var control = new Rectangle { Width = Size.Absolute(10), Height = Size.Absolute(5) };
 
         // Act
-        var fixedChild = StackChild.Fixed(element, 10);
-        var stretchChild = StackChild.Stretch(element);
-        var autoChild = StackChild.Auto(element);
+        var fixedChild = StackChild.Fixed(control, 10);
+        var stretchChild = StackChild.Stretch(control);
+        var autoChild = StackChild.Auto(control);
 
         // Assert
         await Assert.That(fixedChild.SizeMode).IsEqualTo(ChildSizeMode.Fixed);

@@ -2,10 +2,10 @@ using Portable.Xaml.Markup;
 using TerminalNinja.Buffers;
 using TerminalNinja.Primitives;
 
-namespace TerminalNinja.Elements;
+namespace TerminalNinja.Controls;
 
 /// <summary>
-/// A text label UI element with alignment, wrapping, truncation, and padding support.
+/// A text label UI control with alignment, wrapping, truncation, and padding support.
 /// </summary>
 [RuntimeNameProperty("Name")]
 public sealed class Label : FrameworkElement

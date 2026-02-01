@@ -1,30 +1,30 @@
 using TerminalNinja.Resources;
 using TerminalNinja.Styling;
 
-namespace TerminalNinja.Elements;
+namespace TerminalNinja.Controls;
 
 /// <summary>
-/// Base class for elements that support resources and styles.
-/// Extends ElementBase with ResourceDictionary and resource lookup capabilities.
+/// Base class for controls that support resources and styles.
+/// Extends ControlBase with ResourceDictionary and resource lookup capabilities.
 /// </summary>
-public abstract class FrameworkElement : ElementBase
+public abstract class FrameworkElement : ControlBase
 {
     private ResourceDictionary? _resources;
     private Style? _style;
     
     /// <summary>
-    /// Gets the resource dictionary for this element.
+    /// Gets the resource dictionary for this control.
     /// Resources defined here take precedence over parent resources.
     /// </summary>
     public ResourceDictionary Resources => _resources ??= new ResourceDictionary();
     
     /// <summary>
-    /// Gets or sets whether this element has any resources defined.
+    /// Gets or sets whether this control has any resources defined.
     /// </summary>
     internal bool HasResources => _resources != null && _resources.Count > 0;
     
     /// <summary>
-    /// Gets or sets the style applied to this element.
+    /// Gets or sets the style applied to this control.
     /// </summary>
     public Style? Style
     {
@@ -82,37 +82,37 @@ public abstract class FrameworkElement : ElementBase
     internal static Func<object, object?>? ApplicationResourceLookup { get; set; }
     
     /// <summary>
-    /// Applies the current style to this element by setting property values.
+    /// Applies the current style to this control by setting property values.
     /// </summary>
     protected virtual void ApplyStyle()
     {
         if (_style == null) return;
         
-        // Check if style is compatible with this element type
+        // Check if style is compatible with this control type
         if (_style.TargetType != null && !_style.TargetType.IsInstanceOfType(this))
         {
             throw new InvalidOperationException(
-                $"Style with TargetType '{_style.TargetType.Name}' cannot be applied to element of type '{GetType().Name}'");
+                $"Style with TargetType '{_style.TargetType.Name}' cannot be applied to control of type '{GetType().Name}'");
         }
         
         // Apply each setter
-        var elementType = GetType();
+        var controlType = GetType();
         foreach (var setter in _style.Setters)
         {
             if (string.IsNullOrEmpty(setter.Property))
                 continue;
             
-            var property = elementType.GetProperty(setter.Property);
+            var property = controlType.GetProperty(setter.Property);
             if (property == null)
             {
                 throw new InvalidOperationException(
-                    $"Property '{setter.Property}' not found on type '{elementType.Name}'");
+                    $"Property '{setter.Property}' not found on type '{controlType.Name}'");
             }
             
             if (!property.CanWrite)
             {
                 throw new InvalidOperationException(
-                    $"Property '{setter.Property}' on type '{elementType.Name}' is read-only");
+                    $"Property '{setter.Property}' on type '{controlType.Name}' is read-only");
             }
             
             // Convert value if needed

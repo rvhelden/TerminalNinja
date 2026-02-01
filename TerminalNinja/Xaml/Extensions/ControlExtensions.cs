@@ -1,20 +1,20 @@
-using TerminalNinja.Elements;
+using TerminalNinja.Controls;
 
 namespace TerminalNinja.Xaml.Extensions;
 
 /// <summary>
-/// Extension methods for IElement to support name-based lookup.
+/// Extension methods for IControl to support name-based lookup.
 /// </summary>
-public static class ElementExtensions
+public static class ControlExtensions
 {
     /// <summary>
-    /// Finds a child element by name within the element tree.
+    /// Finds a child control by name within the control tree.
     /// </summary>
-    /// <typeparam name="T">The expected type of the element.</typeparam>
-    /// <param name="root">The root element to search from.</param>
+    /// <typeparam name="T">The expected type of the control.</typeparam>
+    /// <param name="root">The root control to search from.</param>
     /// <param name="name">The name to search for (case-sensitive).</param>
-    /// <returns>The found element, or null if not found.</returns>
-    public static T? FindByName<T>(this IElement root, string name) where T : class, IElement
+    /// <returns>The found control, or null if not found.</returns>
+    public static T? FindByName<T>(this IControl root, string name) where T : class, IControl
     {
         ArgumentNullException.ThrowIfNull(root);
         ArgumentException.ThrowIfNullOrWhiteSpace(name);
@@ -22,14 +22,14 @@ public static class ElementExtensions
         return FindByNameRecursive(root, name) as T;
     }
     
-    private static IElement? FindByNameRecursive(IElement element, string name)
+    private static IControl? FindByNameRecursive(IControl control, string name)
     {
-        // Check if this element matches
-        if (element.Name == name)
-            return element;
+        // Check if this control matches
+        if (control.Name == name)
+            return control;
         
-        // Search children based on element type
-        switch (element)
+        // Search children based on control type
+        switch (control)
         {
             case Rectangle rect when rect.Child != null:
                 var rectResult = FindByNameRecursive(rect.Child, name);
@@ -39,7 +39,7 @@ public static class ElementExtensions
             case Stack stack:
                 foreach (var child in stack.Children)
                 {
-                    var stackResult = FindByNameRecursive(child.Element, name);
+                    var stackResult = FindByNameRecursive(child.Content, name);
                     if (stackResult != null) return stackResult;
                 }
                 break;

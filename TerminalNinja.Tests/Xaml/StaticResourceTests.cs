@@ -6,7 +6,7 @@ namespace TerminalNinja.Tests.Xaml;
 /// Tests for StaticResourceExtension covering:
 /// - Resource key validation
 /// - Pending lookup registration
-/// - Resource resolution from element tree
+/// - Resource resolution from control tree
 /// - Integration with FrameworkElement.TryFindResource
 /// </summary>
 public class StaticResourceExtensionTests

@@ -1,4 +1,4 @@
-using TerminalNinja.Elements;
+using TerminalNinja.Controls;
 using TerminalNinja.Xaml;
 using TerminalNinja.Xaml.Binding;
 using TerminalNinja.Xaml.Mvvm;
@@ -113,8 +113,8 @@ public class BindingTests
         
         // Act
         var stack = TerminalXaml.Load<Stack>(xaml, viewModel, bindingManager);
-        var label = (Label)stack.Children[0].Element;
-        var button = (Button)stack.Children[1].Element;
+        var label = (Label)stack.Children[0].Content;
+        var button = (Button)stack.Children[1].Content;
         
         // Assert - initial state
         await Assert.That(label.Text).IsEqualTo("Initial");

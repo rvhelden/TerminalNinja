@@ -1,8 +1,11 @@
+using System.ComponentModel;
+
 namespace TerminalNinja.Primitives;
 
 /// <summary>
 /// Specifies how text wraps when it exceeds the available width.
 /// </summary>
+[TypeConverter(typeof(EnumConverter))]
 public enum TextWrapping : byte
 {
     /// <summary>Text does not wrap; it may be truncated or clipped at the edge.</summary>

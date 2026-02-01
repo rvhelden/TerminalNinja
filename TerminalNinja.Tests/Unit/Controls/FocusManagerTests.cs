@@ -1,4 +1,4 @@
-namespace TerminalNinja.Tests.Unit.Elements;
+namespace TerminalNinja.Tests.Unit.Controls;
 
 /// <summary>
 /// Tests for the FocusManager class.
@@ -6,7 +6,7 @@ namespace TerminalNinja.Tests.Unit.Elements;
 public class FocusManagerTests
 {
     /// <summary>
-    /// Creates a simple mock focusable element for testing.
+    /// Creates a simple mock focusable control for testing.
     /// </summary>
     private class MockFocusable : IFocusable
     {
@@ -16,9 +16,9 @@ public class FocusManagerTests
         public bool CanFocus { get; init; } = true;
         public int TabIndex { get; init; }
         
-        // IElement members
+        // IControl members
         public object? DataContext { get; set; }
-        public IElement? Parent { get; set; }
+        public IControl? Parent { get; set; }
         public Action? InvalidationCallback { get; set; }
         public void InvalidateVisual() => InvalidationCallback?.Invoke();
         
@@ -59,16 +59,16 @@ public class FocusManagerTests
     {
         // Arrange
         var manager = new FocusManager();
-        var element = new MockFocusable(new Rect(0, 0, 10, 3));
-        manager.SetFocus(element);
+        var control = new MockFocusable(new Rect(0, 0, 10, 3));
+        manager.SetFocus(control);
         
         // Act
         manager.SetFocus(null);
         
         // Assert
-        await Assert.That(manager.FocusedElement).IsNull();
-        await Assert.That(element.IsFocused).IsFalse();
-        await Assert.That(element.BlurCount).IsEqualTo(1);
+        await Assert.That(manager.FocusedControl).IsNull();
+        await Assert.That(control.IsFocused).IsFalse();
+        await Assert.That(control.BlurCount).IsEqualTo(1);
     }
     
     [Test]
@@ -76,15 +76,15 @@ public class FocusManagerTests
     {
         // Arrange
         var manager = new FocusManager();
-        var element = new MockFocusable(new Rect(0, 0, 10, 3));
+        var control = new MockFocusable(new Rect(0, 0, 10, 3));
         
         // Act
-        manager.SetFocus(element);
+        manager.SetFocus(control);
         
         // Assert
-        await Assert.That(manager.FocusedElement).IsEqualTo(element);
-        await Assert.That(element.IsFocused).IsTrue();
-        await Assert.That(element.FocusCount).IsEqualTo(1);
+        await Assert.That(manager.FocusedControl).IsEqualTo(control);
+        await Assert.That(control.IsFocused).IsTrue();
+        await Assert.That(control.FocusCount).IsEqualTo(1);
     }
     
     [Test]
@@ -100,7 +100,7 @@ public class FocusManagerTests
         manager.SetFocus(element2);
         
         // Assert
-        await Assert.That(manager.FocusedElement).IsEqualTo(element2);
+        await Assert.That(manager.FocusedControl).IsEqualTo(element2);
         await Assert.That(element1.IsFocused).IsFalse();
         await Assert.That(element1.BlurCount).IsEqualTo(1);
         await Assert.That(element2.IsFocused).IsTrue();
@@ -112,15 +112,15 @@ public class FocusManagerTests
     {
         // Arrange
         var manager = new FocusManager();
-        var element = new MockFocusable(new Rect(0, 0, 10, 3));
-        manager.SetFocus(element);
+        var control = new MockFocusable(new Rect(0, 0, 10, 3));
+        manager.SetFocus(control);
         
         // Act
-        manager.SetFocus(element);
+        manager.SetFocus(control);
         
         // Assert
-        await Assert.That(element.FocusCount).IsEqualTo(1);
-        await Assert.That(element.BlurCount).IsEqualTo(0);
+        await Assert.That(control.FocusCount).IsEqualTo(1);
+        await Assert.That(control.BlurCount).IsEqualTo(0);
     }
     
     [Test]
@@ -128,15 +128,15 @@ public class FocusManagerTests
     {
         // Arrange
         var manager = new FocusManager();
-        var element = new MockFocusable(new Rect(0, 0, 10, 3));
-        manager.SetFocus(element);
+        var control = new MockFocusable(new Rect(0, 0, 10, 3));
+        manager.SetFocus(control);
         
         // Act
         manager.ClearFocus();
         
         // Assert
-        await Assert.That(manager.FocusedElement).IsNull();
-        await Assert.That(element.IsFocused).IsFalse();
+        await Assert.That(manager.FocusedControl).IsNull();
+        await Assert.That(control.IsFocused).IsFalse();
     }
     
     [Test]
@@ -144,16 +144,16 @@ public class FocusManagerTests
     {
         // Arrange
         var manager = new FocusManager();
-        var element = new MockFocusable(new Rect(5, 5, 10, 3));
+        var control = new MockFocusable(new Rect(5, 5, 10, 3));
         
         // Act
-        var result = manager.UpdateHover(element, new Rect(0, 0, 80, 24), 7, 6);
+        var result = manager.UpdateHover(control, new Rect(0, 0, 80, 24), 7, 6);
         
         // Assert
-        await Assert.That(result).IsEqualTo(element);
-        await Assert.That(manager.HoveredElement).IsEqualTo(element);
-        await Assert.That(element.IsHovered).IsTrue();
-        await Assert.That(element.MouseEnterCount).IsEqualTo(1);
+        await Assert.That(result).IsEqualTo(control);
+        await Assert.That(manager.HoveredControl).IsEqualTo(control);
+        await Assert.That(control.IsHovered).IsTrue();
+        await Assert.That(control.MouseEnterCount).IsEqualTo(1);
     }
     
     [Test]
@@ -161,17 +161,17 @@ public class FocusManagerTests
     {
         // Arrange
         var manager = new FocusManager();
-        var element = new MockFocusable(new Rect(5, 5, 10, 3));
-        manager.UpdateHover(element, new Rect(0, 0, 80, 24), 7, 6);
+        var control = new MockFocusable(new Rect(5, 5, 10, 3));
+        manager.UpdateHover(control, new Rect(0, 0, 80, 24), 7, 6);
         
         // Act
-        var result = manager.UpdateHover(element, new Rect(0, 0, 80, 24), 0, 0);
+        var result = manager.UpdateHover(control, new Rect(0, 0, 80, 24), 0, 0);
         
         // Assert
         await Assert.That(result).IsNull();
-        await Assert.That(manager.HoveredElement).IsNull();
-        await Assert.That(element.IsHovered).IsFalse();
-        await Assert.That(element.MouseLeaveCount).IsEqualTo(1);
+        await Assert.That(manager.HoveredControl).IsNull();
+        await Assert.That(control.IsHovered).IsFalse();
+        await Assert.That(control.MouseLeaveCount).IsEqualTo(1);
     }
     
     [Test]
@@ -179,15 +179,15 @@ public class FocusManagerTests
     {
         // Arrange
         var manager = new FocusManager();
-        var element = new MockFocusable(new Rect(5, 5, 10, 3));
-        manager.UpdateHover(element, new Rect(0, 0, 80, 24), 7, 6);
+        var control = new MockFocusable(new Rect(5, 5, 10, 3));
+        manager.UpdateHover(control, new Rect(0, 0, 80, 24), 7, 6);
         
         // Act
-        manager.UpdateHover(element, new Rect(0, 0, 80, 24), 8, 6);
+        manager.UpdateHover(control, new Rect(0, 0, 80, 24), 8, 6);
         
         // Assert
-        await Assert.That(element.MouseEnterCount).IsEqualTo(1);
-        await Assert.That(element.MouseLeaveCount).IsEqualTo(0);
+        await Assert.That(control.MouseEnterCount).IsEqualTo(1);
+        await Assert.That(control.MouseLeaveCount).IsEqualTo(0);
     }
     
     [Test]
@@ -195,13 +195,13 @@ public class FocusManagerTests
     {
         // Arrange
         var manager = new FocusManager();
-        var element = new MockFocusable(new Rect(5, 5, 10, 3));
+        var control = new MockFocusable(new Rect(5, 5, 10, 3));
         
         // Act
-        var result = manager.HitTest(element, new Rect(0, 0, 80, 24), 7, 6);
+        var result = manager.HitTest(control, new Rect(0, 0, 80, 24), 7, 6);
         
         // Assert
-        await Assert.That(result).IsEqualTo(element);
+        await Assert.That(result).IsEqualTo(control);
     }
     
     [Test]
@@ -209,10 +209,10 @@ public class FocusManagerTests
     {
         // Arrange
         var manager = new FocusManager();
-        var element = new MockFocusable(new Rect(5, 5, 10, 3));
+        var control = new MockFocusable(new Rect(5, 5, 10, 3));
         
         // Act
-        var result = manager.HitTest(element, new Rect(0, 0, 80, 24), 0, 0);
+        var result = manager.HitTest(control, new Rect(0, 0, 80, 24), 0, 0);
         
         // Assert
         await Assert.That(result).IsNull();
@@ -223,15 +223,15 @@ public class FocusManagerTests
     {
         // Arrange
         var manager = new FocusManager();
-        var element = new MockFocusable(new Rect(5, 5, 10, 3));
+        var control = new MockFocusable(new Rect(5, 5, 10, 3));
         var mouseEvent = new MouseEvent(7, 6, MouseButton.Left, MouseAction.Press);
         
         // Act
-        manager.HandleMouseEvent(element, new Rect(0, 0, 80, 24), mouseEvent);
+        manager.HandleMouseEvent(control, new Rect(0, 0, 80, 24), mouseEvent);
         
         // Assert
-        await Assert.That(manager.FocusedElement).IsEqualTo(element);
-        await Assert.That(element.ReceivedMouseEvents.Count).IsEqualTo(1);
+        await Assert.That(manager.FocusedControl).IsEqualTo(control);
+        await Assert.That(control.ReceivedMouseEvents.Count).IsEqualTo(1);
     }
     
     [Test]
@@ -239,14 +239,14 @@ public class FocusManagerTests
     {
         // Arrange
         var manager = new FocusManager();
-        var element = new MockFocusable(new Rect(5, 5, 10, 3));
+        var control = new MockFocusable(new Rect(5, 5, 10, 3));
         var mouseEvent = new MouseEvent(7, 6, MouseButton.None, MouseAction.Move);
         
         // Act
-        manager.HandleMouseEvent(element, new Rect(0, 0, 80, 24), mouseEvent);
+        manager.HandleMouseEvent(control, new Rect(0, 0, 80, 24), mouseEvent);
         
         // Assert
-        await Assert.That(manager.HoveredElement).IsEqualTo(element);
+        await Assert.That(manager.HoveredControl).IsEqualTo(control);
     }
     
     [Test]
@@ -254,16 +254,16 @@ public class FocusManagerTests
     {
         // Arrange
         var manager = new FocusManager();
-        var element = new MockFocusable(new Rect(5, 5, 10, 3));
-        manager.SetFocus(element);
+        var control = new MockFocusable(new Rect(5, 5, 10, 3));
+        manager.SetFocus(control);
         var keyEvent = new KeyEvent(ConsoleKey.Enter, '\r', false, false, false);
         
         // Act
         manager.HandleKeyEvent(keyEvent);
         
         // Assert
-        await Assert.That(element.ReceivedKeyEvents.Count).IsEqualTo(1);
-        await Assert.That(element.ReceivedKeyEvents[0]).IsEqualTo(keyEvent);
+        await Assert.That(control.ReceivedKeyEvents.Count).IsEqualTo(1);
+        await Assert.That(control.ReceivedKeyEvents[0]).IsEqualTo(keyEvent);
     }
     
     [Test]
@@ -276,6 +276,6 @@ public class FocusManagerTests
         // Act & Assert (should not throw)
         manager.HandleKeyEvent(keyEvent);
         
-        await Assert.That(manager.FocusedElement).IsNull();
+        await Assert.That(manager.FocusedControl).IsNull();
     }
 }

@@ -1,9 +1,9 @@
 using TerminalNinja.Primitives;
 
-namespace TerminalNinja.Tests.Unit.Elements;
+namespace TerminalNinja.Tests.Unit.Controls;
 
 /// <summary>
-/// Tests for Window element covering:
+/// Tests for Window control covering:
 /// - Title property
 /// - Content property and parent relationship
 /// - Width/Height sizing

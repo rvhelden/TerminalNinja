@@ -1,12 +1,16 @@
-namespace TerminalNinja.Elements;
+using System.ComponentModel;
+using TerminalNinja.Xaml.TypeConverters;
+
+namespace TerminalNinja.Controls;
 
 /// <summary>
-/// Represents a child element within a Stack container with its sizing mode.
+/// Represents a child control within a Stack container with its sizing mode.
 /// </summary>
+[TypeConverter(typeof(StackChildTypeConverter))]
 public readonly record struct StackChild
 {
-    /// <summary>Gets the child element to render.</summary>
-    public required IElement Element { get; init; }
+    /// <summary>Gets the child control to render.</summary>
+    public required IControl Content { get; init; }
     
     /// <summary>Gets the sizing mode for this child.</summary>
     public ChildSizeMode SizeMode { get; init; }
@@ -17,11 +21,11 @@ public readonly record struct StackChild
     /// <summary>
     /// Creates a child with a fixed size.
     /// </summary>
-    /// <param name="element">The element to render.</param>
+    /// <param name="control">The control to render.</param>
     /// <param name="size">The fixed size in cells.</param>
-    public static StackChild Fixed(IElement element, int size) => new()
+    public static StackChild Fixed(IControl control, int size) => new()
     {
-        Element = element,
+        Content = control,
         SizeMode = ChildSizeMode.Fixed,
         FixedSize = size
     };
@@ -29,20 +33,20 @@ public readonly record struct StackChild
     /// <summary>
     /// Creates a child that stretches to fill available space.
     /// </summary>
-    /// <param name="element">The element to render.</param>
-    public static StackChild Stretch(IElement element) => new()
+    /// <param name="control">The control to render.</param>
+    public static StackChild Stretch(IControl control) => new()
     {
-        Element = element,
+        Content = control,
         SizeMode = ChildSizeMode.Stretch
     };
     
     /// <summary>
     /// Creates a child that sizes based on its preferred size.
     /// </summary>
-    /// <param name="element">The element to render.</param>
-    public static StackChild Auto(IElement element) => new()
+    /// <param name="control">The control to render.</param>
+    public static StackChild Auto(IControl control) => new()
     {
-        Element = element,
+        Content = control,
         SizeMode = ChildSizeMode.Auto
     };
 }

@@ -209,9 +209,9 @@ public class StyleTests
     public async Task ApplyStyle_DerivedTypeMatchesTargetType_Works()
     {
         // Arrange
-        // Label extends FrameworkElement, which extends ElementBase
+        // Label extends FrameworkElement, which extends ControlBase
         var label = new Label();
-        var style = new Style(typeof(ElementBase)); // Base type
+        var style = new Style(typeof(ControlBase)); // Base type
         style.Setters.Add(new Setter("Name", "StyledLabel"));
         
         // Act
