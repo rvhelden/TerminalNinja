@@ -7,11 +7,49 @@ namespace TerminalNinja.Core.Elements;
 /// <summary>
 /// A rectangle UI element with positioning, sizing, borders, and background color.
 /// </summary>
-public sealed class Rectangle : IElement
+public sealed class Rectangle : ElementBase
 {
-    /// <summary>Gets or sets the name of this element for lookup purposes.</summary>
-    public string? Name { get; set; }
+    // Bindable properties (with change notification)
+    private Color _backgroundColor = Color.Black;
+    /// <summary>Gets or sets the background color.</summary>
+    public Color BackgroundColor
+    {
+        get => _backgroundColor;
+        set => SetProperty(ref _backgroundColor, value);
+    }
     
+    private Color _foregroundColor = Color.White;
+    /// <summary>Gets or sets the foreground color (used for borders).</summary>
+    public Color ForegroundColor
+    {
+        get => _foregroundColor;
+        set => SetProperty(ref _foregroundColor, value);
+    }
+    
+    private Border _border = Border.None;
+    /// <summary>Gets or sets the border style and color.</summary>
+    public Border Border
+    {
+        get => _border;
+        set => SetProperty(ref _border, value);
+    }
+    
+    private IElement? _child;
+    /// <summary>Gets or sets the child element to render inside this rectangle.</summary>
+    public IElement? Child
+    {
+        get => _child;
+        set
+        {
+            if (_child != null)
+                _child.Parent = null;
+            SetProperty(ref _child, value);
+            if (_child != null)
+                _child.Parent = this;
+        }
+    }
+    
+    // Layout properties (kept as init for now)
     /// <summary>Gets or sets the X position (absolute, relative, or stretch).</summary>
     public Size X { get; init; } = Size.Absolute(0);
     
@@ -30,25 +68,13 @@ public sealed class Rectangle : IElement
     /// <summary>Gets or sets the height (absolute, relative, or stretch).</summary>
     public Size Height { get; init; } = Size.Stretch;
     
-    /// <summary>Gets or sets the border style and color.</summary>
-    public Border Border { get; init; } = Border.None;
-    
-    /// <summary>Gets or sets the background color.</summary>
-    public Color BackgroundColor { get; init; } = Color.Black;
-    
-    /// <summary>Gets or sets the foreground color (used for borders).</summary>
-    public Color ForegroundColor { get; init; } = Color.White;
-    
-    /// <summary>Gets or sets the child element to render inside this rectangle.</summary>
-    public IElement? Child { get; init; }
-    
     /// <summary>
     /// Returns the preferred size of this rectangle within the given parent bounds.
     /// Uses resolved Width/Height if Absolute, otherwise returns the parent size.
     /// </summary>
     /// <param name="parent">The parent container bounds.</param>
     /// <returns>The preferred width and height in cells.</returns>
-    public Size2D GetPreferredSize(Rect parent)
+    public override Size2D GetPreferredSize(Rect parent)
     {
         var w = Width.Mode == SizeMode.Absolute ? Width.Resolve(parent.Width) : parent.Width;
         var h = Height.Mode == SizeMode.Absolute ? Height.Resolve(parent.Height) : parent.Height;
@@ -60,7 +86,7 @@ public sealed class Rectangle : IElement
     /// </summary>
     /// <param name="parent">The parent container bounds.</param>
     /// <returns>The calculated absolute rectangle bounds.</returns>
-    public Rect CalculateBounds(Rect parent)
+    public override Rect CalculateBounds(Rect parent)
     {
         // Resolve dimensions
         var w = Width.Resolve(parent.Width);
@@ -96,7 +122,7 @@ public sealed class Rectangle : IElement
     /// </summary>
     /// <param name="buffer">The buffer to render into.</param>
     /// <param name="parentBounds">The bounds of the parent container.</param>
-    public void Render(CellBuffer buffer, Rect parentBounds)
+    public override void Render(CellBuffer buffer, Rect parentBounds)
     {
         var bounds = CalculateBounds(parentBounds);
         

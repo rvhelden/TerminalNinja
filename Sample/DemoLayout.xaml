@@ -1,21 +1,22 @@
 <Stack xmlns="clr-namespace:TerminalNinja.Core.Elements;assembly=TerminalNinja.Core"
        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
        xmlns:e="clr-namespace:TerminalNinja.Core.Elements;assembly=TerminalNinja.Core"
+       xmlns:b="clr-namespace:TerminalNinja.Xaml.Markup;assembly=TerminalNinja.Xaml"
        Orientation="Vertical">
     
-    <!-- Header -->
+    <!-- Header with data binding -->
     <Rectangle e:Stack.SizeMode="Fixed" e:Stack.FixedSize="5"
                BackgroundColor="#1E1E50"
                ForegroundColor="Cyan"
                Border="Double">
         <Label x:Name="headerLabel"
-               Text="TerminalNinja XAML Demo"
+               Text="{b:Binding Path=HeaderText}"
                ForegroundColor="Cyan"
                HorizontalTextAlignment="Center"
                VerticalTextAlignment="Center" />
     </Rectangle>
     
-    <!-- Toolbar -->
+    <!-- Toolbar with command binding -->
     <Rectangle e:Stack.SizeMode="Fixed" e:Stack.FixedSize="5"
                BackgroundColor="#19192D"
                Border="Single">
@@ -33,7 +34,8 @@
                     FocusColor="Cyan"
                     HoverColor="Yellow"
                     ForegroundColor="White"
-                    BackgroundColor="#141414" />
+                    BackgroundColor="#141414"
+                    Command="{b:Binding Path=NewCommand}" />
             
             <Button x:Name="openButton"
                     e:Stack.SizeMode="Auto"
@@ -44,7 +46,8 @@
                     FocusColor="Cyan"
                     HoverColor="Yellow"
                     ForegroundColor="White"
-                    BackgroundColor="#141414" />
+                    BackgroundColor="#141414"
+                    Command="{b:Binding Path=OpenCommand}" />
             
             <Button x:Name="saveButton"
                     e:Stack.SizeMode="Auto"
@@ -55,19 +58,20 @@
                     FocusColor="Cyan"
                     HoverColor="Yellow"
                     ForegroundColor="White"
-                    BackgroundColor="#141414" />
+                    BackgroundColor="#141414"
+                    Command="{b:Binding Path=SaveCommand}" />
             
             <Rectangle e:Stack.SizeMode="Stretch"
                        BackgroundColor="#19192D" />
         </Stack>
     </Rectangle>
     
-    <!-- Content Area -->
+    <!-- Content Area with data binding -->
     <Rectangle e:Stack.SizeMode="Stretch"
                BackgroundColor="#0F0F0F"
                Border="Rounded">
         <Label x:Name="contentLabel"
-               Text="Welcome to TerminalNinja XAML!\n\nThis UI was loaded from a XAML file.\n\nClick the buttons above to interact."
+               Text="{b:Binding Path=ContentText}"
                ForegroundColor="White"
                HorizontalTextAlignment="Center"
                VerticalTextAlignment="Center"
@@ -75,13 +79,13 @@
                Padding="4,2,4,2" />
     </Rectangle>
     
-    <!-- Status Bar -->
+    <!-- Status Bar with data binding -->
     <Rectangle e:Stack.SizeMode="Fixed" e:Stack.FixedSize="3"
                BackgroundColor="#282828"
                ForegroundColor="Yellow"
                Border="Single">
         <Label x:Name="statusLabel"
-               Text="Ready"
+               Text="{b:Binding Path=StatusText}"
                ForegroundColor="Yellow"
                HorizontalTextAlignment="Center"
                VerticalTextAlignment="Center" />

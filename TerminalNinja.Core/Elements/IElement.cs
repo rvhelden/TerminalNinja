@@ -14,6 +14,28 @@ public interface IElement
     string? Name { get; set; }
     
     /// <summary>
+    /// Gets or sets the data context for this element. Used as the source for data bindings.
+    /// If null, bindings will walk up the Parent chain to find an inherited DataContext.
+    /// </summary>
+    object? DataContext { get; set; }
+    
+    /// <summary>
+    /// Gets or sets the parent element in the visual tree. Used for DataContext inheritance.
+    /// </summary>
+    IElement? Parent { get; set; }
+    
+    /// <summary>
+    /// Gets or sets the callback invoked when this element needs to be re-rendered.
+    /// Set by the Application when the element joins the visual tree.
+    /// </summary>
+    Action? InvalidationCallback { get; set; }
+    
+    /// <summary>
+    /// Signals that this element's visual state has changed and needs re-rendering.
+    /// </summary>
+    void InvalidateVisual();
+    
+    /// <summary>
     /// Returns the element's preferred size within the given parent bounds.
     /// Used by layout containers to determine Auto-sized children.
     /// </summary>

@@ -49,6 +49,8 @@ public sealed class Application : IDisposable
         set
         {
             _rootElement = value;
+            if (_rootElement != null)
+                WireInvalidation(_rootElement);
             Invalidate();
         }
     }
@@ -87,6 +89,26 @@ public sealed class Application : IDisposable
     public void Invalidate()
     {
         _invalidated = true;
+    }
+    
+    /// <summary>
+    /// Recursively wires invalidation callbacks for all elements in the tree.
+    /// </summary>
+    private void WireInvalidation(IElement element)
+    {
+        element.InvalidationCallback = Invalidate;
+        
+        switch (element)
+        {
+            case Rectangle rect when rect.Child != null:
+                WireInvalidation(rect.Child);
+                break;
+            case Stack stack:
+                foreach (var child in stack.Children)
+                    if (child.Element != null)
+                        WireInvalidation(child.Element);
+                break;
+        }
     }
     
     /// <summary>

@@ -1,4 +1,5 @@
 using TerminalNinja.Core.Buffers;
+using TerminalNinja.Core.Commands;
 using TerminalNinja.Core.Input;
 using TerminalNinja.Core.Primitives;
 using TerminalNinja.Core.Styling;
@@ -8,14 +9,86 @@ namespace TerminalNinja.Core.Elements;
 /// <summary>
 /// An interactive button element that responds to focus, hover, and click events.
 /// </summary>
-public sealed class Button : IFocusable
+public sealed class Button : ElementBase, IFocusable
 {
-    /// <summary>Gets or sets the name of this element for lookup purposes.</summary>
-    public string? Name { get; set; }
-    
+    // Bindable properties (with change notification)
+    private string _text = "";
     /// <summary>Gets or sets the button label text.</summary>
-    public string Text { get; init; } = "";
+    public string Text
+    {
+        get => _text;
+        set => SetProperty(ref _text, value);
+    }
     
+    private Color _backgroundColor = Color.Black;
+    /// <summary>Gets or sets the background color.</summary>
+    public Color BackgroundColor
+    {
+        get => _backgroundColor;
+        set => SetProperty(ref _backgroundColor, value);
+    }
+    
+    private Color _foregroundColor = Color.White;
+    /// <summary>Gets or sets the normal foreground color.</summary>
+    public Color ForegroundColor
+    {
+        get => _foregroundColor;
+        set => SetProperty(ref _foregroundColor, value);
+    }
+    
+    private Color _focusColor = Color.Cyan;
+    /// <summary>Gets or sets the focus border color.</summary>
+    public Color FocusColor
+    {
+        get => _focusColor;
+        set => SetProperty(ref _focusColor, value);
+    }
+    
+    private Color _hoverColor = Color.Yellow;
+    /// <summary>Gets or sets the hover border color.</summary>
+    public Color HoverColor
+    {
+        get => _hoverColor;
+        set => SetProperty(ref _hoverColor, value);
+    }
+    
+    private ICommand? _command;
+    /// <summary>Gets or sets the command to execute when the button is clicked.</summary>
+    public ICommand? Command
+    {
+        get => _command;
+        set
+        {
+            if (_command != null)
+                _command.CanExecuteChanged -= OnCanExecuteChanged;
+            SetProperty(ref _command, value, invalidate: false);
+            if (_command != null)
+                _command.CanExecuteChanged += OnCanExecuteChanged;
+            UpdateCanExecute();
+        }
+    }
+    
+    private object? _commandParameter;
+    /// <summary>Gets or sets the parameter to pass to the Command.</summary>
+    public object? CommandParameter
+    {
+        get => _commandParameter;
+        set
+        {
+            SetProperty(ref _commandParameter, value, invalidate: false);
+            UpdateCanExecute();
+        }
+    }
+    
+    private bool _isEnabled = true;
+    /// <summary>Gets whether this button is enabled (based on Command.CanExecute).</summary>
+    public bool IsEnabled
+    {
+        get => _isEnabled;
+        private set => SetProperty(ref _isEnabled, value);
+    }
+    
+    // Layout properties (kept as init for now)
     /// <summary>Gets or sets the X position (absolute, relative, or stretch).</summary>
     public Size X { get; init; } = Size.Absolute(0);
     
@@ -34,18 +107,7 @@ public sealed class Button : IFocusable
     /// <summary>Gets or sets the height (absolute, relative, or stretch).</summary>
     public Size Height { get; init; } = Size.Absolute(3);
     
-    /// <summary>Gets or sets the background color.</summary>
-    public Color BackgroundColor { get; init; } = Color.Black;
-    
-    /// <summary>Gets or sets the normal foreground color.</summary>
-    public Color ForegroundColor { get; init; } = Color.White;
-    
-    /// <summary>Gets or sets the focus border color.</summary>
-    public Color FocusColor { get; init; } = Color.Cyan;
-    
-    /// <summary>Gets or sets the hover border color.</summary>
-    public Color HoverColor { get; init; } = Color.Yellow;
-    
+    // IFocusable properties
     /// <summary>Gets or sets the tab order index.</summary>
     public int TabIndex { get; init; }
     
@@ -58,13 +120,20 @@ public sealed class Button : IFocusable
     /// <summary>Gets or sets whether this button is currently hovered (managed by FocusManager).</summary>
     public bool IsHovered { get; set; }
     
-    /// <summary>Event raised when the button is clicked.</summary>
+    /// <summary>Event raised when the button is clicked (for backwards compatibility).</summary>
     public event Action? Click;
+    
+    private void OnCanExecuteChanged(object? sender, EventArgs e) => UpdateCanExecute();
+    
+    private void UpdateCanExecute()
+    {
+        IsEnabled = _command?.CanExecute(_commandParameter) ?? true;
+    }
     
     /// <summary>
     /// Returns the preferred size of this button based on text length.
     /// </summary>
-    public Size2D GetPreferredSize(Rect parent)
+    public override Size2D GetPreferredSize(Rect parent)
     {
         // Button size is text length + 4 (2 chars padding on each side)
         var textWidth = Text.Length + 4;
@@ -77,7 +146,7 @@ public sealed class Button : IFocusable
     /// <summary>
     /// Calculates the absolute bounds of this button within the parent bounds.
     /// </summary>
-    public Rect CalculateBounds(Rect parent)
+    public override Rect CalculateBounds(Rect parent)
     {
         var w = Width.Resolve(parent.Width);
         var h = Height.Resolve(parent.Height);
@@ -107,7 +176,7 @@ public sealed class Button : IFocusable
     /// <summary>
     /// Renders this button to the specified cell buffer.
     /// </summary>
-    public void Render(CellBuffer buffer, Rect parentBounds)
+    public override void Render(CellBuffer buffer, Rect parentBounds)
     {
         var bounds = CalculateBounds(parentBounds);
         
@@ -115,8 +184,10 @@ public sealed class Button : IFocusable
         var clipped = bounds.Intersect(new Rect(0, 0, buffer.Width, buffer.Height));
         if (clipped.Width <= 0 || clipped.Height <= 0) return;
         
-        // Choose border color based on focus/hover state
+        // Choose border color based on focus/hover state (dimmed if disabled)
         var borderColor = IsFocused ? FocusColor : IsHovered ? HoverColor : ForegroundColor;
+        if (!IsEnabled)
+            borderColor = new Color((byte)(borderColor.R / 2), (byte)(borderColor.G / 2), (byte)(borderColor.B / 2)); // Dim by 50%
         
         // Create rounded border with appropriate color
         var border = Border.Rounded(borderColor);
@@ -131,6 +202,7 @@ public sealed class Button : IFocusable
         // Draw text centered in the button
         if (!string.IsNullOrEmpty(Text))
         {
+            var textColor = IsEnabled ? ForegroundColor : new Color((byte)(ForegroundColor.R / 2), (byte)(ForegroundColor.G / 2), (byte)(ForegroundColor.B / 2));
             var textX = bounds.X + (bounds.Width - Text.Length) / 2;
             var textY = bounds.Y + bounds.Height / 2;
             
@@ -142,7 +214,7 @@ public sealed class Button : IFocusable
                 if (charX < 0 || charX >= buffer.Width || textY < 0 || textY >= buffer.Height)
                     continue;
                 
-                buffer.SetChar(charX, textY, Text[i], ForegroundColor, BackgroundColor);
+                buffer.SetChar(charX, textY, Text[i], textColor, BackgroundColor);
             }
         }
     }
@@ -246,7 +318,7 @@ public sealed class Button : IFocusable
         // Trigger click on Enter or Space
         if (e.Key == ConsoleKey.Enter || e.Key == ConsoleKey.Spacebar)
         {
-            Click?.Invoke();
+            RaiseClick();
         }
     }
     
@@ -258,7 +330,19 @@ public sealed class Button : IFocusable
         // Trigger click on left mouse button press
         if (e.Action == MouseAction.Press && e.Button == MouseButton.Left)
         {
-            Click?.Invoke();
+            RaiseClick();
         }
+    }
+    
+    private void RaiseClick()
+    {
+        if (!IsEnabled) return;
+        
+        // Execute command if available
+        if (Command?.CanExecute(CommandParameter) == true)
+            Command.Execute(CommandParameter);
+        
+        // Also raise Click event for backwards compatibility
+        Click?.Invoke();
     }
 }

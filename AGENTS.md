@@ -60,6 +60,14 @@ dotnet test --list-tests
 dotnet run --project Sample/Sample.csproj
 ```
 
+## Important reference sources
+
+Portable.Xaml
+e:\thirdparty\Portable.Xaml\
+
+Spectre.Console
+e:\thirdparty\spectre\
+
 ## Code Style Guidelines
 
 ### General Principles
@@ -112,17 +120,17 @@ public class ClassName
 
 ### Naming Conventions
 
-| Element | Convention | Example |
-|---------|-----------|---------|
-| Namespaces | PascalCase | `TerminalNinja.Core.Services` |
-| Classes/Interfaces | PascalCase | `CommandExecutor`, `ICommandHandler` |
-| Methods | PascalCase | `ExecuteCommand`, `GetResultAsync` |
-| Properties | PascalCase | `CommandName`, `IsEnabled` |
-| Fields (private) | camelCase with _ | `_commandQueue`, `_isInitialized` |
-| Parameters | camelCase | `commandText`, `userName` |
-| Local variables | camelCase | `result`, `commandLine` |
-| Constants | PascalCase | `MaxRetryCount`, `DefaultTimeout` |
-| Async methods | Suffix with Async | `ExecuteAsync`, `ProcessCommandAsync` |
+| Element            | Convention        | Example                               |
+|--------------------|-------------------|---------------------------------------|
+| Namespaces         | PascalCase        | `TerminalNinja.Core.Services`         |
+| Classes/Interfaces | PascalCase        | `CommandExecutor`, `ICommandHandler`  |
+| Methods            | PascalCase        | `ExecuteCommand`, `GetResultAsync`    |
+| Properties         | PascalCase        | `CommandName`, `IsEnabled`            |
+| Fields (private)   | camelCase with _  | `_commandQueue`, `_isInitialized`     |
+| Parameters         | camelCase         | `commandText`, `userName`             |
+| Local variables    | camelCase         | `result`, `commandLine`               |
+| Constants          | PascalCase        | `MaxRetryCount`, `DefaultTimeout`     |
+| Async methods      | Suffix with Async | `ExecuteAsync`, `ProcessCommandAsync` |
 
 ### Type and Null Safety
 

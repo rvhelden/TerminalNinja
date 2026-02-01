@@ -6,24 +6,43 @@ namespace TerminalNinja.Core.Elements;
 /// <summary>
 /// A layout container that arranges child elements horizontally or vertically.
 /// </summary>
-public sealed class Stack : IElement
+public sealed class Stack : ElementBase
 {
-    /// <summary>Gets or sets the name of this element for lookup purposes.</summary>
-    public string? Name { get; set; }
-    
+    // Layout properties (kept as init for now)
     /// <summary>Gets or sets the orientation (Horizontal or Vertical).</summary>
     public StackOrientation Orientation { get; init; } = StackOrientation.Horizontal;
     
     /// <summary>Gets or sets the alignment of children on the cross-axis.</summary>
     public Alignment CrossAxisAlignment { get; init; } = Alignment.Start;
     
-    /// <summary>Gets the list of child elements with their sizing modes.</summary>
-    public List<StackChild> Children { get; init; } = [];
+    private List<StackChild> _children = [];
+    /// <summary>Gets or sets the list of child elements with their sizing modes.</summary>
+    public List<StackChild> Children
+    {
+        get => _children;
+        init
+        {
+            // Wire up Parent for each child element
+            foreach (var child in _children)
+            {
+                if (child.Element != null)
+                    child.Element.Parent = null;
+            }
+            
+            _children = value;
+            
+            foreach (var child in _children)
+            {
+                if (child.Element != null)
+                    child.Element.Parent = this;
+            }
+        }
+    }
     
     /// <summary>
     /// Returns the preferred size of this stack (sum of children's preferred sizes).
     /// </summary>
-    public Size2D GetPreferredSize(Rect parent)
+    public override Size2D GetPreferredSize(Rect parent)
     {
         if (Children.Count == 0)
             return new Size2D(0, 0);
@@ -59,12 +78,12 @@ public sealed class Stack : IElement
     /// <summary>
     /// Calculates bounds (Stack always fills parent).
     /// </summary>
-    public Rect CalculateBounds(Rect parent) => parent;
+    public override Rect CalculateBounds(Rect parent) => parent;
     
     /// <summary>
     /// Renders the stack and all its children.
     /// </summary>
-    public void Render(CellBuffer buffer, Rect parentBounds)
+    public override void Render(CellBuffer buffer, Rect parentBounds)
     {
         if (Children.Count == 0) return;
         

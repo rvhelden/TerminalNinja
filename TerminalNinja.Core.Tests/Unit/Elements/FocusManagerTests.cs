@@ -16,6 +16,12 @@ public class FocusManagerTests
         public bool CanFocus { get; init; } = true;
         public int TabIndex { get; init; }
         
+        // IElement members
+        public object? DataContext { get; set; }
+        public IElement? Parent { get; set; }
+        public Action? InvalidationCallback { get; set; }
+        public void InvalidateVisual() => InvalidationCallback?.Invoke();
+        
         public int FocusCount { get; private set; }
         public int BlurCount { get; private set; }
         public int MouseEnterCount { get; private set; }

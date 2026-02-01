@@ -6,14 +6,34 @@ namespace TerminalNinja.Core.Elements;
 /// <summary>
 /// A text label UI element with alignment, wrapping, truncation, and padding support.
 /// </summary>
-public sealed class Label : IElement
+public sealed class Label : ElementBase
 {
-    /// <summary>Gets or sets the name of this element for lookup purposes.</summary>
-    public string? Name { get; set; }
-    
+    // Bindable properties (with change notification)
+    private string _text = "";
     /// <summary>Gets or sets the text content to display.</summary>
-    public string Text { get; init; } = "";
+    public string Text
+    {
+        get => _text;
+        set => SetProperty(ref _text, value);
+    }
     
+    private Color _foregroundColor = Color.White;
+    /// <summary>Gets or sets the foreground (text) color.</summary>
+    public Color ForegroundColor
+    {
+        get => _foregroundColor;
+        set => SetProperty(ref _foregroundColor, value);
+    }
+    
+    private Color _backgroundColor = Color.Black;
+    /// <summary>Gets or sets the background color.</summary>
+    public Color BackgroundColor
+    {
+        get => _backgroundColor;
+        set => SetProperty(ref _backgroundColor, value);
+    }
+    
+    // Layout properties (kept as init for now, can be extended later)
     /// <summary>Gets or sets the X position (absolute, relative, or stretch).</summary>
     public Size X { get; init; } = Size.Absolute(0);
     
@@ -31,12 +51,6 @@ public sealed class Label : IElement
     
     /// <summary>Gets or sets the height (absolute, relative, or stretch).</summary>
     public Size Height { get; init; } = Size.Stretch;
-    
-    /// <summary>Gets or sets the foreground (text) color.</summary>
-    public Color ForegroundColor { get; init; } = Color.White;
-    
-    /// <summary>Gets or sets the background color.</summary>
-    public Color BackgroundColor { get; init; } = Color.Black;
     
     /// <summary>Gets or sets the horizontal text alignment within the label bounds.</summary>
     public TextAlignment HorizontalTextAlignment { get; init; } = TextAlignment.Start;
@@ -56,7 +70,7 @@ public sealed class Label : IElement
     /// <summary>
     /// Returns the preferred size of this label based on text length and padding.
     /// </summary>
-    public Size2D GetPreferredSize(Rect parent)
+    public override Size2D GetPreferredSize(Rect parent)
     {
         if (string.IsNullOrEmpty(Text))
             return new Size2D(Padding.HorizontalTotal, Padding.VerticalTotal);
@@ -71,7 +85,7 @@ public sealed class Label : IElement
     /// <summary>
     /// Calculates the absolute bounds of this label within the parent bounds.
     /// </summary>
-    public Rect CalculateBounds(Rect parent)
+    public override Rect CalculateBounds(Rect parent)
     {
         // Same logic as Rectangle
         var w = Width.Resolve(parent.Width);
@@ -102,7 +116,7 @@ public sealed class Label : IElement
     /// <summary>
     /// Renders this label to the specified cell buffer.
     /// </summary>
-    public void Render(CellBuffer buffer, Rect parentBounds)
+    public override void Render(CellBuffer buffer, Rect parentBounds)
     {
         var bounds = CalculateBounds(parentBounds);
         
