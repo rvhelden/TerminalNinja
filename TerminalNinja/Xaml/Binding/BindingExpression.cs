@@ -1,5 +1,5 @@
 using System.ComponentModel;
-using System.Reflection;
+using TerminalNinja.Aot;
 using TerminalNinja.Xaml.Data;
 
 namespace TerminalNinja.Xaml.Binding;
@@ -11,7 +11,8 @@ namespace TerminalNinja.Xaml.Binding;
 internal sealed class BindingExpression : IDisposable
 {
     private readonly object _target;
-    private readonly PropertyInfo _targetProperty;
+    private readonly string _targetPropertyName;
+    private readonly PropertyAccessor _targetAccessor;
     private readonly PropertyPath _sourcePath;
     private readonly BindingMode _mode;
     private readonly IValueConverter? _converter;
@@ -23,14 +24,17 @@ internal sealed class BindingExpression : IDisposable
     
     public BindingExpression(
         object target,
-        PropertyInfo targetProperty,
+        string targetPropertyName,
+        PropertyAccessor targetAccessor,
         PropertyPath sourcePath,
         BindingMode mode,
         IValueConverter? converter = null,
         object? converterParameter = null)
     {
         _target = target ?? throw new ArgumentNullException(nameof(target));
-        _targetProperty = targetProperty ?? throw new ArgumentNullException(nameof(targetProperty));
+        ArgumentException.ThrowIfNullOrWhiteSpace(targetPropertyName);
+        _targetPropertyName = targetPropertyName;
+        _targetAccessor = targetAccessor;
         _sourcePath = sourcePath ?? throw new ArgumentNullException(nameof(sourcePath));
         _mode = mode;
         _converter = converter;
@@ -43,9 +47,9 @@ internal sealed class BindingExpression : IDisposable
     public object Target => _target;
     
     /// <summary>
-    /// Gets the target property this binding updates.
+    /// Gets the target property name this binding updates.
     /// </summary>
-    public PropertyInfo TargetProperty => _targetProperty;
+    public string TargetPropertyName => _targetPropertyName;
     
     /// <summary>
     /// Activates the binding with the specified source object.
@@ -82,11 +86,11 @@ internal sealed class BindingExpression : IDisposable
             _isUpdating = true;
             
             var sourceValue = _sourcePath.GetValue(_source);
-            var convertedValue = ConvertValue(sourceValue, _targetProperty.PropertyType, forward: true);
+            var convertedValue = ConvertValue(sourceValue, _targetAccessor.PropertyType, forward: true);
             
-            if (_targetProperty.CanWrite)
+            if (_targetAccessor.CanWrite)
             {
-                _targetProperty.SetValue(_target, convertedValue);
+                _targetAccessor.Setter!(_target, convertedValue);
             }
         }
         catch (Exception ex)
@@ -112,8 +116,8 @@ internal sealed class BindingExpression : IDisposable
         {
             _isUpdating = true;
             
-            var targetValue = _targetProperty.GetValue(_target);
-            var convertedValue = ConvertValue(targetValue, _targetProperty.PropertyType, forward: false);
+            var targetValue = _targetAccessor.Getter(_target);
+            var convertedValue = ConvertValue(targetValue, _targetAccessor.PropertyType, forward: false);
             
             _sourcePath.SetValue(_source, convertedValue);
         }
@@ -210,7 +214,7 @@ internal sealed class BindingExpression : IDisposable
     /// </summary>
     private void OnTargetPropertyChanged(object? sender, PropertyChangedEventArgs e)
     {
-        if (e.PropertyName == _targetProperty.Name || string.IsNullOrEmpty(e.PropertyName))
+        if (e.PropertyName == _targetPropertyName || string.IsNullOrEmpty(e.PropertyName))
         {
             UpdateSource();
         }

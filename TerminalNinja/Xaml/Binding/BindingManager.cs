@@ -1,3 +1,4 @@
+using TerminalNinja.Aot;
 using TerminalNinja.Controls;
 using TerminalNinja.Xaml.Data;
 
@@ -27,10 +28,8 @@ public sealed class BindingManager : IDisposable
         ArgumentException.ThrowIfNullOrWhiteSpace(targetPropertyName);
         ArgumentException.ThrowIfNullOrWhiteSpace(sourcePath);
         
-        // Get target property
-        var targetProperty = target.GetType().GetProperty(targetPropertyName);
-        if (targetProperty == null)
-            throw new ArgumentException($"Property '{targetPropertyName}' not found on type '{target.GetType().Name}'");
+        // Get target property accessor from registry (AOT-safe, no reflection)
+        var targetAccessor = PropertyAccessorRegistry.GetAccessor(target.GetType(), targetPropertyName);
         
         // Create property path
         var propertyPath = new PropertyPath(sourcePath);
@@ -38,7 +37,8 @@ public sealed class BindingManager : IDisposable
         // Create binding expression
         var binding = new BindingExpression(
             target,
-            targetProperty,
+            targetPropertyName,
+            targetAccessor,
             propertyPath,
             mode,
             converter,

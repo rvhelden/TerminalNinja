@@ -1,4 +1,6 @@
+using System.Reflection;
 using Portable.Xaml;
+using TerminalNinja.Aot;
 using TerminalNinja.Controls;
 using TerminalNinja.Xaml.Binding;
 using TerminalNinja.Xaml.Markup;
@@ -143,26 +145,46 @@ public static class TerminalXaml
                     $"StaticResource '{lookup.ResourceKey}' not found for property '{lookup.PropertyName}'");
             }
 
-            // Get the property and set the value
-            var property = lookup.TargetObject.GetType().GetProperty(lookup.PropertyName);
-            if (property == null || !property.CanWrite)
+            // Try registry first (AOT-safe path for registered types)
+            var targetType = lookup.TargetObject.GetType();
+            if (PropertyAccessorRegistry.TryGetAccessor(targetType, lookup.PropertyName, out var accessor)
+                && accessor.Value.CanWrite)
             {
-                throw new InvalidOperationException(
-                    $"Property '{lookup.PropertyName}' not found or is read-only on type '{lookup.TargetObject.GetType().Name}'");
-            }
-
-            // Convert value if needed
-            var value = resource;
-            if (!property.PropertyType.IsInstanceOfType(value))
-            {
-                var converter = System.ComponentModel.TypeDescriptor.GetConverter(property.PropertyType);
-                if (converter.CanConvertFrom(value.GetType()))
+                var propertyAccessor = accessor.Value;
+                var value = resource;
+                if (!propertyAccessor.PropertyType.IsInstanceOfType(value))
                 {
-                    value = converter.ConvertFrom(value);
+                    var converter = System.ComponentModel.TypeDescriptor.GetConverter(propertyAccessor.PropertyType);
+                    if (converter.CanConvertFrom(value.GetType()))
+                    {
+                        value = converter.ConvertFrom(value);
+                    }
                 }
+                propertyAccessor.Setter!(lookup.TargetObject, value);
             }
+            else
+            {
+                // Reflection fallback for types not in the registry (e.g. MarkupExtension subclasses
+                // like BindingExtension). This entire code path will be removed when Portable.Xaml
+                // is replaced by the XAML compiler in Phase 4.
+                var property = targetType.GetProperty(lookup.PropertyName, BindingFlags.Public | BindingFlags.Instance);
+                if (property == null || !property.CanWrite)
+                {
+                    throw new InvalidOperationException(
+                        $"Property '{lookup.PropertyName}' not found or is read-only on type '{targetType.Name}'");
+                }
 
-            property.SetValue(lookup.TargetObject, value);
+                var value = resource;
+                if (!property.PropertyType.IsInstanceOfType(value))
+                {
+                    var converter = System.ComponentModel.TypeDescriptor.GetConverter(property.PropertyType);
+                    if (converter.CanConvertFrom(value.GetType()))
+                    {
+                        value = converter.ConvertFrom(value);
+                    }
+                }
+                property.SetValue(lookup.TargetObject, value);
+            }
         }
     }
 }

@@ -11,7 +11,7 @@ namespace TerminalNinja.Tests.Xaml;
 /// </summary>
 public class BindingTests
 {
-    private class TestViewModel : ViewModelBase
+    internal class TestViewModel : ViewModelBase
     {
         private string _text = "Initial";
         private int _count = 0;

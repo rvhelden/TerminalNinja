@@ -1,3 +1,4 @@
+using TerminalNinja.Aot;
 using TerminalNinja.Resources;
 using TerminalNinja.Styling;
 
@@ -102,14 +103,9 @@ public abstract class FrameworkElement : ControlBase
             if (string.IsNullOrEmpty(setter.Property))
                 continue;
             
-            var property = controlType.GetProperty(setter.Property);
-            if (property == null)
-            {
-                throw new InvalidOperationException(
-                    $"Property '{setter.Property}' not found on type '{controlType.Name}'");
-            }
+            var accessor = PropertyAccessorRegistry.GetAccessor(controlType, setter.Property);
             
-            if (!property.CanWrite)
+            if (!accessor.CanWrite)
             {
                 throw new InvalidOperationException(
                     $"Property '{setter.Property}' on type '{controlType.Name}' is read-only");
@@ -117,17 +113,17 @@ public abstract class FrameworkElement : ControlBase
             
             // Convert value if needed
             var value = setter.Value;
-            if (value != null && !property.PropertyType.IsInstanceOfType(value))
+            if (value != null && !accessor.PropertyType.IsInstanceOfType(value))
             {
                 // Try to use TypeConverter
-                var converter = System.ComponentModel.TypeDescriptor.GetConverter(property.PropertyType);
+                var converter = System.ComponentModel.TypeDescriptor.GetConverter(accessor.PropertyType);
                 if (converter.CanConvertFrom(value.GetType()))
                 {
                     value = converter.ConvertFrom(value);
                 }
             }
             
-            property.SetValue(this, value);
+            accessor.Setter!(this, value);
         }
     }
 }

@@ -1,15 +1,15 @@
-using System.Reflection;
+using TerminalNinja.Aot;
 
 namespace TerminalNinja.Xaml.Binding;
 
 /// <summary>
 /// Represents a single segment in a property path (e.g., "Name" in "User.Name").
-/// Uses compiled reflection for fast property access.
+/// Uses the AOT-compatible PropertyAccessorRegistry for property access.
 /// </summary>
 internal sealed class PropertyPathSegment
 {
     private readonly string _propertyName;
-    private PropertyInfo? _propertyInfo;
+    private PropertyAccessor? _cachedAccessor;
     private Type? _cachedSourceType;
     
     public PropertyPathSegment(string propertyName)
@@ -31,21 +31,8 @@ internal sealed class PropertyPathSegment
         if (source == null)
             return null;
         
-        var sourceType = source.GetType();
-        
-        // Cache PropertyInfo for performance
-        if (_propertyInfo == null || _cachedSourceType != sourceType)
-        {
-            _propertyInfo = sourceType.GetProperty(_propertyName, 
-                BindingFlags.Public | BindingFlags.Instance);
-            _cachedSourceType = sourceType;
-            
-            if (_propertyInfo == null)
-                throw new InvalidOperationException(
-                    $"Property '{_propertyName}' not found on type '{sourceType.Name}'");
-        }
-        
-        return _propertyInfo.GetValue(source);
+        var accessor = ResolveAccessor(source.GetType());
+        return accessor.Getter(source);
     }
     
     /// <summary>
@@ -57,38 +44,46 @@ internal sealed class PropertyPathSegment
             return;
         
         var targetType = target.GetType();
+        var accessor = ResolveAccessor(targetType);
         
-        // Cache PropertyInfo for performance
-        if (_propertyInfo == null || _cachedSourceType != targetType)
-        {
-            _propertyInfo = targetType.GetProperty(_propertyName, 
-                BindingFlags.Public | BindingFlags.Instance);
-            _cachedSourceType = targetType;
-            
-            if (_propertyInfo == null)
-                throw new InvalidOperationException(
-                    $"Property '{_propertyName}' not found on type '{targetType.Name}'");
-        }
-        
-        if (!_propertyInfo.CanWrite)
+        if (!accessor.CanWrite)
             throw new InvalidOperationException(
                 $"Property '{_propertyName}' on type '{targetType.Name}' is read-only");
         
-        _propertyInfo.SetValue(target, value);
+        accessor.Setter!(target, value);
     }
     
     /// <summary>
-    /// Gets the PropertyInfo for this segment on the given source type.
+    /// Gets the PropertyAccessor for this segment on the given source type.
     /// </summary>
-    public PropertyInfo? GetPropertyInfo(Type sourceType)
+    public PropertyAccessor? GetAccessor(Type sourceType)
     {
-        if (_propertyInfo == null || _cachedSourceType != sourceType)
+        if (_cachedAccessor.HasValue && _cachedSourceType == sourceType)
+            return _cachedAccessor;
+        
+        if (PropertyAccessorRegistry.TryGetAccessor(sourceType, _propertyName, out var accessor))
         {
-            _propertyInfo = sourceType.GetProperty(_propertyName, 
-                BindingFlags.Public | BindingFlags.Instance);
+            _cachedAccessor = accessor;
             _cachedSourceType = sourceType;
+            return accessor;
         }
         
-        return _propertyInfo;
+        return null;
+    }
+    
+    /// <summary>
+    /// Resolves the accessor for the given type, throwing if not found.
+    /// </summary>
+    private PropertyAccessor ResolveAccessor(Type sourceType)
+    {
+        // Cache for performance
+        if (_cachedAccessor.HasValue && _cachedSourceType == sourceType)
+            return _cachedAccessor.Value;
+        
+        var accessor = PropertyAccessorRegistry.GetAccessor(sourceType, _propertyName);
+        _cachedAccessor = accessor;
+        _cachedSourceType = sourceType;
+        
+        return accessor;
     }
 }

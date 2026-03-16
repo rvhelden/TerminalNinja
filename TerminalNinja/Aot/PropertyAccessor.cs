@@ -5,6 +5,7 @@ namespace TerminalNinja.Aot;
 /// Used by the source generator to replace reflection-based property access.
 /// </summary>
 public readonly record struct PropertyAccessor(
+    Type PropertyType,
     Func<object, object?> Getter,
     Action<object, object?>? Setter)
 {
