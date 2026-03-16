@@ -9,6 +9,15 @@ namespace TerminalNinja.Controls;
 /// </summary>
 public abstract class Control : FrameworkElement
 {
+    /// <summary>
+    /// Initializes a new instance of the <see cref="Control"/> class.
+    /// Sets <see cref="UIElement.Focusable"/> to <c>true</c> by default (WPF convention).
+    /// </summary>
+    protected Control()
+    {
+        Focusable = true;
+    }
+
     private Color _background = Color.Black;
     /// <summary>Gets or sets the background color.</summary>
     public Color Background
@@ -33,19 +42,13 @@ public abstract class Control : FrameworkElement
         set => SetProperty(ref _padding, value);
     }
 
-    private Border _borderStyle = Border.None;
+    private BorderStyle _borderStyleStyle = BorderStyle.None;
     /// <summary>Gets or sets the border style and color for this control.</summary>
-    public Border BorderStyle
+    public BorderStyle BorderStyle
     {
-        get => _borderStyle;
-        set => SetProperty(ref _borderStyle, value);
+        get => _borderStyleStyle;
+        set => SetProperty(ref _borderStyleStyle, value);
     }
-
-    /// <summary>
-    /// Gets or sets whether this control can receive keyboard focus.
-    /// Default is <c>true</c>.
-    /// </summary>
-    public bool Focusable { get; set; } = true;
 
     /// <summary>
     /// Gets or sets the tab order index for keyboard navigation.

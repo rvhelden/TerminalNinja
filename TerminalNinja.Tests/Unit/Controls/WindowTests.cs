@@ -67,7 +67,7 @@ public class WindowTests
     {
         // Arrange
         var window = new Window();
-        var content = new Rectangle();
+        var content = new global::TerminalNinja.Controls.Border();
         
         // Act
         window.Content = content;
@@ -81,7 +81,7 @@ public class WindowTests
     {
         // Arrange
         var window = new Window();
-        var content = new Rectangle();
+        var content = new global::TerminalNinja.Controls.Border();
         
         // Act
         window.Content = content;
@@ -95,8 +95,8 @@ public class WindowTests
     {
         // Arrange
         var window = new Window();
-        var oldContent = new Rectangle();
-        var newContent = new Rectangle();
+        var oldContent = new global::TerminalNinja.Controls.Border();
+        var newContent = new global::TerminalNinja.Controls.Border();
         window.Content = oldContent;
         
         // Act
@@ -112,7 +112,7 @@ public class WindowTests
     {
         // Arrange
         var window = new Window();
-        var content = new Rectangle();
+        var content = new global::TerminalNinja.Controls.Border();
         window.Content = content;
         
         // Act
@@ -203,7 +203,7 @@ public class WindowTests
     public async Task GetPreferredSize_WithContent_ReturnsContentPreferredSize()
     {
         // Arrange
-        var content = new Rectangle
+        var content = new global::TerminalNinja.Controls.Border
         {
             Width = Size.Absolute(60),
             Height = Size.Absolute(30)
@@ -241,7 +241,7 @@ public class WindowTests
     public async Task Render_WithContent_RendersContentWithinBounds()
     {
         // Arrange
-        var content = new Rectangle { BackgroundColor = Color.Red };
+        var content = new global::TerminalNinja.Controls.Border { Background = Color.Red };
         var window = new Window { Content = content };
         var bounds = new Rect(5, 10, 50, 20);
         
@@ -259,7 +259,7 @@ public class WindowTests
     public async Task Render_WithAbsoluteSize_ContentUsesWindowBounds()
     {
         // Arrange
-        var content = new Rectangle { BackgroundColor = Color.Blue };
+        var content = new global::TerminalNinja.Controls.Border { Background = Color.Blue };
         var window = new Window
         {
             Content = content,
@@ -313,7 +313,7 @@ public class WindowTests
         var window = new Window();
         window.Resources.Add("MyColor", Color.Magenta);
         
-        var content = new Label { Text = "Test" };
+        var content = new TextBlock { Text = "Test" };
         window.Content = content;
         
         // Act - Content should find resource defined in Window

@@ -7,23 +7,12 @@ public class FocusManagerTests
 {
     /// <summary>
     /// Creates a simple mock focusable control for testing.
+    /// Extends Control so that Focusable defaults to true.
     /// </summary>
-    private class MockFocusable : IFocusable
+    private class MockFocusable : Control
     {
-        public string? Name { get; set; }
-        public bool IsFocused { get; set; }
-        public bool IsHovered { get; set; }
-        public bool CanFocus { get; init; } = true;
-        public int TabIndex { get; init; }
-        
-        // IControl members
-        public object? DataContext { get; set; }
-        public IControl? Parent { get; set; }
-        public Action? InvalidationCallback { get; set; }
-        public void InvalidateVisual() => InvalidationCallback?.Invoke();
-        
-        public int FocusCount { get; private set; }
-        public int BlurCount { get; private set; }
+        public int GotFocusCount { get; private set; }
+        public int LostFocusCount { get; private set; }
         public int MouseEnterCount { get; private set; }
         public int MouseLeaveCount { get; private set; }
         public List<KeyEvent> ReceivedKeyEvents { get; } = new();
@@ -37,21 +26,16 @@ public class FocusManagerTests
             TabIndex = tabIndex;
         }
         
-        public void OnFocus() => FocusCount++;
-        public void OnBlur() => BlurCount++;
-        public void OnMouseEnter() => MouseEnterCount++;
-        public void OnMouseLeave() => MouseLeaveCount++;
-        public void OnKeyEvent(KeyEvent e) => ReceivedKeyEvents.Add(e);
-        public void OnMouseEvent(MouseEvent e) => ReceivedMouseEvents.Add(e);
+        public override void OnGotFocus() => GotFocusCount++;
+        public override void OnLostFocus() => LostFocusCount++;
+        public override void OnMouseEnter() => MouseEnterCount++;
+        public override void OnMouseLeave() => MouseLeaveCount++;
+        public override void OnKeyEvent(KeyEvent e) => ReceivedKeyEvents.Add(e);
+        public override void OnMouseEvent(MouseEvent e) => ReceivedMouseEvents.Add(e);
         
-        public Size2D GetPreferredSize(Rect parent) => new(_bounds.Width, _bounds.Height);
-        public Rect CalculateBounds(Rect parent) => _bounds;
-        public void Render(CellBuffer buffer, Rect parentBounds) { }
-        
-        public Rect? HitTest(int x, int y, Rect parentBounds)
-        {
-            return _bounds.Contains(x, y) ? _bounds : null;
-        }
+        public override Size2D GetPreferredSize(Rect parent) => new(_bounds.Width, _bounds.Height);
+        public override Rect CalculateBounds(Rect parent) => _bounds;
+        public override void Render(CellBuffer buffer, Rect parentBounds) { }
     }
     
     [Test]
@@ -66,9 +50,9 @@ public class FocusManagerTests
         manager.SetFocus(null);
         
         // Assert
-        await Assert.That(manager.FocusedControl).IsNull();
+        await Assert.That(manager.FocusedElement).IsNull();
         await Assert.That(control.IsFocused).IsFalse();
-        await Assert.That(control.BlurCount).IsEqualTo(1);
+        await Assert.That(control.LostFocusCount).IsEqualTo(1);
     }
     
     [Test]
@@ -82,9 +66,9 @@ public class FocusManagerTests
         manager.SetFocus(control);
         
         // Assert
-        await Assert.That(manager.FocusedControl).IsEqualTo(control);
+        await Assert.That(manager.FocusedElement).IsEqualTo(control);
         await Assert.That(control.IsFocused).IsTrue();
-        await Assert.That(control.FocusCount).IsEqualTo(1);
+        await Assert.That(control.GotFocusCount).IsEqualTo(1);
     }
     
     [Test]
@@ -100,11 +84,11 @@ public class FocusManagerTests
         manager.SetFocus(element2);
         
         // Assert
-        await Assert.That(manager.FocusedControl).IsEqualTo(element2);
+        await Assert.That(manager.FocusedElement).IsEqualTo(element2);
         await Assert.That(element1.IsFocused).IsFalse();
-        await Assert.That(element1.BlurCount).IsEqualTo(1);
+        await Assert.That(element1.LostFocusCount).IsEqualTo(1);
         await Assert.That(element2.IsFocused).IsTrue();
-        await Assert.That(element2.FocusCount).IsEqualTo(1);
+        await Assert.That(element2.GotFocusCount).IsEqualTo(1);
     }
     
     [Test]
@@ -119,8 +103,8 @@ public class FocusManagerTests
         manager.SetFocus(control);
         
         // Assert
-        await Assert.That(control.FocusCount).IsEqualTo(1);
-        await Assert.That(control.BlurCount).IsEqualTo(0);
+        await Assert.That(control.GotFocusCount).IsEqualTo(1);
+        await Assert.That(control.LostFocusCount).IsEqualTo(0);
     }
     
     [Test]
@@ -135,7 +119,7 @@ public class FocusManagerTests
         manager.ClearFocus();
         
         // Assert
-        await Assert.That(manager.FocusedControl).IsNull();
+        await Assert.That(manager.FocusedElement).IsNull();
         await Assert.That(control.IsFocused).IsFalse();
     }
     
@@ -151,8 +135,8 @@ public class FocusManagerTests
         
         // Assert
         await Assert.That(result).IsEqualTo(control);
-        await Assert.That(manager.HoveredControl).IsEqualTo(control);
-        await Assert.That(control.IsHovered).IsTrue();
+        await Assert.That(manager.HoveredElement).IsEqualTo(control);
+        await Assert.That(control.IsMouseOver).IsTrue();
         await Assert.That(control.MouseEnterCount).IsEqualTo(1);
     }
     
@@ -169,8 +153,8 @@ public class FocusManagerTests
         
         // Assert
         await Assert.That(result).IsNull();
-        await Assert.That(manager.HoveredControl).IsNull();
-        await Assert.That(control.IsHovered).IsFalse();
+        await Assert.That(manager.HoveredElement).IsNull();
+        await Assert.That(control.IsMouseOver).IsFalse();
         await Assert.That(control.MouseLeaveCount).IsEqualTo(1);
     }
     
@@ -230,7 +214,7 @@ public class FocusManagerTests
         manager.HandleMouseEvent(control, new Rect(0, 0, 80, 24), mouseEvent);
         
         // Assert
-        await Assert.That(manager.FocusedControl).IsEqualTo(control);
+        await Assert.That(manager.FocusedElement).IsEqualTo(control);
         await Assert.That(control.ReceivedMouseEvents.Count).IsEqualTo(1);
     }
     
@@ -246,7 +230,7 @@ public class FocusManagerTests
         manager.HandleMouseEvent(control, new Rect(0, 0, 80, 24), mouseEvent);
         
         // Assert
-        await Assert.That(manager.HoveredControl).IsEqualTo(control);
+        await Assert.That(manager.HoveredElement).IsEqualTo(control);
     }
     
     [Test]
@@ -276,6 +260,6 @@ public class FocusManagerTests
         // Act & Assert (should not throw)
         manager.HandleKeyEvent(keyEvent);
         
-        await Assert.That(manager.FocusedControl).IsNull();
+        await Assert.That(manager.FocusedElement).IsNull();
     }
 }

@@ -28,7 +28,7 @@ public class GridTests
     public async Task GetRow_DefaultValue_ReturnsZero()
     {
         // Arrange
-        var control = new Rectangle();
+        var control = new global::TerminalNinja.Controls.Border();
         
         // Act
         var row = Grid.GetRow(control);
@@ -41,7 +41,7 @@ public class GridTests
     public async Task SetRow_ValidValue_SetsRow()
     {
         // Arrange
-        var control = new Rectangle();
+        var control = new global::TerminalNinja.Controls.Border();
         
         // Act
         Grid.SetRow(control, 2);
@@ -54,7 +54,7 @@ public class GridTests
     public async Task SetRow_NegativeValue_ClampsToZero()
     {
         // Arrange
-        var control = new Rectangle();
+        var control = new global::TerminalNinja.Controls.Border();
         
         // Act
         Grid.SetRow(control, -5);
@@ -67,7 +67,7 @@ public class GridTests
     public async Task GetColumn_DefaultValue_ReturnsZero()
     {
         // Arrange
-        var control = new Rectangle();
+        var control = new global::TerminalNinja.Controls.Border();
         
         // Act
         var column = Grid.GetColumn(control);
@@ -80,7 +80,7 @@ public class GridTests
     public async Task SetColumn_ValidValue_SetsColumn()
     {
         // Arrange
-        var control = new Rectangle();
+        var control = new global::TerminalNinja.Controls.Border();
         
         // Act
         Grid.SetColumn(control, 3);
@@ -93,7 +93,7 @@ public class GridTests
     public async Task GetRowSpan_DefaultValue_ReturnsOne()
     {
         // Arrange
-        var control = new Rectangle();
+        var control = new global::TerminalNinja.Controls.Border();
         
         // Act
         var rowSpan = Grid.GetRowSpan(control);
@@ -106,7 +106,7 @@ public class GridTests
     public async Task SetRowSpan_ValidValue_SetsRowSpan()
     {
         // Arrange
-        var control = new Rectangle();
+        var control = new global::TerminalNinja.Controls.Border();
         
         // Act
         Grid.SetRowSpan(control, 2);
@@ -119,7 +119,7 @@ public class GridTests
     public async Task SetRowSpan_ZeroValue_ClampsToOne()
     {
         // Arrange
-        var control = new Rectangle();
+        var control = new global::TerminalNinja.Controls.Border();
         
         // Act
         Grid.SetRowSpan(control, 0);
@@ -132,7 +132,7 @@ public class GridTests
     public async Task GetColumnSpan_DefaultValue_ReturnsOne()
     {
         // Arrange
-        var control = new Rectangle();
+        var control = new global::TerminalNinja.Controls.Border();
         
         // Act
         var columnSpan = Grid.GetColumnSpan(control);
@@ -145,7 +145,7 @@ public class GridTests
     public async Task SetColumnSpan_ValidValue_SetsColumnSpan()
     {
         // Arrange
-        var control = new Rectangle();
+        var control = new global::TerminalNinja.Controls.Border();
         
         // Act
         Grid.SetColumnSpan(control, 3);
@@ -250,7 +250,7 @@ public class GridTests
     public async Task Render_SingleChild_FillsEntireGrid()
     {
         // Arrange
-        var child = new Rectangle { BackgroundColor = Color.Red };
+        var child = new global::TerminalNinja.Controls.Border { Background = Color.Red };
         var grid = new Grid();
         grid.Children.Add(child);
         var bounds = new Rect(0, 0, 50, 20);
@@ -269,8 +269,8 @@ public class GridTests
     public async Task Render_TwoRows_SplitsVertically()
     {
         // Arrange
-        var child1 = new Rectangle { BackgroundColor = Color.Red };
-        var child2 = new Rectangle { BackgroundColor = Color.Green };
+        var child1 = new global::TerminalNinja.Controls.Border { Background = Color.Red };
+        var child2 = new global::TerminalNinja.Controls.Border { Background = Color.Green };
         Grid.SetRow(child2, 1);
         
         var grid = new Grid();
@@ -295,8 +295,8 @@ public class GridTests
     public async Task Render_TwoColumns_SplitsHorizontally()
     {
         // Arrange
-        var child1 = new Rectangle { BackgroundColor = Color.Red };
-        var child2 = new Rectangle { BackgroundColor = Color.Blue };
+        var child1 = new global::TerminalNinja.Controls.Border { Background = Color.Red };
+        var child2 = new global::TerminalNinja.Controls.Border { Background = Color.Blue };
         Grid.SetColumn(child2, 1);
         
         var grid = new Grid();
@@ -325,8 +325,8 @@ public class GridTests
     public async Task Render_PixelRow_UsesExactSize()
     {
         // Arrange
-        var child1 = new Rectangle { BackgroundColor = Color.Red };
-        var child2 = new Rectangle { BackgroundColor = Color.Green };
+        var child1 = new global::TerminalNinja.Controls.Border { Background = Color.Red };
+        var child2 = new global::TerminalNinja.Controls.Border { Background = Color.Green };
         Grid.SetRow(child2, 1);
         
         var grid = new Grid();
@@ -351,8 +351,8 @@ public class GridTests
     public async Task Render_PixelColumn_UsesExactSize()
     {
         // Arrange
-        var child1 = new Rectangle { BackgroundColor = Color.Red };
-        var child2 = new Rectangle { BackgroundColor = Color.Blue };
+        var child1 = new global::TerminalNinja.Controls.Border { Background = Color.Red };
+        var child2 = new global::TerminalNinja.Controls.Border { Background = Color.Blue };
         Grid.SetColumn(child2, 1);
         
         var grid = new Grid();
@@ -381,8 +381,8 @@ public class GridTests
     public async Task Render_WeightedStarColumns_DistributesProportionally()
     {
         // Arrange
-        var child1 = new Rectangle { BackgroundColor = Color.Red };
-        var child2 = new Rectangle { BackgroundColor = Color.Blue };
+        var child1 = new global::TerminalNinja.Controls.Border { Background = Color.Red };
+        var child2 = new global::TerminalNinja.Controls.Border { Background = Color.Blue };
         Grid.SetColumn(child2, 1);
         
         var grid = new Grid();
@@ -411,7 +411,7 @@ public class GridTests
     public async Task Render_RowSpan_ChildSpansMultipleRows()
     {
         // Arrange
-        var child = new Rectangle { BackgroundColor = Color.Cyan };
+        var child = new global::TerminalNinja.Controls.Border { Background = Color.Cyan };
         Grid.SetRowSpan(child, 2);
         
         var grid = new Grid();
@@ -434,7 +434,7 @@ public class GridTests
     public async Task Render_ColumnSpan_ChildSpansMultipleColumns()
     {
         // Arrange
-        var child = new Rectangle { BackgroundColor = Color.Magenta };
+        var child = new global::TerminalNinja.Controls.Border { Background = Color.Magenta };
         Grid.SetColumnSpan(child, 2);
         
         var grid = new Grid();
@@ -461,10 +461,10 @@ public class GridTests
     public async Task Render_2x2Grid_PositionsChildrenCorrectly()
     {
         // Arrange
-        var topLeft = new Rectangle { BackgroundColor = Color.Red };
-        var topRight = new Rectangle { BackgroundColor = Color.Green };
-        var bottomLeft = new Rectangle { BackgroundColor = Color.Blue };
-        var bottomRight = new Rectangle { BackgroundColor = Color.Yellow };
+        var topLeft = new global::TerminalNinja.Controls.Border { Background = Color.Red };
+        var topRight = new global::TerminalNinja.Controls.Border { Background = Color.Green };
+        var bottomLeft = new global::TerminalNinja.Controls.Border { Background = Color.Blue };
+        var bottomRight = new global::TerminalNinja.Controls.Border { Background = Color.Yellow };
         
         Grid.SetRow(topLeft, 0);
         Grid.SetColumn(topLeft, 0);
@@ -505,7 +505,7 @@ public class GridTests
     public async Task Render_ChildRowExceedsDefinitions_ClampsToLastRow()
     {
         // Arrange
-        var child = new Rectangle { BackgroundColor = Color.Red };
+        var child = new global::TerminalNinja.Controls.Border { Background = Color.Red };
         Grid.SetRow(child, 10); // Way beyond defined rows
         
         var grid = new Grid();

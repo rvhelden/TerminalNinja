@@ -1,19 +1,20 @@
 using System.Text;
 using TerminalNinja.Ansi;
 using TerminalNinja.Styling;
+using ControlBorder = TerminalNinja.Controls.Border;
 
 namespace TerminalNinja.Tests.Integration;
 
 /// <summary>
-/// Integration tests that verify the full pipeline: Rectangle → CellBuffer → AnsiWriter → ANSI escape sequences.
+/// Integration tests that verify the full pipeline: Border → CellBuffer → AnsiWriter → ANSI escape sequences.
 /// These tests validate that UI elements are correctly converted to terminal output.
 /// </summary>
-public class RectangleRenderingTests
+public class BorderRenderingTests
 {
     /// <summary>
     /// Helper method to render a rectangle and capture the ANSI output.
     /// </summary>
-    private static string RenderRectangleToAnsi(Rectangle rectangle, int bufferWidth, int bufferHeight)
+    private static string RenderBorderToAnsi(ControlBorder rectangle, int bufferWidth, int bufferHeight)
     {
         // Create a buffer and render the rectangle
         var buffer = new CellBuffer(bufferWidth, bufferHeight);
@@ -34,23 +35,23 @@ public class RectangleRenderingTests
         return Encoding.UTF8.GetString(stream.ToArray());
     }
     
-    #region Simple Rectangle Tests
+    #region Simple Border Tests
     
     [Test]
-    public async Task SmallRectangle_WithBorder_OutputsCorrectAnsiSequence()
+    public async Task SmallBorder_WithBorder_OutputsCorrectAnsiSequence()
     {
         // Arrange - 5x3 rectangle with single-line border
-        var rect = new Rectangle
+        var rect = new global::TerminalNinja.Controls.Border
         {
             Width = Size.Absolute(5),
             Height = Size.Absolute(3),
-            BackgroundColor = Color.Blue,
-            ForegroundColor = Color.White,
-            Border = Border.Single(Color.White)
+            Background = Color.Blue,
+            Foreground = Color.White,
+            BorderStyle = global::TerminalNinja.Styling.BorderStyle.Single(Color.White)
         };
         
         // Act
-        var output = RenderRectangleToAnsi(rect, 5, 3);
+        var output = RenderBorderToAnsi(rect, 5, 3);
         
         // Assert - Should contain:
         // - Cursor positioning commands
@@ -71,19 +72,19 @@ public class RectangleRenderingTests
     }
     
     [Test]
-    public async Task Rectangle_NoBorder_OnlyFillsBackground()
+    public async Task Border_NoBorder_OnlyFillsBackground()
     {
         // Arrange - 3x2 rectangle with no border
-        var rect = new Rectangle
+        var rect = new global::TerminalNinja.Controls.Border
         {
             Width = Size.Absolute(3),
             Height = Size.Absolute(2),
-            BackgroundColor = Color.Red,
-            Border = Border.None
+            Background = Color.Red,
+            BorderStyle = global::TerminalNinja.Styling.BorderStyle.None
         };
         
         // Act
-        var output = RenderRectangleToAnsi(rect, 3, 2);
+        var output = RenderBorderToAnsi(rect, 3, 2);
         
         // Assert - Should have red background but no border characters
         await Assert.That(output).Contains("\e[48;2;255;0;0m"); // Red background
@@ -97,19 +98,19 @@ public class RectangleRenderingTests
     #region Border Style Tests
     
     [Test]
-    public async Task Rectangle_DoubleBorder_UsesDoubleLineCharacters()
+    public async Task Border_DoubleBorder_UsesDoubleLineCharacters()
     {
         // Arrange
-        var rect = new Rectangle
+        var rect = new global::TerminalNinja.Controls.Border
         {
             Width = Size.Absolute(4),
             Height = Size.Absolute(3),
-            BackgroundColor = Color.Black,
-            Border = Border.Double(Color.Cyan)
+            Background = Color.Black,
+            BorderStyle = global::TerminalNinja.Styling.BorderStyle.Double(Color.Cyan)
         };
         
         // Act
-        var output = RenderRectangleToAnsi(rect, 4, 3);
+        var output = RenderBorderToAnsi(rect, 4, 3);
         
         // Assert - Should use double-line box characters
         await Assert.That(output).Contains("\e[38;2;0;255;255m"); // Cyan foreground
@@ -120,19 +121,19 @@ public class RectangleRenderingTests
     }
     
     [Test]
-    public async Task Rectangle_RoundedBorder_UsesRoundedCharacters()
+    public async Task Border_RoundedBorder_UsesRoundedCharacters()
     {
         // Arrange
-        var rect = new Rectangle
+        var rect = new global::TerminalNinja.Controls.Border
         {
             Width = Size.Absolute(4),
             Height = Size.Absolute(3),
-            BackgroundColor = Color.Black,
-            Border = Border.Rounded(Color.Green)
+            Background = Color.Black,
+            BorderStyle = global::TerminalNinja.Styling.BorderStyle.Rounded(Color.Green)
         };
         
         // Act
-        var output = RenderRectangleToAnsi(rect, 4, 3);
+        var output = RenderBorderToAnsi(rect, 4, 3);
         
         // Assert - Should use rounded corners
         await Assert.That(output).Contains("\e[38;2;0;255;0m"); // Green foreground
@@ -146,21 +147,21 @@ public class RectangleRenderingTests
     #region Color Optimization Tests
     
     [Test]
-    public async Task Rectangle_MultipleSpaces_OptimizesColorOutput()
+    public async Task Border_MultipleSpaces_OptimizesColorOutput()
     {
         // Arrange - 4x2 rectangle (interior will be 2x0, so just border)
         // Actually, let's make it bigger so there are repeated background cells
-        var rect = new Rectangle
+        var rect = new global::TerminalNinja.Controls.Border
         {
             Width = Size.Absolute(5),
             Height = Size.Absolute(3),
-            BackgroundColor = Color.Yellow,
-            ForegroundColor = Color.Black,
-            Border = Border.None
+            Background = Color.Yellow,
+            Foreground = Color.Black,
+            BorderStyle = global::TerminalNinja.Styling.BorderStyle.None
         };
         
         // Act
-        var output = RenderRectangleToAnsi(rect, 5, 3);
+        var output = RenderBorderToAnsi(rect, 5, 3);
         
         // Assert - Yellow background should only be set once at the start
         var yellowBgCount = CountOccurrences(output, "\e[48;2;255;255;0m");
@@ -168,20 +169,20 @@ public class RectangleRenderingTests
     }
     
     [Test]
-    public async Task Rectangle_BorderAndFill_OptimizesSameBackgroundColor()
+    public async Task Border_BorderAndFill_OptimizesSameBackground()
     {
         // Arrange - Border and background are same color
-        var rect = new Rectangle
+        var rect = new global::TerminalNinja.Controls.Border
         {
             Width = Size.Absolute(5),
             Height = Size.Absolute(4),
-            BackgroundColor = new Color(50, 50, 50),
-            ForegroundColor = Color.White,
-            Border = Border.Single(Color.White)
+            Background = new Color(50, 50, 50),
+            Foreground = Color.White,
+            BorderStyle = global::TerminalNinja.Styling.BorderStyle.Single(Color.White)
         };
         
         // Act
-        var output = RenderRectangleToAnsi(rect, 5, 4);
+        var output = RenderBorderToAnsi(rect, 5, 4);
         
         // Assert - Background color (50,50,50) should only be set once
         var bgColorCount = CountOccurrences(output, "\e[48;2;50;50;50m");
@@ -193,19 +194,19 @@ public class RectangleRenderingTests
     #region Cursor Movement Tests
     
     [Test]
-    public async Task Rectangle_SingleRow_OptimizesCursorMovement()
+    public async Task Border_SingleRow_OptimizesCursorMovement()
     {
         // Arrange - 5x1 rectangle (one row)
-        var rect = new Rectangle
+        var rect = new global::TerminalNinja.Controls.Border
         {
             Width = Size.Absolute(5),
             Height = Size.Absolute(1),
-            BackgroundColor = Color.Magenta,
-            Border = Border.None
+            Background = Color.Magenta,
+            BorderStyle = global::TerminalNinja.Styling.BorderStyle.None
         };
         
         // Act
-        var output = RenderRectangleToAnsi(rect, 5, 1);
+        var output = RenderBorderToAnsi(rect, 5, 1);
         
         // Assert - Should only have one cursor position command for the row
         var cursorMoves = CountOccurrences(output, "\e[");
@@ -213,19 +214,19 @@ public class RectangleRenderingTests
     }
     
     [Test]
-    public async Task Rectangle_FirstCellPosition_UsesOneBasedCoordinates()
+    public async Task Border_FirstCellPosition_UsesOneBasedCoordinates()
     {
-        // Arrange - Rectangle at origin with white background (different from default black)
-        var rect = new Rectangle
+        // Arrange - Border at origin with white background (different from default black)
+        var rect = new global::TerminalNinja.Controls.Border
         {
             Width = Size.Absolute(2),
             Height = Size.Absolute(2),
-            BackgroundColor = Color.White,  // Different from default Cell.Empty background
-            Border = Border.None
+            Background = Color.White,  // Different from default Cell.Empty background
+            BorderStyle = global::TerminalNinja.Styling.BorderStyle.None
         };
         
         // Act
-        var output = RenderRectangleToAnsi(rect, 2, 2);
+        var output = RenderBorderToAnsi(rect, 2, 2);
         
         // Assert - First position should be (1,1) in ANSI (0,0 in buffer)
         await Assert.That(output).Contains("\e[1;1H");
@@ -236,20 +237,20 @@ public class RectangleRenderingTests
     #region Complex Layout Tests
     
     [Test]
-    public async Task Rectangle_5x5WithBorder_OutputsAllCells()
+    public async Task Border_5x5WithBorder_OutputsAllCells()
     {
         // Arrange - 5x5 with border (border + 3x3 interior)
-        var rect = new Rectangle
+        var rect = new global::TerminalNinja.Controls.Border
         {
             Width = Size.Absolute(5),
             Height = Size.Absolute(5),
-            BackgroundColor = new Color(30, 30, 80),
-            ForegroundColor = Color.Cyan,
-            Border = Border.Single(Color.Cyan)
+            Background = new Color(30, 30, 80),
+            Foreground = Color.Cyan,
+            BorderStyle = global::TerminalNinja.Styling.BorderStyle.Single(Color.Cyan)
         };
         
         // Act
-        var output = RenderRectangleToAnsi(rect, 5, 5);
+        var output = RenderBorderToAnsi(rect, 5, 5);
         
         // Assert
         // Should have background color
@@ -271,32 +272,26 @@ public class RectangleRenderingTests
     }
     
     [Test]
-    public async Task Rectangle_WithOffset_PositionsCorrectly()
+    public async Task Border_WithParentOffset_PositionsCorrectly()
     {
-        // Arrange - Rectangle at position (2, 3) with size 3x2
-        var rect = new Rectangle
+        // Arrange - Border with size 3x2, parent offset at (2, 3)
+        var rect = new global::TerminalNinja.Controls.Border
         {
-            X = Size.Absolute(2),
-            Y = Size.Absolute(3),
             Width = Size.Absolute(3),
             Height = Size.Absolute(2),
-            BackgroundColor = Color.White,
-            Border = Border.None
+            Background = Color.White,
+            BorderStyle = global::TerminalNinja.Styling.BorderStyle.None
         };
         
-        // Act
-        var output = RenderRectangleToAnsi(rect, 10, 10);
+        // Act - render with parent offset
+        var buffer = new CellBuffer(10, 10);
+        var parentBounds = new Rect(2, 3, 10, 10);
+        rect.Render(buffer, parentBounds);
         
-        // Assert - Should contain white background cells at rows 4 and 5 (y=3,4 → rows 4,5)
-        // The white background color should appear in the output
-        await Assert.That(output).Contains("\e[48;2;255;255;255m"); // White background
-        
-        // Verify the white region appears in the correct rows
-        // Looking for pattern indicating row 4 or 5 positioning
-        var hasRow4 = output.Contains("\e[4;") || output.Contains("4;2H") || output.Contains("4;3H") || output.Contains("4;4H") || output.Contains("4;5H");
-        var hasRow5 = output.Contains("\e[5;") || output.Contains("5;2H") || output.Contains("5;3H") || output.Contains("5;4H") || output.Contains("5;5H");
-        
-        await Assert.That(hasRow4 || hasRow5).IsTrue();
+        // Assert - The cell at (2,3) should have white background
+        await Assert.That(buffer.GetCell(2, 3).Background).IsEqualTo(Color.White);
+        await Assert.That(buffer.GetCell(3, 3).Background).IsEqualTo(Color.White);
+        await Assert.That(buffer.GetCell(2, 4).Background).IsEqualTo(Color.White);
     }
     
     #endregion
@@ -304,19 +299,19 @@ public class RectangleRenderingTests
     #region Edge Cases
     
     [Test]
-    public async Task Rectangle_TooSmallForBorder_SkipsBorder()
+    public async Task Border_TooSmallForBorder_SkipsBorder()
     {
         // Arrange - 1x1 rectangle (too small for border)
-        var rect = new Rectangle
+        var rect = new global::TerminalNinja.Controls.Border
         {
             Width = Size.Absolute(1),
             Height = Size.Absolute(1),
-            BackgroundColor = Color.Red,
-            Border = Border.Single(Color.White)
+            Background = Color.Red,
+            BorderStyle = global::TerminalNinja.Styling.BorderStyle.Single(Color.White)
         };
         
         // Act
-        var output = RenderRectangleToAnsi(rect, 1, 1);
+        var output = RenderBorderToAnsi(rect, 1, 1);
         
         // Assert - Should have background but no border
         await Assert.That(output).Contains("\e[48;2;255;0;0m");
@@ -324,19 +319,19 @@ public class RectangleRenderingTests
     }
     
     [Test]
-    public async Task Rectangle_ExactlyBorderSize_OnlyShowsBorder()
+    public async Task Border_ExactlyBorderSize_OnlyShowsBorder()
     {
         // Arrange - 2x2 rectangle (only border, no interior)
-        var rect = new Rectangle
+        var rect = new global::TerminalNinja.Controls.Border
         {
             Width = Size.Absolute(2),
             Height = Size.Absolute(2),
-            BackgroundColor = Color.Blue,
-            Border = Border.Single(Color.Yellow)
+            Background = Color.Blue,
+            BorderStyle = global::TerminalNinja.Styling.BorderStyle.Single(Color.Yellow)
         };
         
         // Act
-        var output = RenderRectangleToAnsi(rect, 2, 2);
+        var output = RenderBorderToAnsi(rect, 2, 2);
         
         // Assert - Should have corners (2x2 = just 4 corner cells)
         await Assert.That(output).Contains("┌");
@@ -346,7 +341,7 @@ public class RectangleRenderingTests
     }
     
     [Test]
-    public async Task Rectangle_LargeBuffer_OutputsOnlyDirtyCells()
+    public async Task Border_LargeBuffer_OutputsOnlyDirtyCells()
     {
         // Arrange - Small 2x2 rectangle in large 100x100 buffer
         // First initialize the buffer by rendering once and swapping
@@ -354,12 +349,12 @@ public class RectangleRenderingTests
         var viewport = new Rect(0, 0, 100, 100);
         
         // Create a simple rectangle and render it
-        var rect = new Rectangle
+        var rect = new global::TerminalNinja.Controls.Border
         {
             Width = Size.Absolute(2),
             Height = Size.Absolute(2),
-            BackgroundColor = Color.Green,
-            Border = Border.None
+            Background = Color.Green,
+            BorderStyle = global::TerminalNinja.Styling.BorderStyle.None
         };
         
         rect.Render(buffer, viewport);
@@ -389,19 +384,19 @@ public class RectangleRenderingTests
     #region UTF-8 Validation
     
     [Test]
-    public async Task Rectangle_BorderCharacters_AreValidUtf8()
+    public async Task Border_BorderCharacters_AreValidUtf8()
     {
         // Arrange
-        var rect = new Rectangle
+        var rect = new global::TerminalNinja.Controls.Border
         {
             Width = Size.Absolute(3),
             Height = Size.Absolute(3),
-            BackgroundColor = Color.Black,
-            Border = Border.Single(Color.White)
+            Background = Color.Black,
+            BorderStyle = global::TerminalNinja.Styling.BorderStyle.Single(Color.White)
         };
         
         // Act
-        var output = RenderRectangleToAnsi(rect, 3, 3);
+        var output = RenderBorderToAnsi(rect, 3, 3);
         var bytes = Encoding.UTF8.GetBytes(output);
         
         // Assert - Should be valid UTF-8 (no exceptions during encoding)

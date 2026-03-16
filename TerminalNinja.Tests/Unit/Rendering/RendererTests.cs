@@ -97,8 +97,8 @@ public class RendererTests
         using var renderer = new TerminalNinja.Rendering.Renderer(output, 80, 24);
         
         // Draw something first
-        var rect = new Rectangle { BackgroundColor = Color.Red };
-        renderer.Draw((IControl)rect);
+        var rect = new global::TerminalNinja.Controls.Border { Background = Color.Red };
+        renderer.Draw(rect);
         renderer.Present();
         var sizeAfterDraw = output.Length;
 
@@ -117,15 +117,15 @@ public class RendererTests
         // Arrange
         var output = new MemoryStream();
         using var renderer = new TerminalNinja.Rendering.Renderer(output, 80, 24);
-        var rect = new Rectangle 
+        var rect = new global::TerminalNinja.Controls.Border 
         { 
             Width = Size.Absolute(10), 
             Height = Size.Absolute(5),
-            BackgroundColor = Color.Cyan 
+            Background = Color.Cyan 
         };
 
         // Act
-        renderer.Draw((IControl)rect);
+        renderer.Draw(rect);
         renderer.Present();
 
         // Assert - Output should contain ANSI codes
@@ -141,14 +141,14 @@ public class RendererTests
         using var renderer = new TerminalNinja.Rendering.Renderer(output, 80, 24);
 
         // First frame
-        var rect1 = new Rectangle { BackgroundColor = Color.Red };
-        renderer.Draw((IControl)rect1);
+        var rect1 = new global::TerminalNinja.Controls.Border { Background = Color.Red };
+        renderer.Draw(rect1);
         renderer.Present();
         var firstFrameSize = output.Length;
 
         // Second frame (same content)
         renderer.Clear();
-        renderer.Draw((IControl)rect1);
+        renderer.Draw(rect1);
         renderer.Present();
         var secondFrameSize = output.Length - firstFrameSize;
 
@@ -275,8 +275,8 @@ public class RendererTests
         using var renderer = new TerminalNinja.Rendering.Renderer(output, 80, 24);
         
         // Draw something before resize
-        var rect = new Rectangle { BackgroundColor = Color.Red };
-        renderer.Draw((IControl)rect);
+        var rect = new global::TerminalNinja.Controls.Border { Background = Color.Red };
+        renderer.Draw(rect);
         renderer.Present();
 
         // Act - Resize
@@ -284,7 +284,7 @@ public class RendererTests
         
         // Draw again and present
         renderer.Clear();
-        renderer.Draw((IControl)rect);
+        renderer.Draw(rect);
         renderer.Present();
 
         // Assert - Should be able to render at new size without errors
@@ -327,23 +327,22 @@ public class RendererTests
         // Arrange
         var output = new MemoryStream();
         using var renderer = new TerminalNinja.Rendering.Renderer(output, 100, 50);
-        var rect1 = new Rectangle 
+        var rect1 = new global::TerminalNinja.Controls.Border 
         { 
             Width = Size.Absolute(10), 
             Height = Size.Absolute(5),
-            BackgroundColor = Color.Red 
+            Background = Color.Red 
         };
-        var rect2 = new Rectangle 
+        var rect2 = new global::TerminalNinja.Controls.Border 
         { 
-            X = Size.Absolute(20),
             Width = Size.Absolute(10), 
             Height = Size.Absolute(5),
-            BackgroundColor = Color.Blue 
+            Background = Color.Blue 
         };
 
         // Act
-        renderer.Draw((IControl)rect1);
-        renderer.Draw((IControl)rect2);
+        renderer.Draw(rect1);
+        renderer.Draw(rect2);
         renderer.Present();
 
         // Assert - Both elements should be rendered
@@ -359,8 +358,8 @@ public class RendererTests
         using var renderer = new TerminalNinja.Rendering.Renderer(output, 20, 10);
         
         // Draw something to make it interesting
-        var rect = new Rectangle { BackgroundColor = Color.Cyan };
-        renderer.Draw((IControl)rect);
+        var rect = new global::TerminalNinja.Controls.Border { Background = Color.Cyan };
+        renderer.Draw(rect);
         renderer.Present();
         
         var dumpPath = "test_dump.txt";

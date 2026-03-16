@@ -1,12 +1,14 @@
 using System.Runtime.CompilerServices;
 using TerminalNinja.Buffers;
+using TerminalNinja.Input;
 using TerminalNinja.Primitives;
 
 namespace TerminalNinja.Controls;
 
 /// <summary>
 /// Base class for all UI elements that participate in layout, rendering, and input.
-/// Provides invalidation, property change helpers, visibility, and enabled state.
+/// Provides invalidation, property change helpers, visibility, enabled state,
+/// focus management, and input event handling — matching WPF's UIElement responsibilities.
 /// </summary>
 public abstract class UIElement : Visual
 {
@@ -30,6 +32,70 @@ public abstract class UIElement : Visual
         get => _isEnabled;
         set => SetProperty(ref _isEnabled, value);
     }
+
+    // ─── Focus ───────────────────────────────────────────────────────
+
+    /// <summary>
+    /// Gets or sets whether this element can receive keyboard focus.
+    /// In WPF this lives on UIElement. Default is <c>false</c>;
+    /// <see cref="Control"/> overrides the default to <c>true</c>.
+    /// </summary>
+    public bool Focusable { get; set; }
+
+    /// <summary>
+    /// Gets or sets whether this element currently has keyboard focus.
+    /// Managed by <see cref="FocusManager"/> — controls should not set this directly.
+    /// </summary>
+    public bool IsFocused { get; set; }
+
+    /// <summary>
+    /// Gets or sets whether the mouse is currently over this element.
+    /// Managed by <see cref="FocusManager"/> — controls should not set this directly.
+    /// </summary>
+    public bool IsMouseOver { get; set; }
+
+    // ─── Input event callbacks ───────────────────────────────────────
+
+    /// <summary>Called when this element receives keyboard focus.</summary>
+    public virtual void OnGotFocus() { }
+
+    /// <summary>Called when this element loses keyboard focus.</summary>
+    public virtual void OnLostFocus() { }
+
+    /// <summary>Called when the mouse cursor enters this element's bounds.</summary>
+    public virtual void OnMouseEnter() { }
+
+    /// <summary>Called when the mouse cursor leaves this element's bounds.</summary>
+    public virtual void OnMouseLeave() { }
+
+    /// <summary>
+    /// Handles keyboard input when this element has focus.
+    /// </summary>
+    /// <param name="e">The keyboard event data.</param>
+    public virtual void OnKeyEvent(KeyEvent e) { }
+
+    /// <summary>
+    /// Handles mouse events that occur within this element's bounds.
+    /// </summary>
+    /// <param name="e">The mouse event data.</param>
+    public virtual void OnMouseEvent(MouseEvent e) { }
+
+    // ─── Hit testing ─────────────────────────────────────────────────
+
+    /// <summary>
+    /// Tests if the specified point (in absolute screen coordinates) is within this element's bounds.
+    /// </summary>
+    /// <param name="x">The absolute X coordinate to test.</param>
+    /// <param name="y">The absolute Y coordinate to test.</param>
+    /// <param name="parentBounds">The parent container's bounds for calculating absolute position.</param>
+    /// <returns>The element's absolute bounds if the point is inside, null otherwise.</returns>
+    public virtual Rect? HitTest(int x, int y, Rect parentBounds)
+    {
+        var bounds = CalculateBounds(parentBounds);
+        return bounds.Contains(x, y) ? bounds : null;
+    }
+
+    // ─── Invalidation ────────────────────────────────────────────────
 
     /// <summary>
     /// Gets or sets the callback invoked when this element needs to be re-rendered.
@@ -75,7 +141,8 @@ public abstract class UIElement : Visual
         return true;
     }
 
-    // Abstract members that derived classes must implement
+    // ─── Abstract layout / rendering ─────────────────────────────────
+
     /// <summary>
     /// Returns the element's preferred size within the given parent bounds.
     /// Used by layout containers to determine Auto-sized children.

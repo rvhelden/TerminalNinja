@@ -32,7 +32,7 @@ public static class AnsiTestHelpers
     /// <param name="width">Buffer width.</param>
     /// <param name="height">Buffer height.</param>
     /// <returns>The ANSI output as a string.</returns>
-    public static string RenderControlToAnsi(IControl control, int width, int height)
+    public static string RenderControlToAnsi(UIElement control, int width, int height)
     {
         var buffer = new CellBuffer(width, height);
         var viewport = new Rect(0, 0, width, height);

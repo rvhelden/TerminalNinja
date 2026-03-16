@@ -43,6 +43,13 @@ public class ContentControl : Control
     public bool HasContent => _content != null;
 
     /// <inheritdoc />
+    protected internal override IEnumerable<FrameworkElement> GetLogicalChildren()
+    {
+        if (_content is FrameworkElement fe)
+            yield return fe;
+    }
+
+    /// <inheritdoc />
     public override IEnumerable<(Visual Child, Rect ChildParentBounds)> GetChildrenWithBounds(Rect myBounds)
     {
         if (_content != null)

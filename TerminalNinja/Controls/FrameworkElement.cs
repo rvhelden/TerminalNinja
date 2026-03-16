@@ -16,6 +16,26 @@ public abstract class FrameworkElement : UIElement
     private Style? _style;
     private string? _name;
     private object? _dataContext;
+    private Alignment _horizontalAlignment = Alignment.Start;
+    private Alignment _verticalAlignment = Alignment.Start;
+    
+    /// <summary>
+    /// Gets or sets the horizontal alignment of this element within its parent container.
+    /// </summary>
+    public Alignment HorizontalAlignment
+    {
+        get => _horizontalAlignment;
+        set => SetProperty(ref _horizontalAlignment, value);
+    }
+    
+    /// <summary>
+    /// Gets or sets the vertical alignment of this element within its parent container.
+    /// </summary>
+    public Alignment VerticalAlignment
+    {
+        get => _verticalAlignment;
+        set => SetProperty(ref _verticalAlignment, value);
+    }
     
     /// <summary>
     /// Gets or sets the name of this element for lookup purposes (e.g., XAML x:Name).
@@ -119,6 +139,43 @@ public abstract class FrameworkElement : UIElement
     /// </summary>
     internal static Func<object, object?>? ApplicationResourceLookup { get; set; }
     
+    /// <summary>
+    /// Applies alignment to position a resolved rect (w x h) within the parent bounds.
+    /// </summary>
+    /// <param name="parent">The parent bounds to align within.</param>
+    /// <param name="w">The resolved width of this element.</param>
+    /// <param name="h">The resolved height of this element.</param>
+    /// <returns>A Rect positioned according to HorizontalAlignment and VerticalAlignment.</returns>
+    protected Rect ApplyAlignment(Rect parent, int w, int h)
+    {
+        var x = HorizontalAlignment switch
+        {
+            Alignment.Center => parent.X + (parent.Width - w) / 2,
+            Alignment.End => parent.X + parent.Width - w,
+            _ => parent.X // Start
+        };
+        
+        var y = VerticalAlignment switch
+        {
+            Alignment.Center => parent.Y + (parent.Height - h) / 2,
+            Alignment.End => parent.Y + parent.Height - h,
+            _ => parent.Y // Start
+        };
+        
+        return new Rect(x, y, w, h);
+    }
+    
+    /// <summary>
+    /// Enumerates the logical children of this element.
+    /// Used for DataContext propagation and resource lookup — unlike
+    /// <see cref="Visual.GetChildrenWithBounds"/>, this method returns all children
+    /// regardless of layout or size.
+    /// </summary>
+    protected internal virtual IEnumerable<FrameworkElement> GetLogicalChildren()
+    {
+        return [];
+    }
+
     /// <summary>
     /// Applies the current style to this element by setting property values.
     /// </summary>

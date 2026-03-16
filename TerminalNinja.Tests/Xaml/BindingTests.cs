@@ -43,7 +43,7 @@ public class BindingTests
     {
         // Arrange
         var xaml = """
-            <Label xmlns="http://schemas.terminalninja.dev/xaml"
+            <TextBlock xmlns="http://schemas.terminalninja.dev/xaml"
                    Text="{Binding Path=Text}" />
             """;
         
@@ -51,7 +51,7 @@ public class BindingTests
         var bindingManager = new BindingManager();
         
         // Act
-        var label = TerminalXaml.Load<Label>(xaml, viewModel, bindingManager);
+        var label = TerminalXaml.Load<TextBlock>(xaml, viewModel, bindingManager);
         
         // Assert - initial value
         await Assert.That(label.Text).IsEqualTo("Initial");
@@ -103,7 +103,7 @@ public class BindingTests
         // Arrange
         var xaml = """
             <StackPanel xmlns="http://schemas.terminalninja.dev/xaml">
-                <Label Text="{Binding Path=Text}" />
+                <TextBlock Text="{Binding Path=Text}" />
                 <Button Text="Test" Command="{Binding Path=TestCommand}" />
             </StackPanel>
             """;
@@ -113,7 +113,7 @@ public class BindingTests
         
         // Act
         var stackPanel = TerminalXaml.Load<StackPanel>(xaml, viewModel, bindingManager);
-        var label = (Label)stackPanel.Children[0];
+        var label = (TextBlock)stackPanel.Children[0];
         var button = (Button)stackPanel.Children[1];
         
         // Assert - initial state
@@ -139,7 +139,7 @@ public class BindingTests
     {
         // Arrange
         var xaml = """
-            <Label xmlns="http://schemas.terminalninja.dev/xaml"
+            <TextBlock xmlns="http://schemas.terminalninja.dev/xaml"
                    Text="{Binding Path=Text}" />
             """;
         
@@ -148,7 +148,7 @@ public class BindingTests
         var bindingManager = new BindingManager();
         
         // Act
-        var label = TerminalXaml.Load<Label>(xaml, viewModel1, bindingManager);
+        var label = TerminalXaml.Load<TextBlock>(xaml, viewModel1, bindingManager);
         
         // Assert - bound to first VM
         await Assert.That(label.Text).IsEqualTo("VM1");

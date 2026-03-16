@@ -24,25 +24,25 @@
     <StackPanel Orientation="Vertical">
         
         <!-- Header with data binding -->
-        <Rectangle StackPanel.SizeMode="Fixed" StackPanel.FixedSize="5"
-                   BackgroundColor="{StaticResource HeaderBackground}"
-                   ForegroundColor="{StaticResource AccentColor}"
-                   Border="Double">
-            <Label x:Name="headerLabel"
+        <Border StackPanel.SizeMode="Fixed" StackPanel.FixedSize="5"
+                   Background="{StaticResource HeaderBackground}"
+                   Foreground="{StaticResource AccentColor}"
+                   BorderStyle="Double">
+            <TextBlock x:Name="headerTextBlock"
                    Text="{Binding HeaderText}"
-                   ForegroundColor="{StaticResource AccentColor}"
+                   Foreground="{StaticResource AccentColor}"
                    HorizontalTextAlignment="Center"
                    VerticalTextAlignment="Center" />
-        </Rectangle>
+        </Border>
         
         <!-- Toolbar with command binding -->
-        <Rectangle StackPanel.SizeMode="Fixed" StackPanel.FixedSize="5"
-                   BackgroundColor="{StaticResource ToolbarBackground}"
-                   Border="Single">
+        <Border StackPanel.SizeMode="Fixed" StackPanel.FixedSize="5"
+                   Background="{StaticResource ToolbarBackground}"
+                   BorderStyle="Single">
             <StackPanel Orientation="Horizontal">
-                <Rectangle StackPanel.SizeMode="Auto"
+                <Border StackPanel.SizeMode="Auto"
                            Width="2"
-                           BackgroundColor="{StaticResource ToolbarBackground}" />
+                           Background="{StaticResource ToolbarBackground}" />
                 
                 <Button x:Name="newButton"
                         StackPanel.SizeMode="Auto"
@@ -52,8 +52,8 @@
                         TabIndex="0"
                         FocusColor="{StaticResource AccentColor}"
                         HoverColor="{StaticResource HighlightColor}"
-                        ForegroundColor="White"
-                        BackgroundColor="{StaticResource ButtonBackground}"
+                        Foreground="White"
+                        Background="{StaticResource ButtonBackground}"
                         Command="{Binding NewCommand}" />
                 
                 <Button x:Name="openButton"
@@ -64,8 +64,8 @@
                         TabIndex="1"
                         FocusColor="{StaticResource AccentColor}"
                         HoverColor="{StaticResource HighlightColor}"
-                        ForegroundColor="White"
-                        BackgroundColor="{StaticResource ButtonBackground}"
+                        Foreground="White"
+                        Background="{StaticResource ButtonBackground}"
                         Command="{Binding Path=OpenCommand}" />
                 
                 <Button x:Name="saveButton"
@@ -76,47 +76,47 @@
                         TabIndex="2"
                         FocusColor="{StaticResource AccentColor}"
                         HoverColor="{StaticResource HighlightColor}"
-                        ForegroundColor="White"
-                        BackgroundColor="{StaticResource ButtonBackground}"
+                        Foreground="White"
+                        Background="{StaticResource ButtonBackground}"
                         Command="{Binding Path=SaveCommand}" />
                 
-                <Rectangle StackPanel.SizeMode="Stretch" BackgroundColor="{StaticResource ToolbarBackground}" />
+                <Border StackPanel.SizeMode="Stretch" Background="{StaticResource ToolbarBackground}" />
             </StackPanel>
-        </Rectangle>
+        </Border>
         
         <!-- Content Area with data binding -->
-        <Rectangle StackPanel.SizeMode="Stretch"
-                   BackgroundColor="{StaticResource ContentBackground}"
-                   Border="Rounded">
-            <Label x:Name="contentLabel"
+        <Border StackPanel.SizeMode="Stretch"
+                   Background="{StaticResource ContentBackground}"
+                   BorderStyle="Rounded">
+            <TextBlock x:Name="contentTextBlock"
                    Text="{Binding Path=ContentText}"
-                   ForegroundColor="White"
+                   Foreground="White"
                    HorizontalTextAlignment="Center"
                    VerticalTextAlignment="Center"
                    TextWrapping="Wrap"
                    Padding="4,2,4,2" />
-        </Rectangle>
+        </Border>
         
         <!-- Status Bar with data binding -->
-        <Rectangle StackPanel.SizeMode="Fixed" StackPanel.FixedSize="3"
-                   BackgroundColor="{StaticResource StatusBackground}"
-                   ForegroundColor="{StaticResource HighlightColor}"
-                   Border="Single">
+        <Border StackPanel.SizeMode="Fixed" StackPanel.FixedSize="3"
+                   Background="{StaticResource StatusBackground}"
+                   Foreground="{StaticResource HighlightColor}"
+                   BorderStyle="Single">
             <StackPanel Orientation="Horizontal">
                 
-            <Label StackPanel.SizeMode="Stretch" x:Name="statusLabel"
+            <TextBlock StackPanel.SizeMode="Stretch" x:Name="statusTextBlock"
                    Text="{Binding Path=StatusText}"
-                   ForegroundColor="{StaticResource HighlightColor}"
+                   Foreground="{StaticResource HighlightColor}"
                    HorizontalTextAlignment="Center"
                    VerticalTextAlignment="Center" />
             
-            <Label StackPanel.SizeMode="Auto" x:Name="timeLabel"
+            <TextBlock StackPanel.SizeMode="Auto" x:Name="timeTextBlock"
                    Text="{Binding CurrentTime, Converter={StaticResource DateTimeToStringConverter}, ConverterParameter=HH:mm:ss}"
-                   ForegroundColor="{StaticResource HighlightColor}"
+                   Foreground="{StaticResource HighlightColor}"
                    HorizontalTextAlignment="Center"
                    VerticalTextAlignment="Center" />
             </StackPanel>
-        </Rectangle>
+        </Border>
         
     </StackPanel>
 </Window>

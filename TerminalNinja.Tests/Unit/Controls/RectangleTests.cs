@@ -1,7 +1,7 @@
 namespace TerminalNinja.Tests.Unit.Controls;
 
 /// <summary>
-/// Comprehensive tests for Rectangle control covering:
+/// Comprehensive tests for Border control covering:
 /// - Bounds calculation with absolute, percent, and stretch sizing
 /// - Horizontal and vertical alignment (Start, Center, End)
 /// - Position offsets with different alignments
@@ -10,7 +10,7 @@ namespace TerminalNinja.Tests.Unit.Controls;
 /// - Clipping to buffer bounds
 /// - Nested parent bounds
 /// </summary>
-public class RectangleTests
+public class BorderTests
 {
     private CellBuffer _buffer = null!;
     private const int BufferWidth = 80;
@@ -26,9 +26,9 @@ public class RectangleTests
     #region CalculateBounds - Basic
 
     [Test]
-    public async Task CalculateBounds_DefaultRectangle_FillsParent()
+    public async Task CalculateBounds_DefaultBorder_FillsParent()
     {
-        var rect = new Rectangle(); // All defaults: Stretch width/height
+        var rect = new global::TerminalNinja.Controls.Border(); // All defaults: Stretch width/height
         var parent = new Rect(0, 0, 100, 50);
 
         var bounds = rect.CalculateBounds(parent);
@@ -42,7 +42,7 @@ public class RectangleTests
     [Test]
     public async Task CalculateBounds_AbsoluteSize_UsesExactDimensions()
     {
-        var rect = new Rectangle
+        var rect = new global::TerminalNinja.Controls.Border
         {
             Width = Size.Absolute(30),
             Height = Size.Absolute(10)
@@ -64,7 +64,7 @@ public class RectangleTests
     public async Task CalculateBounds_HorizontalAlignment_PositionsCorrectly(
         Alignment alignment, int expectedX)
     {
-        var rect = new Rectangle
+        var rect = new global::TerminalNinja.Controls.Border
         {
             Width = Size.Absolute(20),
             Height = Size.Absolute(10),
@@ -89,7 +89,7 @@ public class RectangleTests
     public async Task CalculateBounds_VerticalAlignment_PositionsCorrectly(
         Alignment alignment, int expectedY)
     {
-        var rect = new Rectangle
+        var rect = new global::TerminalNinja.Controls.Border
         {
             Width = Size.Absolute(20),
             Height = Size.Absolute(10),
@@ -114,7 +114,7 @@ public class RectangleTests
     public async Task CalculateBounds_CombinedAlignment_PositionsCorrectly(
         Alignment horizontal, Alignment vertical, int expectedX, int expectedY)
     {
-        var rect = new Rectangle
+        var rect = new global::TerminalNinja.Controls.Border
         {
             Width = Size.Absolute(20),
             Height = Size.Absolute(10),
@@ -145,74 +145,6 @@ public class RectangleTests
 
     #endregion
 
-    #region CalculateBounds - Offset with Alignment
-
-    [Test]
-    public async Task CalculateBounds_OffsetWithStartAlignment_AddsOffset()
-    {
-        var rect = new Rectangle
-        {
-            X = Size.Absolute(10),
-            Y = Size.Absolute(5),
-            Width = Size.Absolute(20),
-            Height = Size.Absolute(10),
-            HorizontalAlignment = Alignment.Start,
-            VerticalAlignment = Alignment.Start
-        };
-        var parent = new Rect(0, 0, 100, 50);
-
-        var bounds = rect.CalculateBounds(parent);
-
-        await Assert.That(bounds.X).IsEqualTo(10);
-        await Assert.That(bounds.Y).IsEqualTo(5);
-    }
-
-    [Test]
-    public async Task CalculateBounds_OffsetWithCenterAlignment_AddsOffsetToCenteredPosition()
-    {
-        var rect = new Rectangle
-        {
-            X = Size.Absolute(5),
-            Y = Size.Absolute(3),
-            Width = Size.Absolute(20),
-            Height = Size.Absolute(10),
-            HorizontalAlignment = Alignment.Center,
-            VerticalAlignment = Alignment.Center
-        };
-        var parent = new Rect(0, 0, 100, 50);
-
-        var bounds = rect.CalculateBounds(parent);
-
-        // Center alignment: (100-20)/2 + 5 = 45
-        await Assert.That(bounds.X).IsEqualTo(45);
-        // Center alignment: (50-10)/2 + 3 = 23
-        await Assert.That(bounds.Y).IsEqualTo(23);
-    }
-
-    [Test]
-    public async Task CalculateBounds_OffsetWithEndAlignment_SubtractsOffset()
-    {
-        var rect = new Rectangle
-        {
-            X = Size.Absolute(10),
-            Y = Size.Absolute(5),
-            Width = Size.Absolute(20),
-            Height = Size.Absolute(10),
-            HorizontalAlignment = Alignment.End,
-            VerticalAlignment = Alignment.End
-        };
-        var parent = new Rect(0, 0, 100, 50);
-
-        var bounds = rect.CalculateBounds(parent);
-
-        // End alignment: parent.Width - width - offset = 100 - 20 - 10 = 70
-        await Assert.That(bounds.X).IsEqualTo(70);
-        // End alignment: parent.Height - height - offset = 50 - 10 - 5 = 35
-        await Assert.That(bounds.Y).IsEqualTo(35);
-    }
-
-    #endregion
-
     #region CalculateBounds - Size Modes (Data-Driven)
 
     [Test]
@@ -220,7 +152,7 @@ public class RectangleTests
     public async Task CalculateBounds_SizeModes_ResolvesCorrectly(
         Size width, Size height, int expectedWidth, int expectedHeight)
     {
-        var rect = new Rectangle
+        var rect = new global::TerminalNinja.Controls.Border
         {
             Width = width,
             Height = height
@@ -251,11 +183,11 @@ public class RectangleTests
     [Test]
     public async Task Render_FillsBackgroundWithColor()
     {
-        var rect = new Rectangle
+        var rect = new global::TerminalNinja.Controls.Border
         {
             Width = Size.Absolute(5),
             Height = Size.Absolute(3),
-            BackgroundColor = Color.Blue
+            Background = Color.Blue
         };
         var parent = new Rect(0, 0, 10, 10);
 
@@ -268,13 +200,13 @@ public class RectangleTests
     }
 
     [Test]
-    public async Task Render_FillsEntireRectangleWithBackground()
+    public async Task Render_FillsEntireBorderWithBackground()
     {
-        var rect = new Rectangle
+        var rect = new global::TerminalNinja.Controls.Border
         {
             Width = Size.Absolute(4),
             Height = Size.Absolute(4),
-            BackgroundColor = Color.Red
+            Background = Color.Red
         };
 
         rect.Render(_buffer, new Rect(0, 0, BufferWidth, BufferHeight));
@@ -296,11 +228,11 @@ public class RectangleTests
     [Test]
     public async Task Render_SingleBorder_DrawsCorrectCorners()
     {
-        var rect = new Rectangle
+        var rect = new global::TerminalNinja.Controls.Border
         {
             Width = Size.Absolute(10),
             Height = Size.Absolute(5),
-            Border = Border.Single(Color.White)
+            BorderStyle = global::TerminalNinja.Styling.BorderStyle.Single(Color.White)
         };
 
         rect.Render(_buffer, new Rect(0, 0, BufferWidth, BufferHeight));
@@ -314,11 +246,11 @@ public class RectangleTests
     [Test]
     public async Task Render_SingleBorder_DrawsCorrectEdges()
     {
-        var rect = new Rectangle
+        var rect = new global::TerminalNinja.Controls.Border
         {
             Width = Size.Absolute(10),
             Height = Size.Absolute(5),
-            Border = Border.Single(Color.White)
+            BorderStyle = global::TerminalNinja.Styling.BorderStyle.Single(Color.White)
         };
 
         rect.Render(_buffer, new Rect(0, 0, BufferWidth, BufferHeight));
@@ -336,13 +268,13 @@ public class RectangleTests
     [Test]
     [MethodDataSource(nameof(GetBorderStyleCases))]
     public async Task Render_BorderStyle_DrawsCorrectTopLeftCorner(
-        Border border, char expectedCorner)
+        global::TerminalNinja.Styling.BorderStyle border, char expectedCorner)
     {
-        var rect = new Rectangle
+        var rect = new global::TerminalNinja.Controls.Border
         {
             Width = Size.Absolute(10),
             Height = Size.Absolute(5),
-            Border = border
+            BorderStyle = border
         };
 
         rect.Render(_buffer, new Rect(0, 0, BufferWidth, BufferHeight));
@@ -350,23 +282,23 @@ public class RectangleTests
         await Assert.That(_buffer.GetCell(0, 0).Character).IsEqualTo(expectedCorner);
     }
 
-    public static IEnumerable<(Border, char)> GetBorderStyleCases()
+    public static IEnumerable<(global::TerminalNinja.Styling.BorderStyle, char)> GetBorderStyleCases()
     {
-        yield return (Border.Single(Color.White), '┌');
-        yield return (Border.Double(Color.White), '╔');
-        yield return (Border.Rounded(Color.White), '╭');
-        yield return (Border.Ascii(Color.White), '+');
+        yield return (global::TerminalNinja.Styling.BorderStyle.Single(Color.White), '┌');
+        yield return (global::TerminalNinja.Styling.BorderStyle.Double(Color.White), '╔');
+        yield return (global::TerminalNinja.Styling.BorderStyle.Rounded(Color.White), '╭');
+        yield return (global::TerminalNinja.Styling.BorderStyle.Ascii(Color.White), '+');
     }
 
     [Test]
     public async Task Render_NoBorder_DoesNotDrawBorderCharacters()
     {
-        var rect = new Rectangle
+        var rect = new global::TerminalNinja.Controls.Border
         {
             Width = Size.Absolute(10),
             Height = Size.Absolute(5),
-            Border = Border.None,
-            BackgroundColor = Color.Blue
+            BorderStyle = global::TerminalNinja.Styling.BorderStyle.None,
+            Background = Color.Blue
         };
 
         rect.Render(_buffer, new Rect(0, 0, BufferWidth, BufferHeight));
@@ -379,12 +311,12 @@ public class RectangleTests
     [Test]
     public async Task Render_Border_UsesBorderColor()
     {
-        var rect = new Rectangle
+        var rect = new global::TerminalNinja.Controls.Border
         {
             Width = Size.Absolute(10),
             Height = Size.Absolute(5),
-            Border = Border.Single(Color.Cyan),
-            BackgroundColor = Color.Black
+            BorderStyle = global::TerminalNinja.Styling.BorderStyle.Single(Color.Cyan),
+            Background = Color.Black
         };
 
         rect.Render(_buffer, new Rect(0, 0, BufferWidth, BufferHeight));
@@ -401,15 +333,15 @@ public class RectangleTests
     [Test]
     public async Task Render_PartiallyOutOfBounds_ClipsToBuffer()
     {
-        var rect = new Rectangle
+        var rect = new global::TerminalNinja.Controls.Border
         {
-            X = Size.Absolute(-5),
             Width = Size.Absolute(20),
             Height = Size.Absolute(10),
-            BackgroundColor = Color.Red
+            Background = Color.Red
         };
 
-        rect.Render(_buffer, new Rect(0, 0, BufferWidth, BufferHeight));
+        // Render with a parent that starts at x=-5, pushing part of the border off-screen
+        rect.Render(_buffer, new Rect(-5, 0, 25, BufferHeight));
 
         // Cell at x=0 should have the rectangle's background (clipped portion)
         await Assert.That(_buffer.GetCell(0, 0).Background).IsEqualTo(Color.Red);
@@ -424,15 +356,15 @@ public class RectangleTests
     [Test]
     public async Task Render_CompletelyOutOfBounds_DoesNotRender()
     {
-        var rect = new Rectangle
+        var rect = new global::TerminalNinja.Controls.Border
         {
-            X = Size.Absolute(100), // Beyond buffer
             Width = Size.Absolute(20),
             Height = Size.Absolute(10),
-            BackgroundColor = Color.Red
+            Background = Color.Red
         };
 
-        rect.Render(_buffer, new Rect(0, 0, BufferWidth, BufferHeight));
+        // Render with parent starting beyond buffer width
+        rect.Render(_buffer, new Rect(100, 0, 20, 10));
 
         // No cells should be modified
         await Assert.That(_buffer.GetCell(0, 0).Background).IsEqualTo(Color.Black);
@@ -443,11 +375,11 @@ public class RectangleTests
     public async Task Render_MinimumSizeForBorder_DrawsBorderCorrectly()
     {
         // Minimum 2x2 for border
-        var rect = new Rectangle
+        var rect = new global::TerminalNinja.Controls.Border
         {
             Width = Size.Absolute(2),
             Height = Size.Absolute(2),
-            Border = Border.Single(Color.White)
+            BorderStyle = global::TerminalNinja.Styling.BorderStyle.Single(Color.White)
         };
 
         rect.Render(_buffer, new Rect(0, 0, BufferWidth, BufferHeight));
@@ -462,12 +394,12 @@ public class RectangleTests
     public async Task Render_TooSmallForBorder_SkipsBorder()
     {
         // 1x1 is too small for border
-        var rect = new Rectangle
+        var rect = new global::TerminalNinja.Controls.Border
         {
             Width = Size.Absolute(1),
             Height = Size.Absolute(1),
-            Border = Border.Single(Color.White),
-            BackgroundColor = Color.Blue
+            BorderStyle = global::TerminalNinja.Styling.BorderStyle.Single(Color.White),
+            Background = Color.Blue
         };
 
         rect.Render(_buffer, new Rect(0, 0, BufferWidth, BufferHeight));
@@ -484,17 +416,17 @@ public class RectangleTests
     [Test]
     public async Task Render_WithParentOffset_PositionsRelativeToParent()
     {
-        var rect = new Rectangle
+        var rect = new global::TerminalNinja.Controls.Border
         {
             Width = Size.Absolute(10),
             Height = Size.Absolute(5),
-            BackgroundColor = Color.Green
+            Background = Color.Green
         };
         var parent = new Rect(20, 10, 40, 20); // Parent at offset
 
         rect.Render(_buffer, parent);
 
-        // Rectangle should start at parent's position
+        // Border should start at parent's position
         await Assert.That(_buffer.GetCell(20, 10).Background).IsEqualTo(Color.Green);
         await Assert.That(_buffer.GetCell(29, 14).Background).IsEqualTo(Color.Green);
         
@@ -506,11 +438,11 @@ public class RectangleTests
     [Test]
     public async Task Render_PercentSizeWithinNestedParent_CalculatesFromParent()
     {
-        var rect = new Rectangle
+        var rect = new global::TerminalNinja.Controls.Border
         {
             Width = Size.Percent(50),  // 50% of parent (40) = 20
             Height = Size.Percent(50), // 50% of parent (20) = 10
-            BackgroundColor = Color.Yellow
+            Background = Color.Yellow
         };
         var parent = new Rect(10, 5, 40, 20);
 
@@ -527,16 +459,16 @@ public class RectangleTests
     #region Render - Integration Tests
 
     [Test]
-    public async Task Render_CenteredRectangleWithBorder_RendersCorrectly()
+    public async Task Render_CenteredBorderWithBorder_RendersCorrectly()
     {
-        var rect = new Rectangle
+        var rect = new global::TerminalNinja.Controls.Border
         {
             Width = Size.Absolute(20),
             Height = Size.Absolute(10),
             HorizontalAlignment = Alignment.Center,
             VerticalAlignment = Alignment.Center,
-            Border = Border.Single(Color.White),
-            BackgroundColor = Color.Blue
+            BorderStyle = global::TerminalNinja.Styling.BorderStyle.Single(Color.White),
+            Background = Color.Blue
         };
         var parent = new Rect(0, 0, 100, 50);
 
@@ -554,25 +486,23 @@ public class RectangleTests
     }
 
     [Test]
-    public async Task Render_StretchWithOffset_FillsRemainingSpace()
+    public async Task Render_Stretch_FillsEntireParent()
     {
-        var rect = new Rectangle
+        var rect = new global::TerminalNinja.Controls.Border
         {
-            X = Size.Absolute(10),
-            Y = Size.Absolute(5),
             Width = Size.Stretch,
             Height = Size.Stretch,
-            BackgroundColor = Color.Magenta
+            Background = Color.Magenta
         };
         var parent = new Rect(0, 0, 50, 30);
 
         var bounds = rect.CalculateBounds(parent);
         
-        // Should fill from offset to parent edge
-        await Assert.That(bounds.X).IsEqualTo(10);
-        await Assert.That(bounds.Y).IsEqualTo(5);
-        await Assert.That(bounds.Width).IsEqualTo(50);  // Stretch fills entire parent width
-        await Assert.That(bounds.Height).IsEqualTo(30); // Stretch fills entire parent height
+        // Stretch fills entire parent
+        await Assert.That(bounds.X).IsEqualTo(0);
+        await Assert.That(bounds.Y).IsEqualTo(0);
+        await Assert.That(bounds.Width).IsEqualTo(50);
+        await Assert.That(bounds.Height).IsEqualTo(30);
     }
 
     #endregion
@@ -582,11 +512,11 @@ public class RectangleTests
     [Test]
     public async Task Render_WithNullChild_DoesNotCrash()
     {
-        var rect = new Rectangle
+        var rect = new global::TerminalNinja.Controls.Border
         {
             Width = Size.Absolute(10),
             Height = Size.Absolute(5),
-            BackgroundColor = Color.Blue,
+            Background = Color.Blue,
             Child = null
         };
 
@@ -597,19 +527,19 @@ public class RectangleTests
     }
 
     [Test]
-    public async Task Render_WithLabelChild_RendersTextInsideRectangle()
+    public async Task Render_WithTextBlockChild_RendersTextInsideBorder()
     {
-        var label = new Label
+        var label = new TextBlock
         {
             Text = "Test",
-            ForegroundColor = Color.White,
-            BackgroundColor = Color.Blue
+            Foreground = Color.White,
+            Background = Color.Blue
         };
-        var rect = new Rectangle
+        var rect = new global::TerminalNinja.Controls.Border
         {
             Width = Size.Absolute(10),
             Height = Size.Absolute(5),
-            BackgroundColor = Color.Blue,
+            Background = Color.Blue,
             Child = label
         };
 
@@ -625,18 +555,18 @@ public class RectangleTests
     [Test]
     public async Task Render_ChildWithBorder_RendersInInnerBounds()
     {
-        var label = new Label
+        var label = new TextBlock
         {
             Text = "X",
-            ForegroundColor = Color.White,
-            BackgroundColor = Color.Blue
+            Foreground = Color.White,
+            Background = Color.Blue
         };
-        var rect = new Rectangle
+        var rect = new global::TerminalNinja.Controls.Border
         {
             Width = Size.Absolute(5),
             Height = Size.Absolute(3),
-            Border = Border.Single(Color.Cyan),
-            BackgroundColor = Color.Blue,
+            BorderStyle = global::TerminalNinja.Styling.BorderStyle.Single(Color.Cyan),
+            Background = Color.Blue,
             Child = label
         };
 
@@ -646,7 +576,7 @@ public class RectangleTests
         await Assert.That(_buffer.GetCell(0, 0).Character).IsEqualTo('┌');
         await Assert.That(_buffer.GetCell(4, 0).Character).IsEqualTo('┐');
         
-        // Label should render inside border (at position 1,1 instead of 0,0)
+        // TextBlock should render inside border (at position 1,1 instead of 0,0)
         await Assert.That(_buffer.GetCell(1, 1).Character).IsEqualTo('X');
         
         // Border edges should not be overwritten by label
@@ -655,54 +585,54 @@ public class RectangleTests
     }
 
     [Test]
-    public async Task Render_ChildWithoutBorder_UsesFullRectangleBounds()
+    public async Task Render_ChildWithoutBorder_UsesFullBorderBounds()
     {
-        var label = new Label
+        var label = new TextBlock
         {
             Text = "ABC",
-            ForegroundColor = Color.White,
-            BackgroundColor = Color.Red
+            Foreground = Color.White,
+            Background = Color.Red
         };
-        var rect = new Rectangle
+        var rect = new global::TerminalNinja.Controls.Border
         {
             Width = Size.Absolute(5),
             Height = Size.Absolute(3),
-            BackgroundColor = Color.Red,
-            Border = Border.None,
+            Background = Color.Red,
+            BorderStyle = global::TerminalNinja.Styling.BorderStyle.None,
             Child = label
         };
 
         rect.Render(_buffer, new Rect(0, 0, BufferWidth, BufferHeight));
 
-        // Label should start at (0,0) - full bounds
+        // TextBlock should start at (0,0) - full bounds
         await Assert.That(_buffer.GetCell(0, 0).Character).IsEqualTo('A');
         await Assert.That(_buffer.GetCell(1, 0).Character).IsEqualTo('B');
         await Assert.That(_buffer.GetCell(2, 0).Character).IsEqualTo('C');
     }
 
     [Test]
-    public async Task Render_NestedRectangles_RendersCorrectly()
+    public async Task Render_NestedBorders_RendersCorrectly()
     {
-        var innerLabel = new Label
+        var innerTextBlock = new TextBlock
         {
             Text = "Inner",
-            ForegroundColor = Color.Yellow,
-            BackgroundColor = Color.Red
+            Foreground = Color.Yellow,
+            Background = Color.Red
         };
-        var innerRect = new Rectangle
+        var innerRect = new global::TerminalNinja.Controls.Border
         {
             Width = Size.Absolute(7),
             Height = Size.Absolute(3),
-            BackgroundColor = Color.Red,
-            Border = Border.Single(Color.Yellow),
-            Child = innerLabel
+            Background = Color.Red,
+            BorderStyle = global::TerminalNinja.Styling.BorderStyle.Single(Color.Yellow),
+            Child = innerTextBlock
         };
-        var outerRect = new Rectangle
+        var outerRect = new global::TerminalNinja.Controls.Border
         {
             Width = Size.Absolute(15),
             Height = Size.Absolute(7),
-            BackgroundColor = Color.Blue,
-            Border = Border.Double(Color.Cyan),
+            Background = Color.Blue,
+            BorderStyle = global::TerminalNinja.Styling.BorderStyle.Double(Color.Cyan),
             Child = innerRect
         };
 
@@ -724,20 +654,20 @@ public class RectangleTests
     [Test]
     public async Task Render_ChildWithCenteredAlignment_RespectsBounds()
     {
-        var label = new Label
+        var label = new TextBlock
         {
             Text = "Hi",
-            ForegroundColor = Color.White,
-            BackgroundColor = Color.Green,
+            Foreground = Color.White,
+            Background = Color.Green,
             HorizontalTextAlignment = TextAlignment.Center,
             VerticalTextAlignment = TextAlignment.Center
         };
-        var rect = new Rectangle
+        var rect = new global::TerminalNinja.Controls.Border
         {
             Width = Size.Absolute(10),
             Height = Size.Absolute(5),
-            BackgroundColor = Color.Green,
-            Border = Border.Single(Color.White),
+            Background = Color.Green,
+            BorderStyle = global::TerminalNinja.Styling.BorderStyle.Single(Color.White),
             Child = label
         };
 
@@ -753,42 +683,42 @@ public class RectangleTests
     [Test]
     public async Task Render_ChildTooSmallForBorder_GetsEmptyBounds()
     {
-        var label = new Label
+        var label = new TextBlock
         {
             Text = "X",
-            ForegroundColor = Color.White
+            Foreground = Color.White
         };
-        var rect = new Rectangle
+        var rect = new global::TerminalNinja.Controls.Border
         {
             Width = Size.Absolute(1),
             Height = Size.Absolute(1),
-            Border = Border.Single(Color.White),
+            BorderStyle = global::TerminalNinja.Styling.BorderStyle.Single(Color.White),
             Child = label
         };
 
         rect.Render(_buffer, new Rect(0, 0, BufferWidth, BufferHeight));
 
-        // Rectangle is 1x1, which is too small for border (needs 2x2 minimum)
+        // Border is 1x1, which is too small for border (needs 2x2 minimum)
         // Border is skipped, background fills, but child would get 1x1 bounds
-        // Label should still attempt to render in the 1x1 space
+        // TextBlock should still attempt to render in the 1x1 space
         await Assert.That(_buffer.GetCell(0, 0).Character).IsEqualTo('X');
     }
 
     [Test]
     public async Task Render_ChildWithMinimumBorderSize_GetsZeroInnerBounds()
     {
-        var label = new Label
+        var label = new TextBlock
         {
             Text = "Test",
-            ForegroundColor = Color.White,
-            BackgroundColor = Color.Blue
+            Foreground = Color.White,
+            Background = Color.Blue
         };
-        var rect = new Rectangle
+        var rect = new global::TerminalNinja.Controls.Border
         {
             Width = Size.Absolute(2),
             Height = Size.Absolute(2),
-            Border = Border.Single(Color.White),
-            BackgroundColor = Color.Blue,
+            BorderStyle = global::TerminalNinja.Styling.BorderStyle.Single(Color.White),
+            Background = Color.Blue,
             Child = label
         };
 
@@ -810,10 +740,10 @@ public class RectangleTests
     [Test]
     public async Task Render_WithStackChild_RendersAllStackChildren()
     {
-        // Create a Rectangle with a horizontal StackPanel containing 3 Labels
-        var labelA = new Label { Text = "A", ForegroundColor = Color.Red };
-        var labelB = new Label { Text = "B", ForegroundColor = Color.Green };
-        var labelC = new Label { Text = "C", ForegroundColor = Color.Blue };
+        // Create a Border with a horizontal StackPanel containing 3 TextBlocks
+        var labelA = new TextBlock { Text = "A", Foreground = Color.Red };
+        var labelB = new TextBlock { Text = "B", Foreground = Color.Green };
+        var labelC = new TextBlock { Text = "C", Foreground = Color.Blue };
         
         StackPanel.SetSizeMode(labelA, ChildSizeMode.Fixed);
         StackPanel.SetFixedSize(labelA, 5);
@@ -828,11 +758,11 @@ public class RectangleTests
             Children = { labelA, labelB, labelC }
         };
 
-        var rect = new Rectangle
+        var rect = new global::TerminalNinja.Controls.Border
         {
             Width = Size.Absolute(15),
             Height = Size.Absolute(3),
-            BackgroundColor = Color.Black,
+            Background = Color.Black,
             Child = stackPanel
         };
 
@@ -853,21 +783,21 @@ public class RectangleTests
     public async Task Render_StackChildAutoAndStretch_DistributesSpaceCorrectly()
     {
         // Create a toolbar-like pattern: Auto | Stretch | Auto
-        var leftLabel = new Label { Text = "Left", BackgroundColor = Color.Red };
-        var centerLabel = new Label { Text = "Center", BackgroundColor = Color.Green };
-        var rightLabel = new Label { Text = "Right", BackgroundColor = Color.Blue };
+        var leftTextBlock = new TextBlock { Text = "Left", Background = Color.Red };
+        var centerTextBlock = new TextBlock { Text = "Center", Background = Color.Green };
+        var rightTextBlock = new TextBlock { Text = "Right", Background = Color.Blue };
 
-        StackPanel.SetSizeMode(leftLabel, ChildSizeMode.Auto);
-        StackPanel.SetSizeMode(centerLabel, ChildSizeMode.Stretch);
-        StackPanel.SetSizeMode(rightLabel, ChildSizeMode.Auto);
+        StackPanel.SetSizeMode(leftTextBlock, ChildSizeMode.Auto);
+        StackPanel.SetSizeMode(centerTextBlock, ChildSizeMode.Stretch);
+        StackPanel.SetSizeMode(rightTextBlock, ChildSizeMode.Auto);
 
         var stackPanel = new StackPanel
         {
             Orientation = Orientation.Horizontal,
-            Children = { leftLabel, centerLabel, rightLabel }
+            Children = { leftTextBlock, centerTextBlock, rightTextBlock }
         };
 
-        var rect = new Rectangle
+        var rect = new global::TerminalNinja.Controls.Border
         {
             Width = Size.Absolute(20),
             Height = Size.Absolute(1),
@@ -892,25 +822,25 @@ public class RectangleTests
     }
 
     [Test]
-    public async Task Render_NestedRectangleStackRectangles_RendersCorrectly()
+    public async Task Render_NestedBorderStackBorders_RendersCorrectly()
     {
-        // Create the full pattern: Rectangle → Stack → [Rectangle, Rectangle, Rectangle]
-        var leftRect = new Rectangle
+        // Create the full pattern: Border → Stack → [Border, Border, Border]
+        var leftRect = new global::TerminalNinja.Controls.Border
         {
-            BackgroundColor = Color.Red,
-            Border = Border.Single(Color.Red)
+            Background = Color.Red,
+            BorderStyle = global::TerminalNinja.Styling.BorderStyle.Single(Color.Red)
         };
 
-        var centerRect = new Rectangle
+        var centerRect = new global::TerminalNinja.Controls.Border
         {
-            BackgroundColor = Color.Green,
-            Border = Border.Single(Color.Green)
+            Background = Color.Green,
+            BorderStyle = global::TerminalNinja.Styling.BorderStyle.Single(Color.Green)
         };
 
-        var rightRect = new Rectangle
+        var rightRect = new global::TerminalNinja.Controls.Border
         {
-            BackgroundColor = Color.Blue,
-            Border = Border.Single(Color.Blue)
+            Background = Color.Blue,
+            BorderStyle = global::TerminalNinja.Styling.BorderStyle.Single(Color.Blue)
         };
 
         StackPanel.SetSizeMode(leftRect, ChildSizeMode.Fixed);
@@ -925,12 +855,12 @@ public class RectangleTests
             Children = { leftRect, centerRect, rightRect }
         };
 
-        var outerRect = new Rectangle
+        var outerRect = new global::TerminalNinja.Controls.Border
         {
             Width = Size.Absolute(20),
             Height = Size.Absolute(5),
-            BackgroundColor = Color.Black,
-            Border = Border.Double(Color.White),
+            Background = Color.Black,
+            BorderStyle = global::TerminalNinja.Styling.BorderStyle.Double(Color.White),
             Child = stackPanel
         };
 
@@ -957,11 +887,11 @@ public class RectangleTests
     public async Task Render_StackChildInsideBorder_RespectsInnerBounds()
     {
         // StackPanel should get inner bounds (after border subtraction)
-        var label = new Label
+        var label = new TextBlock
         {
             Text = "Test",
-            ForegroundColor = Color.White,
-            BackgroundColor = Color.Blue
+            Foreground = Color.White,
+            Background = Color.Blue
         };
 
         StackPanel.SetSizeMode(label, ChildSizeMode.Stretch);
@@ -972,12 +902,12 @@ public class RectangleTests
             Children = { label }
         };
 
-        var rect = new Rectangle
+        var rect = new global::TerminalNinja.Controls.Border
         {
             Width = Size.Absolute(10),
             Height = Size.Absolute(3),
-            Border = Border.Single(Color.Cyan),
-            BackgroundColor = Color.Blue,
+            BorderStyle = global::TerminalNinja.Styling.BorderStyle.Single(Color.Cyan),
+            Background = Color.Blue,
             Child = stackPanel
         };
 
@@ -987,7 +917,7 @@ public class RectangleTests
         await Assert.That(_buffer.GetCell(0, 0).Character).IsEqualTo('┌');
         await Assert.That(_buffer.GetCell(9, 0).Character).IsEqualTo('┐');
 
-        // Label text should start at x=1, y=1 (inside border)
+        // TextBlock text should start at x=1, y=1 (inside border)
         await Assert.That(_buffer.GetCell(1, 1).Character).IsEqualTo('T');
         await Assert.That(_buffer.GetCell(2, 1).Character).IsEqualTo('e');
         await Assert.That(_buffer.GetCell(3, 1).Character).IsEqualTo('s');
@@ -1005,7 +935,7 @@ public class RectangleTests
     [Test]
     public async Task LayoutProperties_AfterConstruction_UpdatesBounds()
     {
-        var rect = new Rectangle();
+        var rect = new global::TerminalNinja.Controls.Border();
         var parent = new Rect(0, 0, 100, 50);
 
         var initial = rect.CalculateBounds(parent);
@@ -1014,15 +944,13 @@ public class RectangleTests
 
         rect.Width = Size.Absolute(20);
         rect.Height = Size.Absolute(10);
-        rect.X = Size.Absolute(5);
-        rect.Y = Size.Absolute(3);
         rect.HorizontalAlignment = Alignment.Center;
         rect.VerticalAlignment = Alignment.End;
 
         var updated = rect.CalculateBounds(parent);
 
-        await Assert.That(updated.X).IsEqualTo(45); // (100 - 20) / 2 + 5
-        await Assert.That(updated.Y).IsEqualTo(37); // 50 - 10 - 3
+        await Assert.That(updated.X).IsEqualTo(40); // (100 - 20) / 2
+        await Assert.That(updated.Y).IsEqualTo(40); // 50 - 10
         await Assert.That(updated.Width).IsEqualTo(20);
         await Assert.That(updated.Height).IsEqualTo(10);
     }
@@ -1030,7 +958,7 @@ public class RectangleTests
     [Test]
     public async Task LayoutProperty_ChangedValue_TriggersInvalidationOnce()
     {
-        var rect = new Rectangle();
+        var rect = new global::TerminalNinja.Controls.Border();
         var invalidationCount = 0;
         rect.InvalidationCallback = () => invalidationCount++;
 
@@ -1043,9 +971,9 @@ public class RectangleTests
     [Test]
     public async Task Child_SetAndReplace_MaintainsParentReferences()
     {
-        var rect = new Rectangle();
-        var firstChild = new Label { Text = "First" };
-        var secondChild = new Label { Text = "Second" };
+        var rect = new global::TerminalNinja.Controls.Border();
+        var firstChild = new TextBlock { Text = "First" };
+        var secondChild = new TextBlock { Text = "Second" };
 
         rect.Child = firstChild;
         await Assert.That(firstChild.Parent).IsEqualTo(rect);

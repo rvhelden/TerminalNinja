@@ -98,6 +98,12 @@ public class ItemsControl : Control
         yield return (ItemsPanel, myBounds);
     }
 
+    /// <inheritdoc />
+    protected internal override IEnumerable<FrameworkElement> GetLogicalChildren()
+    {
+        yield return ItemsPanel;
+    }
+
     /// <summary>
     /// Handles collection change notifications from ItemsSource.
     /// </summary>

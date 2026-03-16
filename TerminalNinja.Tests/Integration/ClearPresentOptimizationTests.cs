@@ -50,9 +50,9 @@ public class ClearPresentOptimizationTests
     {
         // Arrange - Render something, present it, then clear and present
         var buffer = new CellBuffer(5, 5);
-        var rect = new Rectangle
+        var rect = new global::TerminalNinja.Controls.Border
         {
-            ForegroundColor = new Color(255, 0, 0)
+            Foreground = new Color(255, 0, 0)
         };
         rect.Render(buffer, new Rect(0, 0, 5, 5));
         
@@ -105,9 +105,9 @@ public class ClearPresentOptimizationTests
     {
         // Arrange - Create buffer and render content
         var buffer = new CellBuffer(3, 3);
-        var rect = new Rectangle
+        var rect = new global::TerminalNinja.Controls.Border
         {
-            ForegroundColor = new Color(0, 255, 0)
+            Foreground = new Color(0, 255, 0)
         };
         rect.Render(buffer, new Rect(0, 0, 3, 3));
         
@@ -186,7 +186,7 @@ public class ClearPresentOptimizationTests
         buffer.SwapBuffers();
         
         // Render content
-        var rect = new Rectangle { ForegroundColor = new Color(255, 255, 0) };
+        var rect = new global::TerminalNinja.Controls.Border { Foreground = new Color(255, 255, 0) };
         rect.Render(buffer, new Rect(0, 0, 4, 4));
         using var stream2 = new MemoryStream();
         using var writer2 = new AnsiWriter(stream2);
@@ -251,7 +251,7 @@ public class ClearPresentOptimizationTests
         buffer.SwapBuffers();
         
         // Render small 3x3 rectangle
-        var rect = new Rectangle { ForegroundColor = new Color(100, 100, 100) };
+        var rect = new global::TerminalNinja.Controls.Border { Foreground = new Color(100, 100, 100) };
         rect.Render(buffer, new Rect(0, 0, 3, 3));
         using var stream2 = new MemoryStream();
         using var writer2 = new AnsiWriter(stream2);

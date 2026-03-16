@@ -1,3 +1,5 @@
+using StylingBorder = TerminalNinja.Styling.BorderStyle;
+
 namespace TerminalNinja.Tests.Unit.Styling;
 
 public class BorderTests
@@ -5,7 +7,7 @@ public class BorderTests
     [Test]
     public async Task Border_None_HasZeroWidth()
     {
-        var border = Border.None;
+        var border = StylingBorder.None;
         
         await Assert.That((int)border.Width).IsEqualTo(0);
         await Assert.That(border.HasBorder).IsFalse();
@@ -14,7 +16,7 @@ public class BorderTests
     [Test]
     public async Task Border_Single_CreatesWithCorrectProperties()
     {
-        var border = Border.Single(Color.Cyan);
+        var border = StylingBorder.Single(Color.Cyan);
         
         await Assert.That((int)border.Width).IsEqualTo(1);
         await Assert.That(border.Color).IsEqualTo(Color.Cyan);
@@ -25,7 +27,7 @@ public class BorderTests
     [Test]
     public async Task Border_Double_CreatesWithCorrectProperties()
     {
-        var border = Border.Double(Color.Red);
+        var border = StylingBorder.Double(Color.Red);
         
         await Assert.That((int)border.Width).IsEqualTo(1);
         await Assert.That(border.Color).IsEqualTo(Color.Red);
@@ -36,7 +38,7 @@ public class BorderTests
     [Test]
     public async Task Border_Rounded_CreatesWithCorrectProperties()
     {
-        var border = Border.Rounded(Color.Green);
+        var border = StylingBorder.Rounded(Color.Green);
         
         await Assert.That((int)border.Width).IsEqualTo(1);
         await Assert.That(border.Color).IsEqualTo(Color.Green);
@@ -47,7 +49,7 @@ public class BorderTests
     [Test]
     public async Task Border_Ascii_CreatesWithCorrectProperties()
     {
-        var border = Border.Ascii(Color.Yellow);
+        var border = StylingBorder.Ascii(Color.Yellow);
         
         await Assert.That((int)border.Width).IsEqualTo(1);
         await Assert.That(border.Color).IsEqualTo(Color.Yellow);
@@ -58,7 +60,7 @@ public class BorderTests
     [Test]
     public async Task Border_HasBorder_FalseWhenWidthIsZero()
     {
-        var border = new Border(0, Color.White, BorderChars.Single);
+        var border = new StylingBorder(0, Color.White, BorderChars.Single);
         
         await Assert.That(border.HasBorder).IsFalse();
     }
@@ -66,7 +68,7 @@ public class BorderTests
     [Test]
     public async Task Border_HasBorder_FalseWhenCharsAreEmpty()
     {
-        var border = new Border(1, Color.White, BorderChars.None);
+        var border = new StylingBorder(1, Color.White, BorderChars.None);
         
         await Assert.That(border.HasBorder).IsFalse();
     }
@@ -142,7 +144,7 @@ public class BorderCharsTests
     [Test]
     public async Task BorderChars_Constructor_SetsAllFields()
     {
-        var chars = new BorderChars('A', 'B', 'C', 'D', 'E', 'F');
+        var chars = new global::TerminalNinja.Styling.BorderChars('A', 'B', 'C', 'D', 'E', 'F');
         
         await Assert.That(chars.TopLeft).IsEqualTo('A');
         await Assert.That(chars.TopRight).IsEqualTo('B');

@@ -4,7 +4,6 @@ using TerminalNinja.Primitives;
 using TerminalNinja.Styling;
 using TerminalNinja.Xaml.Binding;
 using TerminalNinja.Xaml.Data;
-
 namespace TerminalNinja.Aot;
 
 /// <summary>
@@ -28,7 +27,7 @@ public static class TypeNameRegistry
         Register(typeof(Thickness));
         Register(typeof(Size));
         Register(typeof(GridLength));
-        Register(typeof(Border));
+        Register(typeof(BorderStyle));
 
         // Enums that may appear in XAML
         Register(typeof(Orientation));

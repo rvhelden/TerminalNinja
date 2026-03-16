@@ -10,7 +10,7 @@ namespace TerminalNinja.Controls;
 /// An interactive button control that responds to focus, hover, and click events.
 /// </summary>
 [RuntimeNameProperty("Name")]
-public sealed class Button : ButtonBase, IFocusable
+public sealed class Button : ButtonBase
 {
     // Bindable properties (with change notification)
     private string _text = "";
@@ -44,16 +44,6 @@ public sealed class Button : ButtonBase, IFocusable
     /// <summary>Gets or sets the height (absolute, relative, or stretch).</summary>
     public Size Height { get; set; } = Size.Absolute(3);
     
-    // IFocusable properties
-    /// <summary>Gets or sets whether this button can receive focus.</summary>
-    public bool CanFocus { get; set; } = true;
-    
-    /// <summary>Gets or sets whether this button currently has focus (managed by FocusManager).</summary>
-    public bool IsFocused { get; set; }
-    
-    /// <summary>Gets or sets whether this button is currently hovered (managed by FocusManager).</summary>
-    public bool IsHovered { get; set; }
-    
     /// <summary>
     /// Returns the preferred size of this button based on text length.
     /// </summary>
@@ -75,7 +65,7 @@ public sealed class Button : ButtonBase, IFocusable
         var w = Width.Resolve(parent.Width);
         var h = Height.Resolve(parent.Height);
         
-        return new Rect(parent.X, parent.Y, w, h);
+        return ApplyAlignment(parent, w, h);
     }
     
     /// <summary>
@@ -90,12 +80,12 @@ public sealed class Button : ButtonBase, IFocusable
         if (clipped.Width <= 0 || clipped.Height <= 0) return;
         
         // Choose border color based on focus/hover state (dimmed if disabled)
-        var borderColor = IsFocused ? FocusColor : IsHovered ? HoverColor : Foreground;
+        var borderColor = IsFocused ? FocusColor : IsMouseOver ? HoverColor : Foreground;
         if (!IsEnabled)
             borderColor = new Color((byte)(borderColor.R / 2), (byte)(borderColor.G / 2), (byte)(borderColor.B / 2)); // Dim by 50%
         
         // Create rounded border with appropriate color
-        var border = Styling.Border.Rounded(borderColor);
+        var border = Styling.BorderStyle.Rounded(borderColor);
         
         // Fill background
         var bgCell = new Cell(' ', Foreground, Background);
@@ -175,50 +165,9 @@ public sealed class Button : ButtonBase, IFocusable
     }
     
     /// <summary>
-    /// Hit tests the button at the specified coordinates.
-    /// </summary>
-    public Rect? HitTest(int x, int y, Rect parentBounds)
-    {
-        var bounds = CalculateBounds(parentBounds);
-        return bounds.Contains(x, y) ? bounds : null;
-    }
-    
-    /// <summary>
-    /// Called when the button receives focus.
-    /// </summary>
-    public void OnFocus()
-    {
-        // Focus handled by FocusManager
-    }
-    
-    /// <summary>
-    /// Called when the button loses focus.
-    /// </summary>
-    public void OnBlur()
-    {
-        // Blur handled by FocusManager
-    }
-    
-    /// <summary>
-    /// Called when the mouse enters the button.
-    /// </summary>
-    public void OnMouseEnter()
-    {
-        // Hover handled by FocusManager
-    }
-    
-    /// <summary>
-    /// Called when the mouse leaves the button.
-    /// </summary>
-    public void OnMouseLeave()
-    {
-        // Hover handled by FocusManager
-    }
-    
-    /// <summary>
     /// Handles keyboard events when the button has focus.
     /// </summary>
-    public void OnKeyEvent(KeyEvent e)
+    public override void OnKeyEvent(KeyEvent e)
     {
         // Trigger click on Enter or Space
         if (e.Key == ConsoleKey.Enter || e.Key == ConsoleKey.Spacebar)
@@ -230,7 +179,7 @@ public sealed class Button : ButtonBase, IFocusable
     /// <summary>
     /// Handles mouse events when the mouse is over the button.
     /// </summary>
-    public void OnMouseEvent(MouseEvent e)
+    public override void OnMouseEvent(MouseEvent e)
     {
         // Trigger click on left mouse button press
         if (e.Action == MouseAction.Press && e.Button == MouseButton.Left)

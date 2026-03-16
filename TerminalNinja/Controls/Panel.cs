@@ -31,6 +31,16 @@ public abstract class Panel : FrameworkElement
     /// </summary>
     public Color? Background { get; set; }
     
+    /// <inheritdoc />
+    protected internal override IEnumerable<FrameworkElement> GetLogicalChildren()
+    {
+        foreach (var child in _children)
+        {
+            if (child is FrameworkElement fe)
+                yield return fe;
+        }
+    }
+    
     /// <summary>
     /// Called when a child control is added to the Children collection.
     /// </summary>

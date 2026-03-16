@@ -27,7 +27,7 @@ public class StackPanelTests
     public async Task GetSizeMode_DefaultValue_ReturnsAuto()
     {
         // Arrange
-        var control = new Rectangle();
+        var control = new global::TerminalNinja.Controls.Border();
 
         // Act
         var sizeMode = StackPanel.GetSizeMode(control);
@@ -40,7 +40,7 @@ public class StackPanelTests
     public async Task SetSizeMode_Fixed_SetsSizeMode()
     {
         // Arrange
-        var control = new Rectangle();
+        var control = new global::TerminalNinja.Controls.Border();
 
         // Act
         StackPanel.SetSizeMode(control, ChildSizeMode.Fixed);
@@ -53,7 +53,7 @@ public class StackPanelTests
     public async Task SetSizeMode_Stretch_SetsSizeMode()
     {
         // Arrange
-        var control = new Rectangle();
+        var control = new global::TerminalNinja.Controls.Border();
 
         // Act
         StackPanel.SetSizeMode(control, ChildSizeMode.Stretch);
@@ -86,7 +86,7 @@ public class StackPanelTests
     public async Task GetFixedSize_DefaultValue_ReturnsZero()
     {
         // Arrange
-        var control = new Rectangle();
+        var control = new global::TerminalNinja.Controls.Border();
 
         // Act
         var fixedSize = StackPanel.GetFixedSize(control);
@@ -99,7 +99,7 @@ public class StackPanelTests
     public async Task SetFixedSize_ValidValue_SetsFixedSize()
     {
         // Arrange
-        var control = new Rectangle();
+        var control = new global::TerminalNinja.Controls.Border();
 
         // Act
         StackPanel.SetFixedSize(control, 10);
@@ -112,7 +112,7 @@ public class StackPanelTests
     public async Task SetFixedSize_NegativeValue_ClampsToZero()
     {
         // Arrange
-        var control = new Rectangle();
+        var control = new global::TerminalNinja.Controls.Border();
 
         // Act
         StackPanel.SetFixedSize(control, -5);
@@ -187,9 +187,9 @@ public class StackPanelTests
     public async Task Render_VerticalStack_FixedChildren_ArrangesSequentially()
     {
         // Arrange
-        var child1 = new Rectangle { BackgroundColor = Color.Red };
-        var child2 = new Rectangle { BackgroundColor = Color.Green };
-        var child3 = new Rectangle { BackgroundColor = Color.Blue };
+        var child1 = new global::TerminalNinja.Controls.Border { Background = Color.Red };
+        var child2 = new global::TerminalNinja.Controls.Border { Background = Color.Green };
+        var child3 = new global::TerminalNinja.Controls.Border { Background = Color.Blue };
 
         StackPanel.SetSizeMode(child1, ChildSizeMode.Fixed);
         StackPanel.SetFixedSize(child1, 5);
@@ -221,8 +221,8 @@ public class StackPanelTests
     public async Task Render_VerticalStack_StretchChildren_DividesSpaceEvenly()
     {
         // Arrange
-        var child1 = new Rectangle { BackgroundColor = Color.Red };
-        var child2 = new Rectangle { BackgroundColor = Color.Green };
+        var child1 = new global::TerminalNinja.Controls.Border { Background = Color.Red };
+        var child2 = new global::TerminalNinja.Controls.Border { Background = Color.Green };
 
         StackPanel.SetSizeMode(child1, ChildSizeMode.Stretch);
         StackPanel.SetSizeMode(child2, ChildSizeMode.Stretch);
@@ -247,9 +247,9 @@ public class StackPanelTests
     public async Task Render_VerticalStack_MixedSizing_CalculatesCorrectly()
     {
         // Arrange
-        var child1 = new Rectangle { BackgroundColor = Color.Red };
-        var child2 = new Rectangle { BackgroundColor = Color.Green };
-        var child3 = new Rectangle { BackgroundColor = Color.Blue };
+        var child1 = new global::TerminalNinja.Controls.Border { Background = Color.Red };
+        var child2 = new global::TerminalNinja.Controls.Border { Background = Color.Green };
+        var child3 = new global::TerminalNinja.Controls.Border { Background = Color.Blue };
 
         StackPanel.SetSizeMode(child1, ChildSizeMode.Fixed);
         StackPanel.SetFixedSize(child1, 5);
@@ -284,9 +284,9 @@ public class StackPanelTests
     public async Task Render_HorizontalStack_FixedChildren_ArrangesSequentially()
     {
         // Arrange
-        var child1 = new Rectangle { BackgroundColor = Color.Red };
-        var child2 = new Rectangle { BackgroundColor = Color.Green };
-        var child3 = new Rectangle { BackgroundColor = Color.Blue };
+        var child1 = new global::TerminalNinja.Controls.Border { Background = Color.Red };
+        var child2 = new global::TerminalNinja.Controls.Border { Background = Color.Green };
+        var child3 = new global::TerminalNinja.Controls.Border { Background = Color.Blue };
 
         StackPanel.SetSizeMode(child1, ChildSizeMode.Fixed);
         StackPanel.SetFixedSize(child1, 10);
@@ -318,8 +318,8 @@ public class StackPanelTests
     public async Task Render_HorizontalStack_StretchChildren_DividesSpaceEvenly()
     {
         // Arrange
-        var child1 = new Rectangle { BackgroundColor = Color.Red };
-        var child2 = new Rectangle { BackgroundColor = Color.Green };
+        var child1 = new global::TerminalNinja.Controls.Border { Background = Color.Red };
+        var child2 = new global::TerminalNinja.Controls.Border { Background = Color.Green };
 
         StackPanel.SetSizeMode(child1, ChildSizeMode.Stretch);
         StackPanel.SetSizeMode(child2, ChildSizeMode.Stretch);
@@ -344,9 +344,9 @@ public class StackPanelTests
     public async Task Render_HorizontalStack_MixedSizing_CalculatesCorrectly()
     {
         // Arrange
-        var child1 = new Rectangle { BackgroundColor = Color.Red };
-        var child2 = new Rectangle { BackgroundColor = Color.Green };
-        var child3 = new Rectangle { BackgroundColor = Color.Blue };
+        var child1 = new global::TerminalNinja.Controls.Border { Background = Color.Red };
+        var child2 = new global::TerminalNinja.Controls.Border { Background = Color.Green };
+        var child3 = new global::TerminalNinja.Controls.Border { Background = Color.Blue };
 
         StackPanel.SetSizeMode(child1, ChildSizeMode.Fixed);
         StackPanel.SetFixedSize(child1, 10);
@@ -381,8 +381,8 @@ public class StackPanelTests
     public async Task CalculateChildSizes_AllFixed_ReturnsFixedSizes()
     {
         // Arrange
-        var child1 = new Rectangle();
-        var child2 = new Rectangle();
+        var child1 = new global::TerminalNinja.Controls.Border();
+        var child2 = new global::TerminalNinja.Controls.Border();
 
         StackPanel.SetSizeMode(child1, ChildSizeMode.Fixed);
         StackPanel.SetFixedSize(child1, 10);
@@ -408,9 +408,9 @@ public class StackPanelTests
     public async Task CalculateChildSizes_AllStretch_DividesEvenly()
     {
         // Arrange
-        var child1 = new Rectangle();
-        var child2 = new Rectangle();
-        var child3 = new Rectangle();
+        var child1 = new global::TerminalNinja.Controls.Border();
+        var child2 = new global::TerminalNinja.Controls.Border();
+        var child3 = new global::TerminalNinja.Controls.Border();
 
         StackPanel.SetSizeMode(child1, ChildSizeMode.Stretch);
         StackPanel.SetSizeMode(child2, ChildSizeMode.Stretch);
@@ -437,9 +437,9 @@ public class StackPanelTests
     public async Task CalculateChildSizes_MixedSizing_DistributesCorrectly()
     {
         // Arrange
-        var child1 = new Rectangle();
-        var child2 = new Rectangle();
-        var child3 = new Rectangle();
+        var child1 = new global::TerminalNinja.Controls.Border();
+        var child2 = new global::TerminalNinja.Controls.Border();
+        var child3 = new global::TerminalNinja.Controls.Border();
 
         StackPanel.SetSizeMode(child1, ChildSizeMode.Fixed);
         StackPanel.SetFixedSize(child1, 20);
@@ -467,8 +467,8 @@ public class StackPanelTests
     public async Task CalculateChildSizes_FixedExceedsAvailable_ReturnsFixedSizes()
     {
         // Arrange
-        var child1 = new Rectangle();
-        var child2 = new Rectangle();
+        var child1 = new global::TerminalNinja.Controls.Border();
+        var child2 = new global::TerminalNinja.Controls.Border();
 
         StackPanel.SetSizeMode(child1, ChildSizeMode.Fixed);
         StackPanel.SetFixedSize(child1, 60);
@@ -493,8 +493,8 @@ public class StackPanelTests
     public async Task CalculateChildSizes_StretchWithNoRemainingSpace_ReturnsZero()
     {
         // Arrange
-        var child1 = new Rectangle();
-        var child2 = new Rectangle();
+        var child1 = new global::TerminalNinja.Controls.Border();
+        var child2 = new global::TerminalNinja.Controls.Border();
 
         StackPanel.SetSizeMode(child1, ChildSizeMode.Fixed);
         StackPanel.SetFixedSize(child1, 100);
@@ -575,8 +575,8 @@ public class StackPanelTests
     public async Task GetPreferredSize_VerticalStack_SumsHeights()
     {
         // Arrange
-        var child1 = new Label { Text = "A" }; // Preferred size: 1x1
-        var child2 = new Label { Text = "BBB" }; // Preferred size: 3x1
+        var child1 = new TextBlock { Text = "A" }; // Preferred size: 1x1
+        var child2 = new TextBlock { Text = "BBB" }; // Preferred size: 3x1
 
         StackPanel.SetSizeMode(child1, ChildSizeMode.Auto);
         StackPanel.SetSizeMode(child2, ChildSizeMode.Auto);
@@ -599,8 +599,8 @@ public class StackPanelTests
     public async Task GetPreferredSize_HorizontalStack_SumsWidths()
     {
         // Arrange
-        var child1 = new Label { Text = "A" }; // Preferred size: 1x1
-        var child2 = new Label { Text = "BBB" }; // Preferred size: 3x1
+        var child1 = new TextBlock { Text = "A" }; // Preferred size: 1x1
+        var child2 = new TextBlock { Text = "BBB" }; // Preferred size: 3x1
 
         StackPanel.SetSizeMode(child1, ChildSizeMode.Auto);
         StackPanel.SetSizeMode(child2, ChildSizeMode.Auto);
@@ -623,8 +623,8 @@ public class StackPanelTests
     public async Task GetPreferredSize_FixedSizeChildren_UsesFixedSizes()
     {
         // Arrange
-        var child1 = new Rectangle();
-        var child2 = new Rectangle();
+        var child1 = new global::TerminalNinja.Controls.Border();
+        var child2 = new global::TerminalNinja.Controls.Border();
 
         StackPanel.SetSizeMode(child1, ChildSizeMode.Fixed);
         StackPanel.SetFixedSize(child1, 10);
@@ -640,7 +640,7 @@ public class StackPanelTests
         // Act
         var size = stackPanel.GetPreferredSize(parent);
 
-        // Assert - Height: 10+20=30, Width: 0 (Rectangle has no preferred width)
+        // Assert - Height: 10+20=30, Width: 0 (Border has no preferred width)
         await Assert.That(size.Height).IsEqualTo(30);
     }
 
@@ -670,8 +670,8 @@ public class StackPanelTests
     public async Task Render_ZeroSizeChild_Skipped()
     {
         // Arrange
-        var child1 = new Rectangle { BackgroundColor = Color.Red };
-        var child2 = new Rectangle { BackgroundColor = Color.Green };
+        var child1 = new global::TerminalNinja.Controls.Border { Background = Color.Red };
+        var child2 = new global::TerminalNinja.Controls.Border { Background = Color.Green };
 
         StackPanel.SetSizeMode(child1, ChildSizeMode.Fixed);
         StackPanel.SetFixedSize(child1, 0); // Zero size
@@ -696,7 +696,7 @@ public class StackPanelTests
     public async Task Render_SingleChild_FillsEntireStack()
     {
         // Arrange
-        var child = new Rectangle { BackgroundColor = Color.Red };
+        var child = new global::TerminalNinja.Controls.Border { Background = Color.Red };
         StackPanel.SetSizeMode(child, ChildSizeMode.Stretch);
 
         var stackPanel = new StackPanel { Orientation = Orientation.Vertical };

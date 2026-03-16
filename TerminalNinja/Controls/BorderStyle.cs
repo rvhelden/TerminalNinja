@@ -14,31 +14,31 @@ namespace TerminalNinja.Controls;
 [RuntimeNameProperty("Name")]
 public sealed class Border : FrameworkElement
 {
-    public static readonly DependencyProperty BackgroundColorProperty =
-        DependencyProperty.Register(nameof(BackgroundColor), typeof(Color), typeof(Border),
+    public static readonly DependencyProperty BackgroundProperty =
+        DependencyProperty.Register(nameof(Background), typeof(Color), typeof(Border),
             new FrameworkPropertyMetadata(default(Color), affectsRender: true));
     
     
-    public Color BackgroundColor
+    public Color Background
     {
-        get { return (Color)GetValue(BackgroundColorProperty)!; }
-        set { SetValue(BackgroundColorProperty, value); }
+        get { return (Color)GetValue(BackgroundProperty)!; }
+        set { SetValue(BackgroundProperty, value); }
     }
     
-    private Color _foregroundColor = Color.White;
+    private Color _foreground = Color.White;
     /// <summary>Gets or sets the foreground color (used for borders).</summary>
-    public Color ForegroundColor
+    public Color Foreground
     {
-        get => _foregroundColor;
-        set => SetProperty(ref _foregroundColor, value);
+        get => _foreground;
+        set => SetProperty(ref _foreground, value);
     }
     
-    private Styling.Border _borderStyle = Styling.Border.None;
+    private Styling.BorderStyle _borderStyleStyle = Styling.BorderStyle.None;
     /// <summary>Gets or sets the border style and color.</summary>
-    public Styling.Border BorderStyle
+    public Styling.BorderStyle BorderStyle
     {
-        get => _borderStyle;
-        set => SetProperty(ref _borderStyle, value);
+        get => _borderStyleStyle;
+        set => SetProperty(ref _borderStyleStyle, value);
     }
     
     private UIElement? _child;
@@ -61,11 +61,21 @@ public sealed class Border : FrameworkElement
         }
     }
 
+    private Size _width = Size.Stretch;
     /// <summary>Gets or sets the width (absolute, relative, or stretch).</summary>
-    public Size Width { get; set; } = Size.Stretch;
+    public Size Width
+    {
+        get => _width;
+        set => SetProperty(ref _width, value);
+    }
 
+    private Size _height = Size.Stretch;
     /// <summary>Gets or sets the height (absolute, relative, or stretch).</summary>
-    public Size Height { get; set; } = Size.Stretch;
+    public Size Height
+    {
+        get => _height;
+        set => SetProperty(ref _height, value);
+    }
     
     /// <inheritdoc />
     public override IEnumerable<(Visual Child, Rect ChildParentBounds)> GetChildrenWithBounds(Rect myBounds)
@@ -75,6 +85,13 @@ public sealed class Border : FrameworkElement
             ? new Rect(myBounds.X + 1, myBounds.Y + 1, myBounds.Width - 2, myBounds.Height - 2)
             : myBounds;
         yield return (Child, innerBounds);
+    }
+
+    /// <inheritdoc />
+    protected internal override IEnumerable<FrameworkElement> GetLogicalChildren()
+    {
+        if (Child is FrameworkElement fe)
+            yield return fe;
     }
 
     /// <summary>
@@ -97,7 +114,7 @@ public sealed class Border : FrameworkElement
         var w = Width.Resolve(parent.Width);
         var h = Height.Resolve(parent.Height);
         
-        return new Rect(parent.X, parent.Y, w, h);
+        return ApplyAlignment(parent, w, h);
     }
     
     /// <summary>
@@ -112,7 +129,7 @@ public sealed class Border : FrameworkElement
         if (clipped.Width <= 0 || clipped.Height <= 0) return;
         
         // Fill background
-        var bgCell = new Cell(' ', ForegroundColor, BackgroundColor);
+        var bgCell = new Cell(' ', Foreground, Background);
         buffer.FillRect(clipped, bgCell);
         
         // Draw border if present
@@ -137,17 +154,13 @@ public sealed class Border : FrameworkElement
     {
         var chars = BorderStyle.Chars;
         var color = BorderStyle.Color;
-        var bg = BackgroundColor;
+        var bg = Background;
         
         // Draw corners
-        buffer.SetCell(bounds.X, bounds.Y, 
-            new Cell(chars.TopLeft, color, bg));
-        buffer.SetCell(bounds.Right - 1, bounds.Y, 
-            new Cell(chars.TopRight, color, bg));
-        buffer.SetCell(bounds.X, bounds.Bottom - 1, 
-            new Cell(chars.BottomLeft, color, bg));
-        buffer.SetCell(bounds.Right - 1, bounds.Bottom - 1, 
-            new Cell(chars.BottomRight, color, bg));
+        buffer.SetCell(bounds.X, bounds.Y, new Cell(chars.TopLeft, color, bg));
+        buffer.SetCell(bounds.Right - 1, bounds.Y, new Cell(chars.TopRight, color, bg));
+        buffer.SetCell(bounds.X, bounds.Bottom - 1, new Cell(chars.BottomLeft, color, bg));
+        buffer.SetCell(bounds.Right - 1, bounds.Bottom - 1, new Cell(chars.BottomRight, color, bg));
         
         // Draw horizontal edges (top and bottom)
         var hCell = new Cell(chars.Horizontal, color, bg);

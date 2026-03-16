@@ -31,10 +31,10 @@ public class StyleTests
     public async Task Style_ConstructorWithTargetType_SetsTargetType()
     {
         // Arrange
-        var style = new Style(typeof(Label));
+        var style = new Style(typeof(TextBlock));
         
         // Assert
-        await Assert.That(style.TargetType).IsEqualTo(typeof(Label));
+        await Assert.That(style.TargetType).IsEqualTo(typeof(TextBlock));
     }
 
     [Test]
@@ -56,8 +56,8 @@ public class StyleTests
     public async Task Style_BasedOn_CanBeSet()
     {
         // Arrange
-        var baseStyle = new Style(typeof(Label));
-        var derivedStyle = new Style(typeof(Label));
+        var baseStyle = new Style(typeof(TextBlock));
+        var derivedStyle = new Style(typeof(TextBlock));
         
         // Act
         derivedStyle.BasedOn = baseStyle;
@@ -99,11 +99,11 @@ public class StyleTests
         var setter = new Setter();
         
         // Act
-        setter.Property = "BackgroundColor";
+        setter.Property = "Background";
         setter.Value = Color.Red;
         
         // Assert
-        await Assert.That(setter.Property).IsEqualTo("BackgroundColor");
+        await Assert.That(setter.Property).IsEqualTo("Background");
         await Assert.That(setter.Value).IsEqualTo(Color.Red);
     }
 
@@ -115,8 +115,8 @@ public class StyleTests
     public async Task ApplyStyle_SetterWithStringProperty_SetsValue()
     {
         // Arrange
-        var label = new Label();
-        var style = new Style(typeof(Label));
+        var label = new TextBlock();
+        var style = new Style(typeof(TextBlock));
         style.Setters.Add(new Setter("Text", "Styled Text"));
         
         // Act
@@ -130,40 +130,40 @@ public class StyleTests
     public async Task ApplyStyle_SetterWithColorProperty_SetsValue()
     {
         // Arrange
-        var rect = new Rectangle();
-        var style = new Style(typeof(Rectangle));
-        style.Setters.Add(new Setter("BackgroundColor", Color.Blue));
+        var rect = new global::TerminalNinja.Controls.Border();
+        var style = new Style(typeof(global::TerminalNinja.Controls.Border));
+        style.Setters.Add(new Setter("Background", Color.Blue));
         
         // Act
         rect.Style = style;
         
         // Assert
-        await Assert.That(rect.BackgroundColor).IsEqualTo(Color.Blue);
+        await Assert.That(rect.Background).IsEqualTo(Color.Blue);
     }
 
     [Test]
     public async Task ApplyStyle_MultipleSetters_SetsAllValues()
     {
         // Arrange
-        var label = new Label();
-        var style = new Style(typeof(Label));
+        var label = new TextBlock();
+        var style = new Style(typeof(TextBlock));
         style.Setters.Add(new Setter("Text", "Hello"));
-        style.Setters.Add(new Setter("ForegroundColor", Color.Cyan));
+        style.Setters.Add(new Setter("Foreground", Color.Cyan));
         
         // Act
         label.Style = style;
         
         // Assert
         await Assert.That(label.Text).IsEqualTo("Hello");
-        await Assert.That(label.ForegroundColor).IsEqualTo(Color.Cyan);
+        await Assert.That(label.Foreground).IsEqualTo(Color.Cyan);
     }
 
     [Test]
     public async Task ApplyStyle_SetterWithNullProperty_IsSkipped()
     {
         // Arrange
-        var label = new Label { Text = "Original" };
-        var style = new Style(typeof(Label));
+        var label = new TextBlock { Text = "Original" };
+        var style = new Style(typeof(TextBlock));
         style.Setters.Add(new Setter(null!, "Should Be Ignored"));
         style.Setters.Add(new Setter("", "Also Ignored"));
         
@@ -182,8 +182,8 @@ public class StyleTests
     public async Task ApplyStyle_WrongTargetType_ThrowsInvalidOperationException()
     {
         // Arrange
-        var label = new Label();
-        var style = new Style(typeof(Rectangle)); // Wrong type
+        var label = new TextBlock();
+        var style = new Style(typeof(global::TerminalNinja.Controls.Border)); // Wrong type
         
         // Act & Assert
         await Assert.That(() => label.Style = style)
@@ -194,7 +194,7 @@ public class StyleTests
     public async Task ApplyStyle_NullTargetType_DoesNotThrow()
     {
         // Arrange
-        var label = new Label();
+        var label = new TextBlock();
         var style = new Style(); // No target type
         style.Setters.Add(new Setter("Text", "No Target Type"));
         
@@ -209,16 +209,16 @@ public class StyleTests
     public async Task ApplyStyle_DerivedTypeMatchesTargetType_Works()
     {
         // Arrange
-        // Label extends FrameworkElement, which extends ControlBase
-        var label = new Label();
-        var style = new Style(typeof(ControlBase)); // Base type
-        style.Setters.Add(new Setter("Name", "StyledLabel"));
+        // TextBlock extends FrameworkElement, which extends ControlBase
+        var label = new TextBlock();
+        var style = new Style(typeof(FrameworkElement)); // Base type
+        style.Setters.Add(new Setter("Name", "StyledTextBlock"));
         
         // Act
         label.Style = style;
         
         // Assert
-        await Assert.That(label.Name).IsEqualTo("StyledLabel");
+        await Assert.That(label.Name).IsEqualTo("StyledTextBlock");
     }
 
     #endregion
@@ -229,8 +229,8 @@ public class StyleTests
     public async Task ApplyStyle_NonExistentProperty_ThrowsInvalidOperationException()
     {
         // Arrange
-        var label = new Label();
-        var style = new Style(typeof(Label));
+        var label = new TextBlock();
+        var style = new Style(typeof(TextBlock));
         style.Setters.Add(new Setter("NonExistentProperty", "value"));
         
         // Act & Assert
@@ -246,8 +246,8 @@ public class StyleTests
     public async Task Style_SetToNull_DoesNotThrow()
     {
         // Arrange
-        var label = new Label();
-        var style = new Style(typeof(Label));
+        var label = new TextBlock();
+        var style = new Style(typeof(TextBlock));
         style.Setters.Add(new Setter("Text", "Styled"));
         label.Style = style;
         
@@ -263,11 +263,11 @@ public class StyleTests
     public async Task Style_ChangeStyle_AppliesNewStyle()
     {
         // Arrange
-        var label = new Label();
-        var style1 = new Style(typeof(Label));
+        var label = new TextBlock();
+        var style1 = new Style(typeof(TextBlock));
         style1.Setters.Add(new Setter("Text", "Style1"));
         
-        var style2 = new Style(typeof(Label));
+        var style2 = new Style(typeof(TextBlock));
         style2.Setters.Add(new Setter("Text", "Style2"));
         
         // Act

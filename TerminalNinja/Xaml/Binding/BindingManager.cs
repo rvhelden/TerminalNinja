@@ -92,19 +92,16 @@ public sealed class BindingManager : IDisposable
     }
     
     /// <summary>
-    /// Recursively sets DataContext on a control tree using visual tree traversal.
+    /// Recursively sets DataContext on a control tree using the logical tree.
     /// </summary>
     public void SetDataContextRecursive(FrameworkElement root, object? dataContext)
     {
         SetDataContext(root, dataContext);
 
-        // Use visual tree traversal — works for all container types
-        var dummyBounds = new Primitives.Rect(0, 0, 1000, 1000);
-        var myBounds = root.CalculateBounds(dummyBounds);
-        foreach (var (child, _) in root.GetChildrenWithBounds(myBounds))
+        // Use logical tree traversal — returns all children regardless of layout/size
+        foreach (var child in root.GetLogicalChildren())
         {
-            if (child is FrameworkElement childFe)
-                SetDataContextRecursive(childFe, dataContext);
+            SetDataContextRecursive(child, dataContext);
         }
     }
     

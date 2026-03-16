@@ -27,13 +27,13 @@ public class PanelTests
 
         public override Size2D GetPreferredSize(Rect parentBounds) => new(parentBounds.Width, parentBounds.Height);
 
-        internal override void OnChildAdded(IControl child)
+        internal override void OnChildAdded(UIElement child)
         {
             base.OnChildAdded(child);
             Events.Add($"Added:{child.GetType().Name}");
         }
 
-        internal override void OnChildRemoved(IControl child)
+        internal override void OnChildRemoved(UIElement child)
         {
             base.OnChildRemoved(child);
             Events.Add($"Removed:{child.GetType().Name}");
@@ -85,7 +85,7 @@ public class PanelTests
     {
         // Arrange
         var panel = new TestPanel();
-        var child = new Rectangle();
+        var child = new global::TerminalNinja.Controls.Border();
 
         // Act
         panel.Children.Add(child);
@@ -100,7 +100,7 @@ public class PanelTests
     {
         // Arrange
         var panel = new TestPanel();
-        var child = new Rectangle();
+        var child = new global::TerminalNinja.Controls.Border();
 
         // Act
         panel.Children.Add(child);
@@ -114,14 +114,14 @@ public class PanelTests
     {
         // Arrange
         var panel = new TestPanel();
-        var child = new Rectangle();
+        var child = new global::TerminalNinja.Controls.Border();
 
         // Act
         panel.Children.Add(child);
 
         // Assert
         await Assert.That(panel.Events.Count).IsEqualTo(1);
-        await Assert.That(panel.Events[0]).IsEqualTo("Added:Rectangle");
+        await Assert.That(panel.Events[0]).IsEqualTo("Added:Border");
     }
 
     [Test]
@@ -140,8 +140,8 @@ public class PanelTests
     {
         // Arrange
         var panel = new TestPanel();
-        var child1 = new Rectangle();
-        var child2 = new Label { Text = "Test" };
+        var child1 = new global::TerminalNinja.Controls.Border();
+        var child2 = new TextBlock { Text = "Test" };
         var child3 = new Button();
 
         // Act
@@ -165,7 +165,7 @@ public class PanelTests
     {
         // Arrange
         var panel = new TestPanel();
-        var child = new Rectangle();
+        var child = new global::TerminalNinja.Controls.Border();
         panel.Children.Add(child);
 
         // Act
@@ -181,7 +181,7 @@ public class PanelTests
     {
         // Arrange
         var panel = new TestPanel();
-        var child = new Rectangle();
+        var child = new global::TerminalNinja.Controls.Border();
         panel.Children.Add(child);
 
         // Act
@@ -196,7 +196,7 @@ public class PanelTests
     {
         // Arrange
         var panel = new TestPanel();
-        var child = new Rectangle();
+        var child = new global::TerminalNinja.Controls.Border();
         panel.Children.Add(child);
         panel.Events.Clear(); // Clear the Add event
 
@@ -205,7 +205,7 @@ public class PanelTests
 
         // Assert
         await Assert.That(panel.Events.Count).IsEqualTo(1);
-        await Assert.That(panel.Events[0]).IsEqualTo("Removed:Rectangle");
+        await Assert.That(panel.Events[0]).IsEqualTo("Removed:Border");
     }
 
     [Test]
@@ -213,7 +213,7 @@ public class PanelTests
     {
         // Arrange
         var panel = new TestPanel();
-        var child = new Rectangle();
+        var child = new global::TerminalNinja.Controls.Border();
 
         // Act
         var result = panel.Children.Remove(child);
@@ -232,8 +232,8 @@ public class PanelTests
     {
         // Arrange
         var panel = new TestPanel();
-        var child1 = new Rectangle();
-        var child2 = new Label { Text = "Test" };
+        var child1 = new global::TerminalNinja.Controls.Border();
+        var child2 = new TextBlock { Text = "Test" };
         panel.Children.Add(child1);
         panel.Children.Add(child2);
 
@@ -250,7 +250,7 @@ public class PanelTests
     {
         // Arrange
         var panel = new TestPanel();
-        var child = new Rectangle();
+        var child = new global::TerminalNinja.Controls.Border();
         panel.Children.Add(child);
 
         // Act
@@ -265,7 +265,7 @@ public class PanelTests
     {
         // Arrange
         var panel = new TestPanel();
-        var child = new Rectangle();
+        var child = new global::TerminalNinja.Controls.Border();
         panel.Children.Add(child);
         panel.Events.Clear();
 
@@ -274,7 +274,7 @@ public class PanelTests
 
         // Assert
         await Assert.That(panel.Events.Count).IsEqualTo(1);
-        await Assert.That(panel.Events[0]).IsEqualTo("Removed:Rectangle");
+        await Assert.That(panel.Events[0]).IsEqualTo("Removed:Border");
     }
 
     #endregion
@@ -286,8 +286,8 @@ public class PanelTests
     {
         // Arrange
         var panel = new TestPanel();
-        var child1 = new Rectangle();
-        var child2 = new Label { Text = "Test" };
+        var child1 = new global::TerminalNinja.Controls.Border();
+        var child2 = new TextBlock { Text = "Test" };
         var child3 = new Button();
         panel.Children.Add(child1);
         panel.Children.Add(child3);
@@ -307,7 +307,7 @@ public class PanelTests
     {
         // Arrange
         var panel = new TestPanel();
-        var child = new Rectangle();
+        var child = new global::TerminalNinja.Controls.Border();
 
         // Act
         panel.Children.Insert(0, child);
@@ -321,14 +321,14 @@ public class PanelTests
     {
         // Arrange
         var panel = new TestPanel();
-        var child = new Rectangle();
+        var child = new global::TerminalNinja.Controls.Border();
 
         // Act
         panel.Children.Insert(0, child);
 
         // Assert
         await Assert.That(panel.Events.Count).IsEqualTo(1);
-        await Assert.That(panel.Events[0]).IsEqualTo("Added:Rectangle");
+        await Assert.That(panel.Events[0]).IsEqualTo("Added:Border");
     }
 
     [Test]
@@ -351,8 +351,8 @@ public class PanelTests
     {
         // Arrange
         var panel = new TestPanel();
-        var child1 = new Rectangle();
-        var child2 = new Label { Text = "Test" };
+        var child1 = new global::TerminalNinja.Controls.Border();
+        var child2 = new TextBlock { Text = "Test" };
         panel.Children.Add(child1);
         panel.Children.Add(child2);
 
@@ -368,8 +368,8 @@ public class PanelTests
     {
         // Arrange
         var panel = new TestPanel();
-        var child1 = new Rectangle();
-        var child2 = new Label { Text = "Test" };
+        var child1 = new global::TerminalNinja.Controls.Border();
+        var child2 = new TextBlock { Text = "Test" };
         panel.Children.Add(child1);
         panel.Children.Add(child2);
 
@@ -386,8 +386,8 @@ public class PanelTests
     {
         // Arrange
         var panel = new TestPanel();
-        var child1 = new Rectangle();
-        var child2 = new Label { Text = "Test" };
+        var child1 = new global::TerminalNinja.Controls.Border();
+        var child2 = new TextBlock { Text = "Test" };
         panel.Children.Add(child1);
         panel.Children.Add(child2);
         panel.Events.Clear();
@@ -397,8 +397,8 @@ public class PanelTests
 
         // Assert
         await Assert.That(panel.Events.Count).IsEqualTo(2);
-        await Assert.That(panel.Events[0]).IsEqualTo("Removed:Rectangle");
-        await Assert.That(panel.Events[1]).IsEqualTo("Removed:Label");
+        await Assert.That(panel.Events[0]).IsEqualTo("Removed:Border");
+        await Assert.That(panel.Events[1]).IsEqualTo("Removed:TextBlock");
     }
 
     #endregion
@@ -410,8 +410,8 @@ public class PanelTests
     {
         // Arrange
         var panel = new TestPanel();
-        var child1 = new Rectangle();
-        var child2 = new Label { Text = "Test" };
+        var child1 = new global::TerminalNinja.Controls.Border();
+        var child2 = new TextBlock { Text = "Test" };
         panel.Children.Add(child1);
         panel.Children.Add(child2);
 
@@ -427,8 +427,8 @@ public class PanelTests
     {
         // Arrange
         var panel = new TestPanel();
-        var oldChild = new Rectangle();
-        var newChild = new Label { Text = "Test" };
+        var oldChild = new global::TerminalNinja.Controls.Border();
+        var newChild = new TextBlock { Text = "Test" };
         panel.Children.Add(oldChild);
 
         // Act
@@ -444,8 +444,8 @@ public class PanelTests
     {
         // Arrange
         var panel = new TestPanel();
-        var oldChild = new Rectangle();
-        var newChild = new Label { Text = "Test" };
+        var oldChild = new global::TerminalNinja.Controls.Border();
+        var newChild = new TextBlock { Text = "Test" };
         panel.Children.Add(oldChild);
 
         // Act
@@ -461,8 +461,8 @@ public class PanelTests
     {
         // Arrange
         var panel = new TestPanel();
-        var oldChild = new Rectangle();
-        var newChild = new Label { Text = "Test" };
+        var oldChild = new global::TerminalNinja.Controls.Border();
+        var newChild = new TextBlock { Text = "Test" };
         panel.Children.Add(oldChild);
         panel.Events.Clear();
 
@@ -471,8 +471,8 @@ public class PanelTests
 
         // Assert
         await Assert.That(panel.Events.Count).IsEqualTo(2);
-        await Assert.That(panel.Events[0]).IsEqualTo("Removed:Rectangle");
-        await Assert.That(panel.Events[1]).IsEqualTo("Added:Label");
+        await Assert.That(panel.Events[0]).IsEqualTo("Removed:Border");
+        await Assert.That(panel.Events[1]).IsEqualTo("Added:TextBlock");
     }
 
     #endregion
@@ -484,7 +484,7 @@ public class PanelTests
     {
         // Arrange
         var panel = new TestPanel();
-        var child = new Rectangle();
+        var child = new global::TerminalNinja.Controls.Border();
         panel.Children.Add(child);
 
         // Act
@@ -499,7 +499,7 @@ public class PanelTests
     {
         // Arrange
         var panel = new TestPanel();
-        var child = new Rectangle();
+        var child = new global::TerminalNinja.Controls.Border();
 
         // Act
         var result = panel.Children.Contains(child);
@@ -513,8 +513,8 @@ public class PanelTests
     {
         // Arrange
         var panel = new TestPanel();
-        var child1 = new Rectangle();
-        var child2 = new Label { Text = "Test" };
+        var child1 = new global::TerminalNinja.Controls.Border();
+        var child2 = new TextBlock { Text = "Test" };
         panel.Children.Add(child1);
         panel.Children.Add(child2);
 
@@ -530,7 +530,7 @@ public class PanelTests
     {
         // Arrange
         var panel = new TestPanel();
-        var child = new Rectangle();
+        var child = new global::TerminalNinja.Controls.Border();
 
         // Act
         var index = panel.Children.IndexOf(child);
@@ -544,11 +544,11 @@ public class PanelTests
     {
         // Arrange
         var panel = new TestPanel();
-        var child1 = new Rectangle();
-        var child2 = new Label { Text = "Test" };
+        var child1 = new global::TerminalNinja.Controls.Border();
+        var child2 = new TextBlock { Text = "Test" };
         panel.Children.Add(child1);
         panel.Children.Add(child2);
-        var array = new IControl[2];
+        var array = new UIElement[2];
 
         // Act
         panel.Children.CopyTo(array, 0);
@@ -573,13 +573,13 @@ public class PanelTests
     {
         // Arrange
         var panel = new TestPanel();
-        var child1 = new Rectangle();
-        var child2 = new Label { Text = "Test" };
+        var child1 = new global::TerminalNinja.Controls.Border();
+        var child2 = new TextBlock { Text = "Test" };
         panel.Children.Add(child1);
         panel.Children.Add(child2);
 
         // Act
-        var list = new List<IControl>();
+        var list = new List<UIElement>();
         foreach (var child in panel.Children)
         {
             list.Add(child);

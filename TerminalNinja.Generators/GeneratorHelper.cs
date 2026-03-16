@@ -49,14 +49,14 @@ internal static class GeneratorHelper
     /// <summary>
     /// Interface and base class names the generator looks for.
     /// </summary>
-    private static readonly string[] TargetInterfaceNames = { "IControl" };
-    private static readonly string[] TargetBaseClassNames = { "ViewModelBase" };
+    private static readonly string[] TargetInterfaceNames = { };
+    private static readonly string[] TargetBaseClassNames = { "Visual", "UIElement", "FrameworkElement", "Control", "ViewModelBase" };
     private const string NotifyPropertyChangedName = "INotifyPropertyChanged";
 
     /// <summary>
     /// Checks if a type should have property accessors generated for it.
     /// A type qualifies if it:
-    /// - Implements IControl (directly or via base class)
+    /// - Inherits from one of the control base classes
     /// - Inherits from ViewModelBase
     /// - Implements INotifyPropertyChanged
     /// </summary>
@@ -75,11 +75,7 @@ internal static class GeneratorHelper
         if (!IsAccessibleFromGeneratedCode(type))
             return false;
 
-        // Check if it implements IControl
-        if (ImplementsInterface(type, TargetInterfaceNames))
-            return true;
-
-        // Check if it inherits from ViewModelBase
+        // Check if it inherits from target base classes
         if (InheritsFrom(type, TargetBaseClassNames))
             return true;
 

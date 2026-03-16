@@ -3,22 +3,22 @@ namespace TerminalNinja.Tests.Xaml;
 public class XamlLoadingTests
 {
     [Test]
-    public async Task Load_SimpleLabel_ParsesSuccessfully()
+    public async Task Load_SimpleTextBlock_ParsesSuccessfully()
     {
         // Arrange
         var xaml = """
-            <Label xmlns="http://schemas.terminalninja.dev/xaml"
+            <TextBlock xmlns="http://schemas.terminalninja.dev/xaml"
                    Text="Hello World"
-                   ForegroundColor="Cyan" />
+                   Foreground="Cyan" />
             """;
         
         // Act
-        var label = TerminalXaml.Load<Label>(xaml);
+        var label = TerminalXaml.Load<TextBlock>(xaml);
         
         // Assert
         await Assert.That(label).IsNotNull();
         await Assert.That(label.Text).IsEqualTo("Hello World");
-        await Assert.That(label.ForegroundColor).IsEqualTo(Color.Cyan);
+        await Assert.That(label.Foreground).IsEqualTo(Color.Cyan);
     }
     
     [Test]
@@ -30,8 +30,8 @@ public class XamlLoadingTests
                     Text="Click Me"
                     Width="10"
                     Height="3"
-                    ForegroundColor="White"
-                    BackgroundColor="#1E1E1E" />
+                    Foreground="White"
+                    Background="#1E1E1E" />
             """;
         
         // Act
@@ -42,30 +42,30 @@ public class XamlLoadingTests
         await Assert.That(button.Text).IsEqualTo("Click Me");
         await Assert.That(button.Width).IsEqualTo(Size.Absolute(10));
         await Assert.That(button.Height).IsEqualTo(Size.Absolute(3));
-        await Assert.That(button.ForegroundColor).IsEqualTo(Color.White);
-        await Assert.That(button.BackgroundColor.R).IsEqualTo((byte)30);
-        await Assert.That(button.BackgroundColor.G).IsEqualTo((byte)30);
-        await Assert.That(button.BackgroundColor.B).IsEqualTo((byte)30);
+        await Assert.That(button.Foreground).IsEqualTo(Color.White);
+        await Assert.That(button.Background.R).IsEqualTo((byte)30);
+        await Assert.That(button.Background.G).IsEqualTo((byte)30);
+        await Assert.That(button.Background.B).IsEqualTo((byte)30);
     }
     
     [Test]
-    public async Task Load_RectangleWithChild_ParsesSuccessfully()
+    public async Task Load_BorderWithChild_ParsesSuccessfully()
     {
         // Arrange
         var xaml = """
-            <Rectangle xmlns="http://schemas.terminalninja.dev/xaml"
+            <Border xmlns="http://schemas.terminalninja.dev/xaml"
                        Width="50"
                        Height="10"
-                       Border="Double"
-                       BackgroundColor="Black">
-                <Rectangle.Child>
-                    <Label Text="Inside Rectangle" ForegroundColor="Green" />
-                </Rectangle.Child>
-            </Rectangle>
+                       BorderStyle="Double"
+                       Background="Black">
+                <Border.Child>
+                    <TextBlock Text="Inside Border" Foreground="Green" />
+                </Border.Child>
+            </Border>
             """;
         
         // Act
-        var rectangle = TerminalXaml.Load<Rectangle>(xaml);
+        var rectangle = TerminalXaml.Load<global::TerminalNinja.Controls.Border>(xaml);
         
         // Assert
         await Assert.That(rectangle).IsNotNull();
@@ -73,10 +73,10 @@ public class XamlLoadingTests
         await Assert.That(rectangle.Height).IsEqualTo(Size.Absolute(10));
         await Assert.That(rectangle.Child).IsNotNull();
         
-        var label = rectangle.Child as Label;
+        var label = rectangle.Child as TextBlock;
         await Assert.That(label).IsNotNull();
-        await Assert.That(label!.Text).IsEqualTo("Inside Rectangle");
-        await Assert.That(label.ForegroundColor).IsEqualTo(Color.Green);
+        await Assert.That(label!.Text).IsEqualTo("Inside Border");
+        await Assert.That(label.Foreground).IsEqualTo(Color.Green);
     }
     
     [Test]
@@ -84,20 +84,20 @@ public class XamlLoadingTests
     {
         // Arrange
         var xaml = """
-            <Rectangle xmlns="http://schemas.terminalninja.dev/xaml"
+            <Border xmlns="http://schemas.terminalninja.dev/xaml"
                        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
                        xmlns:e="http://schemas.terminalninja.dev/xaml">
-                <e:Label x:Name="titleLabel" Text="Title" ForegroundColor="Cyan" />
-            </Rectangle>
+                <e:TextBlock x:Name="titleTextBlock" Text="Title" Foreground="Cyan" />
+            </Border>
             """;
         
         // Act
-        var root = TerminalXaml.Load<Rectangle>(xaml);
-        var label = root.FindByName<Label>("titleLabel");
+        var root = TerminalXaml.Load<global::TerminalNinja.Controls.Border>(xaml);
+        var label = root.FindByName<TextBlock>("titleTextBlock");
         
         // Assert
         await Assert.That(label).IsNotNull();
         await Assert.That(label!.Text).IsEqualTo("Title");
-        await Assert.That(label.ForegroundColor).IsEqualTo(Color.Cyan);
+        await Assert.That(label.Foreground).IsEqualTo(Color.Cyan);
     }
 }

@@ -6,7 +6,7 @@ using TerminalNinja.Styling;
 namespace TerminalNinja.Xaml.TypeConverters;
 
 /// <summary>
-/// Converts string values to Border struct for XAML parsing.
+/// Converts string values to BorderStyle struct for XAML parsing.
 /// Supports: "None", "Single", "Double", "Rounded", "Ascii".
 /// Note: Border color should be set via BorderColor attribute separately.
 /// </summary>
@@ -28,11 +28,11 @@ public class BorderTypeConverter : TypeConverter
             
             return str.ToLowerInvariant() switch
             {
-                "none" => Border.None,
-                "single" => Border.Single(color),
-                "double" => Border.Double(color),
-                "rounded" => Border.Rounded(color),
-                "ascii" => Border.Ascii(color),
+                "none" => BorderStyle.None,
+                "single" => BorderStyle.Single(color),
+                "double" => BorderStyle.Double(color),
+                "rounded" => BorderStyle.Rounded(color),
+                "ascii" => BorderStyle.Ascii(color),
                 _ => throw new FormatException($"Invalid Border value: {str}. Expected: None, Single, Double, Rounded, or Ascii")
             };
         }
@@ -47,9 +47,9 @@ public class BorderTypeConverter : TypeConverter
     
     public override object? ConvertTo(ITypeDescriptorContext? context, CultureInfo? culture, object? value, Type destinationType)
     {
-        if (destinationType == typeof(string) && value is Border border)
+        if (destinationType == typeof(string) && value is BorderStyle border)
         {
-            if (border == Border.None) return "None";
+            if (border == BorderStyle.None) return "None";
             
             // Try to identify the border type by comparing characters
             if (border.Chars == BorderChars.Single) return "Single";

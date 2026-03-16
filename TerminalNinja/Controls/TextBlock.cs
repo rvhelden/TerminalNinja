@@ -20,20 +20,20 @@ public sealed class TextBlock : FrameworkElement
         set => SetProperty(ref _text, value);
     }
     
-    private Color _foregroundColor = Color.White;
+    private Color _foreground = Color.White;
     /// <summary>Gets or sets the foreground (text) color.</summary>
-    public Color ForegroundColor
+    public Color Foreground
     {
-        get => _foregroundColor;
-        set => SetProperty(ref _foregroundColor, value);
+        get => _foreground;
+        set => SetProperty(ref _foreground, value);
     }
     
-    private Color _backgroundColor = Color.Transparent;
+    private Color _background = Color.Transparent;
     /// <summary>Gets or sets the background color. Defaults to Transparent so the text block does not paint over its parent's background.</summary>
-    public Color BackgroundColor
+    public Color Background
     {
-        get => _backgroundColor;
-        set => SetProperty(ref _backgroundColor, value);
+        get => _background;
+        set => SetProperty(ref _background, value);
     }
     
     /// <summary>Gets or sets the width (absolute, relative, or stretch).</summary>
@@ -78,7 +78,7 @@ public sealed class TextBlock : FrameworkElement
         var w = Width.Resolve(parent.Width);
         var h = Height.Resolve(parent.Height);
         
-        return new Rect(parent.X, parent.Y, w, h);
+        return ApplyAlignment(parent, w, h);
     }
     
     /// <summary>
@@ -93,9 +93,9 @@ public sealed class TextBlock : FrameworkElement
         if (clipped.Width <= 0 || clipped.Height <= 0) return;
         
         // Fill background (skip when transparent — let parent's background show through)
-        if (!BackgroundColor.IsTransparent)
+        if (!Background.IsTransparent)
         {
-            var bgCell = new Cell(' ', ForegroundColor, BackgroundColor);
+            var bgCell = new Cell(' ', Foreground, Background);
             buffer.FillRect(clipped, bgCell);
         }
         
@@ -184,7 +184,7 @@ public sealed class TextBlock : FrameworkElement
                 // Skip characters outside buffer
                 if (charX < 0 || charX >= buffer.Width) continue;
                 
-                buffer.SetChar(charX, lineY, line[j], ForegroundColor, BackgroundColor);
+                buffer.SetChar(charX, lineY, line[j], Foreground, Background);
             }
         }
     }

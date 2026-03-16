@@ -1,7 +1,7 @@
 namespace TerminalNinja.Tests.Unit.Controls;
 
 /// <summary>
-/// Comprehensive tests for Label control covering:
+/// Comprehensive tests for TextBlock control covering:
 /// - Basic text rendering
 /// - Horizontal text alignment (Start, Center, End)
 /// - Vertical text alignment (Start, Center, End)
@@ -12,7 +12,7 @@ namespace TerminalNinja.Tests.Unit.Controls;
 /// - Empty text handling
 /// - Edge cases
 /// </summary>
-public class LabelTests
+public class TextBlockTests
 {
     private CellBuffer _buffer = null!;
     private const int BufferWidth = 80;
@@ -31,7 +31,7 @@ public class LabelTests
     public async Task Render_SimpleText_DisplaysCorrectly()
     {
         // Arrange
-        var label = new Label 
+        var label = new TextBlock 
         { 
             Text = "Hello",
             Width = Size.Absolute(10),
@@ -54,12 +54,12 @@ public class LabelTests
     public async Task Render_EmptyText_FillsBackground()
     {
         // Arrange
-        var label = new Label 
+        var label = new TextBlock 
         { 
             Text = "",
             Width = Size.Absolute(10),
             Height = Size.Absolute(3),
-            BackgroundColor = Color.Red
+            Background = Color.Red
         };
         var bounds = new Rect(0, 0, 80, 24);
 
@@ -75,13 +75,13 @@ public class LabelTests
     public async Task Render_WithColors_AppliesCorrectly()
     {
         // Arrange
-        var label = new Label 
+        var label = new TextBlock 
         { 
             Text = "Test",
             Width = Size.Absolute(10),
             Height = Size.Absolute(3),
-            ForegroundColor = Color.Cyan,
-            BackgroundColor = Color.Magenta
+            Foreground = Color.Cyan,
+            Background = Color.Magenta
         };
         var bounds = new Rect(0, 0, 80, 24);
 
@@ -101,7 +101,7 @@ public class LabelTests
     public async Task Render_HorizontalAlignmentStart_AlignsLeft()
     {
         // Arrange
-        var label = new Label 
+        var label = new TextBlock 
         { 
             Text = "Hi",
             Width = Size.Absolute(10),
@@ -123,7 +123,7 @@ public class LabelTests
     public async Task Render_HorizontalAlignmentCenter_CentersText()
     {
         // Arrange
-        var label = new Label 
+        var label = new TextBlock 
         { 
             Text = "Hi",
             Width = Size.Absolute(10),
@@ -144,7 +144,7 @@ public class LabelTests
     public async Task Render_HorizontalAlignmentEnd_AlignsRight()
     {
         // Arrange
-        var label = new Label 
+        var label = new TextBlock 
         { 
             Text = "Hi",
             Width = Size.Absolute(10),
@@ -169,7 +169,7 @@ public class LabelTests
     public async Task Render_VerticalAlignmentStart_AlignsTop()
     {
         // Arrange
-        var label = new Label 
+        var label = new TextBlock 
         { 
             Text = "Test",
             Width = Size.Absolute(10),
@@ -189,7 +189,7 @@ public class LabelTests
     public async Task Render_VerticalAlignmentCenter_CentersText()
     {
         // Arrange
-        var label = new Label 
+        var label = new TextBlock 
         { 
             Text = "Test",
             Width = Size.Absolute(10),
@@ -209,7 +209,7 @@ public class LabelTests
     public async Task Render_VerticalAlignmentEnd_AlignsBottom()
     {
         // Arrange
-        var label = new Label 
+        var label = new TextBlock 
         { 
             Text = "Test",
             Width = Size.Absolute(10),
@@ -233,7 +233,7 @@ public class LabelTests
     public async Task Render_NoWrap_ClipsLongText()
     {
         // Arrange
-        var label = new Label 
+        var label = new TextBlock 
         { 
             Text = "This is a very long text that should not wrap",
             Width = Size.Absolute(10),
@@ -255,7 +255,7 @@ public class LabelTests
     public async Task Render_Wrap_WrapsToMultipleLines()
     {
         // Arrange
-        var label = new Label 
+        var label = new TextBlock 
         { 
             Text = "Hello world test",
             Width = Size.Absolute(10),
@@ -295,7 +295,7 @@ public class LabelTests
     public async Task Render_TruncationNone_ClipsAtBoundary()
     {
         // Arrange
-        var label = new Label 
+        var label = new TextBlock 
         { 
             Text = "VeryLongWord",
             Width = Size.Absolute(8),
@@ -325,7 +325,7 @@ public class LabelTests
     public async Task Render_TruncationEllipsis_AddsEllipsis()
     {
         // Arrange
-        var label = new Label 
+        var label = new TextBlock 
         { 
             Text = "VeryLongWord",
             Width = Size.Absolute(8),
@@ -359,7 +359,7 @@ public class LabelTests
     public async Task Render_WithPadding_OffsetsText()
     {
         // Arrange
-        var label = new Label 
+        var label = new TextBlock 
         { 
             Text = "Hi",
             Width = Size.Absolute(10),
@@ -381,7 +381,7 @@ public class LabelTests
     public async Task GetPreferredSize_WithText_ReturnsTextLengthPlusPadding()
     {
         // Arrange
-        var label = new Label 
+        var label = new TextBlock 
         { 
             Text = "Hello",
             Padding = new Thickness(2, 1, 2, 1)
@@ -400,7 +400,7 @@ public class LabelTests
     public async Task GetPreferredSize_EmptyText_ReturnsPaddingOnly()
     {
         // Arrange
-        var label = new Label 
+        var label = new TextBlock 
         { 
             Text = "",
             Padding = new Thickness(3, 2, 3, 2)
@@ -423,7 +423,7 @@ public class LabelTests
     public async Task Render_NullText_DoesNotCrash()
     {
         // Arrange
-        var label = new Label 
+        var label = new TextBlock 
         { 
             Text = null!,
             Width = Size.Absolute(10),
@@ -440,7 +440,7 @@ public class LabelTests
     public async Task Render_ZeroWidthBounds_DoesNotRender()
     {
         // Arrange
-        var label = new Label 
+        var label = new TextBlock 
         { 
             Text = "Test",
             Width = Size.Absolute(0),
@@ -459,7 +459,7 @@ public class LabelTests
     public async Task Render_PaddingLargerThanBounds_DoesNotRenderText()
     {
         // Arrange
-        var label = new Label 
+        var label = new TextBlock 
         { 
             Text = "Test",
             Width = Size.Absolute(5),
@@ -479,7 +479,7 @@ public class LabelTests
     public async Task CalculateBounds_WithAlignment_PositionsCorrectly()
     {
         // Arrange
-        var label = new Label 
+        var label = new TextBlock 
         { 
             Text = "Test",
             Width = Size.Absolute(10),

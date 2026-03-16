@@ -30,7 +30,7 @@ public class StaticResourceTests
         var window = new Window();
         window.Resources.Add("TestColor", Color.Blue);
         
-        var label = new Label();
+        var label = new TextBlock();
         window.Content = label; // This sets label.Parent = window
         
         // Act
@@ -48,7 +48,7 @@ public class StaticResourceTests
         window.Resources.Add("RootColor", Color.Green);
         
         var stackPanel = new StackPanel { Orientation = Orientation.Vertical };
-        var label = new Label();
+        var label = new TextBlock();
         stackPanel.Children.Add(label);
         window.Content = stackPanel;
         
@@ -143,14 +143,14 @@ public class StaticResourceTests
     public async Task TryFindResource_StyleResource_ReturnsStyle()
     {
         // Arrange
-        var style = new Style(typeof(Label));
+        var style = new Style(typeof(TextBlock));
         style.Setters.Add(new Setter("Text", "Styled"));
         
         var window = new Window();
-        window.Resources.Add("LabelStyle", style);
+        window.Resources.Add("TextBlockStyle", style);
         
         // Act
-        var result = window.TryFindResource("LabelStyle");
+        var result = window.TryFindResource("TextBlockStyle");
         
         // Assert
         await Assert.That(result).IsEqualTo(style);
