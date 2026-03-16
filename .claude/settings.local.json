@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(cd e:/TerminalNinja && dotnet build 2>&1)",
+      "Bash(cd e:/TerminalNinja && dotnet test 2>&1)"
+    ]
+  }
+}

@@ -1,4 +1,3 @@
-using System.Windows;
 using Portable.Xaml.Markup;
 using TerminalNinja.Buffers;
 using TerminalNinja.Primitives;
@@ -27,12 +26,14 @@ public sealed class Rectangle : FrameworkElement
     //     set => SetProperty(ref _backgroundColor, value);
     // }
     
-    public static readonly DependencyProperty BackgroundColorProperty = DependencyProperty.Register(nameof(BackgroundColor), typeof(Color), typeof(Rectangle), new PropertyMetadata(default(Color)));
+    public static readonly DependencyProperty BackgroundColorProperty =
+        DependencyProperty.Register(nameof(BackgroundColor), typeof(Color), typeof(Rectangle),
+            new FrameworkPropertyMetadata(default(Color), affectsRender: true));
     
     
     public Color BackgroundColor
     {
-        get { return (Color)GetValue(BackgroundColorProperty); }
+        get { return (Color)GetValue(BackgroundColorProperty)!; }
         set { SetValue(BackgroundColorProperty, value); }
     }
     
