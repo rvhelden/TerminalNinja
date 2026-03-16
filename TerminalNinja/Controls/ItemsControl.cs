@@ -13,7 +13,7 @@ namespace TerminalNinja.Controls;
 /// </summary>
 [ContentProperty("Items")]
 [SWM.ContentProperty("Items")]
-public class ItemsControl : FrameworkElement
+public class ItemsControl : FrameworkElement, IChildContainer
 {
     private readonly List<object> _items = new();
     private IEnumerable? _itemsSource;
@@ -92,6 +92,12 @@ public class ItemsControl : FrameworkElement
             OnPropertyChanged();
             RefreshItems();
         }
+    }
+
+    /// <inheritdoc />
+    public IEnumerable<(IControl Child, Rect ChildParentBounds)> GetChildrenWithBounds(Rect myBounds)
+    {
+        yield return (ItemsPanel, myBounds);
     }
 
     /// <summary>

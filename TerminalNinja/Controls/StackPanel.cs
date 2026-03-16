@@ -14,7 +14,7 @@ namespace TerminalNinja.Controls;
 [SWM.ContentProperty("Children")]
 [RuntimeNameProperty("Name")]
 [SWM.RuntimeNameProperty("Name")]
-public class StackPanel : Panel
+public class StackPanel : Panel, IChildContainer
 {
     /// <summary>
     /// Gets or sets the orientation (Horizontal or Vertical) of the stack.
@@ -170,6 +170,21 @@ public class StackPanel : Panel
         }
     }
     
+    /// <inheritdoc />
+    public IEnumerable<(IControl Child, Rect ChildParentBounds)> GetChildrenWithBounds(Rect myBounds)
+    {
+        var childSizes = CalculateChildSizes(myBounds);
+        var position = Orientation == Orientation.Horizontal ? myBounds.X : myBounds.Y;
+
+        for (var i = 0; i < Children.Count; i++)
+        {
+            var size = childSizes[i];
+            if (size <= 0) continue;
+            yield return (Children[i], CreateChildBounds(myBounds, position, size));
+            position += size;
+        }
+    }
+
     #region Attached Properties using AttachablePropertyServices
     
     private static readonly AttachableMemberIdentifier SizeModeId = new(typeof(StackPanel), "SizeMode");

@@ -4,6 +4,7 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:sample="clr-namespace:Sample"
+        xmlns:local="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         mc:Ignorable="d"
         d:DataContext="{d:DesignInstance sample:DemoViewModel}"
         Title="TerminalNinja Demo">
@@ -23,7 +24,7 @@
         
         <!-- Header with data binding -->
         <Rectangle StackPanel.SizeMode="Fixed" StackPanel.FixedSize="5"
-                   BackgroundColor="{StaticResource HighlightColor}"
+                   BackgroundColor="{Binding Path=(local:Color.Green)}"
                    ForegroundColor="{StaticResource AccentColor}"
                    Border="Double">
             <Label x:Name="headerLabel"
@@ -52,7 +53,7 @@
                         HoverColor="{StaticResource HighlightColor}"
                         ForegroundColor="White"
                         BackgroundColor="{StaticResource ButtonBackground}"
-                        Command="{Binding Path=NewCommand}" />
+                        Command="{Binding NewCommand}" />
                 
                 <Button x:Name="openButton"
                         StackPanel.SizeMode="Auto"

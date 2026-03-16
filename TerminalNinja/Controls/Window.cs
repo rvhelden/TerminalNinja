@@ -13,7 +13,7 @@ namespace TerminalNinja.Controls;
 [SWM.ContentProperty("Content")]
 [RuntimeNameProperty("Name")]
 [SWM.RuntimeNameProperty("Name")]
-public class Window : FrameworkElement
+public class Window : FrameworkElement, IChildContainer
 {
     private string _title = "";
     private IControl? _content;
@@ -94,6 +94,13 @@ public class Window : FrameworkElement
         Content?.Render(buffer, bounds);
     }
     
+    /// <inheritdoc />
+    public IEnumerable<(IControl Child, Rect ChildParentBounds)> GetChildrenWithBounds(Rect myBounds)
+    {
+        if (Content != null)
+            yield return (Content, myBounds);
+    }
+
     /// <summary>
     /// Shows this window by setting it as the root control of the current Application.
     /// </summary>

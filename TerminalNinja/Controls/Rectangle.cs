@@ -15,7 +15,7 @@ namespace TerminalNinja.Controls;
 [SWM.ContentProperty("Child")]
 [RuntimeNameProperty("Name")]
 [SWM.RuntimeNameProperty("Name")]
-public sealed class Rectangle : FrameworkElement
+public sealed class Rectangle : FrameworkElement, IChildContainer
 {
     // Bindable properties (with change notification)
     // private Color _backgroundColor = Color.Black;
@@ -121,6 +121,16 @@ public sealed class Rectangle : FrameworkElement
         set => SetProperty(ref _height, value);
     }
     
+    /// <inheritdoc />
+    public IEnumerable<(IControl Child, Rect ChildParentBounds)> GetChildrenWithBounds(Rect myBounds)
+    {
+        if (Child == null) yield break;
+        var innerBounds = Border.HasBorder && myBounds.Width >= 2 && myBounds.Height >= 2
+            ? new Rect(myBounds.X + 1, myBounds.Y + 1, myBounds.Width - 2, myBounds.Height - 2)
+            : myBounds;
+        yield return (Child, innerBounds);
+    }
+
     /// <summary>
     /// Returns the preferred size of this rectangle within the given parent bounds.
     /// Uses resolved Width/Height if Absolute, otherwise returns the parent size.

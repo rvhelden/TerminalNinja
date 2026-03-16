@@ -215,54 +215,23 @@ public sealed class FocusManager
     
     /// <summary>
     /// Recursively collects all focusable elements from the control tree.
+    /// Containers participate by implementing <see cref="IChildContainer"/>.
     /// </summary>
     private List<(IFocusable Control, Rect Bounds)> CollectFocusableControls(IControl control, Rect parentBounds)
     {
         var result = new List<(IFocusable, Rect)>();
-        
-        // Check if this control is focusable
+
+        var myBounds = control.CalculateBounds(parentBounds);
+
         if (control is IFocusable focusable && focusable.CanFocus)
+            result.Add((focusable, myBounds));
+
+        if (control is IChildContainer container)
         {
-            var bounds = control.CalculateBounds(parentBounds);
-            result.Add((focusable, bounds));
+            foreach (var (child, childParentBounds) in container.GetChildrenWithBounds(myBounds))
+                result.AddRange(CollectFocusableControls(child, childParentBounds));
         }
-        
-        // Recursively search children in StackPanel elements
-        if (control is StackPanel stackPanel)
-        {
-            var stackBounds = control.CalculateBounds(parentBounds);
-            
-            // Mirror the layout logic from StackPanel.Render() to calculate actual child positions
-            var childSizes = stackPanel.CalculateChildSizes(stackBounds);
-            var position = stackPanel.Orientation == Orientation.Horizontal ? stackBounds.X : stackBounds.Y;
-            
-            for (var i = 0; i < stackPanel.Children.Count; i++)
-            {
-                var child = stackPanel.Children[i];
-                var size = childSizes[i];
-                
-                if (size <= 0) continue; // Skip zero-size children
-                
-                var childBounds = stackPanel.CreateChildBounds(stackBounds, position, size);
-                var childResults = CollectFocusableControls(child, childBounds);
-                result.AddRange(childResults);
-                
-                position += size;
-            }
-        }
-        
-        // Recursively search children in Rectangle elements
-        if (control is Rectangle rectangle && rectangle.Child is not null)
-        {
-            var rectBounds = control.CalculateBounds(parentBounds);
-            // Calculate inner bounds (subtract border if present) - same as Rectangle.Render()
-            var innerBounds = rectangle.Border.HasBorder && rectBounds.Width >= 2 && rectBounds.Height >= 2
-                ? new Rect(rectBounds.X + 1, rectBounds.Y + 1, rectBounds.Width - 2, rectBounds.Height - 2)
-                : rectBounds;
-            var childResults = CollectFocusableControls(rectangle.Child, innerBounds);
-            result.AddRange(childResults);
-        }
-        
+
         return result;
     }
 }

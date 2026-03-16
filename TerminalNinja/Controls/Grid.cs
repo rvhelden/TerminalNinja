@@ -14,7 +14,7 @@ namespace TerminalNinja.Controls;
 [SWM.ContentProperty("Children")]
 [RuntimeNameProperty("Name")]
 [SWM.RuntimeNameProperty("Name")]
-public sealed class Grid : Panel
+public sealed class Grid : Panel, IChildContainer
 {
     private readonly List<RowDefinition> _rowDefinitions = new();
     private readonly List<ColumnDefinition> _columnDefinitions = new();
@@ -159,6 +159,29 @@ public sealed class Grid : Panel
         }
     }
     
+    /// <inheritdoc />
+    public IEnumerable<(IControl Child, Rect ChildParentBounds)> GetChildrenWithBounds(Rect myBounds)
+    {
+        if (Children.Count == 0) yield break;
+
+        var rows = _rowDefinitions.Count > 0 ? _rowDefinitions : [new RowDefinition()];
+        var cols = _columnDefinitions.Count > 0 ? _columnDefinitions : [new ColumnDefinition()];
+
+        CalculateSizes(rows, myBounds.Height, r => r.Height, (r, s) => r.ActualHeight = s, r => r.MinHeight, r => r.MaxHeight);
+        CalculateSizes(cols, myBounds.Width, c => c.Width, (c, s) => c.ActualWidth = s, c => c.MinWidth, c => c.MaxWidth);
+        CalculateOffsets(rows, myBounds.Y, (r, o) => r.Offset = o, r => r.ActualHeight);
+        CalculateOffsets(cols, myBounds.X, (c, o) => c.Offset = o, c => c.ActualWidth);
+
+        foreach (var child in Children)
+        {
+            var row = Math.Min(GetRow(child), rows.Count - 1);
+            var col = Math.Min(GetColumn(child), cols.Count - 1);
+            var rowSpan = Math.Min(GetRowSpan(child), rows.Count - row);
+            var colSpan = Math.Min(GetColumnSpan(child), cols.Count - col);
+            yield return (child, GetCellBounds(rows, cols, row, col, rowSpan, colSpan, myBounds));
+        }
+    }
+
     /// <summary>
     /// Calculates sizes for rows or columns based on their GridLength definitions.
     /// Uses a three-pass algorithm: Pixel → Auto → Star.
