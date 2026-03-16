@@ -40,54 +40,6 @@ public static class TerminalXaml
     }
     
     /// <summary>
-    /// Loads a UI control from a XAML file.
-    /// </summary>
-    /// <typeparam name="T">The expected type of the root control.</typeparam>
-    /// <param name="path">The path to the XAML file.</param>
-    /// <returns>The loaded control.</returns>
-    /// <exception cref="ArgumentNullException">Thrown when path is null.</exception>
-    /// <exception cref="FileNotFoundException">Thrown when the file doesn't exist.</exception>
-    /// <exception cref="InvalidCastException">Thrown when the loaded control is not of type T.</exception>
-    public static T LoadFromFile<T>(string path) where T : class, IControl
-    {
-        return LoadFromFile<T>(path, dataContext: null, bindingManager: null);
-    }
-    
-    /// <summary>
-    /// Loads a UI control from a XAML file with data binding support.
-    /// </summary>
-    /// <typeparam name="T">The expected type of the root control.</typeparam>
-    /// <param name="path">The path to the XAML file.</param>
-    /// <param name="dataContext">The data context for bindings.</param>
-    /// <param name="bindingManager">Optional binding manager (creates new if null).</param>
-    /// <returns>The loaded control with bindings activated.</returns>
-    public static T LoadFromFile<T>(string path, object? dataContext, BindingManager? bindingManager = null) where T : class, IControl
-    {
-        ArgumentException.ThrowIfNullOrWhiteSpace(path);
-        
-        if (!File.Exists(path))
-        {
-            throw new FileNotFoundException($"XAML file not found: {path}", path);
-        }
-        
-        using var reader = new StreamReader(path);
-        return LoadFromReader<T>(reader, dataContext, bindingManager);
-    }
-    
-    /// <summary>
-    /// Loads a UI control from a stream.
-    /// </summary>
-    /// <typeparam name="T">The expected type of the root control.</typeparam>
-    /// <param name="stream">The stream containing XAML markup.</param>
-    /// <returns>The loaded control.</returns>
-    /// <exception cref="ArgumentNullException">Thrown when stream is null.</exception>
-    /// <exception cref="InvalidCastException">Thrown when the loaded control is not of type T.</exception>
-    public static T LoadFromStream<T>(Stream stream) where T : class, IControl
-    {
-        return LoadFromStream<T>(stream, dataContext: null, bindingManager: null);
-    }
-    
-    /// <summary>
     /// Loads a UI control from a stream with data binding support.
     /// </summary>
     /// <typeparam name="T">The expected type of the root control.</typeparam>
@@ -101,37 +53,6 @@ public static class TerminalXaml
         
         using var reader = new StreamReader(stream);
         return LoadFromReader<T>(reader, dataContext, bindingManager);
-    }
-    
-    /// <summary>
-    /// Loads a UI control from an embedded resource.
-    /// </summary>
-    /// <typeparam name="T">The expected type of the root control.</typeparam>
-    /// <param name="resourceName">The fully qualified resource name.</param>
-    /// <param name="assembly">The assembly containing the resource (defaults to calling assembly).</param>
-    /// <returns>The loaded control.</returns>
-    /// <exception cref="ArgumentNullException">Thrown when resourceName is null.</exception>
-    /// <exception cref="FileNotFoundException">Thrown when the resource doesn't exist.</exception>
-    /// <exception cref="InvalidCastException">Thrown when the loaded control is not of type T.</exception>
-    public static T LoadFromEmbeddedResource<T>(string resourceName, System.Reflection.Assembly? assembly = null) 
-        where T : class, IControl
-    {
-        ArgumentException.ThrowIfNullOrWhiteSpace(resourceName);
-        
-        assembly ??= System.Reflection.Assembly.GetCallingAssembly();
-        
-        using var stream = assembly.GetManifestResourceStream(resourceName);
-        if (stream == null)
-        {
-            throw new FileNotFoundException($"Embedded resource not found: {resourceName}", resourceName);
-        }
-        
-        return LoadFromStream<T>(stream);
-    }
-    
-    private static T LoadFromReader<T>(TextReader reader) where T : class, IControl
-    {
-        return LoadFromReader<T>(reader, dataContext: null, bindingManager: null);
     }
     
     private static T LoadFromReader<T>(TextReader reader, object? dataContext, BindingManager? bindingManager) where T : class, IControl

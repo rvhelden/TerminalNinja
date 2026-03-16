@@ -1,7 +1,10 @@
+using System.Windows;
 using Portable.Xaml.Markup;
 using TerminalNinja.Buffers;
 using TerminalNinja.Primitives;
 using TerminalNinja.Styling;
+using Rect = TerminalNinja.Primitives.Rect;
+using Size = TerminalNinja.Primitives.Size;
 using SWM = System.Windows.Markup;
 
 namespace TerminalNinja.Controls;
@@ -16,12 +19,21 @@ namespace TerminalNinja.Controls;
 public sealed class Rectangle : FrameworkElement
 {
     // Bindable properties (with change notification)
-    private Color _backgroundColor = Color.Black;
-    /// <summary>Gets or sets the background color.</summary>
+    // private Color _backgroundColor = Color.Black;
+    // /// <summary>Gets or sets the background color.</summary>
+    // public Color BackgroundColor
+    // {
+    //     get => _backgroundColor;
+    //     set => SetProperty(ref _backgroundColor, value);
+    // }
+    
+    public static readonly DependencyProperty BackgroundColorProperty = DependencyProperty.Register(nameof(BackgroundColor), typeof(Color), typeof(Rectangle), new PropertyMetadata(default(Color)));
+    
+    
     public Color BackgroundColor
     {
-        get => _backgroundColor;
-        set => SetProperty(ref _backgroundColor, value);
+        get { return (Color)GetValue(BackgroundColorProperty); }
+        set { SetValue(BackgroundColorProperty, value); }
     }
     
     private Color _foregroundColor = Color.White;
@@ -47,32 +59,66 @@ public sealed class Rectangle : FrameworkElement
         get => _child;
         set
         {
+            if (ReferenceEquals(_child, value))
+                return;
+
             if (_child != null)
                 _child.Parent = null;
+
             SetProperty(ref _child, value);
+
             if (_child != null)
                 _child.Parent = this;
         }
     }
-    
-    // Layout properties (kept as init for now)
+
+    private Size _x = Size.Absolute(0);
     /// <summary>Gets or sets the X position (absolute, relative, or stretch).</summary>
-    public Size X { get; init; } = Size.Absolute(0);
-    
+    public Size X
+    {
+        get => _x;
+        set => SetProperty(ref _x, value);
+    }
+
+    private Size _y = Size.Absolute(0);
     /// <summary>Gets or sets the Y position (absolute, relative, or stretch).</summary>
-    public Size Y { get; init; } = Size.Absolute(0);
-    
+    public Size Y
+    {
+        get => _y;
+        set => SetProperty(ref _y, value);
+    }
+
+    private Alignment _horizontalAlignment = Alignment.Start;
     /// <summary>Gets or sets the horizontal alignment within the parent.</summary>
-    public Alignment HorizontalAlignment { get; init; } = Alignment.Start;
-    
+    public Alignment HorizontalAlignment
+    {
+        get => _horizontalAlignment;
+        set => SetProperty(ref _horizontalAlignment, value);
+    }
+
+    private Alignment _verticalAlignment = Alignment.Start;
     /// <summary>Gets or sets the vertical alignment within the parent.</summary>
-    public Alignment VerticalAlignment { get; init; } = Alignment.Start;
-    
+    public Alignment VerticalAlignment
+    {
+        get => _verticalAlignment;
+        set => SetProperty(ref _verticalAlignment, value);
+    }
+
+    private Size _width = Size.Stretch;
     /// <summary>Gets or sets the width (absolute, relative, or stretch).</summary>
-    public Size Width { get; init; } = Size.Stretch;
-    
+    public Size Width
+    {
+        get => _width;
+        set => SetProperty(ref _width, value);
+    }
+
+    private Size _height = Size.Stretch;
     /// <summary>Gets or sets the height (absolute, relative, or stretch).</summary>
-    public Size Height { get; init; } = Size.Stretch;
+    public Size Height
+    {
+        get => _height;
+        set => SetProperty(ref _height, value);
+    }
     
     /// <summary>
     /// Returns the preferred size of this rectangle within the given parent bounds.

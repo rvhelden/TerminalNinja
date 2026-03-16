@@ -999,4 +999,65 @@ public class RectangleTests
     }
 
     #endregion
+
+    #region Dependency-Style Properties
+
+    [Test]
+    public async Task LayoutProperties_AfterConstruction_UpdatesBounds()
+    {
+        var rect = new Rectangle();
+        var parent = new Rect(0, 0, 100, 50);
+
+        var initial = rect.CalculateBounds(parent);
+        await Assert.That(initial.Width).IsEqualTo(100);
+        await Assert.That(initial.Height).IsEqualTo(50);
+
+        rect.Width = Size.Absolute(20);
+        rect.Height = Size.Absolute(10);
+        rect.X = Size.Absolute(5);
+        rect.Y = Size.Absolute(3);
+        rect.HorizontalAlignment = Alignment.Center;
+        rect.VerticalAlignment = Alignment.End;
+
+        var updated = rect.CalculateBounds(parent);
+
+        await Assert.That(updated.X).IsEqualTo(45); // (100 - 20) / 2 + 5
+        await Assert.That(updated.Y).IsEqualTo(37); // 50 - 10 - 3
+        await Assert.That(updated.Width).IsEqualTo(20);
+        await Assert.That(updated.Height).IsEqualTo(10);
+    }
+
+    [Test]
+    public async Task LayoutProperty_ChangedValue_TriggersInvalidationOnce()
+    {
+        var rect = new Rectangle();
+        var invalidationCount = 0;
+        rect.InvalidationCallback = () => invalidationCount++;
+
+        rect.Width = Size.Absolute(12);
+        rect.Width = Size.Absolute(12); // Same value should not invalidate again
+
+        await Assert.That(invalidationCount).IsEqualTo(1);
+    }
+
+    [Test]
+    public async Task Child_SetAndReplace_MaintainsParentReferences()
+    {
+        var rect = new Rectangle();
+        var firstChild = new Label { Text = "First" };
+        var secondChild = new Label { Text = "Second" };
+
+        rect.Child = firstChild;
+        await Assert.That(firstChild.Parent).IsEqualTo(rect);
+
+        rect.Child = secondChild;
+
+        await Assert.That(firstChild.Parent).IsNull();
+        await Assert.That(secondChild.Parent).IsEqualTo(rect);
+
+        rect.Child = null;
+        await Assert.That(secondChild.Parent).IsNull();
+    }
+
+    #endregion
 }

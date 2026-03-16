@@ -79,13 +79,13 @@
                         Command="{Binding Path=SaveCommand}" />
                 
                 <Rectangle StackPanel.SizeMode="Stretch"
-                           BackgroundColor="{StaticResource ToolbarBackground}" />
+                           BackgroundColor="{Resource ToolbarBackground}" />
             </StackPanel>
         </Rectangle>
         
         <!-- Content Area with data binding -->
         <Rectangle StackPanel.SizeMode="Stretch"
-                   BackgroundColor="{StaticResource ContentBackground}"
+                   BackgroundColor="{Resource ContentBackground}"
                    Border="Rounded">
             <Label x:Name="contentLabel"
                    Text="{Binding Path=ContentText}"
@@ -98,12 +98,12 @@
         
         <!-- Status Bar with data binding -->
         <Rectangle StackPanel.SizeMode="Fixed" StackPanel.FixedSize="3"
-                   BackgroundColor="{StaticResource StatusBackground}"
-                   ForegroundColor="{StaticResource HighlightColor}"
+                   BackgroundColor="{Resource StatusBackground}"
+                   ForegroundColor="{Resource HighlightColor}"
                    Border="Single">
             <Label x:Name="statusLabel"
                    Text="{Binding Path=StatusText}"
-                   ForegroundColor="{StaticResource HighlightColor}"
+                   ForegroundColor="{Resource HighlightColor}"
                    HorizontalTextAlignment="Center"
                    VerticalTextAlignment="Center" />
         </Rectangle>

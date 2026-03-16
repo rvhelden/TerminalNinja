@@ -1,7 +1,5 @@
-using System.Runtime.CompilerServices;
 using Portable.Xaml;
 using Portable.Xaml.Markup;
-using TerminalNinja.Controls;
 
 namespace TerminalNinja.Xaml.Markup;
 
@@ -9,6 +7,7 @@ namespace TerminalNinja.Xaml.Markup;
 /// Markup extension for static resource lookup: {StaticResource Key}
 /// Resources are resolved after XAML parsing is complete, walking up the visual tree.
 /// </summary>
+[MarkupExtensionReturnType(typeof(object))]
 public class StaticResourceExtension : MarkupExtension
 {
     // Per-execution-context storage for pending resource lookups during XAML parsing.
