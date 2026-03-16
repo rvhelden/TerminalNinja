@@ -1,7 +1,5 @@
-using Portable.Xaml.Markup;
-using SWM = System.Windows.Markup;
+using System.Windows.Markup;
 
-// --- Portable.Xaml attributes (for runtime) ---
 // Map all CLR namespaces to a single XAML namespace URL
 [assembly: XmlnsDefinition("http://schemas.terminalninja.dev/xaml", "TerminalNinja.Controls")]
 [assembly: XmlnsDefinition("http://schemas.terminalninja.dev/xaml", "TerminalNinja.Primitives")]
@@ -16,17 +14,15 @@ using SWM = System.Windows.Markup;
 // Suggest default prefix when adding namespace
 [assembly: XmlnsPrefix("http://schemas.terminalninja.dev/xaml", "tn")]
 
-// --- System.Windows.Markup attributes (for IDE IntelliSense) ---
-// These duplicate attributes enable XAML IntelliSense in Rider/Visual Studio
-[assembly: SWM.XmlnsDefinition("http://schemas.terminalninja.dev/xaml", "TerminalNinja.Controls")]
-[assembly: SWM.XmlnsDefinition("http://schemas.terminalninja.dev/xaml", "TerminalNinja.Primitives")]
-[assembly: SWM.XmlnsDefinition("http://schemas.terminalninja.dev/xaml", "TerminalNinja.Styling")]
-[assembly: SWM.XmlnsDefinition("http://schemas.terminalninja.dev/xaml", "TerminalNinja.Commands")]
-[assembly: SWM.XmlnsDefinition("http://schemas.terminalninja.dev/xaml", "TerminalNinja.Resources")]
-[assembly: SWM.XmlnsDefinition("http://schemas.terminalninja.dev/xaml", "TerminalNinja.App")]
-[assembly: SWM.XmlnsDefinition("http://schemas.terminalninja.dev/xaml", "TerminalNinja.Xaml.Markup")]
-[assembly: SWM.XmlnsDefinition("http://schemas.terminalninja.dev/xaml", "TerminalNinja.Xaml.Binding")]
-[assembly: SWM.XmlnsDefinition("http://schemas.terminalninja.dev/xaml", "TerminalNinja.Xaml.Mvvm")]
-
-// Suggest default prefix when adding namespace
-[assembly: SWM.XmlnsPrefix("http://schemas.terminalninja.dev/xaml", "tn")]
+// --- TEMPORARY: Portable.Xaml attributes (required until XAML compiler replaces runtime parser) ---
+// These will be removed in Phase 4g when the Portable.Xaml PackageReference is deleted.
+[assembly: Portable.Xaml.Markup.XmlnsDefinition("http://schemas.terminalninja.dev/xaml", "TerminalNinja.Controls")]
+[assembly: Portable.Xaml.Markup.XmlnsDefinition("http://schemas.terminalninja.dev/xaml", "TerminalNinja.Primitives")]
+[assembly: Portable.Xaml.Markup.XmlnsDefinition("http://schemas.terminalninja.dev/xaml", "TerminalNinja.Styling")]
+[assembly: Portable.Xaml.Markup.XmlnsDefinition("http://schemas.terminalninja.dev/xaml", "TerminalNinja.Commands")]
+[assembly: Portable.Xaml.Markup.XmlnsDefinition("http://schemas.terminalninja.dev/xaml", "TerminalNinja.Resources")]
+[assembly: Portable.Xaml.Markup.XmlnsDefinition("http://schemas.terminalninja.dev/xaml", "TerminalNinja.App")]
+[assembly: Portable.Xaml.Markup.XmlnsDefinition("http://schemas.terminalninja.dev/xaml", "TerminalNinja.Xaml.Markup")]
+[assembly: Portable.Xaml.Markup.XmlnsDefinition("http://schemas.terminalninja.dev/xaml", "TerminalNinja.Xaml.Binding")]
+[assembly: Portable.Xaml.Markup.XmlnsDefinition("http://schemas.terminalninja.dev/xaml", "TerminalNinja.Xaml.Mvvm")]
+[assembly: Portable.Xaml.Markup.XmlnsPrefix("http://schemas.terminalninja.dev/xaml", "tn")]

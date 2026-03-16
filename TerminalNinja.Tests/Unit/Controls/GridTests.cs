@@ -9,11 +9,6 @@ namespace TerminalNinja.Tests.Unit.Controls;
 /// - Child positioning and rendering
 /// - Edge cases (empty grid, out-of-bounds positions)
 /// </summary>
-/// <remarks>
-/// NotInParallel is required because Grid uses AttachablePropertyServices which
-/// uses a static Dictionary that is not thread-safe for concurrent modifications.
-/// </remarks>
-[NotInParallel]
 public class GridTests
 {
     private CellBuffer _buffer = null!;

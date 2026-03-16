@@ -1,4 +1,4 @@
-using Portable.Xaml.Markup;
+using System.Windows.Markup;
 using TerminalNinja.Buffers;
 using TerminalNinja.Commands;
 using TerminalNinja.Input;
@@ -11,6 +11,7 @@ namespace TerminalNinja.Controls;
 /// An interactive button control that responds to focus, hover, and click events.
 /// </summary>
 [RuntimeNameProperty("Name")]
+[Portable.Xaml.Markup.RuntimeNameProperty("Name")] // TEMPORARY: Required until Portable.Xaml is removed
 public sealed class Button : FrameworkElement, IFocusable
 {
     // Bindable properties (with change notification)

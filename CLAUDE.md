@@ -90,7 +90,7 @@ The renderer uses a double-buffered `CellBuffer`, a `ref struct CellDiffEnumerat
 - **Private fields**: `_camelCase`; everything else: PascalCase
 - Use **"control"** not "element"; use **"Content"** for child properties (WPF alignment)
 - `FrameworkElement` keeps its exact name
-- `[NotInParallel]` is required on `GridTests` because `AttachablePropertyServices` uses a non-thread-safe static dictionary — keep this in mind when adding Grid-related tests
+- Attached properties use `AttachedPropertyStore` (AOT-compatible, thread-safe `ConditionalWeakTable`) — no `[NotInParallel]` needed on Grid/StackPanel tests
 
 ### Adding New Controls
 

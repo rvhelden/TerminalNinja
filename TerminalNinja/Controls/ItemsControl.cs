@@ -1,9 +1,8 @@
 using System.Collections;
 using System.Collections.Specialized;
-using Portable.Xaml.Markup;
+using System.Windows.Markup;
 using TerminalNinja.Buffers;
 using TerminalNinja.Primitives;
-using SWM = System.Windows.Markup;
 
 namespace TerminalNinja.Controls;
 
@@ -12,7 +11,7 @@ namespace TerminalNinja.Controls;
 /// Supports data binding with ItemsSource and visual customization with ItemTemplate.
 /// </summary>
 [ContentProperty("Items")]
-[SWM.ContentProperty("Items")]
+[Portable.Xaml.Markup.ContentProperty("Items")] // TEMPORARY: Required until Portable.Xaml is removed
 public class ItemsControl : FrameworkElement, IChildContainer
 {
     private readonly List<object> _items = new();

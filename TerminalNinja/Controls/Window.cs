@@ -1,7 +1,6 @@
-using Portable.Xaml.Markup;
+using System.Windows.Markup;
 using TerminalNinja.Buffers;
 using TerminalNinja.Primitives;
-using SWM = System.Windows.Markup;
 
 namespace TerminalNinja.Controls;
 
@@ -10,9 +9,9 @@ namespace TerminalNinja.Controls;
 /// Window is a logical container that holds Content and provides window-scoped resources.
 /// </summary>
 [ContentProperty("Content")]
-[SWM.ContentProperty("Content")]
+[Portable.Xaml.Markup.ContentProperty("Content")] // TEMPORARY: Required until Portable.Xaml is removed
 [RuntimeNameProperty("Name")]
-[SWM.RuntimeNameProperty("Name")]
+[Portable.Xaml.Markup.RuntimeNameProperty("Name")] // TEMPORARY: Required until Portable.Xaml is removed
 public class Window : FrameworkElement, IChildContainer
 {
     private string _title = "";

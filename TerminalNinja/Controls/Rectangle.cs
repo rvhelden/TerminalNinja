@@ -1,10 +1,9 @@
-using Portable.Xaml.Markup;
+using System.Windows.Markup;
 using TerminalNinja.Buffers;
 using TerminalNinja.Primitives;
 using TerminalNinja.Styling;
 using Rect = TerminalNinja.Primitives.Rect;
 using Size = TerminalNinja.Primitives.Size;
-using SWM = System.Windows.Markup;
 
 namespace TerminalNinja.Controls;
 
@@ -12,9 +11,9 @@ namespace TerminalNinja.Controls;
 /// A rectangle UI control with positioning, sizing, borders, and background color.
 /// </summary>
 [ContentProperty("Child")]
-[SWM.ContentProperty("Child")]
+[Portable.Xaml.Markup.ContentProperty("Child")] // TEMPORARY: Required until Portable.Xaml is removed
 [RuntimeNameProperty("Name")]
-[SWM.RuntimeNameProperty("Name")]
+[Portable.Xaml.Markup.RuntimeNameProperty("Name")] // TEMPORARY: Required until Portable.Xaml is removed
 public sealed class Rectangle : FrameworkElement, IChildContainer
 {
     // Bindable properties (with change notification)

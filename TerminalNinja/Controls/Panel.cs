@@ -1,7 +1,6 @@
 using System.Collections;
-using Portable.Xaml.Markup;
+using System.Windows.Markup;
 using TerminalNinja.Primitives;
-using SWM = System.Windows.Markup;
 
 namespace TerminalNinja.Controls;
 
@@ -10,7 +9,7 @@ namespace TerminalNinja.Controls;
 /// Provides a Children collection and common panel functionality.
 /// </summary>
 [ContentProperty("Children")]
-[SWM.ContentProperty("Children")]
+[Portable.Xaml.Markup.ContentProperty("Children")] // TEMPORARY: Required until Portable.Xaml is removed
 public abstract class Panel : FrameworkElement
 {
     private readonly ObservableControlCollection _children;

@@ -8,11 +8,6 @@ namespace TerminalNinja.Tests.Unit.Controls;
 /// - Layout calculation and rendering
 /// - Edge cases (empty stack, zero sizes, overflow)
 /// </summary>
-/// <remarks>
-/// NotInParallel is required because StackPanel uses AttachablePropertyServices which
-/// uses a static Dictionary that is not thread-safe for concurrent modifications.
-/// </remarks>
-[NotInParallel]
 public class StackPanelTests
 {
     private CellBuffer _buffer = null!;

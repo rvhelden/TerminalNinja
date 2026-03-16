@@ -1,7 +1,6 @@
-using Portable.Xaml.Markup;
+using System.Windows.Markup;
 using TerminalNinja.Buffers;
 using TerminalNinja.Primitives;
-using SWM = System.Windows.Markup;
 
 namespace TerminalNinja.Controls;
 
@@ -9,7 +8,7 @@ namespace TerminalNinja.Controls;
 /// A text label UI control with alignment, wrapping, truncation, and padding support.
 /// </summary>
 [RuntimeNameProperty("Name")]
-[SWM.RuntimeNameProperty("Name")]
+[Portable.Xaml.Markup.RuntimeNameProperty("Name")] // TEMPORARY: Required until Portable.Xaml is removed
 public sealed class Label : FrameworkElement
 {
     // Bindable properties (with change notification)

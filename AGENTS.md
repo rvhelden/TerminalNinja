@@ -315,9 +315,8 @@ await Assert.That(text).Contains("substring");
 
 ### Special Test Considerations
 
-- **GridTests.cs** has `[NotInParallel]` attribute because `AttachablePropertyServices` uses a non-thread-safe static dictionary
 - All tests are **async** - use `async Task` and `await Assert.That(...)`
-- Tests should reference file locations: `TerminalNinja/Controls/Stack.cs:123`
+- Tests should reference file locations: `TerminalNinja/Controls/StackPanel.cs:123`
 
 ## Git Workflow
 

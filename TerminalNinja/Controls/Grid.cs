@@ -1,8 +1,7 @@
-using Portable.Xaml;
-using Portable.Xaml.Markup;
+using System.Windows.Markup;
+using TerminalNinja.Aot;
 using TerminalNinja.Buffers;
 using TerminalNinja.Primitives;
-using SWM = System.Windows.Markup;
 
 namespace TerminalNinja.Controls;
 
@@ -11,9 +10,9 @@ namespace TerminalNinja.Controls;
 /// Supports attached properties Grid.Row, Grid.Column, Grid.RowSpan, and Grid.ColumnSpan.
 /// </summary>
 [ContentProperty("Children")]
-[SWM.ContentProperty("Children")]
+[Portable.Xaml.Markup.ContentProperty("Children")] // TEMPORARY: Required until Portable.Xaml is removed
 [RuntimeNameProperty("Name")]
-[SWM.RuntimeNameProperty("Name")]
+[Portable.Xaml.Markup.RuntimeNameProperty("Name")] // TEMPORARY: Required until Portable.Xaml is removed
 public sealed class Grid : Panel, IChildContainer
 {
     private readonly List<RowDefinition> _rowDefinitions = new();
@@ -31,83 +30,83 @@ public sealed class Grid : Panel, IChildContainer
     /// </summary>
     public IList<ColumnDefinition> ColumnDefinitions => _columnDefinitions;
     
-    #region Attached Properties using AttachablePropertyServices
+    #region Attached Properties using AttachedPropertyStore
     
-    private static readonly AttachableMemberIdentifier RowId = new(typeof(Grid), "Row");
-    private static readonly AttachableMemberIdentifier ColumnId = new(typeof(Grid), "Column");
-    private static readonly AttachableMemberIdentifier RowSpanId = new(typeof(Grid), "RowSpan");
-    private static readonly AttachableMemberIdentifier ColumnSpanId = new(typeof(Grid), "ColumnSpan");
+    private static readonly AttachedPropertyKey RowKey = new(typeof(Grid), "Row");
+    private static readonly AttachedPropertyKey ColumnKey = new(typeof(Grid), "Column");
+    private static readonly AttachedPropertyKey RowSpanKey = new(typeof(Grid), "RowSpan");
+    private static readonly AttachedPropertyKey ColumnSpanKey = new(typeof(Grid), "ColumnSpan");
     
     /// <summary>
-    /// Gets the Grid.Row attached property value for an control.
+    /// Gets the Grid.Row attached property value for a control.
     /// </summary>
     public static int GetRow(object control)
     {
         ArgumentNullException.ThrowIfNull(control);
-        return AttachablePropertyServices.TryGetProperty<int>(control, RowId, out var value) ? value : 0;
+        return AttachedPropertyStore.TryGetValue<int>(control, RowKey, out var value) ? value : 0;
     }
     
     /// <summary>
-    /// Sets the Grid.Row attached property value for an control.
+    /// Sets the Grid.Row attached property value for a control.
     /// </summary>
     public static void SetRow(object control, int value)
     {
         ArgumentNullException.ThrowIfNull(control);
-        AttachablePropertyServices.SetProperty(control, RowId, Math.Max(0, value));
+        AttachedPropertyStore.SetValue(control, RowKey, Math.Max(0, value));
     }
     
     /// <summary>
-    /// Gets the Grid.Column attached property value for an control.
+    /// Gets the Grid.Column attached property value for a control.
     /// </summary>
     public static int GetColumn(object control)
     {
         ArgumentNullException.ThrowIfNull(control);
-        return AttachablePropertyServices.TryGetProperty<int>(control, ColumnId, out var value) ? value : 0;
+        return AttachedPropertyStore.TryGetValue<int>(control, ColumnKey, out var value) ? value : 0;
     }
     
     /// <summary>
-    /// Sets the Grid.Column attached property value for an control.
+    /// Sets the Grid.Column attached property value for a control.
     /// </summary>
     public static void SetColumn(object control, int value)
     {
         ArgumentNullException.ThrowIfNull(control);
-        AttachablePropertyServices.SetProperty(control, ColumnId, Math.Max(0, value));
+        AttachedPropertyStore.SetValue(control, ColumnKey, Math.Max(0, value));
     }
     
     /// <summary>
-    /// Gets the Grid.RowSpan attached property value for an control.
+    /// Gets the Grid.RowSpan attached property value for a control.
     /// </summary>
     public static int GetRowSpan(object control)
     {
         ArgumentNullException.ThrowIfNull(control);
-        return AttachablePropertyServices.TryGetProperty<int>(control, RowSpanId, out var value) ? Math.Max(1, value) : 1;
+        return AttachedPropertyStore.TryGetValue<int>(control, RowSpanKey, out var value) ? Math.Max(1, value) : 1;
     }
     
     /// <summary>
-    /// Sets the Grid.RowSpan attached property value for an control.
+    /// Sets the Grid.RowSpan attached property value for a control.
     /// </summary>
     public static void SetRowSpan(object control, int value)
     {
         ArgumentNullException.ThrowIfNull(control);
-        AttachablePropertyServices.SetProperty(control, RowSpanId, Math.Max(1, value));
+        AttachedPropertyStore.SetValue(control, RowSpanKey, Math.Max(1, value));
     }
     
     /// <summary>
-    /// Gets the Grid.ColumnSpan attached property value for an control.
+    /// Gets the Grid.ColumnSpan attached property value for a control.
     /// </summary>
     public static int GetColumnSpan(object control)
     {
         ArgumentNullException.ThrowIfNull(control);
-        return AttachablePropertyServices.TryGetProperty<int>(control, ColumnSpanId, out var value) ? Math.Max(1, value) : 1;
+        return AttachedPropertyStore.TryGetValue<int>(control, ColumnSpanKey, out var value) ? Math.Max(1, value) : 1;
     }
     
     /// <summary>
-    /// Sets the Grid.ColumnSpan attached property value for an control.
+    /// Sets the Grid.ColumnSpan attached property value for a control.
     /// </summary>
     public static void SetColumnSpan(object control, int value)
     {
         ArgumentNullException.ThrowIfNull(control);
-        AttachablePropertyServices.SetProperty(control, ColumnSpanId, Math.Max(1, value));
+        AttachedPropertyStore.SetValue(control, ColumnSpanKey, Math.Max(1, value));
     }
     
     #endregion

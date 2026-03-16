@@ -1,8 +1,7 @@
-using Portable.Xaml;
-using Portable.Xaml.Markup;
+using System.Windows.Markup;
+using TerminalNinja.Aot;
 using TerminalNinja.Buffers;
 using TerminalNinja.Primitives;
-using SWM = System.Windows.Markup;
 
 namespace TerminalNinja.Controls;
 
@@ -11,9 +10,9 @@ namespace TerminalNinja.Controls;
 /// Children can be sized using StackPanel.SizeMode and StackPanel.FixedSize attached properties.
 /// </summary>
 [ContentProperty("Children")]
-[SWM.ContentProperty("Children")]
+[Portable.Xaml.Markup.ContentProperty("Children")] // TEMPORARY: Required until Portable.Xaml is removed
 [RuntimeNameProperty("Name")]
-[SWM.RuntimeNameProperty("Name")]
+[Portable.Xaml.Markup.RuntimeNameProperty("Name")] // TEMPORARY: Required until Portable.Xaml is removed
 public class StackPanel : Panel, IChildContainer
 {
     /// <summary>
@@ -185,10 +184,10 @@ public class StackPanel : Panel, IChildContainer
         }
     }
 
-    #region Attached Properties using AttachablePropertyServices
+    #region Attached Properties using AttachedPropertyStore
     
-    private static readonly AttachableMemberIdentifier SizeModeId = new(typeof(StackPanel), "SizeMode");
-    private static readonly AttachableMemberIdentifier FixedSizeId = new(typeof(StackPanel), "FixedSize");
+    private static readonly AttachedPropertyKey SizeModeKey = new(typeof(StackPanel), "SizeMode");
+    private static readonly AttachedPropertyKey FixedSizeKey = new(typeof(StackPanel), "FixedSize");
     
     /// <summary>
     /// Gets the StackPanel.SizeMode attached property value for a control.
@@ -196,7 +195,7 @@ public class StackPanel : Panel, IChildContainer
     public static ChildSizeMode GetSizeMode(object control)
     {
         ArgumentNullException.ThrowIfNull(control);
-        return AttachablePropertyServices.TryGetProperty<ChildSizeMode>(control, SizeModeId, out var value) 
+        return AttachedPropertyStore.TryGetValue<ChildSizeMode>(control, SizeModeKey, out var value) 
             ? value 
             : ChildSizeMode.Auto;
     }
@@ -207,7 +206,7 @@ public class StackPanel : Panel, IChildContainer
     public static void SetSizeMode(object control, ChildSizeMode mode)
     {
         ArgumentNullException.ThrowIfNull(control);
-        AttachablePropertyServices.SetProperty(control, SizeModeId, mode);
+        AttachedPropertyStore.SetValue(control, SizeModeKey, mode);
     }
     
     /// <summary>
@@ -216,7 +215,7 @@ public class StackPanel : Panel, IChildContainer
     public static int GetFixedSize(object control)
     {
         ArgumentNullException.ThrowIfNull(control);
-        return AttachablePropertyServices.TryGetProperty<int>(control, FixedSizeId, out var value) 
+        return AttachedPropertyStore.TryGetValue<int>(control, FixedSizeKey, out var value) 
             ? value 
             : 0;
     }
@@ -227,7 +226,7 @@ public class StackPanel : Panel, IChildContainer
     public static void SetFixedSize(object control, int size)
     {
         ArgumentNullException.ThrowIfNull(control);
-        AttachablePropertyServices.SetProperty(control, FixedSizeId, Math.Max(0, size));
+        AttachedPropertyStore.SetValue(control, FixedSizeKey, Math.Max(0, size));
     }
     
     #endregion

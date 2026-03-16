@@ -1,7 +1,6 @@
 using System.ComponentModel;
-using Portable.Xaml.Markup;
+using System.Windows.Markup;
 using TerminalNinja.Aot;
-using SWM = System.Windows.Markup;
 
 namespace TerminalNinja.Controls;
 
@@ -10,7 +9,7 @@ namespace TerminalNinja.Controls;
 /// Used primarily with ItemsControl to define how data items should be rendered.
 /// </summary>
 [ContentProperty("TemplateContent")]
-[SWM.ContentProperty("TemplateContent")]
+[Portable.Xaml.Markup.ContentProperty("TemplateContent")] // TEMPORARY: Required until Portable.Xaml is removed
 public class DataTemplate
 {
     /// <summary>

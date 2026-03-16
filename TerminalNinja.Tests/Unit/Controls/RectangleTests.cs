@@ -808,7 +808,6 @@ public class RectangleTests
     #region Render - Stack Child Composition
 
     [Test]
-    [NotInParallel] // Uses AttachablePropertyServices which has a non-thread-safe static dictionary
     public async Task Render_WithStackChild_RendersAllStackChildren()
     {
         // Create a Rectangle with a horizontal StackPanel containing 3 Labels
