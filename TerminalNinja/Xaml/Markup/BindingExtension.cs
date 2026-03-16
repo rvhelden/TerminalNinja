@@ -13,13 +13,15 @@ public class BindingExtension : MarkupExtension
 {
     // Per-execution-context storage for pending bindings during XAML parsing.
     // Uses AsyncLocal to ensure parallel test execution doesn't share binding state.
-    private static readonly AsyncLocal<Dictionary<BindingKey, BindingInfo>?> _pendingBindings = new();
-    
+    // Stores the BindingExtension instance itself so that properties updated by
+    // ProcessStaticResources (e.g. Converter) are visible when ProcessBindings runs.
+    private static readonly AsyncLocal<Dictionary<BindingKey, BindingExtension>?> _pendingBindings = new();
+
     /// <summary>
     /// Gets or creates the pending bindings dictionary for the current execution context.
     /// </summary>
-    private static Dictionary<BindingKey, BindingInfo> PendingBindings => 
-        _pendingBindings.Value ??= new Dictionary<BindingKey, BindingInfo>();
+    private static Dictionary<BindingKey, BindingExtension> PendingBindings =>
+        _pendingBindings.Value ??= new Dictionary<BindingKey, BindingExtension>();
     
     /// <summary>
     /// Gets or sets the path to the binding source property.
@@ -93,10 +95,11 @@ public class BindingExtension : MarkupExtension
             throw new InvalidOperationException($"Unsupported target property type: {target.TargetProperty.GetType()}");
         }
         
-        // Store binding information for later processing
+        // Store this extension instance for later processing.
+        // Converter may be null here if {StaticResource} is used — it will be resolved
+        // by ProcessStaticResources and set on this instance before ProcessBindings reads it.
         var key = new BindingKey(target.TargetObject, propertyName);
-        var info = new BindingInfo(Path, Mode, Converter, ConverterParameter);
-        PendingBindings[key] = info;
+        PendingBindings[key] = this;
         
         // Return a default value appropriate for the property type
         // This prevents type mismatch errors during XAML parsing
@@ -115,11 +118,11 @@ public class BindingExtension : MarkupExtension
     
     /// <summary>
     /// Gets all pending bindings and clears the internal storage for the current execution context.
-    /// Called by TerminalXaml after XAML parsing is complete.
+    /// Called by TerminalXaml after XAML parsing and static resource resolution are complete.
     /// </summary>
-    internal static Dictionary<BindingKey, BindingInfo> GetAndClearPendingBindings()
+    internal static Dictionary<BindingKey, BindingExtension> GetAndClearPendingBindings()
     {
-        var bindings = _pendingBindings.Value ?? new Dictionary<BindingKey, BindingInfo>();
+        var bindings = _pendingBindings.Value ?? new Dictionary<BindingKey, BindingExtension>();
         _pendingBindings.Value = null;
         return bindings;
     }
@@ -151,21 +154,3 @@ internal sealed class BindingKey : IEquatable<BindingKey>
     public override int GetHashCode() => HashCode.Combine(RuntimeHelpers.GetHashCode(TargetObject), PropertyName);
 }
 
-/// <summary>
-/// Information about a binding that needs to be set up.
-/// </summary>
-internal sealed class BindingInfo
-{
-    public string Path { get; }
-    public BindingMode Mode { get; }
-    public IValueConverter? Converter { get; }
-    public object? ConverterParameter { get; }
-    
-    public BindingInfo(string path, BindingMode mode, IValueConverter? converter, object? converterParameter)
-    {
-        Path = path;
-        Mode = mode;
-        Converter = converter;
-        ConverterParameter = converterParameter;
-    }
-}

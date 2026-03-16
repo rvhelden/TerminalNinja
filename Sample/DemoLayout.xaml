@@ -4,8 +4,6 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:sample="clr-namespace:Sample"
-        xmlns:local="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-        xmlns:typeConverters="clr-namespace:TerminalNinja.Xaml.TypeConverters;assembly=TerminalNinja"
         xmlns:data="clr-namespace:TerminalNinja.Xaml.Data;assembly=TerminalNinja"
         mc:Ignorable="d"
         d:DataContext="{d:DesignInstance sample:DemoViewModel}"
@@ -15,12 +13,12 @@
     <Window.Resources>
         <Color x:Key="HeaderBackground">#1E1E50</Color>
         <Color x:Key="ToolbarBackground">#19192D</Color>
-        <Color x:Key="ContentBackground">#0F0F0F</Color>
+        <Color x:Key="ContentBackground">#FF0000</Color>
         <Color x:Key="StatusBackground">#282828</Color>
         <Color x:Key="ButtonBackground">#141414</Color>
         <Color x:Key="AccentColor">Cyan</Color>
         <Color x:Key="HighlightColor">Yellow</Color>
-        <data:DateTimeConverter x:Key="DateTimeConverter" />
+        <data:DateTimeToStringConverter x:Key="DateTimeToStringConverter" />
     </Window.Resources>
     
     <StackPanel Orientation="Vertical">
@@ -113,7 +111,7 @@
                    VerticalTextAlignment="Center" />
             
             <Label StackPanel.SizeMode="Auto" x:Name="timeLabel"
-                   Text="{Binding CurrentTime, Converter={StaticResource DateTimeConverter}, ConverterParameter=HH:mm:ss}"
+                   Text="{Binding CurrentTime, Converter={StaticResource DateTimeToStringConverter}, ConverterParameter=HH:mm:ss}"
                    ForegroundColor="{StaticResource HighlightColor}"
                    HorizontalTextAlignment="Center"
                    VerticalTextAlignment="Center" />

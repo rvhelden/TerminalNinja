@@ -72,10 +72,11 @@ public static class TerminalXaml
                 $"XAML root control is of type {actualType}, expected {typeof(T).Name}");
         }
         
-        // Process StaticResource lookups
-        ProcessStaticResources();
+        // Process StaticResource lookups first — this may populate properties on BindingExtension
+        // instances (e.g. Converter={StaticResource ...}) that ProcessBindings will read next.
+        ProcessStaticResources(result as FrameworkElement);
 
-        // Always drain pending bindings so AsyncLocal state stays clean
+        // Drain pending bindings AFTER static resources so Converter properties are resolved.
         var pendingBindings = BindingExtension.GetAndClearPendingBindings();
 
         // Process bindings if dataContext is provided
@@ -93,50 +94,55 @@ public static class TerminalXaml
     
     /// <summary>
     /// Processes pending bindings from the static dictionary populated during XAML parsing.
+    /// Reads converter from the BindingExtension instance (already resolved by ProcessStaticResources).
     /// </summary>
-    private static void ProcessBindings(Dictionary<BindingKey, BindingInfo> pendingBindings, BindingManager bindingManager)
+    private static void ProcessBindings(Dictionary<BindingKey, BindingExtension> pendingBindings, BindingManager bindingManager)
     {
         foreach (var kvp in pendingBindings)
         {
             var key = kvp.Key;
-            var info = kvp.Value;
-            
+            var ext = kvp.Value;
+
             // Only process if target is an IControl
             if (key.TargetObject is IControl control)
             {
                 bindingManager.CreateBinding(
                     control,
                     key.PropertyName,
-                    info.Path,
-                    info.Mode,
-                    info.Converter,
-                    info.ConverterParameter);
+                    ext.Path!,
+                    ext.Mode,
+                    ext.Converter,
+                    ext.ConverterParameter);
             }
         }
     }
     
     /// <summary>
     /// Processes pending static resource lookups from StaticResourceExtension.
-    /// Each target element walks up its parent chain to resolve resources.
+    /// FrameworkElement targets walk up their own parent chain; other objects (e.g. BindingExtension)
+    /// fall back to the root element for resource lookup.
     /// </summary>
-    private static void ProcessStaticResources()
+    private static void ProcessStaticResources(FrameworkElement? root)
     {
         var pendingLookups = StaticResourceExtension.GetAndClearPendingLookups();
-        
+
         foreach (var lookup in pendingLookups)
         {
-            // Only resolve for FrameworkElements
-            if (lookup.TargetObject is not FrameworkElement targetElement)
-                continue;
-            
+            // Use the target element's own resource chain, or fall back to root for non-FrameworkElements
+            // (e.g. BindingExtension instances that have Converter={StaticResource ...})
+            var resolveFrom = lookup.TargetObject as FrameworkElement ?? root;
+            if (resolveFrom == null)
+                throw new InvalidOperationException(
+                    $"StaticResource '{lookup.ResourceKey}' cannot be resolved: no FrameworkElement context available");
+
             // Find the resource
-            var resource = targetElement.TryFindResource(lookup.ResourceKey);
+            var resource = resolveFrom.TryFindResource(lookup.ResourceKey);
             if (resource == null)
             {
                 throw new InvalidOperationException(
                     $"StaticResource '{lookup.ResourceKey}' not found for property '{lookup.PropertyName}'");
             }
-            
+
             // Get the property and set the value
             var property = lookup.TargetObject.GetType().GetProperty(lookup.PropertyName);
             if (property == null || !property.CanWrite)
@@ -144,7 +150,7 @@ public static class TerminalXaml
                 throw new InvalidOperationException(
                     $"Property '{lookup.PropertyName}' not found or is read-only on type '{lookup.TargetObject.GetType().Name}'");
             }
-            
+
             // Convert value if needed
             var value = resource;
             if (!property.PropertyType.IsInstanceOfType(value))
@@ -155,7 +161,7 @@ public static class TerminalXaml
                     value = converter.ConvertFrom(value);
                 }
             }
-            
+
             property.SetValue(lookup.TargetObject, value);
         }
     }
