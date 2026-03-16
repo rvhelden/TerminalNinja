@@ -13,6 +13,7 @@ public class ColorTypeConverter : TypeConverter
 {
     private static readonly Dictionary<string, Color> NamedColors = new(StringComparer.OrdinalIgnoreCase)
     {
+        { "Transparent", Color.Transparent },
         { "Black", Color.Black },
         { "White", Color.White },
         { "Red", Color.Red },

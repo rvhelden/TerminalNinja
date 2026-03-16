@@ -29,8 +29,8 @@ public sealed class Label : FrameworkElement
         set => SetProperty(ref _foregroundColor, value);
     }
     
-    private Color _backgroundColor = Color.Black;
-    /// <summary>Gets or sets the background color.</summary>
+    private Color _backgroundColor = Color.Transparent;
+    /// <summary>Gets or sets the background color. Defaults to Transparent so the label does not paint over its parent's background.</summary>
     public Color BackgroundColor
     {
         get => _backgroundColor;
@@ -126,9 +126,12 @@ public sealed class Label : FrameworkElement
         var clipped = bounds.Intersect(new Rect(0, 0, buffer.Width, buffer.Height));
         if (clipped.Width <= 0 || clipped.Height <= 0) return;
         
-        // Fill background
-        var bgCell = new Cell(' ', ForegroundColor, BackgroundColor);
-        buffer.FillRect(clipped, bgCell);
+        // Fill background (skip when transparent — let parent's background show through)
+        if (!BackgroundColor.IsTransparent)
+        {
+            var bgCell = new Cell(' ', ForegroundColor, BackgroundColor);
+            buffer.FillRect(clipped, bgCell);
+        }
         
         // If no text, we're done
         if (string.IsNullOrEmpty(Text)) return;

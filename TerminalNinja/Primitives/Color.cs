@@ -5,15 +5,22 @@ using TerminalNinja.Xaml.TypeConverters;
 namespace TerminalNinja.Primitives;
 
 /// <summary>
-/// Represents a 24-bit RGB color (3 bytes total).
+/// Represents a 24-bit RGB color with an alpha channel for transparency.
+/// A == 0 means fully transparent (do not paint); A == 255 (default) means fully opaque.
 /// </summary>
 [StructLayout(LayoutKind.Sequential, Pack = 1)]
 [TypeConverter(typeof(ColorTypeConverter))]
-public readonly record struct Color(byte R, byte G, byte B)
+public readonly record struct Color(byte R, byte G, byte B, byte A = 255)
 {
+    /// <summary>Returns true when this color is fully transparent (A == 0).</summary>
+    public bool IsTransparent => A == 0;
+
+    /// <summary>Gets the transparent color (no paint).</summary>
+    public static readonly Color Transparent = new(0, 0, 0, 0);
+
     /// <summary>Gets the black color (0, 0, 0).</summary>
     public static readonly Color Black = new(0, 0, 0);
-    
+
     /// <summary>Gets the white color (255, 255, 255).</summary>
     public static readonly Color White = new(255, 255, 255);
     

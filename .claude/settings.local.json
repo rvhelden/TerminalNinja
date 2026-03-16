@@ -5,7 +5,8 @@
       "Bash(cd e:/TerminalNinja && dotnet test 2>&1)",
       "Bash(ls -la \"E:/TerminalNinja/Sample/\" | grep -E \"\\\\.cs$|\\\\.xaml$\")",
       "Bash(cd e:/TerminalNinja && dotnet build 2>&1 && dotnet test 2>&1)",
-      "Bash(dotnet build:*)"
+      "Bash(dotnet build:*)",
+      "Bash(dotnet test:*)"
     ]
   }
 }
