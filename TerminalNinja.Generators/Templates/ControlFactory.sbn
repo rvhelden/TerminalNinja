@@ -14,9 +14,29 @@ internal static class GeneratedControlFactories
     [ModuleInitializer]
     internal static void Register()
     {
+        // --- Control / type factories ---
         {{~ for type in types ~}}
         ControlFactoryRegistry.Register(typeof({{ type.full_name }}), static () => new {{ type.full_name }}());
         TypeNameRegistry.Register(typeof({{ type.full_name }}));
+        {{~ end ~}}
+
+        // --- Content properties (from [ContentProperty] attributes) ---
+        {{~ for cp in content_properties ~}}
+        ContentPropertyRegistry.Register(typeof({{ cp.full_name }}), "{{ cp.property_name }}");
+        {{~ end ~}}
+
+        // --- Attached property setters (from static SetXxx methods) ---
+        {{~ for ap in attached_properties ~}}
+        AttachedPropertySetterRegistry.Register(
+            typeof({{ ap.owner_full_name }}),
+            "{{ ap.property_name }}",
+            typeof({{ ap.parameter_full_name }}),
+            static (target, value) => {{ ap.owner_full_name }}.Set{{ ap.property_name }}(target, ({{ ap.parameter_full_name }})value!));
+        {{~ end ~}}
+
+        // --- Type converters (from [TypeConverter] attributes, excluding EnumConverter) ---
+        {{~ for tc in type_converters ~}}
+        TypeConverterRegistry.Register(typeof({{ tc.target_full_name }}), new {{ tc.converter_full_name }}());
         {{~ end ~}}
     }
 }

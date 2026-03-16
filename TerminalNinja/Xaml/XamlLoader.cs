@@ -37,21 +37,9 @@ internal sealed class XamlLoader
         "TerminalNinja.Xaml.Data"
     ];
 
-    /// <summary>
-    /// Maps <c>[ContentProperty("...")]</c> attribute values by type name.
-    /// Maintained manually to avoid reflection over attributes at runtime.
-    /// </summary>
-    private static readonly Dictionary<Type, string> ContentPropertyNames = new()
-    {
-        [typeof(Panel)] = "Children",
-        [typeof(StackPanel)] = "Children",
-        [typeof(Grid)] = "Children",
-        [typeof(DataTemplate)] = "TemplateContent",
-        [typeof(ItemsControl)] = "Items",
-        [typeof(Rectangle)] = "Child",
-        [typeof(Window)] = "Content",
-        [typeof(Style)] = "Setters",
-    };
+    // Content property names are now discovered at compile time by the source generator
+    // and registered in ContentPropertyRegistry via [ModuleInitializer].
+    // See ControlFactoryGenerator and ContentPropertyRegistry.
 
     /// <summary>
     /// Binding information collected during parsing.
@@ -629,17 +617,11 @@ internal sealed class XamlLoader
 
     /// <summary>
     /// Gets the content property name for a type by walking the type hierarchy.
+    /// Delegates to <see cref="ContentPropertyRegistry"/> which is populated by generated code.
     /// </summary>
     private static string? GetContentPropertyName(Type type)
     {
-        var current = type;
-        while (current != null)
-        {
-            if (ContentPropertyNames.TryGetValue(current, out var name))
-                return name;
-            current = current.BaseType;
-        }
-        return null;
+        return ContentPropertyRegistry.GetContentPropertyName(type);
     }
 
     /// <summary>
@@ -680,6 +662,8 @@ internal sealed class XamlLoader
 
     /// <summary>
     /// Adds an item to a known collection type.
+    /// Checks specific generic interfaces first for type safety, then falls back
+    /// to <see cref="System.Collections.IList"/> for extensibility with custom collections.
     /// </summary>
     private static bool AddToCollection(object? collection, object item)
     {
@@ -717,6 +701,13 @@ internal sealed class XamlLoader
         if (collection is IList<ColumnDefinition> colList && item is ColumnDefinition col)
         {
             colList.Add(col);
+            return true;
+        }
+
+        // Fallback: non-generic IList (supports custom collection types from consuming projects)
+        if (collection is System.Collections.IList nonGenericList)
+        {
+            nonGenericList.Add(item);
             return true;
         }
 

@@ -1,5 +1,4 @@
 using System.Collections.Concurrent;
-using TerminalNinja.Controls;
 
 namespace TerminalNinja.Aot;
 
@@ -7,32 +6,11 @@ namespace TerminalNinja.Aot;
 /// AOT-safe registry for attached property setters.
 /// Replaces <c>Type.GetMethod("SetXxx")</c> + <c>MethodInfo.Invoke()</c> which are not trim-safe.
 /// Maps (ownerType, propertyName) → setter delegate + parameter type.
+/// Populated at startup by source-generated <c>[ModuleInitializer]</c> code.
 /// </summary>
 public static class AttachedPropertySetterRegistry
 {
     private static readonly ConcurrentDictionary<(Type OwnerType, string PropertyName), AttachedPropertySetter> Setters = new();
-
-    /// <summary>
-    /// Static initializer registers all known attached property setters.
-    /// </summary>
-    static AttachedPropertySetterRegistry()
-    {
-        // Grid attached properties
-        Register(typeof(Grid), "Row", typeof(int),
-            (target, value) => Grid.SetRow(target, (int)value!));
-        Register(typeof(Grid), "Column", typeof(int),
-            (target, value) => Grid.SetColumn(target, (int)value!));
-        Register(typeof(Grid), "RowSpan", typeof(int),
-            (target, value) => Grid.SetRowSpan(target, (int)value!));
-        Register(typeof(Grid), "ColumnSpan", typeof(int),
-            (target, value) => Grid.SetColumnSpan(target, (int)value!));
-
-        // StackPanel attached properties
-        Register(typeof(StackPanel), "SizeMode", typeof(ChildSizeMode),
-            (target, value) => StackPanel.SetSizeMode(target, (ChildSizeMode)value!));
-        Register(typeof(StackPanel), "FixedSize", typeof(int),
-            (target, value) => StackPanel.SetFixedSize(target, (int)value!));
-    }
 
     /// <summary>
     /// Registers an attached property setter.
