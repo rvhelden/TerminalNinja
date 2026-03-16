@@ -57,7 +57,7 @@ public sealed class FocusManager
     /// </summary>
     /// <param name="rootControl">The root control to search for focusable children.</param>
     /// <param name="rootBounds">The bounds of the root control.</param>
-    public void FocusNext(IControl rootControl, Rect rootBounds)
+    public void FocusNext(UIElement rootControl, Rect rootBounds)
     {
         var focusableElements = CollectFocusableControls(rootControl, rootBounds)
             .OrderBy(x => x.Control.TabIndex)
@@ -90,7 +90,7 @@ public sealed class FocusManager
     /// </summary>
     /// <param name="rootControl">The root control to search for focusable children.</param>
     /// <param name="rootBounds">The bounds of the root control.</param>
-    public void FocusPrevious(IControl rootControl, Rect rootBounds)
+    public void FocusPrevious(UIElement rootControl, Rect rootBounds)
     {
         var focusableElements = CollectFocusableControls(rootControl, rootBounds)
             .OrderBy(x => x.Control.TabIndex)
@@ -126,7 +126,7 @@ public sealed class FocusManager
     /// <param name="mouseX">The mouse X coordinate.</param>
     /// <param name="mouseY">The mouse Y coordinate.</param>
     /// <returns>The control under the mouse cursor, or null if none.</returns>
-    public IFocusable? UpdateHover(IControl rootControl, Rect rootBounds, int mouseX, int mouseY)
+    public IFocusable? UpdateHover(UIElement rootControl, Rect rootBounds, int mouseX, int mouseY)
     {
         var hitElement = HitTest(rootControl, rootBounds, mouseX, mouseY);
         
@@ -160,7 +160,7 @@ public sealed class FocusManager
     /// <param name="x">The X coordinate to test.</param>
     /// <param name="y">The Y coordinate to test.</param>
     /// <returns>The topmost focusable control at the coordinates, or null if none.</returns>
-    public IFocusable? HitTest(IControl rootControl, Rect rootBounds, int x, int y)
+    public IFocusable? HitTest(UIElement rootControl, Rect rootBounds, int x, int y)
     {
         // Collect all focusable elements with their bounds
         var focusableElements = CollectFocusableControls(rootControl, rootBounds);
@@ -183,7 +183,7 @@ public sealed class FocusManager
     /// <param name="rootControl">The root control to search for hit targets.</param>
     /// <param name="rootBounds">The bounds of the root control.</param>
     /// <param name="mouseEvent">The mouse event to handle.</param>
-    public void HandleMouseEvent(IControl rootControl, Rect rootBounds, MouseEvent mouseEvent)
+    public void HandleMouseEvent(UIElement rootControl, Rect rootBounds, MouseEvent mouseEvent)
     {
         // Update hover state on mouse move
         if (mouseEvent.Action == MouseAction.Move)
@@ -214,10 +214,10 @@ public sealed class FocusManager
     }
     
     /// <summary>
-    /// Recursively collects all focusable elements from the control tree.
-    /// Containers participate by implementing <see cref="IChildContainer"/>.
+    /// Recursively collects all focusable elements from the control tree
+    /// using the Visual.GetChildrenWithBounds traversal.
     /// </summary>
-    private List<(IFocusable Control, Rect Bounds)> CollectFocusableControls(IControl control, Rect parentBounds)
+    private List<(IFocusable Control, Rect Bounds)> CollectFocusableControls(UIElement control, Rect parentBounds)
     {
         var result = new List<(IFocusable, Rect)>();
 
@@ -226,10 +226,10 @@ public sealed class FocusManager
         if (control is IFocusable focusable && focusable.CanFocus)
             result.Add((focusable, myBounds));
 
-        if (control is IChildContainer container)
+        foreach (var (child, childParentBounds) in control.GetChildrenWithBounds(myBounds))
         {
-            foreach (var (child, childParentBounds) in container.GetChildrenWithBounds(myBounds))
-                result.AddRange(CollectFocusableControls(child, childParentBounds));
+            if (child is UIElement childElement)
+                result.AddRange(CollectFocusableControls(childElement, childParentBounds));
         }
 
         return result;

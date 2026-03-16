@@ -11,13 +11,13 @@ namespace TerminalNinja.Controls;
 /// Supports data binding with ItemsSource and visual customization with ItemTemplate.
 /// </summary>
 [ContentProperty("Items")]
-public class ItemsControl : FrameworkElement, IChildContainer
+public class ItemsControl : Control
 {
     private readonly List<object> _items = new();
     private IEnumerable? _itemsSource;
     private DataTemplate? _itemTemplate;
     private Panel? _itemsPanel;
-    private readonly Dictionary<object, IControl> _itemContainers = new();
+    private readonly Dictionary<object, UIElement> _itemContainers = new();
 
     /// <summary>
     /// Gets the collection of items directly added to this control.
@@ -93,7 +93,7 @@ public class ItemsControl : FrameworkElement, IChildContainer
     }
 
     /// <inheritdoc />
-    public IEnumerable<(IControl Child, Rect ChildParentBounds)> GetChildrenWithBounds(Rect myBounds)
+    public override IEnumerable<(Visual Child, Rect ChildParentBounds)> GetChildrenWithBounds(Rect myBounds)
     {
         yield return (ItemsPanel, myBounds);
     }
@@ -231,29 +231,29 @@ public class ItemsControl : FrameworkElement, IChildContainer
     /// <summary>
     /// Generates a container control for the specified data item.
     /// </summary>
-    private IControl? GenerateContainer(object item)
+    private UIElement? GenerateContainer(object item)
     {
-        IControl? container;
+        UIElement? container;
 
-        // If the item is already a control, use it directly
-        if (item is IControl control)
+        // If the item is already a UIElement, use it directly
+        if (item is UIElement element)
         {
-            container = control;
+            container = element;
         }
         // Otherwise, use the ItemTemplate to create a container
         else if (ItemTemplate != null)
         {
             container = ItemTemplate.CreateContent();
-            if (container != null)
+            if (container is FrameworkElement fe)
             {
                 // Set the DataContext so bindings work
-                container.DataContext = item;
+                fe.DataContext = item;
             }
         }
         else
         {
-            // No template - create a simple label with ToString()
-            container = new Label { Text = item?.ToString() ?? string.Empty };
+            // No template - create a simple TextBlock with ToString()
+            container = new TextBlock { Text = item?.ToString() ?? string.Empty };
         }
 
         return container;

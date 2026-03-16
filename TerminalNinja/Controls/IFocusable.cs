@@ -5,8 +5,10 @@ namespace TerminalNinja.Controls;
 
 /// <summary>
 /// Defines the contract for UI controls that can receive keyboard and mouse focus.
+/// Implemented by controls that inherit from UIElement (or deeper) and want to
+/// participate in keyboard/mouse focus management.
 /// </summary>
-public interface IFocusable : IControl
+public interface IFocusable
 {
     /// <summary>
     /// Gets or sets whether this control currently has keyboard focus.

@@ -24,7 +24,7 @@ public abstract class Panel : FrameworkElement
     /// <summary>
     /// Gets the collection of child controls in this panel.
     /// </summary>
-    public IList<IControl> Children => _children;
+    public IList<UIElement> Children => _children;
     
     /// <summary>
     /// Gets or sets the background color of the panel.
@@ -35,7 +35,7 @@ public abstract class Panel : FrameworkElement
     /// Called when a child control is added to the Children collection.
     /// </summary>
     /// <param name="child">The child control that was added.</param>
-    internal virtual void OnChildAdded(IControl child)
+    internal virtual void OnChildAdded(UIElement child)
     {
     }
     
@@ -43,7 +43,7 @@ public abstract class Panel : FrameworkElement
     /// Called when a child control is removed from the Children collection.
     /// </summary>
     /// <param name="child">The child control that was removed.</param>
-    internal virtual void OnChildRemoved(IControl child)
+    internal virtual void OnChildRemoved(UIElement child)
     {
     }
 }
@@ -51,9 +51,9 @@ public abstract class Panel : FrameworkElement
 /// <summary>
 /// Observable collection for Panel.Children that automatically sets Parent and triggers callbacks.
 /// </summary>
-internal class ObservableControlCollection : IList<IControl>
+internal class ObservableControlCollection : IList<UIElement>
 {
-    private readonly List<IControl> _items = new();
+    private readonly List<UIElement> _items = new();
     private readonly Panel _owner;
     
     public ObservableControlCollection(Panel owner)
@@ -61,7 +61,7 @@ internal class ObservableControlCollection : IList<IControl>
         _owner = owner;
     }
     
-    public IControl this[int index]
+    public UIElement this[int index]
     {
         get => _items[index];
         set
@@ -80,7 +80,7 @@ internal class ObservableControlCollection : IList<IControl>
     public int Count => _items.Count;
     public bool IsReadOnly => false;
     
-    public void Add(IControl item)
+    public void Add(UIElement item)
     {
         ArgumentNullException.ThrowIfNull(item);
         item.Parent = _owner;
@@ -100,15 +100,15 @@ internal class ObservableControlCollection : IList<IControl>
         _owner.InvalidateVisual();
     }
     
-    public bool Contains(IControl item) => _items.Contains(item);
+    public bool Contains(UIElement item) => _items.Contains(item);
     
-    public void CopyTo(IControl[] array, int arrayIndex) => _items.CopyTo(array, arrayIndex);
+    public void CopyTo(UIElement[] array, int arrayIndex) => _items.CopyTo(array, arrayIndex);
     
-    public IEnumerator<IControl> GetEnumerator() => _items.GetEnumerator();
+    public IEnumerator<UIElement> GetEnumerator() => _items.GetEnumerator();
     
-    public int IndexOf(IControl item) => _items.IndexOf(item);
+    public int IndexOf(UIElement item) => _items.IndexOf(item);
     
-    public void Insert(int index, IControl item)
+    public void Insert(int index, UIElement item)
     {
         ArgumentNullException.ThrowIfNull(item);
         item.Parent = _owner;
@@ -117,7 +117,7 @@ internal class ObservableControlCollection : IList<IControl>
         _owner.InvalidateVisual();
     }
     
-    public bool Remove(IControl item)
+    public bool Remove(UIElement item)
     {
         if (_items.Remove(item))
         {

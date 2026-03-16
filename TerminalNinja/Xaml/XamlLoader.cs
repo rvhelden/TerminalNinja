@@ -70,7 +70,7 @@ internal sealed class XamlLoader
     /// <summary>
     /// Loads and instantiates a control tree from a XAML string.
     /// </summary>
-    public T Load<T>(string xaml, object? dataContext, BindingManager? bindingManager) where T : class, IControl
+    public T Load<T>(string xaml, object? dataContext, BindingManager? bindingManager) where T : FrameworkElement
     {
         var doc = XDocument.Parse(xaml);
         return LoadFromDocument<T>(doc, dataContext, bindingManager);
@@ -79,13 +79,13 @@ internal sealed class XamlLoader
     /// <summary>
     /// Loads and instantiates a control tree from a stream.
     /// </summary>
-    public T LoadFromStream<T>(Stream stream, object? dataContext, BindingManager? bindingManager) where T : class, IControl
+    public T LoadFromStream<T>(Stream stream, object? dataContext, BindingManager? bindingManager) where T : FrameworkElement
     {
         var doc = XDocument.Load(stream);
         return LoadFromDocument<T>(doc, dataContext, bindingManager);
     }
 
-    private T LoadFromDocument<T>(XDocument doc, object? dataContext, BindingManager? bindingManager) where T : class, IControl
+    private T LoadFromDocument<T>(XDocument doc, object? dataContext, BindingManager? bindingManager) where T : FrameworkElement
     {
         var root = doc.Root ?? throw new InvalidOperationException("XAML document has no root element");
 
@@ -112,7 +112,7 @@ internal sealed class XamlLoader
 
             foreach (var pb in _pendingBindings)
             {
-                if (pb.Target is IControl control)
+                if (pb.Target is FrameworkElement control)
                 {
                     bindingManager.CreateBinding(
                         control,
@@ -242,9 +242,9 @@ internal sealed class XamlLoader
         }
 
         // Set Parent for resource lookup chain
-        if (instance is ControlBase controlBase && parent != null)
+        if (instance is FrameworkElement fe2 && parent != null)
         {
-            controlBase.Parent = parent;
+            fe2.Parent = parent;
         }
 
         var currentFrameworkElement = instance as FrameworkElement;
@@ -670,9 +670,9 @@ internal sealed class XamlLoader
         if (collection == null) return false;
 
         // ObservableControlCollection (Panel.Children)
-        if (collection is ObservableControlCollection occ && item is IControl control)
+        if (collection is ObservableControlCollection occ && item is UIElement uiElement)
         {
-            occ.Add(control);
+            occ.Add(uiElement);
             return true;
         }
 

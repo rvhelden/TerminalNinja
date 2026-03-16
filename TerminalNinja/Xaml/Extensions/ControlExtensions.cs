@@ -1,9 +1,10 @@
 using TerminalNinja.Controls;
+using TerminalNinja.Primitives;
 
 namespace TerminalNinja.Xaml.Extensions;
 
 /// <summary>
-/// Extension methods for IControl to support name-based lookup.
+/// Extension methods for UIElement to support name-based lookup.
 /// </summary>
 public static class ControlExtensions
 {
@@ -14,7 +15,7 @@ public static class ControlExtensions
     /// <param name="root">The root control to search from.</param>
     /// <param name="name">The name to search for (case-sensitive).</param>
     /// <returns>The found control, or null if not found.</returns>
-    public static T? FindByName<T>(this IControl root, string name) where T : class, IControl
+    public static T? FindByName<T>(this UIElement root, string name) where T : FrameworkElement
     {
         ArgumentNullException.ThrowIfNull(root);
         ArgumentException.ThrowIfNullOrWhiteSpace(name);
@@ -22,27 +23,22 @@ public static class ControlExtensions
         return FindByNameRecursive(root, name) as T;
     }
     
-    private static IControl? FindByNameRecursive(IControl control, string name)
+    private static FrameworkElement? FindByNameRecursive(UIElement control, string name)
     {
         // Check if this control matches
-        if (control.Name == name)
-            return control;
+        if (control is FrameworkElement fe && fe.Name == name)
+            return fe;
         
-        // Search children based on control type
-        switch (control)
+        // Use visual tree traversal — works for all container types
+        var dummyBounds = new Rect(0, 0, 1000, 1000);
+        var myBounds = control.CalculateBounds(dummyBounds);
+        foreach (var (child, _) in control.GetChildrenWithBounds(myBounds))
         {
-            case Rectangle rect when rect.Child != null:
-                var rectResult = FindByNameRecursive(rect.Child, name);
-                if (rectResult != null) return rectResult;
-                break;
-                
-            case StackPanel stackPanel:
-                foreach (var child in stackPanel.Children)
-                {
-                    var stackResult = FindByNameRecursive(child, name);
-                    if (stackResult != null) return stackResult;
-                }
-                break;
+            if (child is UIElement childElement)
+            {
+                var result = FindByNameRecursive(childElement, name);
+                if (result != null) return result;
+            }
         }
         
         return null;

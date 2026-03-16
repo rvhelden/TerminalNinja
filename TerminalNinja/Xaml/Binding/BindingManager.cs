@@ -11,13 +11,13 @@ namespace TerminalNinja.Xaml.Binding;
 public sealed class BindingManager : IDisposable
 {
     private readonly List<BindingExpression> _bindings = new();
-    private readonly Dictionary<IControl, object?> _elementDataContexts = new();
+    private readonly Dictionary<FrameworkElement, object?> _elementDataContexts = new();
     
     /// <summary>
     /// Creates a new binding and adds it to the manager.
     /// </summary>
     public void CreateBinding(
-        IControl target,
+        FrameworkElement target,
         string targetPropertyName,
         string sourcePath,
         BindingMode mode = BindingMode.OneWay,
@@ -52,9 +52,9 @@ public sealed class BindingManager : IDisposable
     }
     
     /// <summary>
-    /// Sets the DataContext for an control and updates all bindings that depend on it.
+    /// Sets the DataContext for a control and updates all bindings that depend on it.
     /// </summary>
-    public void SetDataContext(IControl control, object? dataContext)
+    public void SetDataContext(FrameworkElement control, object? dataContext)
     {
         ArgumentNullException.ThrowIfNull(control);
         
@@ -66,25 +66,22 @@ public sealed class BindingManager : IDisposable
     }
     
     /// <summary>
-    /// Gets the DataContext for an control (either explicit or inherited).
+    /// Gets the DataContext for a control (either explicit or inherited).
     /// </summary>
-    public object? GetDataContext(IControl control)
+    public object? GetDataContext(FrameworkElement control)
     {
         // Check explicit DataContext first
         if (_elementDataContexts.TryGetValue(control, out var explicitContext))
             return explicitContext;
         
         // Fall back to control's own DataContext (which may be inherited via GetEffectiveDataContext)
-        if (control is ControlBase elementBase)
-            return elementBase.GetEffectiveDataContext();
-        
-        return control.DataContext;
+        return control.GetEffectiveDataContext();
     }
     
     /// <summary>
     /// Updates all bindings for a specific control (reactivates them with current DataContext).
     /// </summary>
-    private void UpdateBindingsForElement(IControl control)
+    private void UpdateBindingsForElement(FrameworkElement control)
     {
         var dataContext = GetDataContext(control);
         
@@ -95,30 +92,19 @@ public sealed class BindingManager : IDisposable
     }
     
     /// <summary>
-    /// Recursively sets DataContext on a control tree.
+    /// Recursively sets DataContext on a control tree using visual tree traversal.
     /// </summary>
-    public void SetDataContextRecursive(IControl root, object? dataContext)
+    public void SetDataContextRecursive(FrameworkElement root, object? dataContext)
     {
         SetDataContext(root, dataContext);
 
-        switch (root)
+        // Use visual tree traversal — works for all container types
+        var dummyBounds = new Primitives.Rect(0, 0, 1000, 1000);
+        var myBounds = root.CalculateBounds(dummyBounds);
+        foreach (var (child, _) in root.GetChildrenWithBounds(myBounds))
         {
-            case Window window when window.Content != null:
-                SetDataContextRecursive(window.Content, dataContext);
-                break;
-
-            case Panel panel:
-                foreach (var child in panel.Children)
-                    SetDataContextRecursive(child, dataContext);
-                break;
-
-            case Rectangle rect when rect.Child != null:
-                SetDataContextRecursive(rect.Child, dataContext);
-                break;
-
-            case ItemsControl itemsControl:
-                SetDataContextRecursive(itemsControl.ItemsPanel, dataContext);
-                break;
+            if (child is FrameworkElement childFe)
+                SetDataContextRecursive(childFe, dataContext);
         }
     }
     

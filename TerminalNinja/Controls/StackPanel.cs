@@ -11,7 +11,7 @@ namespace TerminalNinja.Controls;
 /// </summary>
 [ContentProperty("Children")]
 [RuntimeNameProperty("Name")]
-public class StackPanel : Panel, IChildContainer
+public class StackPanel : Panel
 {
     /// <summary>
     /// Gets or sets the orientation (Horizontal or Vertical) of the stack.
@@ -94,6 +94,21 @@ public class StackPanel : Panel, IChildContainer
         }
     }
     
+    /// <inheritdoc />
+    public override IEnumerable<(Visual Child, Rect ChildParentBounds)> GetChildrenWithBounds(Rect myBounds)
+    {
+        var childSizes = CalculateChildSizes(myBounds);
+        var position = Orientation == Orientation.Horizontal ? myBounds.X : myBounds.Y;
+
+        for (var i = 0; i < Children.Count; i++)
+        {
+            var size = childSizes[i];
+            if (size <= 0) continue;
+            yield return (Children[i], CreateChildBounds(myBounds, position, size));
+            position += size;
+        }
+    }
+    
     /// <summary>
     /// Calculates the size for each child along the main axis.
     /// </summary>
@@ -164,21 +179,6 @@ public class StackPanel : Panel, IChildContainer
             // Vertical stack: position is Y coordinate, size is height
             // Child fills the full width of the stack
             return new Rect(stackBounds.X, position, stackBounds.Width, size);
-        }
-    }
-    
-    /// <inheritdoc />
-    public IEnumerable<(IControl Child, Rect ChildParentBounds)> GetChildrenWithBounds(Rect myBounds)
-    {
-        var childSizes = CalculateChildSizes(myBounds);
-        var position = Orientation == Orientation.Horizontal ? myBounds.X : myBounds.Y;
-
-        for (var i = 0; i < Children.Count; i++)
-        {
-            var size = childSizes[i];
-            if (size <= 0) continue;
-            yield return (Children[i], CreateChildBounds(myBounds, position, size));
-            position += size;
         }
     }
 

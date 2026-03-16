@@ -17,7 +17,7 @@ public static class TerminalXaml
     /// <returns>The loaded control.</returns>
     /// <exception cref="ArgumentNullException">Thrown when xaml is null.</exception>
     /// <exception cref="InvalidCastException">Thrown when the loaded control is not of type T.</exception>
-    public static T Load<T>(string xaml) where T : class, IControl
+    public static T Load<T>(string xaml) where T : FrameworkElement
     {
         return Load<T>(xaml, dataContext: null, bindingManager: null);
     }
@@ -30,7 +30,7 @@ public static class TerminalXaml
     /// <param name="dataContext">The data context for bindings.</param>
     /// <param name="bindingManager">Optional binding manager (creates new if null).</param>
     /// <returns>The loaded control with bindings activated.</returns>
-    public static T Load<T>(string xaml, object? dataContext, BindingManager? bindingManager = null) where T : class, IControl
+    public static T Load<T>(string xaml, object? dataContext, BindingManager? bindingManager = null) where T : FrameworkElement
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(xaml);
         
@@ -46,7 +46,7 @@ public static class TerminalXaml
     /// <param name="dataContext">The data context for bindings.</param>
     /// <param name="bindingManager">Optional binding manager (creates new if null).</param>
     /// <returns>The loaded control with bindings activated.</returns>
-    public static T LoadFromStream<T>(Stream stream, object? dataContext, BindingManager? bindingManager = null) where T : class, IControl
+    public static T LoadFromStream<T>(Stream stream, object? dataContext, BindingManager? bindingManager = null) where T : FrameworkElement
     {
         ArgumentNullException.ThrowIfNull(stream);
         

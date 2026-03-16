@@ -64,20 +64,10 @@ public sealed class Renderer : IDisposable
     }
     
     /// <summary>
-    /// Draws an control to the buffer (does not display until Present() is called).
+    /// Draws a UIElement to the buffer (does not display until Present() is called).
     /// </summary>
     /// <param name="control">The control to draw.</param>
-    public void Draw(IControl control)
-    {
-        control.Render(_buffer, Viewport);
-    }
-    
-    /// <summary>
-    /// Draws a rectangle control to the buffer (does not display until Present() is called).
-    /// </summary>
-    /// <param name="control">The rectangle control to draw.</param>
-    [Obsolete("Use Draw(IControl) instead for better flexibility")]
-    public void Draw(Rectangle control)
+    public void Draw(UIElement control)
     {
         control.Render(_buffer, Viewport);
     }

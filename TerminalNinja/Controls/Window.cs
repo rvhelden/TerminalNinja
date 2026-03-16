@@ -6,14 +6,13 @@ namespace TerminalNinja.Controls;
 
 /// <summary>
 /// A top-level container control representing a window in the terminal UI.
-/// Window is a logical container that holds Content and provides window-scoped resources.
+/// Window is a ContentControl that holds Content and provides window-scoped resources.
 /// </summary>
 [ContentProperty("Content")]
 [RuntimeNameProperty("Name")]
-public class Window : FrameworkElement, IChildContainer
+public class Window : ContentControl
 {
     private string _title = "";
-    private IControl? _content;
     
     /// <summary>
     /// Gets or sets the window title.
@@ -22,27 +21,6 @@ public class Window : FrameworkElement, IChildContainer
     {
         get => _title;
         set => SetProperty(ref _title, value);
-    }
-    
-    /// <summary>
-    /// Gets or sets the content control of the window.
-    /// The content fills the entire window area.
-    /// </summary>
-    public IControl? Content
-    {
-        get => _content;
-        set
-        {
-            if (_content != null)
-                _content.Parent = null;
-            
-            _content = value;
-            
-            if (_content != null)
-                _content.Parent = this;
-            
-            InvalidateVisual();
-        }
     }
     
     /// <summary>
@@ -89,13 +67,6 @@ public class Window : FrameworkElement, IChildContainer
         
         // Render content if present
         Content?.Render(buffer, bounds);
-    }
-    
-    /// <inheritdoc />
-    public IEnumerable<(IControl Child, Rect ChildParentBounds)> GetChildrenWithBounds(Rect myBounds)
-    {
-        if (Content != null)
-            yield return (Content, myBounds);
     }
 
     /// <summary>

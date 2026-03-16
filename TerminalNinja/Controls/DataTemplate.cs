@@ -21,20 +21,20 @@ public class DataTemplate
     /// Gets or sets the control tree that defines the visual structure.
     /// This control will be cloned for each data item.
     /// </summary>
-    public IControl? TemplateContent { get; set; }
+    public UIElement? TemplateContent { get; set; }
 
     /// <summary>
     /// Gets or sets a factory function that creates the control tree.
     /// If both TemplateContent and TemplateFactory are set, TemplateFactory takes precedence.
     /// </summary>
     [EditorBrowsable(EditorBrowsableState.Advanced)]
-    public Func<IControl>? TemplateFactory { get; set; }
+    public Func<UIElement>? TemplateFactory { get; set; }
 
     /// <summary>
     /// Creates a new instance of the control tree defined by this template.
     /// </summary>
     /// <returns>A new control instance, or null if no template is defined.</returns>
-    public IControl? CreateContent()
+    public UIElement? CreateContent()
     {
         // Factory function takes precedence
         if (TemplateFactory != null)
@@ -64,7 +64,7 @@ public class DataTemplate
     /// Creates a deep clone of a control tree using the AOT-compatible registries.
     /// Uses ControlFactoryRegistry for instance creation and PropertyAccessorRegistry for property access.
     /// </summary>
-    private static IControl? CloneControl(IControl source)
+    private static UIElement? CloneControl(UIElement source)
     {
         var sourceType = source.GetType();
 
@@ -76,7 +76,7 @@ public class DataTemplate
                 $"Ensure the type is discovered by the source generator.");
         }
 
-        if (instance is not IControl clone)
+        if (instance is not UIElement clone)
         {
             return null;
         }
@@ -100,15 +100,15 @@ public class DataTemplate
                 var value = accessor.Getter(source);
 
                 // Handle special cases
-                if (value is IControl childControl)
+                if (value is UIElement childControl)
                 {
                     // Recursively clone child controls
                     value = CloneControl(childControl);
                 }
-                else if (value is IList<IControl> childrenList)
+                else if (value is IList<UIElement> childrenList)
                 {
                     // Clone children in collections (e.g., Panel.Children)
-                    var cloneList = accessor.Getter(clone) as IList<IControl>;
+                    var cloneList = accessor.Getter(clone) as IList<UIElement>;
                     if (cloneList != null)
                     {
                         foreach (var child in childrenList)

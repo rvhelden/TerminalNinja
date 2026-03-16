@@ -11,7 +11,7 @@ namespace TerminalNinja.Controls;
 /// </summary>
 [ContentProperty("Children")]
 [RuntimeNameProperty("Name")]
-public sealed class Grid : Panel, IChildContainer
+public sealed class Grid : Panel
 {
     private readonly List<RowDefinition> _rowDefinitions = new();
     private readonly List<ColumnDefinition> _columnDefinitions = new();
@@ -157,7 +157,7 @@ public sealed class Grid : Panel, IChildContainer
     }
     
     /// <inheritdoc />
-    public IEnumerable<(IControl Child, Rect ChildParentBounds)> GetChildrenWithBounds(Rect myBounds)
+    public override IEnumerable<(Visual Child, Rect ChildParentBounds)> GetChildrenWithBounds(Rect myBounds)
     {
         if (Children.Count == 0) yield break;
 
@@ -181,7 +181,7 @@ public sealed class Grid : Panel, IChildContainer
 
     /// <summary>
     /// Calculates sizes for rows or columns based on their GridLength definitions.
-    /// Uses a three-pass algorithm: Pixel → Auto → Star.
+    /// Uses a three-pass algorithm: Pixel -> Auto -> Star.
     /// </summary>
     private static void CalculateSizes<T>(
         IList<T> definitions,

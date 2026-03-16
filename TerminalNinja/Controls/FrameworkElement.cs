@@ -1,31 +1,69 @@
 using TerminalNinja.Aot;
+using TerminalNinja.Primitives;
 using TerminalNinja.Resources;
 using TerminalNinja.Styling;
 
 namespace TerminalNinja.Controls;
 
 /// <summary>
-/// Base class for controls that support resources and styles.
-/// Extends ControlBase with ResourceDictionary and resource lookup capabilities.
+/// Base class for controls that participate in the WPF-like framework features:
+/// resources, styles, data context, name, and common layout properties.
+/// Inherits from UIElement (which provides invalidation, SetProperty, and layout abstracts).
 /// </summary>
-public abstract class FrameworkElement : ControlBase
+public abstract class FrameworkElement : UIElement
 {
     private ResourceDictionary? _resources;
     private Style? _style;
+    private string? _name;
+    private object? _dataContext;
     
     /// <summary>
-    /// Gets the resource dictionary for this control.
+    /// Gets or sets the name of this element for lookup purposes (e.g., XAML x:Name).
+    /// </summary>
+    public string? Name
+    {
+        get => _name;
+        set => SetProperty(ref _name, value, invalidate: false);
+    }
+    
+    /// <summary>
+    /// Gets or sets the data context for this element. Used as the source for data bindings.
+    /// If null, bindings will walk up the Parent chain to find an inherited DataContext.
+    /// </summary>
+    public object? DataContext
+    {
+        get => _dataContext;
+        set => SetProperty(ref _dataContext, value, invalidate: false);
+    }
+    
+    /// <summary>
+    /// Gets the effective DataContext by walking up the parent chain if needed.
+    /// </summary>
+    public object? GetEffectiveDataContext()
+    {
+        if (_dataContext != null)
+            return _dataContext;
+
+        return Parent switch
+        {
+            FrameworkElement fe => fe.GetEffectiveDataContext(),
+            _ => null
+        };
+    }
+    
+    /// <summary>
+    /// Gets the resource dictionary for this element.
     /// Resources defined here take precedence over parent resources.
     /// </summary>
     public ResourceDictionary Resources => _resources ??= new ResourceDictionary();
     
     /// <summary>
-    /// Gets or sets whether this control has any resources defined.
+    /// Gets or sets whether this element has any resources defined.
     /// </summary>
     internal bool HasResources => _resources != null && _resources.Count > 0;
     
     /// <summary>
-    /// Gets or sets the style applied to this control.
+    /// Gets or sets the style applied to this element.
     /// </summary>
     public Style? Style
     {
@@ -57,8 +95,7 @@ public abstract class FrameworkElement : ControlBase
         if (Parent is FrameworkElement parentFe)
             return parentFe.TryFindResource(key);
         
-        // 3. Check Application.Current.Resources (will be implemented later)
-        // For now, we'll add a static hook that can be set by Application
+        // 3. Check Application.Current.Resources
         return ApplicationResourceLookup?.Invoke(key);
     }
     
@@ -83,13 +120,13 @@ public abstract class FrameworkElement : ControlBase
     internal static Func<object, object?>? ApplicationResourceLookup { get; set; }
     
     /// <summary>
-    /// Applies the current style to this control by setting property values.
+    /// Applies the current style to this element by setting property values.
     /// </summary>
     protected virtual void ApplyStyle()
     {
         if (_style == null) return;
         
-        // Check if style is compatible with this control type
+        // Check if style is compatible with this element type
         if (_style.TargetType != null && !_style.TargetType.IsInstanceOfType(this))
         {
             throw new InvalidOperationException(

@@ -1,6 +1,7 @@
 using System.Text;
 using TerminalNinja.Controls;
 using TerminalNinja.Input;
+using TerminalNinja.Primitives;
 using TerminalNinja.Rendering;
 using TerminalNinja.Resources;
 
@@ -26,7 +27,7 @@ public sealed class Application : IDisposable
     private readonly FocusManager _focusManager;
     private readonly ResourceDictionary _resources = new();
     
-    private IControl? _rootControl;
+    private UIElement? _rootControl;
     private bool _running;
     private bool _invalidated = true;
     private bool _disposed;
@@ -60,7 +61,7 @@ public sealed class Application : IDisposable
     /// <summary>
     /// Gets or sets the root control to display.
     /// </summary>
-    public IControl? RootControl
+    public UIElement? RootControl
     {
         get => _rootControl;
         set
@@ -115,27 +116,20 @@ public sealed class Application : IDisposable
     }
     
     /// <summary>
-    /// Recursively wires invalidation callbacks for all elements in the tree.
+    /// Recursively wires invalidation callbacks for all elements in the visual tree
+    /// using the Visual.GetChildrenWithBounds traversal.
     /// </summary>
-    private void WireInvalidation(IControl control)
+    private void WireInvalidation(UIElement control)
     {
         control.InvalidationCallback = Invalidate;
 
-        switch (control)
+        // Use visual tree traversal — works for all container types
+        var dummyBounds = new Rect(0, 0, _renderer.Width, _renderer.Height);
+        var myBounds = control.CalculateBounds(dummyBounds);
+        foreach (var (child, _) in control.GetChildrenWithBounds(myBounds))
         {
-            case Window window when window.Content != null:
-                WireInvalidation(window.Content);
-                break;
-            case Panel panel:
-                foreach (var child in panel.Children)
-                    WireInvalidation(child);
-                break;
-            case Rectangle rect when rect.Child != null:
-                WireInvalidation(rect.Child);
-                break;
-            case ItemsControl itemsControl:
-                WireInvalidation(itemsControl.ItemsPanel);
-                break;
+            if (child is UIElement childElement)
+                WireInvalidation(childElement);
         }
     }
     
