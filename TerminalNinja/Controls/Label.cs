@@ -8,7 +8,6 @@ namespace TerminalNinja.Controls;
 /// A text label UI control with alignment, wrapping, truncation, and padding support.
 /// </summary>
 [RuntimeNameProperty("Name")]
-[Portable.Xaml.Markup.RuntimeNameProperty("Name")] // TEMPORARY: Required until Portable.Xaml is removed
 public sealed class Label : FrameworkElement
 {
     // Bindable properties (with change notification)
@@ -38,37 +37,37 @@ public sealed class Label : FrameworkElement
     
     // Layout properties (kept as init for now, can be extended later)
     /// <summary>Gets or sets the X position (absolute, relative, or stretch).</summary>
-    public Size X { get; init; } = Size.Absolute(0);
+    public Size X { get; set; } = Size.Absolute(0);
     
     /// <summary>Gets or sets the Y position (absolute, relative, or stretch).</summary>
-    public Size Y { get; init; } = Size.Absolute(0);
+    public Size Y { get; set; } = Size.Absolute(0);
     
     /// <summary>Gets or sets the horizontal alignment within the parent.</summary>
-    public Alignment HorizontalAlignment { get; init; } = Alignment.Start;
+    public Alignment HorizontalAlignment { get; set; } = Alignment.Start;
     
     /// <summary>Gets or sets the vertical alignment within the parent.</summary>
-    public Alignment VerticalAlignment { get; init; } = Alignment.Start;
+    public Alignment VerticalAlignment { get; set; } = Alignment.Start;
     
     /// <summary>Gets or sets the width (absolute, relative, or stretch).</summary>
-    public Size Width { get; init; } = Size.Stretch;
+    public Size Width { get; set; } = Size.Stretch;
     
     /// <summary>Gets or sets the height (absolute, relative, or stretch).</summary>
-    public Size Height { get; init; } = Size.Stretch;
+    public Size Height { get; set; } = Size.Stretch;
     
     /// <summary>Gets or sets the horizontal text alignment within the label bounds.</summary>
-    public TextAlignment HorizontalTextAlignment { get; init; } = TextAlignment.Start;
+    public TextAlignment HorizontalTextAlignment { get; set; } = TextAlignment.Start;
     
     /// <summary>Gets or sets the vertical text alignment within the label bounds.</summary>
-    public TextAlignment VerticalTextAlignment { get; init; } = TextAlignment.Start;
+    public TextAlignment VerticalTextAlignment { get; set; } = TextAlignment.Start;
     
     /// <summary>Gets or sets how text wraps when it exceeds the available width.</summary>
-    public TextWrapping TextWrapping { get; init; } = TextWrapping.NoWrap;
+    public TextWrapping TextWrapping { get; set; } = TextWrapping.NoWrap;
     
     /// <summary>Gets or sets how text is trimmed when it exceeds the available space.</summary>
-    public TextTrimming TextTrimming { get; init; } = TextTrimming.None;
+    public TextTrimming TextTrimming { get; set; } = TextTrimming.None;
     
     /// <summary>Gets or sets the internal padding around the text.</summary>
-    public Thickness Padding { get; init; } = new Thickness(0);
+    public Thickness Padding { get; set; } = new Thickness(0);
     
     /// <summary>
     /// Returns the preferred size of this label based on text length and padding.

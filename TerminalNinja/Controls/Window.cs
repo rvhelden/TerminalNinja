@@ -9,9 +9,7 @@ namespace TerminalNinja.Controls;
 /// Window is a logical container that holds Content and provides window-scoped resources.
 /// </summary>
 [ContentProperty("Content")]
-[Portable.Xaml.Markup.ContentProperty("Content")] // TEMPORARY: Required until Portable.Xaml is removed
 [RuntimeNameProperty("Name")]
-[Portable.Xaml.Markup.RuntimeNameProperty("Name")] // TEMPORARY: Required until Portable.Xaml is removed
 public class Window : FrameworkElement, IChildContainer
 {
     private string _title = "";

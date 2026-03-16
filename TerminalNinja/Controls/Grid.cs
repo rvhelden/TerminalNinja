@@ -10,9 +10,7 @@ namespace TerminalNinja.Controls;
 /// Supports attached properties Grid.Row, Grid.Column, Grid.RowSpan, and Grid.ColumnSpan.
 /// </summary>
 [ContentProperty("Children")]
-[Portable.Xaml.Markup.ContentProperty("Children")] // TEMPORARY: Required until Portable.Xaml is removed
 [RuntimeNameProperty("Name")]
-[Portable.Xaml.Markup.RuntimeNameProperty("Name")] // TEMPORARY: Required until Portable.Xaml is removed
 public sealed class Grid : Panel, IChildContainer
 {
     private readonly List<RowDefinition> _rowDefinitions = new();

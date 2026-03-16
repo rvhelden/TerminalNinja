@@ -9,7 +9,6 @@ namespace TerminalNinja.Controls;
 /// Used primarily with ItemsControl to define how data items should be rendered.
 /// </summary>
 [ContentProperty("TemplateContent")]
-[Portable.Xaml.Markup.ContentProperty("TemplateContent")] // TEMPORARY: Required until Portable.Xaml is removed
 public class DataTemplate
 {
     /// <summary>

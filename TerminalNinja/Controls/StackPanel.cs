@@ -10,9 +10,7 @@ namespace TerminalNinja.Controls;
 /// Children can be sized using StackPanel.SizeMode and StackPanel.FixedSize attached properties.
 /// </summary>
 [ContentProperty("Children")]
-[Portable.Xaml.Markup.ContentProperty("Children")] // TEMPORARY: Required until Portable.Xaml is removed
 [RuntimeNameProperty("Name")]
-[Portable.Xaml.Markup.RuntimeNameProperty("Name")] // TEMPORARY: Required until Portable.Xaml is removed
 public class StackPanel : Panel, IChildContainer
 {
     /// <summary>

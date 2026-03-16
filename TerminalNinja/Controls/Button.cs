@@ -11,7 +11,6 @@ namespace TerminalNinja.Controls;
 /// An interactive button control that responds to focus, hover, and click events.
 /// </summary>
 [RuntimeNameProperty("Name")]
-[Portable.Xaml.Markup.RuntimeNameProperty("Name")] // TEMPORARY: Required until Portable.Xaml is removed
 public sealed class Button : FrameworkElement, IFocusable
 {
     // Bindable properties (with change notification)
@@ -93,29 +92,29 @@ public sealed class Button : FrameworkElement, IFocusable
     
     // Layout properties (kept as init for now)
     /// <summary>Gets or sets the X position (absolute, relative, or stretch).</summary>
-    public Size X { get; init; } = Size.Absolute(0);
+    public Size X { get; set; } = Size.Absolute(0);
     
     /// <summary>Gets or sets the Y position (absolute, relative, or stretch).</summary>
-    public Size Y { get; init; } = Size.Absolute(0);
+    public Size Y { get; set; } = Size.Absolute(0);
     
     /// <summary>Gets or sets the horizontal alignment within the parent.</summary>
-    public Alignment HorizontalAlignment { get; init; } = Alignment.Start;
+    public Alignment HorizontalAlignment { get; set; } = Alignment.Start;
     
     /// <summary>Gets or sets the vertical alignment within the parent.</summary>
-    public Alignment VerticalAlignment { get; init; } = Alignment.Start;
+    public Alignment VerticalAlignment { get; set; } = Alignment.Start;
     
     /// <summary>Gets or sets the width (absolute, relative, or stretch).</summary>
-    public Size Width { get; init; } = Size.Absolute(10);
+    public Size Width { get; set; } = Size.Absolute(10);
     
     /// <summary>Gets or sets the height (absolute, relative, or stretch).</summary>
-    public Size Height { get; init; } = Size.Absolute(3);
+    public Size Height { get; set; } = Size.Absolute(3);
     
     // IFocusable properties
     /// <summary>Gets or sets the tab order index.</summary>
-    public int TabIndex { get; init; }
+    public int TabIndex { get; set; }
     
     /// <summary>Gets or sets whether this button can receive focus.</summary>
-    public bool CanFocus { get; init; } = true;
+    public bool CanFocus { get; set; } = true;
     
     /// <summary>Gets or sets whether this button currently has focus (managed by FocusManager).</summary>
     public bool IsFocused { get; set; }

@@ -9,7 +9,6 @@ namespace TerminalNinja.Controls;
 /// Provides a Children collection and common panel functionality.
 /// </summary>
 [ContentProperty("Children")]
-[Portable.Xaml.Markup.ContentProperty("Children")] // TEMPORARY: Required until Portable.Xaml is removed
 public abstract class Panel : FrameworkElement
 {
     private readonly ObservableControlCollection _children;

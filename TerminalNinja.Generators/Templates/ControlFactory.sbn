@@ -16,6 +16,7 @@ internal static class GeneratedControlFactories
     {
         {{~ for type in types ~}}
         ControlFactoryRegistry.Register(typeof({{ type.full_name }}), static () => new {{ type.full_name }}());
+        TypeNameRegistry.Register(typeof({{ type.full_name }}));
         {{~ end ~}}
     }
 }

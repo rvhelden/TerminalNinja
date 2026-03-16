@@ -6,14 +6,11 @@
     <Nullable>enable</Nullable>
     <LangVersion>13</LangVersion>
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <IsAotCompatible>true</IsAotCompatible>
   </PropertyGroup>
 
   <ItemGroup>
     <InternalsVisibleTo Include="TerminalNinja.Tests" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <PackageReference Include="Portable.Xaml" Version="0.26.0" />
   </ItemGroup>
 
   <ItemGroup>

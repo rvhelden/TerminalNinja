@@ -31,6 +31,12 @@ public sealed class ControlFactoryGenerator : IIncrementalGenerator
         "Setter"
     };
 
+    /// <summary>
+    /// Additional interface names (beyond IControl) whose implementors need factories
+    /// because they can be instantiated from XAML as resources.
+    /// </summary>
+    private static readonly string[] AdditionalFactoryInterfaces = { "IValueConverter" };
+
     public void Initialize(IncrementalGeneratorInitializationContext context)
     {
         // Collect all class declarations that are candidate factory types
@@ -63,6 +69,16 @@ public sealed class ControlFactoryGenerator : IIncrementalGenerator
         // Check if it's one of the additional types needed for XAML
         if (AdditionalFactoryTypes.Contains(symbol.Name))
             return symbol;
+
+        // Check if it implements one of the additional factory interfaces (e.g., IValueConverter)
+        foreach (var iface in symbol.AllInterfaces)
+        {
+            foreach (var name in AdditionalFactoryInterfaces)
+            {
+                if (iface.Name == name)
+                    return symbol;
+            }
+        }
 
         return null;
     }

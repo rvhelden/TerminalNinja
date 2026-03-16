@@ -7,7 +7,6 @@ namespace TerminalNinja.Styling;
 /// Contains a collection of setters that set property values.
 /// </summary>
 [ContentProperty("Setters")]
-[Portable.Xaml.Markup.ContentProperty("Setters")] // TEMPORARY: Required until Portable.Xaml is removed
 public class Style
 {
     /// <summary>

@@ -1,4 +1,5 @@
 using System.ComponentModel;
+using System.Diagnostics.CodeAnalysis;
 using TerminalNinja.Aot;
 using TerminalNinja.Xaml.Data;
 
@@ -154,7 +155,7 @@ internal sealed class BindingExpression : IDisposable
     private static object? ConvertValueDefault(object? value, Type targetType)
     {
         if (value == null)
-            return targetType.IsValueType ? Activator.CreateInstance(targetType) : null;
+            return targetType.IsValueType ? GetDefaultValue(targetType) : null;
         
         var valueType = value.GetType();
         
@@ -175,8 +176,33 @@ internal sealed class BindingExpression : IDisposable
         catch
         {
             // Conversion failed - return default value
-            return targetType.IsValueType ? Activator.CreateInstance(targetType) : null;
+            return targetType.IsValueType ? GetDefaultValue(targetType) : null;
         }
+    }
+
+    /// <summary>
+    /// Gets the default value for a value type without using Activator.CreateInstance.
+    /// AOT-safe: covers all primitive types used in the binding system.
+    /// </summary>
+    [UnconditionalSuppressMessage("AOT", "IL2067",
+        Justification = "All common value types are handled explicitly above. " +
+                         "Remaining value types (Color, Thickness, Size, GridLength, etc.) are struct types " +
+                         "with parameterless constructors preserved by PropertyAccessorRegistry registrations.")]
+    private static object GetDefaultValue(Type valueType)
+    {
+        // Common value types — avoid any overhead
+        if (valueType == typeof(int)) return 0;
+        if (valueType == typeof(bool)) return false;
+        if (valueType == typeof(double)) return 0.0;
+        if (valueType == typeof(float)) return 0.0f;
+        if (valueType == typeof(long)) return 0L;
+        if (valueType == typeof(byte)) return (byte)0;
+        if (valueType == typeof(char)) return '\0';
+
+        // For struct types in our system (Color, Thickness, Size, GridLength, etc.),
+        // Activator.CreateInstance returns the zero-initialized struct.
+        // These types are preserved by PropertyAccessorRegistry registrations.
+        return Activator.CreateInstance(valueType)!;
     }
     
     /// <summary>

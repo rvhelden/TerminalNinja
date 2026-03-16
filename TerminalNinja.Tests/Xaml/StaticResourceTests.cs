@@ -1,84 +1,12 @@
-using TerminalNinja.Xaml.Markup;
-
 namespace TerminalNinja.Tests.Xaml;
 
 /// <summary>
-/// Tests for StaticResourceExtension covering:
-/// - Resource key validation
-/// - Pending lookup registration
+/// Tests for static resource lookup covering:
 /// - Resource resolution from control tree
 /// - Integration with FrameworkElement.TryFindResource
 /// </summary>
-public class StaticResourceExtensionTests
+public class StaticResourceTests
 {
-    #region Constructor and Properties
-
-    [Test]
-    public async Task Constructor_Default_ResourceKeyIsNull()
-    {
-        // Arrange & Act
-        var extension = new StaticResourceExtension();
-        
-        // Assert
-        await Assert.That(extension.ResourceKey).IsNull();
-    }
-
-    [Test]
-    public async Task Constructor_WithResourceKey_SetsResourceKey()
-    {
-        // Arrange & Act
-        var extension = new StaticResourceExtension("MyKey");
-        
-        // Assert
-        await Assert.That(extension.ResourceKey).IsEqualTo("MyKey");
-    }
-
-    [Test]
-    public async Task ResourceKey_SetValue_UpdatesProperty()
-    {
-        // Arrange
-        var extension = new StaticResourceExtension();
-        
-        // Act
-        extension.ResourceKey = "AnotherKey";
-        
-        // Assert
-        await Assert.That(extension.ResourceKey).IsEqualTo("AnotherKey");
-    }
-
-    #endregion
-
-    #region GetAndClearPendingLookups
-
-    [Test]
-    public async Task GetAndClearPendingLookups_NoPendingLookups_ReturnsEmptyList()
-    {
-        // Arrange - Clear any existing lookups first
-        StaticResourceExtension.GetAndClearPendingLookups();
-        
-        // Act
-        var lookups = StaticResourceExtension.GetAndClearPendingLookups();
-        
-        // Assert
-        await Assert.That(lookups.Count).IsEqualTo(0);
-    }
-
-    [Test]
-    public async Task GetAndClearPendingLookups_ClearsLookups()
-    {
-        // Arrange - Clear any existing lookups first
-        StaticResourceExtension.GetAndClearPendingLookups();
-        
-        // Act
-        var firstCall = StaticResourceExtension.GetAndClearPendingLookups();
-        var secondCall = StaticResourceExtension.GetAndClearPendingLookups();
-        
-        // Assert
-        await Assert.That(secondCall.Count).IsEqualTo(0);
-    }
-
-    #endregion
-
     #region Resource Lookup Integration
 
     [Test]

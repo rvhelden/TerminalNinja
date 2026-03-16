@@ -11,9 +11,7 @@ namespace TerminalNinja.Controls;
 /// A rectangle UI control with positioning, sizing, borders, and background color.
 /// </summary>
 [ContentProperty("Child")]
-[Portable.Xaml.Markup.ContentProperty("Child")] // TEMPORARY: Required until Portable.Xaml is removed
 [RuntimeNameProperty("Name")]
-[Portable.Xaml.Markup.RuntimeNameProperty("Name")] // TEMPORARY: Required until Portable.Xaml is removed
 public sealed class Rectangle : FrameworkElement, IChildContainer
 {
     // Bindable properties (with change notification)

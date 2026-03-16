@@ -115,9 +115,9 @@ public abstract class FrameworkElement : ControlBase
             var value = setter.Value;
             if (value != null && !accessor.PropertyType.IsInstanceOfType(value))
             {
-                // Try to use TypeConverter
-                var converter = System.ComponentModel.TypeDescriptor.GetConverter(accessor.PropertyType);
-                if (converter.CanConvertFrom(value.GetType()))
+                // Try to use TypeConverterRegistry (AOT-safe)
+                var converter = TypeConverterRegistry.GetConverterOrEnum(accessor.PropertyType);
+                if (converter != null && converter.CanConvertFrom(value.GetType()))
                 {
                     value = converter.ConvertFrom(value);
                 }

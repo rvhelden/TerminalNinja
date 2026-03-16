@@ -11,7 +11,6 @@ namespace TerminalNinja.Controls;
 /// Supports data binding with ItemsSource and visual customization with ItemTemplate.
 /// </summary>
 [ContentProperty("Items")]
-[Portable.Xaml.Markup.ContentProperty("Items")] // TEMPORARY: Required until Portable.Xaml is removed
 public class ItemsControl : FrameworkElement, IChildContainer
 {
     private readonly List<object> _items = new();
