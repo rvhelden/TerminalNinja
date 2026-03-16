@@ -11,51 +11,117 @@ namespace TerminalNinja.Controls;
 [RuntimeNameProperty("Name")]
 public sealed class TextBlock : FrameworkElement
 {
-    // Bindable properties (with change notification)
-    private string _text = "";
+    // ─── Dependency Properties ───────────────────────────────────────
+
+    public static readonly DependencyProperty TextProperty =
+        DependencyProperty.Register(nameof(Text), typeof(string), typeof(TextBlock),
+            new FrameworkPropertyMetadata("", affectsRender: true));
+
+    public static readonly DependencyProperty ForegroundProperty =
+        DependencyProperty.Register(nameof(Foreground), typeof(Color), typeof(TextBlock),
+            new FrameworkPropertyMetadata(Color.White, affectsRender: true));
+
+    public static readonly DependencyProperty BackgroundProperty =
+        DependencyProperty.Register(nameof(Background), typeof(Color), typeof(TextBlock),
+            new FrameworkPropertyMetadata(Color.Transparent, affectsRender: true));
+
+    public static readonly DependencyProperty WidthProperty =
+        DependencyProperty.Register(nameof(Width), typeof(Size), typeof(TextBlock),
+            new FrameworkPropertyMetadata(Size.Stretch, affectsRender: true));
+
+    public static readonly DependencyProperty HeightProperty =
+        DependencyProperty.Register(nameof(Height), typeof(Size), typeof(TextBlock),
+            new FrameworkPropertyMetadata(Size.Stretch, affectsRender: true));
+
+    public static readonly DependencyProperty HorizontalTextAlignmentProperty =
+        DependencyProperty.Register(nameof(HorizontalTextAlignment), typeof(TextAlignment), typeof(TextBlock),
+            new FrameworkPropertyMetadata(TextAlignment.Start, affectsRender: true));
+
+    public static readonly DependencyProperty VerticalTextAlignmentProperty =
+        DependencyProperty.Register(nameof(VerticalTextAlignment), typeof(TextAlignment), typeof(TextBlock),
+            new FrameworkPropertyMetadata(TextAlignment.Start, affectsRender: true));
+
+    public static readonly DependencyProperty TextWrappingProperty =
+        DependencyProperty.Register(nameof(TextWrapping), typeof(TextWrapping), typeof(TextBlock),
+            new FrameworkPropertyMetadata(TextWrapping.NoWrap, affectsRender: true));
+
+    public static readonly DependencyProperty TextTrimmingProperty =
+        DependencyProperty.Register(nameof(TextTrimming), typeof(TextTrimming), typeof(TextBlock),
+            new FrameworkPropertyMetadata(TextTrimming.None, affectsRender: true));
+
+    public static readonly DependencyProperty PaddingProperty =
+        DependencyProperty.Register(nameof(Padding), typeof(Thickness), typeof(TextBlock),
+            new FrameworkPropertyMetadata(new Thickness(0), affectsRender: true));
+
     /// <summary>Gets or sets the text content to display.</summary>
     public string Text
     {
-        get => _text;
-        set => SetProperty(ref _text, value);
+        get => (string)GetValue(TextProperty)!;
+        set => SetValue(TextProperty, value);
     }
     
-    private Color _foreground = Color.White;
     /// <summary>Gets or sets the foreground (text) color.</summary>
     public Color Foreground
     {
-        get => _foreground;
-        set => SetProperty(ref _foreground, value);
+        get => (Color)GetValue(ForegroundProperty)!;
+        set => SetValue(ForegroundProperty, value);
     }
     
-    private Color _background = Color.Transparent;
     /// <summary>Gets or sets the background color. Defaults to Transparent so the text block does not paint over its parent's background.</summary>
     public Color Background
     {
-        get => _background;
-        set => SetProperty(ref _background, value);
+        get => (Color)GetValue(BackgroundProperty)!;
+        set => SetValue(BackgroundProperty, value);
     }
     
     /// <summary>Gets or sets the width (absolute, relative, or stretch).</summary>
-    public Size Width { get; set; } = Size.Stretch;
+    public Size Width
+    {
+        get => (Size)GetValue(WidthProperty)!;
+        set => SetValue(WidthProperty, value);
+    }
     
     /// <summary>Gets or sets the height (absolute, relative, or stretch).</summary>
-    public Size Height { get; set; } = Size.Stretch;
+    public Size Height
+    {
+        get => (Size)GetValue(HeightProperty)!;
+        set => SetValue(HeightProperty, value);
+    }
     
     /// <summary>Gets or sets the horizontal text alignment within the text block bounds.</summary>
-    public TextAlignment HorizontalTextAlignment { get; set; } = TextAlignment.Start;
+    public TextAlignment HorizontalTextAlignment
+    {
+        get => (TextAlignment)GetValue(HorizontalTextAlignmentProperty)!;
+        set => SetValue(HorizontalTextAlignmentProperty, value);
+    }
     
     /// <summary>Gets or sets the vertical text alignment within the text block bounds.</summary>
-    public TextAlignment VerticalTextAlignment { get; set; } = TextAlignment.Start;
+    public TextAlignment VerticalTextAlignment
+    {
+        get => (TextAlignment)GetValue(VerticalTextAlignmentProperty)!;
+        set => SetValue(VerticalTextAlignmentProperty, value);
+    }
     
     /// <summary>Gets or sets how text wraps when it exceeds the available width.</summary>
-    public TextWrapping TextWrapping { get; set; } = TextWrapping.NoWrap;
+    public TextWrapping TextWrapping
+    {
+        get => (TextWrapping)GetValue(TextWrappingProperty)!;
+        set => SetValue(TextWrappingProperty, value);
+    }
     
     /// <summary>Gets or sets how text is trimmed when it exceeds the available space.</summary>
-    public TextTrimming TextTrimming { get; set; } = TextTrimming.None;
+    public TextTrimming TextTrimming
+    {
+        get => (TextTrimming)GetValue(TextTrimmingProperty)!;
+        set => SetValue(TextTrimmingProperty, value);
+    }
     
     /// <summary>Gets or sets the internal padding around the text.</summary>
-    public Thickness Padding { get; set; } = new Thickness(0);
+    public Thickness Padding
+    {
+        get => (Thickness)GetValue(PaddingProperty)!;
+        set => SetValue(PaddingProperty, value);
+    }
     
     /// <summary>
     /// Returns the preferred size of this text block based on text length and padding.

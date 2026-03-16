@@ -13,10 +13,43 @@ namespace TerminalNinja.Controls;
 [ContentProperty("Items")]
 public class ItemsControl : Control
 {
+    // ─── Dependency Properties ───────────────────────────────────────
+
+    public static readonly DependencyProperty ItemsSourceProperty =
+        DependencyProperty.Register(nameof(ItemsSource), typeof(IEnumerable), typeof(ItemsControl),
+            new FrameworkPropertyMetadata((object?)null, affectsRender: true,
+                propertyChangedCallback: OnItemsSourceChanged));
+
+    public static readonly DependencyProperty ItemTemplateProperty =
+        DependencyProperty.Register(nameof(ItemTemplate), typeof(DataTemplate), typeof(ItemsControl),
+            new FrameworkPropertyMetadata((object?)null, affectsRender: true,
+                propertyChangedCallback: (d, _) => ((ItemsControl)d).RefreshItems()));
+
+    public static readonly DependencyProperty ItemsPanelProperty =
+        DependencyProperty.Register(nameof(ItemsPanel), typeof(Panel), typeof(ItemsControl),
+            new FrameworkPropertyMetadata((object?)null, affectsRender: true,
+                propertyChangedCallback: (d, _) => ((ItemsControl)d).RefreshItems()));
+
+    private static void OnItemsSourceChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
+    {
+        var control = (ItemsControl)d;
+
+        // Unsubscribe from old collection
+        if (e.OldValue is INotifyCollectionChanged oldObservable)
+        {
+            oldObservable.CollectionChanged -= control.OnCollectionChanged;
+        }
+
+        // Subscribe to new collection
+        if (e.NewValue is INotifyCollectionChanged newObservable)
+        {
+            newObservable.CollectionChanged += control.OnCollectionChanged;
+        }
+
+        control.RefreshItems();
+    }
+
     private readonly List<object> _items = new();
-    private IEnumerable? _itemsSource;
-    private DataTemplate? _itemTemplate;
-    private Panel? _itemsPanel;
     private readonly Dictionary<object, UIElement> _itemContainers = new();
 
     /// <summary>
@@ -32,29 +65,8 @@ public class ItemsControl : Control
     /// </summary>
     public IEnumerable? ItemsSource
     {
-        get => _itemsSource;
-        set
-        {
-            if (_itemsSource == value)
-                return;
-
-            // Unsubscribe from old collection
-            if (_itemsSource is INotifyCollectionChanged oldObservable)
-            {
-                oldObservable.CollectionChanged -= OnCollectionChanged;
-            }
-
-            _itemsSource = value;
-
-            // Subscribe to new collection
-            if (_itemsSource is INotifyCollectionChanged newObservable)
-            {
-                newObservable.CollectionChanged += OnCollectionChanged;
-            }
-
-            OnPropertyChanged();
-            RefreshItems();
-        }
+        get => (IEnumerable?)GetValue(ItemsSourceProperty);
+        set => SetValue(ItemsSourceProperty, value);
     }
 
     /// <summary>
@@ -62,16 +74,8 @@ public class ItemsControl : Control
     /// </summary>
     public DataTemplate? ItemTemplate
     {
-        get => _itemTemplate;
-        set
-        {
-            if (_itemTemplate == value)
-                return;
-
-            _itemTemplate = value;
-            OnPropertyChanged();
-            RefreshItems();
-        }
+        get => (DataTemplate?)GetValue(ItemTemplateProperty);
+        set => SetValue(ItemTemplateProperty, value);
     }
 
     /// <summary>
@@ -80,16 +84,17 @@ public class ItemsControl : Control
     /// </summary>
     public Panel ItemsPanel
     {
-        get => _itemsPanel ??= new StackPanel { Orientation = Orientation.Vertical };
-        set
+        get
         {
-            if (_itemsPanel == value)
-                return;
-
-            _itemsPanel = value;
-            OnPropertyChanged();
-            RefreshItems();
+            var panel = (Panel?)GetValue(ItemsPanelProperty);
+            if (panel == null)
+            {
+                panel = new StackPanel { Orientation = Orientation.Vertical };
+                SetValue(ItemsPanelProperty, panel);
+            }
+            return panel;
         }
+        set => SetValue(ItemsPanelProperty, value);
     }
 
     /// <inheritdoc />

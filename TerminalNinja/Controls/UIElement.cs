@@ -1,4 +1,3 @@
-using System.Runtime.CompilerServices;
 using TerminalNinja.Buffers;
 using TerminalNinja.Input;
 using TerminalNinja.Primitives;
@@ -12,16 +11,35 @@ namespace TerminalNinja.Controls;
 /// </summary>
 public abstract class UIElement : Visual
 {
-    private Visibility _visibility = Visibility.Visible;
-    private bool _isEnabled = true;
+    // ─── Dependency Properties ───────────────────────────────────────
+
+    public static readonly DependencyProperty VisibilityProperty =
+        DependencyProperty.Register(nameof(Visibility), typeof(Visibility), typeof(UIElement),
+            new FrameworkPropertyMetadata(Visibility.Visible, affectsRender: true));
+
+    public static readonly DependencyProperty IsEnabledProperty =
+        DependencyProperty.Register(nameof(IsEnabled), typeof(bool), typeof(UIElement),
+            new FrameworkPropertyMetadata(true, affectsRender: true));
+
+    public static readonly DependencyProperty FocusableProperty =
+        DependencyProperty.Register(nameof(Focusable), typeof(bool), typeof(UIElement),
+            new PropertyMetadata(false));
+
+    public static readonly DependencyProperty IsFocusedProperty =
+        DependencyProperty.Register(nameof(IsFocused), typeof(bool), typeof(UIElement),
+            new PropertyMetadata(false));
+
+    public static readonly DependencyProperty IsMouseOverProperty =
+        DependencyProperty.Register(nameof(IsMouseOver), typeof(bool), typeof(UIElement),
+            new PropertyMetadata(false));
 
     /// <summary>
     /// Gets or sets the visibility of this element.
     /// </summary>
     public Visibility Visibility
     {
-        get => _visibility;
-        set => SetProperty(ref _visibility, value);
+        get => (Visibility)GetValue(VisibilityProperty)!;
+        set => SetValue(VisibilityProperty, value);
     }
 
     /// <summary>
@@ -29,8 +47,8 @@ public abstract class UIElement : Visual
     /// </summary>
     public bool IsEnabled
     {
-        get => _isEnabled;
-        set => SetProperty(ref _isEnabled, value);
+        get => (bool)GetValue(IsEnabledProperty)!;
+        set => SetValue(IsEnabledProperty, value);
     }
 
     // ─── Focus ───────────────────────────────────────────────────────
@@ -40,19 +58,31 @@ public abstract class UIElement : Visual
     /// In WPF this lives on UIElement. Default is <c>false</c>;
     /// <see cref="Control"/> overrides the default to <c>true</c>.
     /// </summary>
-    public bool Focusable { get; set; }
+    public bool Focusable
+    {
+        get => (bool)GetValue(FocusableProperty)!;
+        set => SetValue(FocusableProperty, value);
+    }
 
     /// <summary>
     /// Gets or sets whether this element currently has keyboard focus.
     /// Managed by <see cref="FocusManager"/> — controls should not set this directly.
     /// </summary>
-    public bool IsFocused { get; set; }
+    public bool IsFocused
+    {
+        get => (bool)GetValue(IsFocusedProperty)!;
+        set => SetValue(IsFocusedProperty, value);
+    }
 
     /// <summary>
     /// Gets or sets whether the mouse is currently over this element.
     /// Managed by <see cref="FocusManager"/> — controls should not set this directly.
     /// </summary>
-    public bool IsMouseOver { get; set; }
+    public bool IsMouseOver
+    {
+        get => (bool)GetValue(IsMouseOverProperty)!;
+        set => SetValue(IsMouseOverProperty, value);
+    }
 
     // ─── Input event callbacks ───────────────────────────────────────
 
@@ -113,33 +143,6 @@ public abstract class UIElement : Visual
 
     /// <inheritdoc />
     protected override void OnPropertyAffectsRender(DependencyProperty dp) => InvalidateVisual();
-
-    /// <summary>
-    /// Sets a CLR-backed property value and raises PropertyChanged if the value changed.
-    /// For dependency properties use <see cref="DependencyObject.SetValue"/> instead.
-    /// </summary>
-    /// <param name="field">Reference to the backing field.</param>
-    /// <param name="value">The new value.</param>
-    /// <param name="invalidate">Whether to trigger visual invalidation (default: true).</param>
-    /// <param name="propertyName">The property name (automatically captured).</param>
-    /// <returns>True if the value changed; otherwise, false.</returns>
-    protected bool SetProperty<T>(
-        ref T field,
-        T value,
-        bool invalidate = true,
-        [CallerMemberName] string? propertyName = null)
-    {
-        if (EqualityComparer<T>.Default.Equals(field, value))
-            return false;
-
-        field = value;
-        OnPropertyChanged(propertyName!);
-
-        if (invalidate)
-            InvalidateVisual();
-
-        return true;
-    }
 
     // ─── Abstract layout / rendering ─────────────────────────────────
 

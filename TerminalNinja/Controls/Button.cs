@@ -12,37 +12,62 @@ namespace TerminalNinja.Controls;
 [RuntimeNameProperty("Name")]
 public sealed class Button : ButtonBase
 {
-    // Bindable properties (with change notification)
-    private string _text = "";
+    // ─── Dependency Properties ───────────────────────────────────────
+
+    public static readonly DependencyProperty TextProperty =
+        DependencyProperty.Register(nameof(Text), typeof(string), typeof(Button),
+            new FrameworkPropertyMetadata("", affectsRender: true));
+
+    public static readonly DependencyProperty FocusColorProperty =
+        DependencyProperty.Register(nameof(FocusColor), typeof(Color), typeof(Button),
+            new FrameworkPropertyMetadata(Color.Cyan, affectsRender: true));
+
+    public static readonly DependencyProperty HoverColorProperty =
+        DependencyProperty.Register(nameof(HoverColor), typeof(Color), typeof(Button),
+            new FrameworkPropertyMetadata(Color.Yellow, affectsRender: true));
+
+    public static readonly DependencyProperty WidthProperty =
+        DependencyProperty.Register(nameof(Width), typeof(Size), typeof(Button),
+            new FrameworkPropertyMetadata(Size.Absolute(10), affectsRender: true));
+
+    public static readonly DependencyProperty HeightProperty =
+        DependencyProperty.Register(nameof(Height), typeof(Size), typeof(Button),
+            new FrameworkPropertyMetadata(Size.Absolute(3), affectsRender: true));
+
     /// <summary>Gets or sets the button label text.</summary>
     public string Text
     {
-        get => _text;
-        set => SetProperty(ref _text, value);
+        get => (string)GetValue(TextProperty)!;
+        set => SetValue(TextProperty, value);
     }
     
-    private Color _focusColor = Color.Cyan;
     /// <summary>Gets or sets the focus border color.</summary>
     public Color FocusColor
     {
-        get => _focusColor;
-        set => SetProperty(ref _focusColor, value);
+        get => (Color)GetValue(FocusColorProperty)!;
+        set => SetValue(FocusColorProperty, value);
     }
     
-    private Color _hoverColor = Color.Yellow;
     /// <summary>Gets or sets the hover border color.</summary>
     public Color HoverColor
     {
-        get => _hoverColor;
-        set => SetProperty(ref _hoverColor, value);
+        get => (Color)GetValue(HoverColorProperty)!;
+        set => SetValue(HoverColorProperty, value);
     }
     
-    // Layout properties
     /// <summary>Gets or sets the width (absolute, relative, or stretch).</summary>
-    public Size Width { get; set; } = Size.Absolute(10);
+    public Size Width
+    {
+        get => (Size)GetValue(WidthProperty)!;
+        set => SetValue(WidthProperty, value);
+    }
     
     /// <summary>Gets or sets the height (absolute, relative, or stretch).</summary>
-    public Size Height { get; set; } = Size.Absolute(3);
+    public Size Height
+    {
+        get => (Size)GetValue(HeightProperty)!;
+        set => SetValue(HeightProperty, value);
+    }
     
     /// <summary>
     /// Returns the preferred size of this button based on text length.

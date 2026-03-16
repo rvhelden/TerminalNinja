@@ -9,6 +9,32 @@ namespace TerminalNinja.Controls;
 /// </summary>
 public abstract class Control : FrameworkElement
 {
+    // ─── Dependency Properties ───────────────────────────────────────
+
+    public static readonly DependencyProperty BackgroundProperty =
+        DependencyProperty.Register(nameof(Background), typeof(Color), typeof(Control),
+            new FrameworkPropertyMetadata(Color.Black, affectsRender: true));
+
+    public static readonly DependencyProperty ForegroundProperty =
+        DependencyProperty.Register(nameof(Foreground), typeof(Color), typeof(Control),
+            new FrameworkPropertyMetadata(Color.White, affectsRender: true));
+
+    public static readonly DependencyProperty PaddingProperty =
+        DependencyProperty.Register(nameof(Padding), typeof(Thickness), typeof(Control),
+            new FrameworkPropertyMetadata(new Thickness(0), affectsRender: true));
+
+    public static readonly DependencyProperty BorderStyleProperty =
+        DependencyProperty.Register(nameof(BorderStyle), typeof(BorderStyle), typeof(Control),
+            new FrameworkPropertyMetadata(BorderStyle.None, affectsRender: true));
+
+    public static readonly DependencyProperty TabIndexProperty =
+        DependencyProperty.Register(nameof(TabIndex), typeof(int), typeof(Control),
+            new PropertyMetadata(0));
+
+    public static readonly DependencyProperty TemplateProperty =
+        DependencyProperty.Register(nameof(Template), typeof(object), typeof(Control),
+            new PropertyMetadata((object?)null));
+
     /// <summary>
     /// Initializes a new instance of the <see cref="Control"/> class.
     /// Sets <see cref="UIElement.Focusable"/> to <c>true</c> by default (WPF convention).
@@ -18,46 +44,50 @@ public abstract class Control : FrameworkElement
         Focusable = true;
     }
 
-    private Color _background = Color.Black;
     /// <summary>Gets or sets the background color.</summary>
     public Color Background
     {
-        get => _background;
-        set => SetProperty(ref _background, value);
+        get => (Color)GetValue(BackgroundProperty)!;
+        set => SetValue(BackgroundProperty, value);
     }
 
-    private Color _foreground = Color.White;
     /// <summary>Gets or sets the foreground (text) color.</summary>
     public Color Foreground
     {
-        get => _foreground;
-        set => SetProperty(ref _foreground, value);
+        get => (Color)GetValue(ForegroundProperty)!;
+        set => SetValue(ForegroundProperty, value);
     }
 
-    private Thickness _padding = new(0);
     /// <summary>Gets or sets the internal padding.</summary>
     public Thickness Padding
     {
-        get => _padding;
-        set => SetProperty(ref _padding, value);
+        get => (Thickness)GetValue(PaddingProperty)!;
+        set => SetValue(PaddingProperty, value);
     }
 
-    private BorderStyle _borderStyleStyle = BorderStyle.None;
     /// <summary>Gets or sets the border style and color for this control.</summary>
     public BorderStyle BorderStyle
     {
-        get => _borderStyleStyle;
-        set => SetProperty(ref _borderStyleStyle, value);
+        get => (BorderStyle)GetValue(BorderStyleProperty)!;
+        set => SetValue(BorderStyleProperty, value);
     }
 
     /// <summary>
     /// Gets or sets the tab order index for keyboard navigation.
     /// Lower values receive focus first.
     /// </summary>
-    public int TabIndex { get; set; }
+    public int TabIndex
+    {
+        get => (int)GetValue(TabIndexProperty)!;
+        set => SetValue(TabIndexProperty, value);
+    }
 
     /// <summary>
     /// Gets or sets the control template (stub — template rendering not yet implemented).
     /// </summary>
-    public object? Template { get; set; }
+    public object? Template
+    {
+        get => GetValue(TemplateProperty);
+        set => SetValue(TemplateProperty, value);
+    }
 }

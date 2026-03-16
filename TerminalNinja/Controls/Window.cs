@@ -12,28 +12,48 @@ namespace TerminalNinja.Controls;
 [RuntimeNameProperty("Name")]
 public class Window : ContentControl
 {
-    private string _title = "";
-    
+    // ─── Dependency Properties ───────────────────────────────────────
+
+    public static readonly DependencyProperty TitleProperty =
+        DependencyProperty.Register(nameof(Title), typeof(string), typeof(Window),
+            new FrameworkPropertyMetadata("", affectsRender: true));
+
+    public static readonly DependencyProperty WidthProperty =
+        DependencyProperty.Register(nameof(Width), typeof(Size), typeof(Window),
+            new FrameworkPropertyMetadata(Size.Stretch, affectsRender: true));
+
+    public static readonly DependencyProperty HeightProperty =
+        DependencyProperty.Register(nameof(Height), typeof(Size), typeof(Window),
+            new FrameworkPropertyMetadata(Size.Stretch, affectsRender: true));
+
     /// <summary>
     /// Gets or sets the window title.
     /// </summary>
     public string Title
     {
-        get => _title;
-        set => SetProperty(ref _title, value);
+        get => (string)GetValue(TitleProperty)!;
+        set => SetValue(TitleProperty, value);
     }
     
     /// <summary>
     /// Gets or sets the width of the window.
     /// Use Size.Stretch (default) to fill available width.
     /// </summary>
-    public Size Width { get; set; } = Size.Stretch;
+    public Size Width
+    {
+        get => (Size)GetValue(WidthProperty)!;
+        set => SetValue(WidthProperty, value);
+    }
     
     /// <summary>
     /// Gets or sets the height of the window.
     /// Use Size.Stretch (default) to fill available height.
     /// </summary>
-    public Size Height { get; set; } = Size.Stretch;
+    public Size Height
+    {
+        get => (Size)GetValue(HeightProperty)!;
+        set => SetValue(HeightProperty, value);
+    }
     
     /// <summary>
     /// Returns the preferred size of the window content.

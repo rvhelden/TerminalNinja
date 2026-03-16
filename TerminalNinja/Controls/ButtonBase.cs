@@ -8,33 +8,43 @@ namespace TerminalNinja.Controls;
 /// </summary>
 public abstract class ButtonBase : ContentControl
 {
-    private ICommand? _command;
+    // ─── Dependency Properties ───────────────────────────────────────
+
+    public static readonly DependencyProperty CommandProperty =
+        DependencyProperty.Register(nameof(Command), typeof(ICommand), typeof(ButtonBase),
+            new PropertyMetadata((object?)null, OnCommandChanged));
+
+    public static readonly DependencyProperty CommandParameterProperty =
+        DependencyProperty.Register(nameof(CommandParameter), typeof(object), typeof(ButtonBase),
+            new PropertyMetadata((object?)null, OnCommandParameterChanged));
+
+    private static void OnCommandChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
+    {
+        var button = (ButtonBase)d;
+        if (e.OldValue is ICommand oldCmd)
+            oldCmd.CanExecuteChanged -= button.OnCanExecuteChanged;
+        if (e.NewValue is ICommand newCmd)
+            newCmd.CanExecuteChanged += button.OnCanExecuteChanged;
+        button.UpdateCanExecute();
+    }
+
+    private static void OnCommandParameterChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
+    {
+        ((ButtonBase)d).UpdateCanExecute();
+    }
 
     /// <summary>Gets or sets the command to execute when the button is clicked.</summary>
     public ICommand? Command
     {
-        get => _command;
-        set
-        {
-            if (_command != null)
-                _command.CanExecuteChanged -= OnCanExecuteChanged;
-            SetProperty(ref _command, value, invalidate: false);
-            if (_command != null)
-                _command.CanExecuteChanged += OnCanExecuteChanged;
-            UpdateCanExecute();
-        }
+        get => (ICommand?)GetValue(CommandProperty);
+        set => SetValue(CommandProperty, value);
     }
 
-    private object? _commandParameter;
     /// <summary>Gets or sets the parameter to pass to the Command.</summary>
     public object? CommandParameter
     {
-        get => _commandParameter;
-        set
-        {
-            SetProperty(ref _commandParameter, value, invalidate: false);
-            UpdateCanExecute();
-        }
+        get => GetValue(CommandParameterProperty);
+        set => SetValue(CommandParameterProperty, value);
     }
 
     /// <summary>Event raised when the button is clicked.</summary>
@@ -47,7 +57,7 @@ public abstract class ButtonBase : ContentControl
     /// </summary>
     protected virtual void UpdateCanExecute()
     {
-        IsEnabled = _command?.CanExecute(_commandParameter) ?? true;
+        IsEnabled = Command?.CanExecute(CommandParameter) ?? true;
     }
 
     /// <summary>

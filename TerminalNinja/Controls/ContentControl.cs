@@ -12,54 +12,53 @@ namespace TerminalNinja.Controls;
 [RuntimeNameProperty("Name")]
 public class ContentControl : Control
 {
-    private UIElement? _content;
+    // ─── Dependency Properties ───────────────────────────────────────
+
+    public static readonly DependencyProperty ContentProperty =
+        DependencyProperty.Register(nameof(Content), typeof(UIElement), typeof(ContentControl),
+            new FrameworkPropertyMetadata((object?)null, affectsRender: true,
+                propertyChangedCallback: OnContentChanged));
+
+    private static void OnContentChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
+    {
+        if (e.OldValue is UIElement oldChild)
+            oldChild.Parent = null;
+        if (e.NewValue is UIElement newChild)
+            newChild.Parent = d as Visual;
+    }
 
     /// <summary>
     /// Gets or sets the content of this control.
     /// </summary>
     public UIElement? Content
     {
-        get => _content;
-        set
-        {
-            if (ReferenceEquals(_content, value))
-                return;
-
-            if (_content != null)
-                _content.Parent = null;
-
-            _content = value;
-
-            if (_content != null)
-                _content.Parent = this;
-
-            InvalidateVisual();
-        }
+        get => (UIElement?)GetValue(ContentProperty);
+        set => SetValue(ContentProperty, value);
     }
 
     /// <summary>
     /// Gets whether this control has content.
     /// </summary>
-    public bool HasContent => _content != null;
+    public bool HasContent => Content != null;
 
     /// <inheritdoc />
     protected internal override IEnumerable<FrameworkElement> GetLogicalChildren()
     {
-        if (_content is FrameworkElement fe)
+        if (Content is FrameworkElement fe)
             yield return fe;
     }
 
     /// <inheritdoc />
     public override IEnumerable<(Visual Child, Rect ChildParentBounds)> GetChildrenWithBounds(Rect myBounds)
     {
-        if (_content != null)
-            yield return (_content, myBounds);
+        if (Content != null)
+            yield return (Content, myBounds);
     }
 
     /// <inheritdoc />
     public override Size2D GetPreferredSize(Rect parent)
     {
-        return _content?.GetPreferredSize(parent) ?? new Size2D(0, 0);
+        return Content?.GetPreferredSize(parent) ?? new Size2D(0, 0);
     }
 
     /// <inheritdoc />
@@ -69,6 +68,6 @@ public class ContentControl : Control
     public override void Render(CellBuffer buffer, Rect parentBounds)
     {
         var bounds = CalculateBounds(parentBounds);
-        _content?.Render(buffer, bounds);
+        Content?.Render(buffer, bounds);
     }
 }

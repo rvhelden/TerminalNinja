@@ -8,24 +8,40 @@ namespace TerminalNinja.Controls;
 /// <summary>
 /// Base class for controls that participate in the WPF-like framework features:
 /// resources, styles, data context, name, and common layout properties.
-/// Inherits from UIElement (which provides invalidation, SetProperty, and layout abstracts).
+/// Inherits from UIElement (which provides invalidation and layout abstracts).
 /// </summary>
 public abstract class FrameworkElement : UIElement
 {
-    private ResourceDictionary? _resources;
-    private Style? _style;
-    private string? _name;
-    private object? _dataContext;
-    private Alignment _horizontalAlignment = Alignment.Start;
-    private Alignment _verticalAlignment = Alignment.Start;
-    
+    // ─── Dependency Properties ───────────────────────────────────────
+
+    public static readonly DependencyProperty HorizontalAlignmentProperty =
+        DependencyProperty.Register(nameof(HorizontalAlignment), typeof(Alignment), typeof(FrameworkElement),
+            new FrameworkPropertyMetadata(Alignment.Start, affectsRender: true));
+
+    public static readonly DependencyProperty VerticalAlignmentProperty =
+        DependencyProperty.Register(nameof(VerticalAlignment), typeof(Alignment), typeof(FrameworkElement),
+            new FrameworkPropertyMetadata(Alignment.Start, affectsRender: true));
+
+    public static readonly DependencyProperty NameProperty =
+        DependencyProperty.Register(nameof(Name), typeof(string), typeof(FrameworkElement),
+            new PropertyMetadata((object?)null));
+
+    public static readonly DependencyProperty DataContextProperty =
+        DependencyProperty.Register(nameof(DataContext), typeof(object), typeof(FrameworkElement),
+            new PropertyMetadata((object?)null));
+
+    public static readonly DependencyProperty StyleProperty =
+        DependencyProperty.Register(nameof(Style), typeof(Style), typeof(FrameworkElement),
+            new FrameworkPropertyMetadata(null, affectsRender: true,
+                propertyChangedCallback: (d, _) => ((FrameworkElement)d).ApplyStyle()));
+
     /// <summary>
     /// Gets or sets the horizontal alignment of this element within its parent container.
     /// </summary>
     public Alignment HorizontalAlignment
     {
-        get => _horizontalAlignment;
-        set => SetProperty(ref _horizontalAlignment, value);
+        get => (Alignment)GetValue(HorizontalAlignmentProperty)!;
+        set => SetValue(HorizontalAlignmentProperty, value);
     }
     
     /// <summary>
@@ -33,8 +49,8 @@ public abstract class FrameworkElement : UIElement
     /// </summary>
     public Alignment VerticalAlignment
     {
-        get => _verticalAlignment;
-        set => SetProperty(ref _verticalAlignment, value);
+        get => (Alignment)GetValue(VerticalAlignmentProperty)!;
+        set => SetValue(VerticalAlignmentProperty, value);
     }
     
     /// <summary>
@@ -42,8 +58,8 @@ public abstract class FrameworkElement : UIElement
     /// </summary>
     public string? Name
     {
-        get => _name;
-        set => SetProperty(ref _name, value, invalidate: false);
+        get => (string?)GetValue(NameProperty);
+        set => SetValue(NameProperty, value);
     }
     
     /// <summary>
@@ -52,17 +68,20 @@ public abstract class FrameworkElement : UIElement
     /// </summary>
     public object? DataContext
     {
-        get => _dataContext;
-        set => SetProperty(ref _dataContext, value, invalidate: false);
+        get => GetValue(DataContextProperty);
+        set => SetValue(DataContextProperty, value);
     }
-    
+
+    private ResourceDictionary? _resources;
+
     /// <summary>
-    /// Gets the effective DataContext by walking up the parent chain if needed.
+    /// Gets or sets the effective DataContext by walking up the parent chain if needed.
     /// </summary>
     public object? GetEffectiveDataContext()
     {
-        if (_dataContext != null)
-            return _dataContext;
+        var dc = DataContext;
+        if (dc != null)
+            return dc;
 
         return Parent switch
         {
@@ -87,15 +106,8 @@ public abstract class FrameworkElement : UIElement
     /// </summary>
     public Style? Style
     {
-        get => _style;
-        set
-        {
-            if (SetProperty(ref _style, value, invalidate: false))
-            {
-                ApplyStyle();
-                InvalidateVisual();
-            }
-        }
+        get => (Style?)GetValue(StyleProperty);
+        set => SetValue(StyleProperty, value);
     }
     
     /// <summary>
@@ -181,18 +193,19 @@ public abstract class FrameworkElement : UIElement
     /// </summary>
     protected virtual void ApplyStyle()
     {
-        if (_style == null) return;
+        var style = Style;
+        if (style == null) return;
         
         // Check if style is compatible with this element type
-        if (_style.TargetType != null && !_style.TargetType.IsInstanceOfType(this))
+        if (style.TargetType != null && !style.TargetType.IsInstanceOfType(this))
         {
             throw new InvalidOperationException(
-                $"Style with TargetType '{_style.TargetType.Name}' cannot be applied to control of type '{GetType().Name}'");
+                $"Style with TargetType '{style.TargetType.Name}' cannot be applied to control of type '{GetType().Name}'");
         }
         
         // Apply each setter
         var controlType = GetType();
-        foreach (var setter in _style.Setters)
+        foreach (var setter in style.Setters)
         {
             if (string.IsNullOrEmpty(setter.Property))
                 continue;

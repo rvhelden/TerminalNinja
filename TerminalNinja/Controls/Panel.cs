@@ -11,6 +11,12 @@ namespace TerminalNinja.Controls;
 [ContentProperty("Children")]
 public abstract class Panel : FrameworkElement
 {
+    // ─── Dependency Properties ───────────────────────────────────────
+
+    public static readonly DependencyProperty BackgroundProperty =
+        DependencyProperty.Register(nameof(Background), typeof(Color?), typeof(Panel),
+            new FrameworkPropertyMetadata((object?)null, affectsRender: true));
+
     private readonly ObservableControlCollection _children;
     
     /// <summary>
@@ -29,7 +35,11 @@ public abstract class Panel : FrameworkElement
     /// <summary>
     /// Gets or sets the background color of the panel.
     /// </summary>
-    public Color? Background { get; set; }
+    public Color? Background
+    {
+        get => (Color?)GetValue(BackgroundProperty);
+        set => SetValue(BackgroundProperty, value);
+    }
     
     /// <inheritdoc />
     protected internal override IEnumerable<FrameworkElement> GetLogicalChildren()

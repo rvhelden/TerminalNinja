@@ -11,7 +11,7 @@ This document provides essential information for AI coding agents working in the
 - **IDE**: JetBrains Rider (optional)
 - **Solution Structure**: 
   - `TerminalNinja/` - Core library (terminal UI framework with XAML support)
-  - `TerminalNinja.Tests/` - Test project (497 tests, all passing)
+  - `TerminalNinja.Tests/` - Test project (492 tests, all passing)
   - `Sample/` - Sample console application demonstrating XAML usage
 
 ## Build & Test Commands
@@ -84,8 +84,9 @@ dotnet run --project Sample/Sample.csproj
 
 TerminalNinja is a WPF-like terminal UI framework with XAML support:
 
-- **Controls** (`TerminalNinja.Controls`): UI controls (StackPanel, Grid, ItemsControl, Window, Rectangle, Button, Label)
-- **Primitives** (`TerminalNinja.Primitives`): Basic types (Color, Size, Rect, Thickness, Border, etc.)
+- **Controls** (`TerminalNinja.Controls`): UI controls (StackPanel, Grid, ItemsControl, Window, Border, Button, TextBlock, ContentControl, ButtonBase)
+- **DependencySystem** (`TerminalNinja.DependencySystem`): DependencyObject, DependencyProperty, PropertyMetadata
+- **Primitives** (`TerminalNinja.Primitives`): Basic types (Color, Size, Rect, Thickness, etc.)
 - **Buffers** (`TerminalNinja.Buffers`): Cell-based rendering buffers
 - **Styling** (`TerminalNinja.Styling`): Style and Setter for control theming
 - **Resources** (`TerminalNinja.Resources`): ResourceDictionary for shared resources
@@ -173,7 +174,7 @@ public class ClassName
 | Element            | Convention        | Example                               |
 |--------------------|-------------------|---------------------------------------|
 | Namespaces         | PascalCase        | `TerminalNinja.Controls`              |
-| Classes/Interfaces | PascalCase        | `IControl`, `ControlBase`, `Stack`    |
+| Classes/Interfaces | PascalCase        | `UIElement`, `FrameworkElement`, `StackPanel` |
 | Methods            | PascalCase        | `Render`, `CalculateBounds`           |
 | Properties         | PascalCase        | `Content`, `Width`, `IsEnabled`       |
 | Fields (private)   | camelCase with _  | `_content`, `_children`               |
@@ -184,7 +185,7 @@ public class ClassName
 
 **Important Terminology:**
 - Use **"control"** not "element" (aligns with WPF conventions)
-- Use **"Content"** for child control properties (e.g., `StackChild.Content`, `Window.Content`)
+- Use **"Content"** for child control properties (e.g., `ContentControl.Content`, `Window.Content`)
 - `FrameworkElement` keeps its name (matches WPF exactly)
 
 ### Type and Null Safety
@@ -252,19 +253,19 @@ catch (Exception ex)
 ```csharp
 namespace TerminalNinja.Tests.Unit.Controls;
 
-public class StackTests
+public class StackPanelTests
 {
     [Test]
     public async Task Render_AutoChild_UsesControlPreferredSize()
     {
         // Arrange
-        var stack = new Stack();
-        var label = new Label { Text = "Test" };
-        stack.Children.Add(StackChild.Auto(label));
+        var stackPanel = new StackPanel();
+        var textBlock = new TextBlock { Text = "Test" };
+        stackPanel.Children.Add(textBlock);
         
         // Act
         var buffer = new CellBuffer(20, 10);
-        stack.Render(buffer, new Rect(0, 0, 20, 10));
+        stackPanel.Render(buffer, new Rect(0, 0, 20, 10));
         
         // Assert
         await Assert.That(buffer.GetCell(0, 0).Char).IsEqualTo('T');
@@ -274,10 +275,10 @@ public class StackTests
     public async Task Children_NullControl_ThrowsException()
     {
         // Arrange
-        var stack = new Stack();
+        var stackPanel = new StackPanel();
         
         // Act & Assert
-        await Assert.That(() => stack.Children.Add(null!))
+        await Assert.That(() => stackPanel.Children.Add(null!))
             .ThrowsExactly<ArgumentNullException>();
     }
 }
@@ -323,7 +324,7 @@ await Assert.That(text).Contains("substring");
 - **Branch naming**: `feature/description`, `bugfix/issue-name`, `refactor/component`
 - **Commit messages**: Use conventional commits format
   - `feat: add Grid control with row/column support`
-  - `fix: handle null content in Rectangle rendering`
+  - `fix: handle null content in Border rendering`
   - `refactor: rename Element to Control for WPF alignment`
   - `test: add tests for StaticResource resolution`
   - `docs: update AGENTS.md with current project state`
@@ -355,8 +356,14 @@ When creating new source files in `TerminalNinja/`:
 
 When creating new controls:
 1. Place in `TerminalNinja/Controls/` folder
-2. Inherit from `FrameworkElement` (for resource/style support) or `ControlBase` (minimal)
-3. Implement `IFocusable` if the control should receive keyboard/mouse input
+2. Choose the appropriate base class:
+   - `Control` — for interactive controls with Background/Foreground/Padding (Focusable=true by default)
+   - `FrameworkElement` — for non-interactive visual elements (e.g., TextBlock, Border)
+   - `ContentControl` — for controls with a single `Content` child
+   - `Panel` — for layout containers with a `Children` collection
+   - `ItemsControl` — for data-bound collections
+   - `ButtonBase` — for clickable controls
+3. Input handling: Override `OnKeyEvent`/`OnMouseEvent` (inherited from UIElement) for keyboard/mouse input
 4. Add `[ContentProperty]` and `[RuntimeNameProperty]` attributes if applicable
 5. Add `[TypeConverter]` attribute if custom XAML parsing is needed
 6. Update tests in `TerminalNinja.Tests/Unit/Controls/`
@@ -376,7 +383,7 @@ Existing converters:
 - `ColorTypeConverter` - Parses colors like "Red", "#FF0000", "rgb(255,0,0)"
 - `SizeTypeConverter` - Parses sizes like "Auto", "Stretch", "10"
 - `ThicknessTypeConverter` - Parses thickness like "5", "5,10", "5,10,5,10"
-- `BorderTypeConverter` - Parses borders like "Single", "Double", "Rounded"
+- `BorderTypeConverter` - Parses border styles like "Single", "Double", "Rounded" (for `BorderStyle` struct)
 - `GridLengthTypeConverter` - Parses grid lengths like "Auto", "*", "2*", "100"
 
 ### XAML Namespace
@@ -418,6 +425,42 @@ window.Show();  // Sets Application.Current.RootControl = window
 
 ## Recent Changes (Feb 2026)
 
+### WPF-Aligned Class Hierarchy Refactoring (Feb-Mar 2026)
+
+Major refactoring to align the entire class hierarchy with WPF's inheritance tree:
+
+**New Class Hierarchy:**
+```
+DependencyObject (DependencySystem/)
+  └── Visual (abstract) — visual tree parent/child, GetChildrenWithBounds
+        └── UIElement (abstract) — Visibility, IsEnabled, Focusable, IsFocused, IsMouseOver, input events (OnKeyEvent/OnMouseEvent), HitTest, InvalidateVisual
+              └── FrameworkElement (abstract) — resources, styles, DataContext, Name, Width/Height, HorizontalAlignment/VerticalAlignment, Margin, GetLogicalChildren()
+                    ├── Control (abstract) — Background, Foreground, Padding, BorderStyle, TabIndex, Template (stub); Focusable=true by default
+                    │     ├── ContentControl [ContentProperty("Content")] — Content, HasContent
+                    │     │     ├── Window — Title, Show/Close
+                    │     │     └── UserControl — Focusable=false
+                    │     ├── ItemsControl — Items, ItemsSource, ItemTemplate, ItemsPanel
+                    │     └── ButtonBase (abstract) — Command, Click
+                    │           └── Button (sealed) — focus/hover rendering
+                    ├── Panel (abstract) [ContentProperty("Children")] — Children (IList<UIElement>), Background
+                    │     ├── StackPanel — Orientation, attached SizeMode/FixedSize
+                    │     └── Grid (sealed) — RowDefinitions/ColumnDefinitions, attached Row/Column/RowSpan/ColumnSpan
+                    ├── TextBlock — Text, Foreground, Background, wrapping, trimming
+                    └── Border — BorderStyle, Background, Foreground, Child (UIElement?)
+```
+
+**Key Changes:**
+- `IControl` interface removed entirely — replaced by class hierarchy
+- `ControlBase` removed — replaced by `Visual` + `UIElement`
+- `IFocusable` interface removed — members moved to `UIElement` (Focusable, IsFocused, IsMouseOver, input events)
+- `Rectangle` renamed to `Border` (matches WPF naming)
+- `Label` renamed to `TextBlock` (WPF's Label is a ContentControl; our Label behaves like TextBlock)
+- `ForegroundColor`/`BackgroundColor` renamed to `Foreground`/`Background` everywhere
+- X/Y properties removed from controls — positioning is parent layout's job
+- `HorizontalAlignment`/`VerticalAlignment` added to `FrameworkElement`
+- `FocusManager` now uses `UIElement` directly (FocusedElement/HoveredElement)
+- `GetLogicalChildren()` virtual method added to FrameworkElement for DataContext propagation
+
 ### Panel/StackPanel/ItemsControl Refactoring (Feb 1, 2026)
 
 Major architectural refactoring to align with WPF patterns by introducing `Panel` base class and removing the old `Stack` system:
@@ -456,15 +499,15 @@ var stack = new Stack {
 
 New StackPanel pattern:
 ```csharp
-var label1 = new Label { Text = "A" };
-var label2 = new Label { Text = "B" };
-StackPanel.SetSizeMode(label1, ChildSizeMode.Fixed);
-StackPanel.SetFixedSize(label1, 5);
-StackPanel.SetSizeMode(label2, ChildSizeMode.Stretch);
+var textBlock1 = new TextBlock { Text = "A" };
+var textBlock2 = new TextBlock { Text = "B" };
+StackPanel.SetSizeMode(textBlock1, ChildSizeMode.Fixed);
+StackPanel.SetFixedSize(textBlock1, 5);
+StackPanel.SetSizeMode(textBlock2, ChildSizeMode.Stretch);
 
 var stackPanel = new StackPanel {
     Orientation = Orientation.Vertical,
-    Children = { label1, label2 }
+    Children = { textBlock1, textBlock2 }
 };
 ```
 
@@ -473,25 +516,11 @@ XAML changes:
 - `Stack.SizeMode` → `StackPanel.SizeMode`
 - `Stack.FixedSize` → `StackPanel.FixedSize`
 
-**New Class Hierarchy:**
-```
-IControl
-  └── ControlBase (INPC + invalidation)
-        └── FrameworkElement (resources, styles, data binding)
-              ├── Panel (abstract - Children collection, Background property)
-              │     ├── StackPanel (Orientation, sequential layout)
-              │     └── Grid (rows/columns layout)
-              │
-              ├── ItemsControl (ItemsSource, ItemTemplate, ItemsPanel)
-              │
-              └── Other controls (Rectangle, Label, Button, Window, etc.)
-```
-
 **Test Coverage:**
 - Added `PanelTests.cs` (32 tests) - Tests Panel base class and ObservableControlCollection
 - Added `StackPanelTests.cs` (34 tests) - Tests StackPanel layout, attached properties, and rendering
 - Removed old Stack tests (StackTests, StackChildTests, etc.)
-- **Total Tests**: 497 (up from 431)
+- **Total Tests**: 492 (up from 431)
 
 ### Windows Desktop Framework for IDE Support (Feb 1, 2026)
 
@@ -511,8 +540,8 @@ Added `Microsoft.WindowsDesktop.App` framework reference to enable IDE XAML Inte
 The entire codebase was renamed from "Element" terminology to "Control" terminology to align with WPF conventions:
 
 - **Namespaces**: `TerminalNinja.Elements` → `TerminalNinja.Controls`
-- **Types**: `IElement` → `IControl`, `ElementBase` → `ControlBase`
-- **Properties**: `StackChild.Element` → `StackChild.Content`, `Application.RootElement` → `Application.RootControl`
+- **Types**: `IElement` → (later removed entirely), `ElementBase` → (later replaced by Visual/UIElement)
+- **Properties**: `Application.RootElement` → `Application.RootControl`
 - **Variables**: All `element` parameters/variables renamed to `control`
 - **Exception**: `FrameworkElement` keeps its name (matches WPF)
 
@@ -534,6 +563,6 @@ Moved from runtime registration to declarative attributes:
 
 ## Current Test Stats
 
-- **Total Tests**: 497
-- **Status**: All passing ✅
+- **Total Tests**: 492
+- **Status**: All passing
 - **Test Coverage**: Unit tests for Controls, Styling, Resources, XAML loading, and rendering

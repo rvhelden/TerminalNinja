@@ -14,67 +14,80 @@ namespace TerminalNinja.Controls;
 [RuntimeNameProperty("Name")]
 public sealed class Border : FrameworkElement
 {
+    // ─── Dependency Properties ───────────────────────────────────────
+
     public static readonly DependencyProperty BackgroundProperty =
         DependencyProperty.Register(nameof(Background), typeof(Color), typeof(Border),
             new FrameworkPropertyMetadata(default(Color), affectsRender: true));
-    
-    
+
+    public static readonly DependencyProperty ForegroundProperty =
+        DependencyProperty.Register(nameof(Foreground), typeof(Color), typeof(Border),
+            new FrameworkPropertyMetadata(Color.White, affectsRender: true));
+
+    public static readonly DependencyProperty BorderStyleProperty =
+        DependencyProperty.Register(nameof(BorderStyle), typeof(Styling.BorderStyle), typeof(Border),
+            new FrameworkPropertyMetadata(Styling.BorderStyle.None, affectsRender: true));
+
+    public static readonly DependencyProperty WidthProperty =
+        DependencyProperty.Register(nameof(Width), typeof(Size), typeof(Border),
+            new FrameworkPropertyMetadata(Size.Stretch, affectsRender: true));
+
+    public static readonly DependencyProperty HeightProperty =
+        DependencyProperty.Register(nameof(Height), typeof(Size), typeof(Border),
+            new FrameworkPropertyMetadata(Size.Stretch, affectsRender: true));
+
+    public static readonly DependencyProperty ChildProperty =
+        DependencyProperty.Register(nameof(Child), typeof(UIElement), typeof(Border),
+            new FrameworkPropertyMetadata((object?)null, affectsRender: true,
+                propertyChangedCallback: OnChildChanged));
+
+    private static void OnChildChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
+    {
+        if (e.OldValue is UIElement oldChild)
+            oldChild.Parent = null;
+        if (e.NewValue is UIElement newChild)
+            newChild.Parent = d as Visual;
+    }
+
     public Color Background
     {
-        get { return (Color)GetValue(BackgroundProperty)!; }
-        set { SetValue(BackgroundProperty, value); }
+        get => (Color)GetValue(BackgroundProperty)!;
+        set => SetValue(BackgroundProperty, value);
     }
     
-    private Color _foreground = Color.White;
     /// <summary>Gets or sets the foreground color (used for borders).</summary>
     public Color Foreground
     {
-        get => _foreground;
-        set => SetProperty(ref _foreground, value);
+        get => (Color)GetValue(ForegroundProperty)!;
+        set => SetValue(ForegroundProperty, value);
     }
     
-    private Styling.BorderStyle _borderStyleStyle = Styling.BorderStyle.None;
     /// <summary>Gets or sets the border style and color.</summary>
     public Styling.BorderStyle BorderStyle
     {
-        get => _borderStyleStyle;
-        set => SetProperty(ref _borderStyleStyle, value);
+        get => (Styling.BorderStyle)GetValue(BorderStyleProperty)!;
+        set => SetValue(BorderStyleProperty, value);
     }
     
-    private UIElement? _child;
     /// <summary>Gets or sets the child control to render inside this border.</summary>
     public UIElement? Child
     {
-        get => _child;
-        set
-        {
-            if (ReferenceEquals(_child, value))
-                return;
-
-            if (_child != null)
-                _child.Parent = null;
-
-            SetProperty(ref _child, value);
-
-            if (_child != null)
-                _child.Parent = this;
-        }
+        get => (UIElement?)GetValue(ChildProperty);
+        set => SetValue(ChildProperty, value);
     }
 
-    private Size _width = Size.Stretch;
     /// <summary>Gets or sets the width (absolute, relative, or stretch).</summary>
     public Size Width
     {
-        get => _width;
-        set => SetProperty(ref _width, value);
+        get => (Size)GetValue(WidthProperty)!;
+        set => SetValue(WidthProperty, value);
     }
 
-    private Size _height = Size.Stretch;
     /// <summary>Gets or sets the height (absolute, relative, or stretch).</summary>
     public Size Height
     {
-        get => _height;
-        set => SetProperty(ref _height, value);
+        get => (Size)GetValue(HeightProperty)!;
+        set => SetValue(HeightProperty, value);
     }
     
     /// <inheritdoc />

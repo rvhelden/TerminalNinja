@@ -1,5 +1,4 @@
 using System.Windows.Markup;
-using TerminalNinja.Aot;
 using TerminalNinja.Buffers;
 using TerminalNinja.Primitives;
 
@@ -13,15 +12,81 @@ namespace TerminalNinja.Controls;
 [RuntimeNameProperty("Name")]
 public class StackPanel : Panel
 {
+    // ─── Dependency Properties ───────────────────────────────────────
+
+    public static readonly DependencyProperty OrientationProperty =
+        DependencyProperty.Register(nameof(Orientation), typeof(Orientation), typeof(StackPanel),
+            new FrameworkPropertyMetadata(Orientation.Vertical, affectsRender: true));
+
+    public static readonly DependencyProperty CrossAxisAlignmentProperty =
+        DependencyProperty.Register(nameof(CrossAxisAlignment), typeof(Alignment), typeof(StackPanel),
+            new FrameworkPropertyMetadata(Alignment.Start, affectsRender: true));
+
+    // ─── Attached Dependency Properties ──────────────────────────────
+
+    public static readonly DependencyProperty SizeModeProperty =
+        DependencyProperty.RegisterAttached("SizeMode", typeof(ChildSizeMode), typeof(StackPanel),
+            new PropertyMetadata(ChildSizeMode.Auto));
+
+    public static readonly DependencyProperty FixedSizeProperty =
+        DependencyProperty.RegisterAttached("FixedSize", typeof(int), typeof(StackPanel),
+            new PropertyMetadata(0));
+
     /// <summary>
     /// Gets or sets the orientation (Horizontal or Vertical) of the stack.
     /// </summary>
-    public Orientation Orientation { get; set; } = Orientation.Vertical;
+    public Orientation Orientation
+    {
+        get => (Orientation)GetValue(OrientationProperty)!;
+        set => SetValue(OrientationProperty, value);
+    }
     
     /// <summary>
     /// Gets or sets the alignment of children on the cross-axis.
     /// </summary>
-    public Alignment CrossAxisAlignment { get; set; } = Alignment.Start;
+    public Alignment CrossAxisAlignment
+    {
+        get => (Alignment)GetValue(CrossAxisAlignmentProperty)!;
+        set => SetValue(CrossAxisAlignmentProperty, value);
+    }
+
+    // ─── Attached Property Accessors ─────────────────────────────────
+
+    /// <summary>
+    /// Gets the StackPanel.SizeMode attached property value for a control.
+    /// </summary>
+    public static ChildSizeMode GetSizeMode(DependencyObject control)
+    {
+        ArgumentNullException.ThrowIfNull(control);
+        return (ChildSizeMode)control.GetValue(SizeModeProperty)!;
+    }
+    
+    /// <summary>
+    /// Sets the StackPanel.SizeMode attached property value for a control.
+    /// </summary>
+    public static void SetSizeMode(DependencyObject control, ChildSizeMode mode)
+    {
+        ArgumentNullException.ThrowIfNull(control);
+        control.SetValue(SizeModeProperty, mode);
+    }
+    
+    /// <summary>
+    /// Gets the StackPanel.FixedSize attached property value for a control.
+    /// </summary>
+    public static int GetFixedSize(DependencyObject control)
+    {
+        ArgumentNullException.ThrowIfNull(control);
+        return (int)control.GetValue(FixedSizeProperty)!;
+    }
+    
+    /// <summary>
+    /// Sets the StackPanel.FixedSize attached property value for a control.
+    /// </summary>
+    public static void SetFixedSize(DependencyObject control, int size)
+    {
+        ArgumentNullException.ThrowIfNull(control);
+        control.SetValue(FixedSizeProperty, Math.Max(0, size));
+    }
     
     /// <summary>
     /// Returns the preferred size of this stack (sum of children's preferred sizes).
@@ -181,51 +246,4 @@ public class StackPanel : Panel
             return new Rect(stackBounds.X, position, stackBounds.Width, size);
         }
     }
-
-    #region Attached Properties using AttachedPropertyStore
-    
-    private static readonly AttachedPropertyKey SizeModeKey = new(typeof(StackPanel), "SizeMode");
-    private static readonly AttachedPropertyKey FixedSizeKey = new(typeof(StackPanel), "FixedSize");
-    
-    /// <summary>
-    /// Gets the StackPanel.SizeMode attached property value for a control.
-    /// </summary>
-    public static ChildSizeMode GetSizeMode(object control)
-    {
-        ArgumentNullException.ThrowIfNull(control);
-        return AttachedPropertyStore.TryGetValue<ChildSizeMode>(control, SizeModeKey, out var value) 
-            ? value 
-            : ChildSizeMode.Auto;
-    }
-    
-    /// <summary>
-    /// Sets the StackPanel.SizeMode attached property value for a control.
-    /// </summary>
-    public static void SetSizeMode(object control, ChildSizeMode mode)
-    {
-        ArgumentNullException.ThrowIfNull(control);
-        AttachedPropertyStore.SetValue(control, SizeModeKey, mode);
-    }
-    
-    /// <summary>
-    /// Gets the StackPanel.FixedSize attached property value for a control.
-    /// </summary>
-    public static int GetFixedSize(object control)
-    {
-        ArgumentNullException.ThrowIfNull(control);
-        return AttachedPropertyStore.TryGetValue<int>(control, FixedSizeKey, out var value) 
-            ? value 
-            : 0;
-    }
-    
-    /// <summary>
-    /// Sets the StackPanel.FixedSize attached property value for a control.
-    /// </summary>
-    public static void SetFixedSize(object control, int size)
-    {
-        ArgumentNullException.ThrowIfNull(control);
-        AttachedPropertyStore.SetValue(control, FixedSizeKey, Math.Max(0, size));
-    }
-    
-    #endregion
 }

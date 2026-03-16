@@ -1,5 +1,4 @@
 using System.Windows.Markup;
-using TerminalNinja.Aot;
 using TerminalNinja.Buffers;
 using TerminalNinja.Primitives;
 
@@ -13,6 +12,24 @@ namespace TerminalNinja.Controls;
 [RuntimeNameProperty("Name")]
 public sealed class Grid : Panel
 {
+    // ─── Attached Dependency Properties ──────────────────────────────
+
+    public static readonly DependencyProperty RowProperty =
+        DependencyProperty.RegisterAttached("Row", typeof(int), typeof(Grid),
+            new PropertyMetadata(0));
+
+    public static readonly DependencyProperty ColumnProperty =
+        DependencyProperty.RegisterAttached("Column", typeof(int), typeof(Grid),
+            new PropertyMetadata(0));
+
+    public static readonly DependencyProperty RowSpanProperty =
+        DependencyProperty.RegisterAttached("RowSpan", typeof(int), typeof(Grid),
+            new PropertyMetadata(1));
+
+    public static readonly DependencyProperty ColumnSpanProperty =
+        DependencyProperty.RegisterAttached("ColumnSpan", typeof(int), typeof(Grid),
+            new PropertyMetadata(1));
+
     private readonly List<RowDefinition> _rowDefinitions = new();
     private readonly List<ColumnDefinition> _columnDefinitions = new();
     
@@ -27,87 +44,80 @@ public sealed class Grid : Panel
     /// If empty, the grid has a single column that fills available width.
     /// </summary>
     public IList<ColumnDefinition> ColumnDefinitions => _columnDefinitions;
-    
-    #region Attached Properties using AttachedPropertyStore
-    
-    private static readonly AttachedPropertyKey RowKey = new(typeof(Grid), "Row");
-    private static readonly AttachedPropertyKey ColumnKey = new(typeof(Grid), "Column");
-    private static readonly AttachedPropertyKey RowSpanKey = new(typeof(Grid), "RowSpan");
-    private static readonly AttachedPropertyKey ColumnSpanKey = new(typeof(Grid), "ColumnSpan");
+
+    // ─── Attached Property Accessors ─────────────────────────────────
     
     /// <summary>
     /// Gets the Grid.Row attached property value for a control.
     /// </summary>
-    public static int GetRow(object control)
+    public static int GetRow(DependencyObject control)
     {
         ArgumentNullException.ThrowIfNull(control);
-        return AttachedPropertyStore.TryGetValue<int>(control, RowKey, out var value) ? value : 0;
+        return (int)control.GetValue(RowProperty)!;
     }
     
     /// <summary>
     /// Sets the Grid.Row attached property value for a control.
     /// </summary>
-    public static void SetRow(object control, int value)
+    public static void SetRow(DependencyObject control, int value)
     {
         ArgumentNullException.ThrowIfNull(control);
-        AttachedPropertyStore.SetValue(control, RowKey, Math.Max(0, value));
+        control.SetValue(RowProperty, Math.Max(0, value));
     }
     
     /// <summary>
     /// Gets the Grid.Column attached property value for a control.
     /// </summary>
-    public static int GetColumn(object control)
+    public static int GetColumn(DependencyObject control)
     {
         ArgumentNullException.ThrowIfNull(control);
-        return AttachedPropertyStore.TryGetValue<int>(control, ColumnKey, out var value) ? value : 0;
+        return (int)control.GetValue(ColumnProperty)!;
     }
     
     /// <summary>
     /// Sets the Grid.Column attached property value for a control.
     /// </summary>
-    public static void SetColumn(object control, int value)
+    public static void SetColumn(DependencyObject control, int value)
     {
         ArgumentNullException.ThrowIfNull(control);
-        AttachedPropertyStore.SetValue(control, ColumnKey, Math.Max(0, value));
+        control.SetValue(ColumnProperty, Math.Max(0, value));
     }
     
     /// <summary>
     /// Gets the Grid.RowSpan attached property value for a control.
     /// </summary>
-    public static int GetRowSpan(object control)
+    public static int GetRowSpan(DependencyObject control)
     {
         ArgumentNullException.ThrowIfNull(control);
-        return AttachedPropertyStore.TryGetValue<int>(control, RowSpanKey, out var value) ? Math.Max(1, value) : 1;
+        return Math.Max(1, (int)control.GetValue(RowSpanProperty)!);
     }
     
     /// <summary>
     /// Sets the Grid.RowSpan attached property value for a control.
     /// </summary>
-    public static void SetRowSpan(object control, int value)
+    public static void SetRowSpan(DependencyObject control, int value)
     {
         ArgumentNullException.ThrowIfNull(control);
-        AttachedPropertyStore.SetValue(control, RowSpanKey, Math.Max(1, value));
+        control.SetValue(RowSpanProperty, Math.Max(1, value));
     }
     
     /// <summary>
     /// Gets the Grid.ColumnSpan attached property value for a control.
     /// </summary>
-    public static int GetColumnSpan(object control)
+    public static int GetColumnSpan(DependencyObject control)
     {
         ArgumentNullException.ThrowIfNull(control);
-        return AttachedPropertyStore.TryGetValue<int>(control, ColumnSpanKey, out var value) ? Math.Max(1, value) : 1;
+        return Math.Max(1, (int)control.GetValue(ColumnSpanProperty)!);
     }
     
     /// <summary>
     /// Sets the Grid.ColumnSpan attached property value for a control.
     /// </summary>
-    public static void SetColumnSpan(object control, int value)
+    public static void SetColumnSpan(DependencyObject control, int value)
     {
         ArgumentNullException.ThrowIfNull(control);
-        AttachedPropertyStore.SetValue(control, ColumnSpanKey, Math.Max(1, value));
+        control.SetValue(ColumnSpanProperty, Math.Max(1, value));
     }
-    
-    #endregion
     
     /// <summary>
     /// Returns the preferred size of this grid.
