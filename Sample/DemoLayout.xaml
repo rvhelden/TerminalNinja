@@ -29,7 +29,7 @@
                    ForegroundColor="{StaticResource AccentColor}"
                    Border="Double">
             <Label x:Name="headerLabel"
-                   Text="{Binding Path=HeaderText}"
+                   Text="{Binding HeaderText}"
                    ForegroundColor="{StaticResource AccentColor}"
                    HorizontalTextAlignment="Center"
                    VerticalTextAlignment="Center" />
