@@ -78,12 +78,10 @@ public sealed class Label : FrameworkElement
     {
         if (string.IsNullOrEmpty(Text))
             return new Size2D(Padding.HorizontalTotal, Padding.VerticalTotal);
-        
-        // For preferred size, assume single line (no wrapping)
-        var textWidth = Text.Length + Padding.HorizontalTotal;
-        var textHeight = 1 + Padding.VerticalTotal;
-        
-        return new Size2D(textWidth, textHeight);
+
+        var lines = NormalizeText(Text).Split('\n');
+        var maxLineWidth = lines.Max(l => l.Length);
+        return new Size2D(maxLineWidth + Padding.HorizontalTotal, lines.Length + Padding.VerticalTotal);
     }
     
     /// <summary>
@@ -147,11 +145,24 @@ public sealed class Label : FrameworkElement
         RenderText(buffer, textX, textY, textWidth, textHeight);
     }
     
+    /// <summary>Normalizes line endings to \n.</summary>
+    private static string NormalizeText(string text) =>
+        text.Replace("\r\n", "\n", StringComparison.Ordinal).Replace('\r', '\n');
+
     private void RenderText(CellBuffer buffer, int x, int y, int width, int height)
     {
-        var lines = TextWrapping == TextWrapping.Wrap
-            ? WrapText(Text, width)
-            : [Text];
+        var normalized = NormalizeText(Text);
+        List<string> lines;
+        if (TextWrapping == TextWrapping.Wrap)
+        {
+            lines = [];
+            foreach (var segment in normalized.Split('\n'))
+                lines.AddRange(WrapText(segment, width));
+        }
+        else
+        {
+            lines = [.. normalized.Split('\n')];
+        }
         
         // Apply vertical alignment
         var startY = VerticalTextAlignment switch

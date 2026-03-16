@@ -1,4 +1,5 @@
 using TerminalNinja.Controls;
+using TerminalNinja.Xaml.Data;
 
 namespace TerminalNinja.Xaml.Binding;
 

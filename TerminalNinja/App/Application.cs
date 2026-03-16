@@ -120,15 +120,21 @@ public sealed class Application : IDisposable
     private void WireInvalidation(IControl control)
     {
         control.InvalidationCallback = Invalidate;
-        
+
         switch (control)
         {
+            case Window window when window.Content != null:
+                WireInvalidation(window.Content);
+                break;
+            case Panel panel:
+                foreach (var child in panel.Children)
+                    WireInvalidation(child);
+                break;
             case Rectangle rect when rect.Child != null:
                 WireInvalidation(rect.Child);
                 break;
-            case StackPanel stackPanel:
-                foreach (var child in stackPanel.Children)
-                    WireInvalidation(child);
+            case ItemsControl itemsControl:
+                WireInvalidation(itemsControl.ItemsPanel);
                 break;
         }
     }

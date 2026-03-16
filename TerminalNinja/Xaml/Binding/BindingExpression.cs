@@ -1,5 +1,6 @@
 using System.ComponentModel;
 using System.Reflection;
+using TerminalNinja.Xaml.Data;
 
 namespace TerminalNinja.Xaml.Binding;
 

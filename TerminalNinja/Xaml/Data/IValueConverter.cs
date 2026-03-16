@@ -1,4 +1,4 @@
-namespace TerminalNinja.Xaml.Binding;
+namespace TerminalNinja.Xaml.Data;
 
 /// <summary>
 /// Provides a way to apply custom logic to a binding.

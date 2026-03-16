@@ -10,66 +10,71 @@ namespace Sample;
 /// </summary>
 public class DemoViewModel : ViewModelBase
 {
-    private string _headerText = "TerminalNinja MVVM Demo";
-    private string _contentText = "Welcome to TerminalNinja with Data Binding!\n\nClick the buttons to see binding in action.\n\nThe UI updates automatically!";
-    private string _statusText = "Ready";
-    private int _clickCount = 0;
-    
-    // Commands
-    private ICommand? _newCommand;
-    private ICommand? _openCommand;
-    private ICommand? _saveCommand;
-    
     /// <summary>
     /// Header text displayed at the top.
     /// </summary>
     public string HeaderText
     {
-        get => _headerText;
-        set => SetProperty(ref _headerText, value);
-    }
-    
+        get;
+        set => SetProperty(ref field, value);
+    } = "TerminalNinja MVVM Demo";
+
     /// <summary>
     /// Main content text.
     /// </summary>
     public string ContentText
     {
-        get => _contentText;
-        set => SetProperty(ref _contentText, value);
-    }
-    
+        get;
+        set => SetProperty(ref field, value);
+    } =
+        "Welcome to TerminalNinja with Data Binding!\n\nClick the buttons to see binding in action.\n\nThe UI updates automatically!";
+
     /// <summary>
     /// Status bar text.
     /// </summary>
     public string StatusText
     {
-        get => _statusText;
-        set => SetProperty(ref _statusText, value);
-    }
-    
+        get;
+        set => SetProperty(ref field, value);
+    } = "Ready";
+
     /// <summary>
     /// Total number of button clicks.
     /// </summary>
     public int ClickCount
     {
-        get => _clickCount;
-        private set => SetProperty(ref _clickCount, value);
-    }
-    
+        get;
+        private set => SetProperty(ref field, value);
+    } = 0;
+
     /// <summary>
     /// Command for the New button.
     /// </summary>
-    public ICommand NewCommand => _newCommand ??= new RelayCommand(OnNew);
+    public ICommand NewCommand => field ??= new RelayCommand(OnNew);
     
     /// <summary>
     /// Command for the Open button.
     /// </summary>
-    public ICommand OpenCommand => _openCommand ??= new RelayCommand(OnOpen);
+    public ICommand OpenCommand => field ??= new RelayCommand(OnOpen);
     
     /// <summary>
     /// Command for the Save button.
     /// </summary>
-    public ICommand SaveCommand => _saveCommand ??= new RelayCommand(OnSave);
+    public ICommand SaveCommand => field ??= new RelayCommand(OnSave);
+
+    public DateTime CurrentTime
+    {
+        get;
+        set => SetProperty(ref field, value);
+    } = DateTime.Now;
+
+    public DemoViewModel()
+    {
+        _ = new Timer(_ =>
+        {
+            CurrentTime = DateTime.Now;
+        }, null, TimeSpan.Zero, TimeSpan.FromSeconds(1));
+    }
     
     private void OnNew()
     {

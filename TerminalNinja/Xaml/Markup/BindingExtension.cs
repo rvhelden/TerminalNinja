@@ -2,6 +2,7 @@ using System.Runtime.CompilerServices;
 using Portable.Xaml;
 using Portable.Xaml.Markup;
 using TerminalNinja.Xaml.Binding;
+using TerminalNinja.Xaml.Data;
 
 namespace TerminalNinja.Xaml.Markup;
 
