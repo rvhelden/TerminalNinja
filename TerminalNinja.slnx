@@ -2,4 +2,5 @@
   <Project Path="Sample/Sample.csproj" />
   <Project Path="TerminalNinja.Tests/TerminalNinja.Tests.csproj" />
   <Project Path="TerminalNinja/TerminalNinja.csproj" />
+  <Project Path="TerminalNinja.Generators/TerminalNinja.Generators.csproj" />
 </Solution>
