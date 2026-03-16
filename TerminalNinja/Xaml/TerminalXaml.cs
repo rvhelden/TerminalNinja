@@ -74,17 +74,17 @@ public static class TerminalXaml
         
         // Process StaticResource lookups
         ProcessStaticResources();
-        
+
+        // Always drain pending bindings so AsyncLocal state stays clean
+        var pendingBindings = BindingExtension.GetAndClearPendingBindings();
+
         // Process bindings if dataContext is provided
         if (dataContext != null)
         {
             bindingManager ??= new BindingManager();
-            
-            // Get pending bindings from BindingExtension
-            var pendingBindings = BindingExtension.GetAndClearPendingBindings();
             ProcessBindings(pendingBindings, bindingManager);
-            
-            // Set DataContext recursively
+
+            // Set DataContext recursively — this re-activates bindings on each control
             bindingManager.SetDataContextRecursive(result, dataContext);
         }
         

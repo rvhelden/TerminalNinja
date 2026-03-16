@@ -94,22 +94,29 @@ public sealed class BindingManager : IDisposable
     }
     
     /// <summary>
-    /// Recursively sets DataContext on an control tree.
+    /// Recursively sets DataContext on a control tree.
     /// </summary>
     public void SetDataContextRecursive(IControl root, object? dataContext)
     {
         SetDataContext(root, dataContext);
-        
-        // Recursively set on children
+
         switch (root)
         {
+            case Window window when window.Content != null:
+                SetDataContextRecursive(window.Content, dataContext);
+                break;
+
+            case Panel panel:
+                foreach (var child in panel.Children)
+                    SetDataContextRecursive(child, dataContext);
+                break;
+
             case Rectangle rect when rect.Child != null:
                 SetDataContextRecursive(rect.Child, dataContext);
                 break;
-            
-            case StackPanel stackPanel:
-                foreach (var child in stackPanel.Children)
-                    SetDataContextRecursive(child, dataContext);
+
+            case ItemsControl itemsControl:
+                SetDataContextRecursive(itemsControl.ItemsPanel, dataContext);
                 break;
         }
     }

@@ -24,7 +24,7 @@
         
         <!-- Header with data binding -->
         <Rectangle StackPanel.SizeMode="Fixed" StackPanel.FixedSize="5"
-                   BackgroundColor="{Binding Path=(local:Color.Green)}"
+                   BackgroundColor="{x:Static Color.Blue}"
                    ForegroundColor="{StaticResource AccentColor}"
                    Border="Double">
             <Label x:Name="headerLabel"
