@@ -1,5 +1,6 @@
 using System.ComponentModel;
 using Portable.Xaml.Markup;
+using TerminalNinja.Aot;
 using SWM = System.Windows.Markup;
 
 namespace TerminalNinja.Controls;
@@ -53,58 +54,78 @@ public class DataTemplate
     }
 
     /// <summary>
-    /// Creates a deep clone of a control tree.
-    /// This is a simplified implementation that creates a new instance and copies properties.
+    /// Property names that should be skipped during cloning.
+    /// </summary>
+    private static readonly HashSet<string> SkipProperties = new(StringComparer.Ordinal)
+    {
+        "Parent",
+        "DataContext"
+    };
+
+    /// <summary>
+    /// Creates a deep clone of a control tree using the AOT-compatible registries.
+    /// Uses ControlFactoryRegistry for instance creation and PropertyAccessorRegistry for property access.
     /// </summary>
     private static IControl? CloneControl(IControl source)
     {
-        // For now, we use a simple reflection-based approach
-        // In the future, this could be optimized with XAML re-parsing or compiled expressions
-        
         var sourceType = source.GetType();
-        var clone = Activator.CreateInstance(sourceType) as IControl;
-        
-        if (clone == null)
+
+        // Create instance via factory registry (AOT-safe, no Activator.CreateInstance)
+        if (!ControlFactoryRegistry.TryCreate(sourceType, out var instance))
+        {
+            throw new InvalidOperationException(
+                $"No factory registered for type '{sourceType.FullName}'. " +
+                $"Ensure the type is discovered by the source generator.");
+        }
+
+        if (instance is not IControl clone)
         {
             return null;
         }
 
-        // Copy public properties
-        foreach (var prop in sourceType.GetProperties())
+        // Copy properties via accessor registry (AOT-safe, no reflection)
+        foreach (var kvp in PropertyAccessorRegistry.GetAccessors(sourceType))
         {
-            // Skip read-only properties and collections
-            if (!prop.CanWrite || !prop.CanRead)
-                continue;
+            var propertyName = kvp.Key;
+            var accessor = kvp.Value;
 
             // Skip special properties that shouldn't be cloned
-            if (prop.Name is "Parent" or "DataContext")
+            if (SkipProperties.Contains(propertyName))
+                continue;
+
+            // Skip read-only properties
+            if (!accessor.CanWrite)
                 continue;
 
             try
             {
-                var value = prop.GetValue(source);
-                
+                var value = accessor.Getter(source);
+
                 // Handle special cases
                 if (value is IControl childControl)
                 {
                     // Recursively clone child controls
                     value = CloneControl(childControl);
                 }
-                else if (value is IList<IControl> childrenList && prop.GetValue(clone) is IList<IControl> cloneList)
+                else if (value is IList<IControl> childrenList)
                 {
                     // Clone children in collections (e.g., Panel.Children)
-                    foreach (var child in childrenList)
+                    var cloneList = accessor.Getter(clone) as IList<IControl>;
+                    if (cloneList != null)
                     {
-                        var clonedChild = CloneControl(child);
-                        if (clonedChild != null)
+                        foreach (var child in childrenList)
                         {
-                            cloneList.Add(clonedChild);
+                            var clonedChild = CloneControl(child);
+                            if (clonedChild != null)
+                            {
+                                cloneList.Add(clonedChild);
+                            }
                         }
+                        continue; // Don't set the property again
                     }
-                    continue; // Don't set the property again
                 }
-                
-                prop.SetValue(clone, value);
+
+                accessor.Setter!(clone, value);
             }
             catch
             {

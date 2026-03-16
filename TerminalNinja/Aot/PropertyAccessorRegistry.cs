@@ -80,4 +80,27 @@ public static class PropertyAccessorRegistry
     {
         return TryGetAccessor(type, propertyName, out _);
     }
+
+    /// <summary>
+    /// Gets all registered property accessors for the given type, including those
+    /// inherited from base types. Returns (propertyName, accessor) pairs.
+    /// </summary>
+    public static IEnumerable<KeyValuePair<string, PropertyAccessor>> GetAccessors(Type type)
+    {
+        // Collect all property names from the type hierarchy (child types first so they win)
+        var seen = new HashSet<string>(StringComparer.Ordinal);
+
+        var current = type;
+        while (current is not null)
+        {
+            foreach (var kvp in Accessors)
+            {
+                if (kvp.Key.Type == current && seen.Add(kvp.Key.PropertyName))
+                {
+                    yield return new KeyValuePair<string, PropertyAccessor>(kvp.Key.PropertyName, kvp.Value);
+                }
+            }
+            current = current.BaseType;
+        }
+    }
 }
