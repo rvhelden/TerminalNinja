@@ -82,6 +82,16 @@ public class DemoViewModel : ViewModelBase
     ];
 
     /// <summary>
+    /// Activity log entries displayed in the ActivityLogControl.
+    /// </summary>
+    public ObservableCollection<LogEntry> LogEntries { get; } =
+    [
+        new LogEntry { Time = DateTime.Now.ToString("HH:mm:ss"), Message = "Application started" },
+        new LogEntry { Time = DateTime.Now.ToString("HH:mm:ss"), Message = "XAML layout loaded" },
+        new LogEntry { Time = DateTime.Now.ToString("HH:mm:ss"), Message = "Data binding initialized" }
+    ];
+
+    /// <summary>
     /// Currently selected menu item.
     /// </summary>
     public string? SelectedMenuItem
@@ -110,6 +120,7 @@ public class DemoViewModel : ViewModelBase
         StatusText = $"New clicked! (Total: {ClickCount})";
         ContentText = "Creating a new document...\n\nData binding automatically updates the UI\nwhen properties change!";
         HeaderText = $"New Document - {DateTime.Now:HH:mm:ss}";
+        LogEntries.Add(new LogEntry { Time = DateTime.Now.ToString("HH:mm:ss"), Message = "New document created" });
     }
     
     private void OnOpen()
@@ -118,6 +129,7 @@ public class DemoViewModel : ViewModelBase
         StatusText = $"Open clicked! (Total: {ClickCount})";
         ContentText = "Opening a document...\n\nNotice how all bound properties\nupdate in real-time!";
         HeaderText = $"Open File - {DateTime.Now:HH:mm:ss}";
+        LogEntries.Add(new LogEntry { Time = DateTime.Now.ToString("HH:mm:ss"), Message = "File opened" });
     }
     
     private void OnSave()
@@ -126,5 +138,6 @@ public class DemoViewModel : ViewModelBase
         StatusText = $"Save clicked! (Total: {ClickCount})";
         ContentText = "Saving document...\n\nThe ICommand pattern works perfectly\nwith data binding!";
         HeaderText = $"Saved - {DateTime.Now:HH:mm:ss}";
+        LogEntries.Add(new LogEntry { Time = DateTime.Now.ToString("HH:mm:ss"), Message = "Document saved" });
     }
 }

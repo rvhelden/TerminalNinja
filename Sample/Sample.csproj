@@ -7,6 +7,7 @@
         <Nullable>enable</Nullable>
         <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
         <PublishAot>true</PublishAot>
+        <EmitCompilerGeneratedFiles>true</EmitCompilerGeneratedFiles>
     </PropertyGroup>
 
     <ItemGroup>
@@ -20,6 +21,13 @@
       <EmbeddedResource Include="DemoLayout.xaml">
         <LogicalName>Sample.DemoLayout.xaml</LogicalName>
       </EmbeddedResource>
+      <EmbeddedResource Include="ActivityLogControl.xaml">
+        <LogicalName>Sample.ActivityLogControl.xaml</LogicalName>
+      </EmbeddedResource>
+    </ItemGroup>
+
+    <ItemGroup>
+      <AdditionalFiles Include="ActivityLogControl.xaml" />
     </ItemGroup>
 
     <ItemGroup>

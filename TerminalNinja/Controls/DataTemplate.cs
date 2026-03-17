@@ -1,6 +1,7 @@
 using System.ComponentModel;
 using System.Windows.Markup;
 using TerminalNinja.Aot;
+using TerminalNinja.Xaml.Binding;
 
 namespace TerminalNinja.Controls;
 
@@ -63,6 +64,7 @@ public class DataTemplate
     /// <summary>
     /// Creates a deep clone of a control tree using the AOT-compatible registries.
     /// Uses ControlFactoryRegistry for instance creation and PropertyAccessorRegistry for property access.
+    /// Also clones pending bindings so that deferred binding activation works on cloned elements.
     /// </summary>
     private static UIElement? CloneControl(UIElement source)
     {
@@ -129,6 +131,22 @@ public class DataTemplate
             {
                 // Skip properties that can't be copied
                 // This is expected for some complex types or properties with constraints
+            }
+        }
+
+        // Clone pending bindings from the prototype to the clone.
+        // These are bindings stored during XAML loading when DataContext was null
+        // (e.g., inside a UserControl's InitializeComponent). They will be activated
+        // when DataContext is set on the clone (e.g., by ItemsControl.CreateContainerForItem).
+        if (source is FrameworkElement sourceFe && clone is FrameworkElement cloneFe)
+        {
+            var pendingBindings = sourceFe.PendingBindings;
+            if (pendingBindings != null)
+            {
+                foreach (var binding in pendingBindings)
+                {
+                    cloneFe.AddPendingBinding(binding);
+                }
             }
         }
 

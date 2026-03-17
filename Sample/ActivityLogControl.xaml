@@ -1,0 +1,26 @@
+<UserControl
+    xmlns="http://schemas.terminalninja.dev/xaml"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:sample="clr-namespace:Sample"
+    x:Class="Sample.ActivityLogControl">
+
+    <UserControl.Resources>
+        <DataTemplate x:Key="LogEntryTemplate" DataType="sample:LogEntry">
+            <TextBlock Text="{Binding Message}" Foreground="White" Background="#141428" />
+        </DataTemplate>
+    </UserControl.Resources>
+
+    <Border Background="#141428" Foreground="White" BorderStyle="Rounded">
+        <StackPanel Orientation="Vertical">
+            <TextBlock x:Name="TitleText"
+                       Text=" Activity Log"
+                       Foreground="Cyan"
+                       Background="#141428"
+                       StackPanel.SizeMode="Fixed"
+                       StackPanel.FixedSize="1" />
+            <ItemsControl x:Name="LogItemsControl"
+                          ItemTemplate="{StaticResource LogEntryTemplate}"
+                          StackPanel.SizeMode="Stretch" />
+        </StackPanel>
+    </Border>
+</UserControl>

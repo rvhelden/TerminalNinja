@@ -108,6 +108,7 @@ internal sealed class XamlLoader
         // Process bindings
         if (dataContext != null)
         {
+            // DataContext available at load time — activate bindings immediately
             bindingManager ??= new BindingManager();
 
             foreach (var pb in _pendingBindings)
@@ -120,11 +121,52 @@ internal sealed class XamlLoader
                         pb.Path,
                         pb.Mode,
                         pb.Converter,
-                        pb.ConverterParameter);
+                        pb.ConverterParameter,
+                        pb.RelativeSource);
                 }
             }
 
             bindingManager.SetDataContextRecursive(typed, dataContext);
+        }
+        else if (_pendingBindings.Count > 0)
+        {
+            // DataContext is null (e.g., inside UserControl's InitializeComponent).
+            // Store bindings on each target element for deferred activation
+            // when DataContext is eventually set.
+            //
+            // Exception: RelativeSource bindings can be activated immediately
+            // because they don't depend on DataContext — they resolve their
+            // source from the visual tree.
+            BindingManager? lazyManager = null;
+
+            foreach (var pb in _pendingBindings)
+            {
+                if (pb.Target is FrameworkElement control)
+                {
+                    if (pb.RelativeSource != null)
+                    {
+                        // RelativeSource bindings are DataContext-independent — activate now
+                        lazyManager ??= new BindingManager();
+                        lazyManager.CreateBinding(
+                            control,
+                            pb.TargetPropertyName,
+                            pb.Path,
+                            pb.Mode,
+                            pb.Converter,
+                            pb.ConverterParameter,
+                            pb.RelativeSource);
+                    }
+                    else
+                    {
+                        control.AddPendingBinding(new ElementBinding(
+                            pb.TargetPropertyName,
+                            pb.Path,
+                            pb.Mode,
+                            pb.Converter,
+                            pb.ConverterParameter));
+                    }
+                }
+            }
         }
 
         return typed;
@@ -456,6 +498,13 @@ internal sealed class XamlLoader
             {
                 // Set properties from attributes (skip x:Key)
                 ProcessAttributes(child, resourceInstance, childType, fe);
+
+                // Process child elements (e.g., DataTemplate with TemplateContent via [ContentProperty])
+                if (child.HasElements)
+                {
+                    ProcessChildElements(child, resourceInstance, childType, fe);
+                }
+
                 fe.Resources[key] = resourceInstance;
             }
             else
@@ -721,7 +770,8 @@ internal sealed class XamlLoader
     /// <summary>
     /// Parses a {Binding ...} markup extension and stores it for later activation.
     /// Syntax: {Binding Path=PropertyName} or {Binding PropertyName}
-    /// Supports: Path, Mode, Converter={StaticResource Key}, ConverterParameter=Value
+    /// Supports: Path, Mode, Converter={StaticResource Key}, ConverterParameter=Value,
+    ///           RelativeSource={RelativeSource Self|FindAncestor, AncestorType=TypeName, AncestorLevel=N}
     /// </summary>
     private void ParseBindingExtension(object target, string targetPropertyName, string markup, FrameworkElement? context)
     {
@@ -736,6 +786,7 @@ internal sealed class XamlLoader
         var mode = BindingMode.OneWay;
         IValueConverter? converter = null;
         object? converterParameter = null;
+        RelativeSource? relativeSource = null;
 
         if (string.IsNullOrEmpty(inner))
         {
@@ -776,6 +827,9 @@ internal sealed class XamlLoader
                 case "ConverterParameter":
                     converterParameter = val;
                     break;
+                case "RelativeSource":
+                    relativeSource = ParseRelativeSourceValue(val);
+                    break;
             }
         }
 
@@ -784,8 +838,105 @@ internal sealed class XamlLoader
 
         _pendingBindings.Add(new PendingBinding(target, targetPropertyName, path, mode, converter, converterParameter)
         {
-            Context = context
+            Context = context,
+            RelativeSource = relativeSource
         });
+    }
+
+    /// <summary>
+    /// Parses a <c>{RelativeSource ...}</c> nested markup extension value.
+    /// Supports:
+    ///   <c>{RelativeSource Self}</c>
+    ///   <c>{RelativeSource TemplatedParent}</c>
+    ///   <c>{RelativeSource FindAncestor, AncestorType=TypeName}</c>
+    ///   <c>{RelativeSource FindAncestor, AncestorType=TypeName, AncestorLevel=2}</c>
+    /// </summary>
+    private RelativeSource ParseRelativeSourceValue(string value)
+    {
+        // Value could be "{RelativeSource Self}" or just the inner part after stripping
+        var inner = value;
+        if (inner.StartsWith("{", StringComparison.Ordinal) && inner.EndsWith("}", StringComparison.Ordinal))
+        {
+            inner = inner[1..^1].Trim();
+        }
+
+        // Remove "RelativeSource" prefix
+        if (inner.StartsWith("RelativeSource", StringComparison.Ordinal))
+            inner = inner["RelativeSource".Length..].Trim();
+
+        if (string.IsNullOrEmpty(inner))
+            throw new InvalidOperationException("RelativeSource markup extension requires at least a Mode");
+
+        // Parse inner arguments (comma-separated, but first positional = mode)
+        var parts = SplitMarkupExtensionArgs(inner);
+        RelativeSourceMode mode = default;
+        Type? ancestorType = null;
+        var ancestorLevel = 1;
+        var modeSet = false;
+
+        foreach (var part in parts)
+        {
+            var trimmed = part.Trim();
+            if (string.IsNullOrEmpty(trimmed))
+                continue;
+
+            var eqIdx = trimmed.IndexOf('=');
+            if (eqIdx < 0)
+            {
+                // Positional: the mode
+                mode = Enum.Parse<RelativeSourceMode>(trimmed, ignoreCase: true);
+                modeSet = true;
+                continue;
+            }
+
+            var key = trimmed[..eqIdx].Trim();
+            var val = trimmed[(eqIdx + 1)..].Trim();
+
+            switch (key)
+            {
+                case "Mode":
+                    mode = Enum.Parse<RelativeSourceMode>(val, ignoreCase: true);
+                    modeSet = true;
+                    break;
+                case "AncestorType":
+                    ancestorType = ResolveTypeBySimpleName(val);
+                    if (ancestorType == null)
+                        throw new InvalidOperationException(
+                            $"Cannot resolve AncestorType '{val}'. Ensure the type is registered in TypeNameRegistry.");
+                    break;
+                case "AncestorLevel":
+                    ancestorLevel = int.Parse(val);
+                    break;
+            }
+        }
+
+        if (!modeSet)
+            throw new InvalidOperationException("RelativeSource markup extension requires a Mode");
+
+        var relativeSource = new RelativeSource(mode)
+        {
+            AncestorType = ancestorType,
+            AncestorLevel = ancestorLevel
+        };
+
+        return relativeSource;
+    }
+
+    /// <summary>
+    /// Resolves a type by its simple (unqualified) name by searching all default CLR namespaces.
+    /// Used for <c>AncestorType=Window</c> syntax in markup extensions.
+    /// </summary>
+    private static Type? ResolveTypeBySimpleName(string simpleName)
+    {
+        foreach (var ns in DefaultClrNamespaces)
+        {
+            var fullName = $"{ns}.{simpleName}";
+            var type = ResolveTypeByName(fullName);
+            if (type != null)
+                return type;
+        }
+
+        return null;
     }
 
     /// <summary>
@@ -989,6 +1140,12 @@ internal sealed class XamlLoader
         /// The FrameworkElement context for resolving resources.
         /// </summary>
         public FrameworkElement? Context { get; init; }
+
+        /// <summary>
+        /// Optional RelativeSource for resolving the binding source relative to the target element.
+        /// When set, the binding source is determined by the RelativeSource instead of DataContext.
+        /// </summary>
+        public RelativeSource? RelativeSource { get; init; }
     }
 
     private sealed record PendingStaticResource(

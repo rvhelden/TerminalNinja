@@ -37,6 +37,7 @@ public static class TypeNameRegistry
         Register(typeof(TextTrimming));
         Register(typeof(TextAlignment));
         Register(typeof(BindingMode));
+        Register(typeof(RelativeSourceMode));
     }
 
     /// <summary>

@@ -54,11 +54,26 @@ internal static class GeneratorHelper
     private const string NotifyPropertyChangedName = "INotifyPropertyChanged";
 
     /// <summary>
+    /// Additional type names (beyond base class inheritors) that need property
+    /// accessors generated because they are used in XAML and their properties
+    /// are set by the XamlLoader via PropertyAccessorRegistry.
+    /// </summary>
+    private static readonly HashSet<string> AdditionalAccessorTypes = new()
+    {
+        "DataTemplate",
+        "Style",
+        "Setter",
+        "RowDefinition",
+        "ColumnDefinition"
+    };
+
+    /// <summary>
     /// Checks if a type should have property accessors generated for it.
     /// A type qualifies if it:
     /// - Inherits from one of the control base classes
     /// - Inherits from ViewModelBase
     /// - Implements INotifyPropertyChanged
+    /// - Is one of the additional XAML-instantiable types (DataTemplate, Style, etc.)
     /// </summary>
     public static bool IsTargetType(INamedTypeSymbol type)
     {
@@ -81,6 +96,10 @@ internal static class GeneratorHelper
 
         // Check if it implements INotifyPropertyChanged (catches other bindable types)
         if (ImplementsInterface(type, new[] { NotifyPropertyChangedName }))
+            return true;
+
+        // Check if it's one of the additional XAML types that need accessors
+        if (AdditionalAccessorTypes.Contains(type.Name))
             return true;
 
         return false;

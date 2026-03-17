@@ -1,0 +1,32 @@
+﻿# Features to create
+- [ ] Add support for modal dialogs
+- [ ] Add support for popups
+- [ ] Add support for Theme resources
+  - [ ] Add support for Dark theme
+  - [ ] Add support for Dracula theme
+  - [ ] Add support for Gruvbox dark theme
+- [ ] Add support for custom themes
+- [ ] Add support for Brushes
+
+# Controls
+- [ ] FontIcon control with Nerdfont icons support
+- [ ] Add ProgressBar control
+- [ ] Add ScrollViewer control
+- [ ] Add TabControl control
+- [ ] Add TreeView control
+- [ ] Add ListView control
+- [ ] Add DataGrid control
+- [ ] Add ComboBox control
+- [ ] Add DateTimePicker control
+- [ ] Add DatePicker control
+- [ ] Add TimePicker control
+- [ ] Add NumberPicker control
+- [ ] Add ColorPicker control
+- [ ] Add FilePicker control
+- [ ] Add FolderPicker control
+- [ ] Add Image control
+- [ ] Add CheckBox control
+- [ ] Add RadioButton control
+- [ ] Add Label control
+- [ ] Add TextBlock control
+- [ ] Add TextBox control

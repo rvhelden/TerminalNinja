@@ -22,7 +22,8 @@ public sealed class BindingManager : IDisposable
         string sourcePath,
         BindingMode mode = BindingMode.OneWay,
         IValueConverter? converter = null,
-        object? converterParameter = null)
+        object? converterParameter = null,
+        RelativeSource? relativeSource = null)
     {
         ArgumentNullException.ThrowIfNull(target);
         ArgumentException.ThrowIfNullOrWhiteSpace(targetPropertyName);
@@ -42,13 +43,25 @@ public sealed class BindingManager : IDisposable
             propertyPath,
             mode,
             converter,
-            converterParameter);
+            converterParameter,
+            hasRelativeSource: relativeSource != null);
         
         _bindings.Add(binding);
         
-        // Activate with current DataContext
-        var dataContext = GetDataContext(target);
-        binding.Activate(dataContext);
+        // Resolve the binding source
+        object? source;
+        if (relativeSource != null)
+        {
+            // RelativeSource binding — resolve from the visual tree, not DataContext
+            source = relativeSource.ResolveSource(target);
+        }
+        else
+        {
+            // Standard DataContext binding
+            source = GetDataContext(target);
+        }
+
+        binding.Activate(source);
     }
     
     /// <summary>
@@ -79,13 +92,14 @@ public sealed class BindingManager : IDisposable
     }
     
     /// <summary>
-    /// Updates all bindings for a specific control (reactivates them with current DataContext).
+    /// Updates all DataContext-based bindings for a specific control (reactivates them with current DataContext).
+    /// RelativeSource bindings are not affected by DataContext changes.
     /// </summary>
     private void UpdateBindingsForElement(FrameworkElement control)
     {
         var dataContext = GetDataContext(control);
         
-        foreach (var binding in _bindings.Where(b => ReferenceEquals(b.Target, control)))
+        foreach (var binding in _bindings.Where(b => ReferenceEquals(b.Target, control) && !b.HasRelativeSource))
         {
             binding.Activate(dataContext);
         }

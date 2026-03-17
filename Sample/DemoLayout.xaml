@@ -100,6 +100,11 @@
                        Padding="4,2,4,2" />
             </Border>
             
+            <!-- Center: Activity Log (x:Class UserControl) -->
+            <sample:ActivityLogControl StackPanel.SizeMode="Fixed" StackPanel.FixedSize="35"
+                                        x:Name="activityLog"
+                                        ItemsSource="{Binding LogEntries}" />
+            
             <!-- Right: ListBox demo -->
             <Border StackPanel.SizeMode="Fixed" StackPanel.FixedSize="24"
                        Background="#1A1A2E"

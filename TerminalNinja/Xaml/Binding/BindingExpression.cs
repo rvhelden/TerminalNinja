@@ -18,6 +18,7 @@ internal sealed class BindingExpression : IDisposable
     private readonly BindingMode _mode;
     private readonly IValueConverter? _converter;
     private readonly object? _converterParameter;
+    private readonly bool _hasRelativeSource;
     
     private PropertyPathObserver? _observer;
     private object? _source;
@@ -30,7 +31,8 @@ internal sealed class BindingExpression : IDisposable
         PropertyPath sourcePath,
         BindingMode mode,
         IValueConverter? converter = null,
-        object? converterParameter = null)
+        object? converterParameter = null,
+        bool hasRelativeSource = false)
     {
         _target = target ?? throw new ArgumentNullException(nameof(target));
         ArgumentException.ThrowIfNullOrWhiteSpace(targetPropertyName);
@@ -40,6 +42,7 @@ internal sealed class BindingExpression : IDisposable
         _mode = mode;
         _converter = converter;
         _converterParameter = converterParameter;
+        _hasRelativeSource = hasRelativeSource;
     }
     
     /// <summary>
@@ -51,13 +54,27 @@ internal sealed class BindingExpression : IDisposable
     /// Gets the target property name this binding updates.
     /// </summary>
     public string TargetPropertyName => _targetPropertyName;
+
+    /// <summary>
+    /// Gets whether this binding uses a <see cref="RelativeSource"/> for source resolution
+    /// instead of DataContext. RelativeSource bindings are not re-activated when DataContext changes.
+    /// </summary>
+    public bool HasRelativeSource => _hasRelativeSource;
     
     /// <summary>
     /// Activates the binding with the specified source object.
+    /// Safe to call multiple times — disposes any existing observer before creating a new one.
     /// </summary>
     public void Activate(object? source)
     {
         _source = source;
+        
+        // Dispose existing observer to prevent leaks when re-activating
+        _observer?.Dispose();
+        _observer = null;
+        
+        // For TwoWay mode, unsubscribe from old target changes before resubscribing
+        UnsubscribeFromTargetChanges();
         
         // For OneWay and TwoWay modes, subscribe to source changes
         if (_mode != BindingMode.OneTime)

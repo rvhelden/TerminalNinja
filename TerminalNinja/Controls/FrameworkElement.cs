@@ -2,6 +2,7 @@ using TerminalNinja.Aot;
 using TerminalNinja.Primitives;
 using TerminalNinja.Resources;
 using TerminalNinja.Styling;
+using TerminalNinja.Xaml.Binding;
 
 namespace TerminalNinja.Controls;
 
@@ -28,7 +29,8 @@ public abstract class FrameworkElement : UIElement
 
     public static readonly DependencyProperty DataContextProperty =
         DependencyProperty.Register(nameof(DataContext), typeof(object), typeof(FrameworkElement),
-            new PropertyMetadata((object?)null));
+            new PropertyMetadata((object?)null,
+                propertyChangedCallback: (d, e) => ((FrameworkElement)d).OnDataContextChanged(e.OldValue, e.NewValue)));
 
     public static readonly DependencyProperty StyleProperty =
         DependencyProperty.Register(nameof(Style), typeof(Style), typeof(FrameworkElement),
@@ -70,6 +72,72 @@ public abstract class FrameworkElement : UIElement
     {
         get => GetValue(DataContextProperty);
         set => SetValue(DataContextProperty, value);
+    }
+
+    // ─── Deferred Binding Support ─────────────────────────────────
+
+    /// <summary>
+    /// Pending bindings stored when XAML is loaded without a DataContext.
+    /// Activated when DataContext is first set to a non-null value.
+    /// </summary>
+    private List<ElementBinding>? _pendingBindings;
+
+    /// <summary>
+    /// Adds a pending binding to be activated when DataContext becomes available.
+    /// Called by the XAML loader when dataContext is null at load time.
+    /// </summary>
+    internal void AddPendingBinding(ElementBinding binding)
+    {
+        ArgumentNullException.ThrowIfNull(binding);
+        _pendingBindings ??= [];
+        _pendingBindings.Add(binding);
+    }
+
+    /// <summary>
+    /// Returns the pending bindings for this element (for testing/inspection).
+    /// </summary>
+    internal IReadOnlyList<ElementBinding>? PendingBindings => _pendingBindings;
+
+    /// <summary>
+    /// Activates all pending bindings using the specified BindingManager and DataContext.
+    /// One-shot: clears the pending list after activation.
+    /// </summary>
+    internal void ActivatePendingBindings(BindingManager bindingManager, object dataContext)
+    {
+        if (_pendingBindings == null || _pendingBindings.Count == 0)
+            return;
+
+        var bindings = _pendingBindings;
+        _pendingBindings = null; // Clear before activating to prevent re-entrancy
+
+        // Ensure the BindingManager knows about this element's DataContext
+        // so that CreateBinding → GetDataContext returns the correct source.
+        bindingManager.SetDataContext(this, dataContext);
+
+        foreach (var pb in bindings)
+        {
+            bindingManager.CreateBinding(
+                this,
+                pb.TargetPropertyName,
+                pb.Path,
+                pb.Mode,
+                pb.Converter,
+                pb.ConverterParameter,
+                pb.RelativeSource);
+        }
+    }
+
+    /// <summary>
+    /// Called when DataContext changes. If transitioning from null to non-null
+    /// and pending bindings exist, activates them with a new BindingManager.
+    /// </summary>
+    private void OnDataContextChanged(object? oldValue, object? newValue)
+    {
+        if (newValue != null && _pendingBindings is { Count: > 0 })
+        {
+            var manager = new BindingManager();
+            ActivatePendingBindings(manager, newValue);
+        }
     }
 
     private ResourceDictionary? _resources;

@@ -44,6 +44,13 @@ public sealed class BindingExtension : MarkupExtension
     /// </summary>
     public object? ConverterParameter { get; set; }
 
+    /// <summary>
+    /// An optional <see cref="Binding.RelativeSource"/> that describes the location of the binding source
+    /// relative to the binding target. When set, the binding source is determined by the
+    /// <see cref="Binding.RelativeSource"/> instead of DataContext.
+    /// </summary>
+    public RelativeSource? RelativeSource { get; set; }
+
     /// <inheritdoc />
     public override object? ProvideValue(IServiceProvider serviceProvider)
     {
