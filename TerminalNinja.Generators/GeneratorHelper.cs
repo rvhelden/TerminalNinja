@@ -52,6 +52,7 @@ internal static class GeneratorHelper
     private static readonly string[] TargetInterfaceNames = { };
     private static readonly string[] TargetBaseClassNames = { "Visual", "UIElement", "FrameworkElement", "Control", "ViewModelBase" };
     private const string NotifyPropertyChangedName = "INotifyPropertyChanged";
+    private const string BindableObjectAttributeName = "BindableObjectAttribute";
 
     /// <summary>
     /// Additional type names (beyond base class inheritors) that need property
@@ -102,6 +103,48 @@ internal static class GeneratorHelper
         if (AdditionalAccessorTypes.Contains(type.Name))
             return true;
 
+        return false;
+    }
+
+    /// <summary>
+    /// Checks if a type is a plain data class (POCO) marked with [BindableObject]
+    /// that should have property accessors generated for AOT-safe data binding.
+    /// This is separate from <see cref="IsTargetType"/> so that only the
+    /// PropertyAccessorGenerator uses it — the ControlFactoryGenerator does not
+    /// need to register POCOs as XAML-instantiable controls.
+    /// </summary>
+    public static bool IsBindableType(INamedTypeSymbol type)
+    {
+        // Skip compiler-generated types
+        if (type.IsImplicitlyDeclared)
+            return false;
+
+        // Must be a class (not interface, struct, enum, delegate)
+        if (type.TypeKind != TypeKind.Class)
+            return false;
+
+        // Skip types that aren't accessible from generated top-level code
+        if (!IsAccessibleFromGeneratedCode(type))
+            return false;
+
+        // Already covered by IsTargetType — skip to avoid duplicate registration
+        if (IsTargetType(type))
+            return false;
+
+        // Check for [BindableObject] attribute
+        return HasAttribute(type, BindableObjectAttributeName);
+    }
+
+    /// <summary>
+    /// Checks if a type has an attribute with the given name.
+    /// </summary>
+    private static bool HasAttribute(INamedTypeSymbol type, string attributeName)
+    {
+        foreach (var attr in type.GetAttributes())
+        {
+            if (attr.AttributeClass?.Name == attributeName)
+                return true;
+        }
         return false;
     }
 

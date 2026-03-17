@@ -1,6 +1,5 @@
 using System.Collections.Concurrent;
 using System.Diagnostics.CodeAnalysis;
-using System.Reflection;
 
 namespace TerminalNinja.Aot;
 
@@ -8,8 +7,7 @@ namespace TerminalNinja.Aot;
 /// Thread-safe registry of property accessors keyed by (Type, PropertyName).
 /// Populated at startup by source-generated [ModuleInitializer] code.
 /// At runtime, the binding system queries this instead of using reflection.
-/// Falls back to reflection-based accessors for unregistered types (e.g., plain
-/// data classes used as binding sources in DataTemplates).
+/// Plain data classes (POCOs) are discovered via the [BindableObject] attribute.
 /// </summary>
 public static class PropertyAccessorRegistry
 {
@@ -27,7 +25,6 @@ public static class PropertyAccessorRegistry
     /// <summary>
     /// Try to get a property accessor for a specific type and property name.
     /// Walks the type hierarchy if an exact match isn't found.
-    /// Falls back to reflection-based accessor for unregistered types.
     /// </summary>
     public static bool TryGetAccessor(Type type, string propertyName, [NotNullWhen(true)] out PropertyAccessor? accessor)
     {
@@ -52,46 +49,8 @@ public static class PropertyAccessorRegistry
             baseType = baseType.BaseType;
         }
 
-        // Reflection fallback for unregistered types (e.g., plain data classes
-        // used as binding sources in DataTemplates). The accessor is cached so
-        // reflection is only used once per (type, property) pair.
-        if (TryCreateReflectionAccessor(type, propertyName, out var reflectionAccessor))
-        {
-            Accessors[(type, propertyName)] = reflectionAccessor.Value;
-            accessor = reflectionAccessor;
-            return true;
-        }
-
         accessor = null;
         return false;
-    }
-
-    /// <summary>
-    /// Creates a PropertyAccessor backed by PropertyInfo reflection.
-    /// Used as a fallback for types not discovered by the source generator
-    /// (e.g., plain data classes used as binding sources in DataTemplates).
-    /// The types are always preserved because they are instantiated directly in
-    /// user code, so suppressing the trim warning is safe.
-    /// </summary>
-    [UnconditionalSuppressMessage("Trimming", "IL2070",
-        Justification = "Binding source types are instantiated in user code and will not be trimmed.")]
-    private static bool TryCreateReflectionAccessor(
-        Type type,
-        string propertyName,
-        [NotNullWhen(true)] out PropertyAccessor? accessor)
-    {
-        var prop = type.GetProperty(propertyName, BindingFlags.Public | BindingFlags.Instance);
-        if (prop == null)
-        {
-            accessor = null;
-            return false;
-        }
-
-        Func<object, object?> getter = prop.GetValue;
-        Action<object, object?>? setter = prop.CanWrite ? prop.SetValue : null;
-
-        accessor = new PropertyAccessor(prop.PropertyType, getter, setter);
-        return true;
     }
 
     /// <summary>
@@ -106,7 +65,7 @@ public static class PropertyAccessorRegistry
         throw new InvalidOperationException(
             $"No property accessor registered for '{propertyName}' on type '{type.FullName}'. " +
             $"Ensure the type is discovered by the source generator. " +
-            $"The type must implement IControl, inherit from ViewModelBase, or implement INotifyPropertyChanged.");
+            $"For plain data classes, apply the [BindableObject] attribute.");
     }
 
     /// <summary>

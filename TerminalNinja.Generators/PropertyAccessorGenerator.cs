@@ -39,7 +39,9 @@ public sealed class PropertyAccessorGenerator : IIncrementalGenerator
         if (context.SemanticModel.GetDeclaredSymbol(classDecl) is not INamedTypeSymbol symbol)
             return null;
 
-        return GeneratorHelper.IsTargetType(symbol) ? symbol : null;
+        return GeneratorHelper.IsTargetType(symbol) || GeneratorHelper.IsBindableType(symbol)
+            ? symbol
+            : null;
     }
 
     private static void Execute(

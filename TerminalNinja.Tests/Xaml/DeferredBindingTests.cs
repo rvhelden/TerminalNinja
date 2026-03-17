@@ -1,4 +1,5 @@
 using System.Collections.ObjectModel;
+using TerminalNinja.Aot;
 using TerminalNinja.Controls;
 using TerminalNinja.Xaml;
 using TerminalNinja.Xaml.Binding;
@@ -555,10 +556,11 @@ public class DeferredBindingTests
     // ─── Part 7: Plain POCO binding via reflection fallback ─────
 
     /// <summary>
-    /// A plain data class with no base class, no INotifyPropertyChanged,
-    /// and no source-generator discovery. Simulates real-world data objects
-    /// like LogEntry that are used as DataTemplate binding sources.
+    /// A plain data class with no base class, no INotifyPropertyChanged.
+    /// Marked with [BindableObject] so the source generator produces
+    /// AOT-safe property accessors for data binding.
     /// </summary>
+    [BindableObject]
     internal class PlainPocoItem
     {
         public string Message { get; set; } = string.Empty;
