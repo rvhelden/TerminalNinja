@@ -1,8 +1,11 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
+using System.IO;
 using System.Linq;
 using System.Text;
+using System.Xml;
+using System.Xml.Linq;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Scriban;
@@ -12,14 +15,18 @@ namespace TerminalNinja.Generators;
 
 /// <summary>
 /// Incremental source generator that produces property accessor registrations
-/// for all types implementing IControl, inheriting ViewModelBase, or implementing INotifyPropertyChanged.
+/// for all types implementing IControl, inheriting ViewModelBase, implementing
+/// INotifyPropertyChanged, marked with [BindableObject], or referenced via
+/// DataTemplate.DataType in XAML files.
 /// </summary>
 [Generator]
 public sealed class PropertyAccessorGenerator : IIncrementalGenerator
 {
+    private const string TerminalNinjaXamlNs = "http://schemas.terminalninja.dev/xaml";
+
     public void Initialize(IncrementalGeneratorInitializationContext context)
     {
-        // Collect all class declarations
+        // Collect all class declarations that match IsTargetType or IsBindableType
         var classDeclarations = context.SyntaxProvider
             .CreateSyntaxProvider(
                 predicate: static (node, _) => node is ClassDeclarationSyntax,
@@ -27,10 +34,20 @@ public sealed class PropertyAccessorGenerator : IIncrementalGenerator
             .Where(static t => t is not null)
             .Select(static (t, _) => t!);
 
-        // Combine with compilation to resolve full type info
-        var compilationAndClasses = context.CompilationProvider.Combine(classDeclarations.Collect());
+        // Collect DataType type names from XAML AdditionalTexts
+        var dataTypeNames = context.AdditionalTextsProvider
+            .Where(static file => file.Path.EndsWith(".xaml", StringComparison.OrdinalIgnoreCase))
+            .Select(static (file, ct) => file.GetText(ct)?.ToString())
+            .Where(static text => text != null)
+            .SelectMany(static (text, _) => ExtractDataTypeNames(text!))
+            .Collect();
 
-        context.RegisterSourceOutput(compilationAndClasses, Execute);
+        // Combine everything
+        var combined = context.CompilationProvider
+            .Combine(classDeclarations.Collect())
+            .Combine(dataTypeNames);
+
+        context.RegisterSourceOutput(combined, Execute);
     }
 
     private static INamedTypeSymbol? GetTargetType(GeneratorSyntaxContext context)
@@ -44,23 +61,113 @@ public sealed class PropertyAccessorGenerator : IIncrementalGenerator
             : null;
     }
 
+    /// <summary>
+    /// Extracts fully-qualified CLR type names from DataType attributes in a XAML document.
+    /// Resolves namespace prefixes (e.g., "sample:LogEntry") using xmlns declarations.
+    /// </summary>
+    private static ImmutableArray<string> ExtractDataTypeNames(string xamlContent)
+    {
+        var builder = ImmutableArray.CreateBuilder<string>();
+
+        XDocument doc;
+        try
+        {
+            doc = XDocument.Parse(xamlContent);
+        }
+        catch (XmlException)
+        {
+            return builder.ToImmutable();
+        }
+
+        if (doc.Root == null)
+            return builder.ToImmutable();
+
+        // Build prefix → CLR namespace map from root xmlns declarations
+        var prefixToClrNamespace = new Dictionary<string, string>();
+        foreach (var attr in doc.Root.Attributes())
+        {
+            if (!attr.IsNamespaceDeclaration)
+                continue;
+
+            var prefix = attr.Name.LocalName;
+            if (attr.Name.Namespace == XNamespace.Xmlns)
+                prefix = attr.Name.LocalName; // xmlns:sample="..."
+            else if (attr.Name.LocalName == "xmlns")
+                continue; // default xmlns — not a prefix we resolve DataType with
+
+            var value = attr.Value;
+            if (value.StartsWith("clr-namespace:", StringComparison.Ordinal))
+            {
+                var clrNs = value.Substring("clr-namespace:".Length);
+                var semiIdx = clrNs.IndexOf(';');
+                if (semiIdx >= 0)
+                    clrNs = clrNs.Substring(0, semiIdx);
+                prefixToClrNamespace[prefix] = clrNs;
+            }
+        }
+
+        // Scan all elements for DataType attributes
+        foreach (var element in doc.Root.DescendantsAndSelf())
+        {
+            var dataTypeAttr = element.Attribute("DataType");
+            if (dataTypeAttr == null)
+                continue;
+
+            var value = dataTypeAttr.Value; // e.g., "sample:LogEntry"
+            var colonIdx = value.IndexOf(':');
+            if (colonIdx < 0)
+                continue; // No prefix — would need default namespace resolution, skip
+
+            var prefix = value.Substring(0, colonIdx);
+            var typeName = value.Substring(colonIdx + 1);
+
+            if (prefixToClrNamespace.TryGetValue(prefix, out var clrNs))
+            {
+                builder.Add(clrNs + "." + typeName); // e.g., "Sample.LogEntry"
+            }
+        }
+
+        return builder.ToImmutable();
+    }
+
     private static void Execute(
         SourceProductionContext context,
-        (Compilation Compilation, ImmutableArray<INamedTypeSymbol> Types) input)
+        ((Compilation Compilation, ImmutableArray<INamedTypeSymbol> Types) Left,
+         ImmutableArray<string> DataTypeNames) input)
     {
-        var (compilation, types) = input;
+        var compilation = input.Left.Compilation;
+        var types = input.Left.Types;
+        var dataTypeNames = input.DataTypeNames;
 
-        if (types.IsDefaultOrEmpty)
-            return;
-
-        // Deduplicate types (same type can appear from multiple partial declarations)
+        // Deduplicate types from class declarations
         var seen = new HashSet<string>();
         var uniqueTypes = new List<INamedTypeSymbol>();
-        foreach (var type in types)
+
+        if (!types.IsDefaultOrEmpty)
         {
-            var key = type.ToDisplayString();
-            if (seen.Add(key))
-                uniqueTypes.Add(type);
+            foreach (var type in types)
+            {
+                var key = type.ToDisplayString();
+                if (seen.Add(key))
+                    uniqueTypes.Add(type);
+            }
+        }
+
+        // Resolve DataType type names from XAML and add them
+        if (!dataTypeNames.IsDefaultOrEmpty)
+        {
+            foreach (var fullTypeName in dataTypeNames)
+            {
+                if (!seen.Add(fullTypeName))
+                    continue; // Already discovered via class declarations
+
+                var symbol = compilation.GetTypeByMetadataName(fullTypeName);
+                if (symbol != null && !symbol.IsImplicitlyDeclared &&
+                    symbol.TypeKind == TypeKind.Class)
+                {
+                    uniqueTypes.Add(symbol);
+                }
+            }
         }
 
         // Build type models for the template
