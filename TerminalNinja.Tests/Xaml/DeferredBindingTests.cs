@@ -551,4 +551,109 @@ public class DeferredBindingTests
         await Assert.That(clone!.Text).IsEqualTo("Static");
         await Assert.That(clone.PendingBindings).IsNull();
     }
+
+    // ─── Part 7: Plain POCO binding via reflection fallback ─────
+
+    /// <summary>
+    /// A plain data class with no base class, no INotifyPropertyChanged,
+    /// and no source-generator discovery. Simulates real-world data objects
+    /// like LogEntry that are used as DataTemplate binding sources.
+    /// </summary>
+    internal class PlainPocoItem
+    {
+        public string Message { get; set; } = string.Empty;
+        public int Priority { get; set; }
+    }
+
+    [Test]
+    public async Task PlainPoco_BindingActivates_WhenDataContextSet()
+    {
+        // Arrange — TextBlock with pending binding targeting a POCO property
+        var textBlock = new TextBlock();
+        textBlock.AddPendingBinding(new ElementBinding("Text", "Message", BindingMode.OneWay, null, null));
+
+        // Act — set DataContext to a plain POCO (no INPC, no ViewModelBase)
+        var item = new PlainPocoItem { Message = "Hello from POCO" };
+        textBlock.DataContext = item;
+
+        // Assert — binding should resolve via reflection fallback
+        await Assert.That(textBlock.Text).IsEqualTo("Hello from POCO");
+    }
+
+    [Test]
+    public async Task PlainPoco_ItemsControl_RendersAllItems()
+    {
+        // Arrange — DataTemplate with pending binding for POCO
+        var prototype = new TextBlock();
+        prototype.AddPendingBinding(new ElementBinding("Text", "Message", BindingMode.OneWay, null, null));
+        var template = new DataTemplate { TemplateContent = prototype };
+
+        var itemsControl = new ItemsControl { ItemTemplate = template };
+
+        // Act — set ItemsSource with plain POCOs
+        var items = new List<PlainPocoItem>
+        {
+            new() { Message = "Log entry 1" },
+            new() { Message = "Log entry 2" },
+            new() { Message = "Log entry 3" }
+        };
+        itemsControl.ItemsSource = items;
+
+        // Assert — all items should render with correct text
+        var children = itemsControl.ItemsPanel.Children;
+        await Assert.That(children.Count).IsEqualTo(3);
+
+        var tb0 = children[0] as TextBlock;
+        var tb1 = children[1] as TextBlock;
+        var tb2 = children[2] as TextBlock;
+
+        await Assert.That(tb0).IsNotNull();
+        await Assert.That(tb1).IsNotNull();
+        await Assert.That(tb2).IsNotNull();
+
+        await Assert.That(tb0!.Text).IsEqualTo("Log entry 1");
+        await Assert.That(tb1!.Text).IsEqualTo("Log entry 2");
+        await Assert.That(tb2!.Text).IsEqualTo("Log entry 3");
+    }
+
+    [Test]
+    public async Task PlainPoco_ItemsControl_RendersBackground()
+    {
+        // Arrange — DataTemplate with background color and pending binding
+        var prototype = new TextBlock { Background = Color.FromHex("#141428") };
+        prototype.AddPendingBinding(new ElementBinding("Text", "Message", BindingMode.OneWay, null, null));
+        var template = new DataTemplate { TemplateContent = prototype };
+
+        var itemsControl = new ItemsControl { ItemTemplate = template };
+
+        // Act
+        var items = new List<PlainPocoItem> { new() { Message = "Test" } };
+        itemsControl.ItemsSource = items;
+
+        // Assert — container should have the background and correct text
+        var tb = itemsControl.ItemsPanel.Children[0] as TextBlock;
+        await Assert.That(tb).IsNotNull();
+        await Assert.That(tb!.Text).IsEqualTo("Test");
+        await Assert.That(tb.Background).IsEqualTo(Color.FromHex("#141428"));
+    }
+
+    [Test]
+    public async Task PlainPoco_DataTemplate_Clone_RendersToBuffer()
+    {
+        // Arrange — DataTemplate with POCO binding
+        var prototype = new TextBlock { Foreground = Color.White, Background = Color.Black };
+        prototype.AddPendingBinding(new ElementBinding("Text", "Message", BindingMode.OneWay, null, null));
+        var template = new DataTemplate { TemplateContent = prototype };
+
+        // Act — clone, set DataContext, render
+        var clone = template.CreateContent() as TextBlock;
+        clone!.DataContext = new PlainPocoItem { Message = "Rendered" };
+
+        var buffer = new CellBuffer(20, 1);
+        clone.Render(buffer, new Rect(0, 0, 20, 1));
+
+        // Assert — first character of "Rendered" should appear in the buffer
+        await Assert.That(buffer.GetCell(0, 0).Character).IsEqualTo('R');
+        await Assert.That(buffer.GetCell(1, 0).Character).IsEqualTo('e');
+    }
 }

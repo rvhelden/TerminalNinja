@@ -34,4 +34,10 @@
       <FrameworkReference Include="Microsoft.WindowsDesktop.App" />
     </ItemGroup>
 
+    <ItemGroup>
+      <Compile Update="ActivityLogControl.cs">
+        <DependentUpon>ActivityLogControl.xaml</DependentUpon>
+      </Compile>
+    </ItemGroup>
+
 </Project>

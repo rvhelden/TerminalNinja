@@ -555,6 +555,19 @@ internal sealed class XamlLoader
         }
 
         var propType = accessor.Value.PropertyType;
+
+        // System.Type properties (e.g., DataTemplate.DataType, Style.TargetType)
+        // require AOT-safe resolution via TypeNameRegistry — not ConvertValue.
+        if (propType == typeof(Type))
+        {
+            var resolved = ResolveTypeFromXamlString(trimmedValue)
+                ?? throw new InvalidOperationException(
+                    $"Cannot resolve type '{trimmedValue}' for property '{propertyName}' on '{type.Name}'. " +
+                    $"Ensure the type is registered in TypeNameRegistry.");
+            accessor.Value.Setter!(instance, resolved);
+            return;
+        }
+
         var converted = ConvertValue(trimmedValue, propType);
         accessor.Value.Setter!(instance, converted);
     }
@@ -565,6 +578,12 @@ internal sealed class XamlLoader
     private static object? ConvertValue(string value, Type targetType)
     {
         if (targetType == typeof(string))
+            return value;
+
+        // When the target type is object (e.g., Setter.Value), store as string.
+        // The actual conversion happens later when the style is applied
+        // and the concrete target property type is known.
+        if (targetType == typeof(object))
             return value;
 
         // Handle enums directly (faster than TypeDescriptor for enums)
@@ -934,6 +953,72 @@ internal sealed class XamlLoader
             var type = ResolveTypeByName(fullName);
             if (type != null)
                 return type;
+        }
+
+        return null;
+    }
+
+    /// <summary>
+    /// Resolves a <see cref="Type"/> from a XAML attribute string value.
+    /// AOT-safe: uses only <see cref="TypeNameRegistry"/> lookups.
+    ///
+    /// Supported formats:
+    /// <list type="bullet">
+    ///   <item><c>Button</c> — simple name, searched across default CLR namespaces and custom xmlns mappings</item>
+    ///   <item><c>sample:LogEntry</c> — prefixed name, resolved via xmlns prefix → CLR namespace mapping</item>
+    ///   <item><c>Sample.LogEntry</c> — fully-qualified CLR name, looked up directly in TypeNameRegistry</item>
+    /// </list>
+    /// </summary>
+    private Type? ResolveTypeFromXamlString(string value)
+    {
+        // 1. Prefixed name (e.g., "sample:LogEntry")
+        var colonIndex = value.IndexOf(':');
+        if (colonIndex > 0)
+        {
+            var prefix = value[..colonIndex];
+            var typeName = value[(colonIndex + 1)..];
+
+            // Look up the XML namespace URI for this prefix
+            if (_prefixToUri.TryGetValue(prefix, out var xmlNsUri))
+            {
+                // Resolve the CLR namespace(s) for that URI
+                var clrNamespaces = GetClrNamespaces(xmlNsUri);
+                if (clrNamespaces != null)
+                {
+                    foreach (var clrNs in clrNamespaces)
+                    {
+                        var resolved = ResolveTypeByName($"{clrNs}.{typeName}");
+                        if (resolved != null)
+                            return resolved;
+                    }
+                }
+            }
+
+            return null;
+        }
+
+        // 2. Fully-qualified name (e.g., "Sample.LogEntry") — try direct lookup first
+        if (value.Contains('.'))
+        {
+            var direct = ResolveTypeByName(value);
+            if (direct != null)
+                return direct;
+        }
+
+        // 3. Simple name (e.g., "Button") — search default CLR namespaces
+        var simple = ResolveTypeBySimpleName(value);
+        if (simple != null)
+            return simple;
+
+        // 4. Also search custom xmlns CLR namespace mappings
+        foreach (var nsMapping in _xmlNsToClrNamespaces.Values)
+        {
+            foreach (var clrNs in nsMapping)
+            {
+                var resolved = ResolveTypeByName($"{clrNs}.{value}");
+                if (resolved != null)
+                    return resolved;
+            }
         }
 
         return null;

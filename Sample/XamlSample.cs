@@ -1,4 +1,5 @@
 using System.Reflection;
+using TerminalNinja.Aot;
 using TerminalNinja.App;
 using TerminalNinja.Controls;
 using TerminalNinja.Xaml;
@@ -10,6 +11,9 @@ public static class XamlSample
 {
     public static void Run()
     {
+        // Register data types that appear in XAML DataType attributes but
+        // aren't auto-discovered by the source generator (plain POCOs).
+        TypeNameRegistry.Register(typeof(LogEntry));
         // Create application with options
         using var app = new Application(new ApplicationOptions
         {

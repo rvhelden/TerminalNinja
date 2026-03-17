@@ -11,7 +11,8 @@ This document provides essential information for AI coding agents working in the
 - **IDE**: JetBrains Rider (optional)
 - **Solution Structure**: 
   - `TerminalNinja/` - Core library (terminal UI framework with XAML support)
-  - `TerminalNinja.Tests/` - Test project (492 tests, all passing)
+  - `TerminalNinja.Generators/` - Source generators (ControlFactory, PropertyAccessor, XamlClass)
+  - `TerminalNinja.Tests/` - Test project (665 tests, all passing)
   - `Sample/` - Sample console application demonstrating XAML usage
 
 ## Build & Test Commands
@@ -84,25 +85,37 @@ dotnet run --project Sample/Sample.csproj
 
 TerminalNinja is a WPF-like terminal UI framework with XAML support:
 
-- **Controls** (`TerminalNinja.Controls`): UI controls (StackPanel, Grid, ItemsControl, Window, Border, Button, TextBlock, ContentControl, ButtonBase)
-- **DependencySystem** (`TerminalNinja.DependencySystem`): DependencyObject, DependencyProperty, PropertyMetadata
-- **Primitives** (`TerminalNinja.Primitives`): Basic types (Color, Size, Rect, Thickness, etc.)
-- **Buffers** (`TerminalNinja.Buffers`): Cell-based rendering buffers
-- **Styling** (`TerminalNinja.Styling`): Style and Setter for control theming
+- **DependencySystem** (`TerminalNinja.DependencySystem`): DependencyObject, DependencyProperty, PropertyMetadata, FrameworkPropertyMetadata
+- **Controls** (`TerminalNinja.Controls`): UI controls — Visual, UIElement, FrameworkElement, Control, Panel, StackPanel, Grid, ContentControl, ContentPresenter, Window, UserControl, ItemsControl, ItemsPresenter, Selector, ListBox, ListBoxItem, ButtonBase, Button, TextBlock, Border
+- **Primitives** (`TerminalNinja.Primitives`): Basic types (Color, Size, Size2D, Rect, Thickness, GridLength, Alignment, SelectionMode, TextAlignment, TextWrapping, TextTrimming)
+- **Buffers** (`TerminalNinja.Buffers`): Cell-based rendering buffers (CellBuffer, DirtyRect)
+- **Styling** (`TerminalNinja.Styling`): Style, Setter, BorderStyle, BorderChars
 - **Resources** (`TerminalNinja.Resources`): ResourceDictionary for shared resources
-- **XAML** (`TerminalNinja.Xaml`): XAML loading, StaticResource, data binding support
+- **Commands** (`TerminalNinja.Commands`): ICommand, RelayCommand
+- **XAML** (`TerminalNinja.Xaml`): XAML loading (TerminalXaml, XamlLoader)
+  - `Xaml.Binding` — BindingExpression, BindingExtension, BindingManager, BindingMode, ElementBinding, PropertyPath, RelativeSource
+  - `Xaml.Data` — IValueConverter, DateTimeConverter
+  - `Xaml.Mvvm` — ViewModelBase
+  - `Xaml.Extensions` — ControlExtensions
+  - `Xaml.TypeConverters` — ColorTypeConverter, SizeTypeConverter, ThicknessTypeConverter, BorderTypeConverter, GridLengthTypeConverter
+- **Aot** (`TerminalNinja.Aot`): AOT-compatible registries — PropertyAccessorRegistry, ControlFactoryRegistry, TypeNameRegistry, TypeConverterRegistry, ContentPropertyRegistry, AttachedPropertySetterRegistry
 - **App** (`TerminalNinja.App`): Application class with event loop
 - **Rendering** (`TerminalNinja.Rendering`): ANSI terminal renderer
-- **Input** (`TerminalNinja.Input`): Keyboard and mouse input handling
+- **Ansi** (`TerminalNinja.Ansi`): AnsiCodes, AnsiStyle, AnsiWriter
+- **Console** (`TerminalNinja.Console`): Terminal abstraction (ITerminal, SystemTerminal, Terminal, TerminalGuard)
+- **Input** (`TerminalNinja.Input`): Keyboard and mouse input handling (InputReader, KeyEventArgs, MouseAction, MouseButton)
+- **Platform** (`TerminalNinja.Platform`): Platform-specific code (Windows/, Unix/)
 
 ### Key Design Patterns
 
 - **WPF-inspired**: Uses WPF terminology (Control, FrameworkElement, Content, etc.)
+- **DependencyProperty system**: All control properties are DependencyProperty-backed, supporting change notification, metadata, and callbacks
 - **XAML-first**: Supports declarative UI with XAML markup
-- **Attached properties**: StackPanel.SizeMode, Grid.Row/Column for layout control
-- **Data binding**: `{Binding PropertyName}` support with INotifyPropertyChanged
+- **Attached properties**: StackPanel.SizeMode, Grid.Row/Column for layout control (using `DependencyProperty.RegisterAttached`)
+- **Data binding**: `{Binding PropertyName}` support with INotifyPropertyChanged, PropertyPath, RelativeSource, IValueConverter
 - **Static resources**: `{StaticResource KeyName}` for reusable values
 - **Styles**: Apply consistent theming with Style/Setter pattern
+- **Source generators**: AOT-compatible code generation for property accessors, control factories, and XAML code-behind
 
 ## Important Reference Sources
 
@@ -131,14 +144,20 @@ e:\thirdparty\wpf\src\Microsoft.DotNet.Wpf\
 - `System`, `System.Collections.Generic`, `System.IO`, `System.Linq`
 - `System.Net.Http`, `System.Threading`, `System.Threading.Tasks`
 
+**Core Library Global Usings (in GlobalUsings.cs):**
+```csharp
+global using TerminalNinja.DependencySystem;
+```
+
 **Test Project Global Usings (in GlobalUsings.cs):**
 ```csharp
 global using TUnit.Core;
+global using TerminalNinja.DependencySystem;
 global using TUnit.Assertions;
 global using TUnit.Assertions.Extensions;
 global using TerminalNinja.Primitives;
 global using TerminalNinja.Buffers;
-global using TerminalNinja.Controls;  // Note: Controls not Elements
+global using TerminalNinja.Controls;
 global using TerminalNinja.Styling;
 global using TerminalNinja.Input;
 global using TerminalNinja.Xaml;
@@ -318,6 +337,7 @@ await Assert.That(text).Contains("substring");
 
 - All tests are **async** - use `async Task` and `await Assert.That(...)`
 - Tests should reference file locations: `TerminalNinja/Controls/StackPanel.cs:123`
+- Test project uses NSubstitute v5.3.0 for mocking
 
 ## Git Workflow
 
@@ -362,11 +382,13 @@ When creating new controls:
    - `ContentControl` — for controls with a single `Content` child
    - `Panel` — for layout containers with a `Children` collection
    - `ItemsControl` — for data-bound collections
+   - `Selector` — for items controls with selection semantics (SelectedIndex, SelectedItem)
    - `ButtonBase` — for clickable controls
-3. Input handling: Override `OnKeyEvent`/`OnMouseEvent` (inherited from UIElement) for keyboard/mouse input
-4. Add `[ContentProperty]` and `[RuntimeNameProperty]` attributes if applicable
-5. Add `[TypeConverter]` attribute if custom XAML parsing is needed
-6. Update tests in `TerminalNinja.Tests/Unit/Controls/`
+3. All properties must be DependencyProperty-backed (see DependencyProperty Conversion section)
+4. Input handling: Override `OnKeyEvent`/`OnMouseEvent` (inherited from UIElement) for keyboard/mouse input
+5. Add `[ContentProperty]` and `[RuntimeNameProperty]` attributes if applicable
+6. Add `[TypeConverter]` attribute if custom XAML parsing is needed
+7. Update tests in `TerminalNinja.Tests/Unit/Controls/`
 
 ## XAML Support
 
@@ -379,7 +401,7 @@ All types that can be used in XAML should have a `[TypeConverter]` attribute:
 public readonly record struct Color { ... }
 ```
 
-Existing converters:
+Existing converters (in `TerminalNinja.Xaml.TypeConverters`):
 - `ColorTypeConverter` - Parses colors like "Red", "#FF0000", "rgb(255,0,0)"
 - `SizeTypeConverter` - Parses sizes like "Auto", "Stretch", "10"
 - `ThicknessTypeConverter` - Parses thickness like "5", "5,10", "5,10,5,10"
@@ -391,24 +413,22 @@ Existing converters:
 All CLR namespaces are mapped to a single XAML namespace in `Properties/AssemblyInfo.cs`:
 
 ```csharp
-using Portable.Xaml.Markup;
-using SWM = System.Windows.Markup;
+using System.Windows.Markup;
 
-// --- Portable.Xaml attributes (for runtime) ---
 [assembly: XmlnsDefinition("http://schemas.terminalninja.dev/xaml", "TerminalNinja.Controls")]
 [assembly: XmlnsDefinition("http://schemas.terminalninja.dev/xaml", "TerminalNinja.Primitives")]
-// etc.
+[assembly: XmlnsDefinition("http://schemas.terminalninja.dev/xaml", "TerminalNinja.Styling")]
+[assembly: XmlnsDefinition("http://schemas.terminalninja.dev/xaml", "TerminalNinja.Commands")]
+[assembly: XmlnsDefinition("http://schemas.terminalninja.dev/xaml", "TerminalNinja.Resources")]
+[assembly: XmlnsDefinition("http://schemas.terminalninja.dev/xaml", "TerminalNinja.App")]
+[assembly: XmlnsDefinition("http://schemas.terminalninja.dev/xaml", "TerminalNinja.Xaml.Binding")]
+[assembly: XmlnsDefinition("http://schemas.terminalninja.dev/xaml", "TerminalNinja.Xaml.Mvvm")]
+[assembly: XmlnsDefinition("http://schemas.terminalninja.dev/xaml", "TerminalNinja.Xaml.Data")]
 
-// --- System.Windows.Markup attributes (for IDE IntelliSense) ---
-[assembly: SWM.XmlnsDefinition("http://schemas.terminalninja.dev/xaml", "TerminalNinja.Controls")]
-[assembly: SWM.XmlnsDefinition("http://schemas.terminalninja.dev/xaml", "TerminalNinja.Primitives")]
-// etc.
+[assembly: XmlnsPrefix("http://schemas.terminalninja.dev/xaml", "tn")]
 ```
 
-**Why duplicate attributes?**
-- `Portable.Xaml.Markup.XmlnsDefinition` - Used by Portable.Xaml at runtime
-- `System.Windows.Markup.XmlnsDefinition` - Recognized by Rider/Visual Studio for XAML IntelliSense
-- Both are required for full IDE + runtime support
+These `System.Windows.Markup.XmlnsDefinition` attributes are recognized by both Rider/Visual Studio for XAML IntelliSense and by Portable.Xaml at runtime (Portable.Xaml maps `System.Windows.Markup` attributes internally).
 
 ### Loading XAML
 
@@ -425,9 +445,21 @@ window.Show();  // Sets Application.Current.RootControl = window
 
 ## Recent Changes (Feb-Mar 2026)
 
+### Selector / ListBox / ListBoxItem (Mar 2026)
+
+Added WPF-aligned selection controls:
+
+- `Selector` (abstract) — extends ItemsControl with SelectedIndex, SelectedItem, SelectionMode, SelectionChanged event
+- `ListBox` — extends Selector with keyboard navigation, item container generation (ListBoxItem), SelectedBackground/SelectedForeground
+- `ListBoxItem` — extends ContentControl with IsSelected, SelectedBackground/SelectedForeground, mouse click selection
+- `ContentPresenter` — renders ContentControl content, supports DataTemplate
+- `ItemsPresenter` — renders ItemsControl's ItemsPanel, walks parent chain to find owner
+- `SelectionMode` enum added to Primitives
+- `SelectionChangedEventArgs` for selection change events
+
 ### DependencyProperty Conversion (Mar 2026)
 
-All ~43 CLR/auto properties across the entire control hierarchy have been converted to DependencyProperty-backed properties, matching WPF's property system. Attached properties (StackPanel.SizeMode/FixedSize, Grid.Row/Column/RowSpan/ColumnSpan) now use `DependencyProperty.RegisterAttached` instead of the old `AttachedPropertyStore`.
+All CLR/auto properties across the entire control hierarchy have been converted to DependencyProperty-backed properties, matching WPF's property system. Attached properties (StackPanel.SizeMode/FixedSize, Grid.Row/Column/RowSpan/ColumnSpan) now use `DependencyProperty.RegisterAttached`.
 
 **Pattern for regular DPs:**
 ```csharp
@@ -462,23 +494,23 @@ public static void SetXxx(DependencyObject d, T value) => d.SetValue(XxxProperty
 | Panel | Background |
 | StackPanel | Orientation, CrossAxisAlignment + attached SizeMode, FixedSize |
 | Grid | Attached Row, Column, RowSpan, ColumnSpan |
-| ContentControl | Content (with PropertyChangedCallback for Parent management) |
+| ContentControl | Content, ContentTemplate (with PropertyChangedCallbacks) |
+| ContentPresenter | Content, ContentTemplate (with PropertyChangedCallbacks) |
 | ButtonBase | Command (with PropertyChangedCallback for CanExecuteChanged), CommandParameter |
 | Button | Text, FocusColor, HoverColor, Width, Height |
 | TextBlock | Text, Foreground, Background, Width, Height, HorizontalTextAlignment, VerticalTextAlignment, TextWrapping, TextTrimming, Padding |
 | Border | Background, Foreground, BorderStyle, Width, Height, Child (with PropertyChangedCallback) |
 | Window | Title, Width, Height |
 | ItemsControl | ItemsSource (with PropertyChangedCallback), ItemTemplate, ItemsPanel |
+| Selector | SelectedIndex, SelectedItem, SelectionMode (with PropertyChangedCallbacks) |
+| ListBox | SelectedBackground, SelectedForeground |
+| ListBoxItem | IsSelected, SelectedBackground, SelectedForeground |
 
 **Metadata usage:**
 - Visual properties use `FrameworkPropertyMetadata(default, affectsRender: true)` — triggers `InvalidateVisual()` on change
 - Non-visual properties use `PropertyMetadata(default)` or `FrameworkPropertyMetadata(default, affectsRender: false)`
 - Properties with side effects (Content, Child, Command, ItemsSource) use `PropertyChangedCallback`
 - Nullable defaults use `(object?)null` to avoid CS8625
-
-**Deleted artifacts:**
-- `UIElement.SetProperty<T>()` helper — no longer needed since all properties use `DependencyObject.SetValue()`
-- `AttachedPropertyStore` / `AttachedPropertyKey` — replaced by `DependencyProperty.RegisterAttached`
 
 **No changes needed to infrastructure:**
 - PropertyAccessorGenerator — DP CLR wrappers look identical to normal properties
@@ -490,27 +522,32 @@ public static void SetXxx(DependencyObject d, T value) => d.SetValue(XxxProperty
 
 Major refactoring to align the entire class hierarchy with WPF's inheritance tree:
 
-**New Class Hierarchy:**
+**Class Hierarchy:**
 ```
 DependencyObject (DependencySystem/)
   └── Visual (abstract) — visual tree parent/child, GetChildrenWithBounds
         └── UIElement (abstract) — Visibility, IsEnabled, Focusable, IsFocused, IsMouseOver, input events (OnKeyEvent/OnMouseEvent), HitTest, InvalidateVisual
               └── FrameworkElement (abstract) — resources, styles, DataContext, Name, Width/Height, HorizontalAlignment/VerticalAlignment, Margin, GetLogicalChildren()
                     ├── Control (abstract) — Background, Foreground, Padding, BorderStyle, TabIndex, Template (stub); Focusable=true by default
-                    │     ├── ContentControl [ContentProperty("Content")] — Content, HasContent
+                    │     ├── ContentControl [ContentProperty("Content")] — Content, ContentTemplate, HasContent
                     │     │     ├── Window — Title, Show/Close
-                    │     │     └── UserControl — Focusable=false
-                    │     ├── ItemsControl — Items, ItemsSource, ItemTemplate, ItemsPanel
-                    │     └── ButtonBase (abstract) — Command, Click
-                    │           └── Button (sealed) — focus/hover rendering
+                    │     │     ├── UserControl — Focusable=false
+                    │     │     └── ListBoxItem — IsSelected, SelectedBackground/SelectedForeground
+                    │     ├── ItemsControl [ContentProperty("Items")] — Items, ItemsSource, ItemTemplate, ItemsPanel
+                    │     │     └── Selector (abstract) — SelectedIndex, SelectedItem, SelectionMode, SelectionChanged
+                    │     │           └── ListBox — keyboard navigation, item container generation
+                    │     └── ButtonBase (abstract) — Command, CommandParameter, Click
+                    │           └── Button (sealed) — Text, FocusColor, HoverColor, focus/hover rendering
                     ├── Panel (abstract) [ContentProperty("Children")] — Children (IList<UIElement>), Background
-                    │     ├── StackPanel — Orientation, attached SizeMode/FixedSize
+                    │     ├── StackPanel — Orientation, CrossAxisAlignment, attached SizeMode/FixedSize
                     │     └── Grid (sealed) — RowDefinitions/ColumnDefinitions, attached Row/Column/RowSpan/ColumnSpan
-                    ├── TextBlock — Text, Foreground, Background, wrapping, trimming
-                    └── Border — BorderStyle, Background, Foreground, Child (UIElement?)
+                    ├── ContentPresenter — Content, ContentTemplate (renders ContentControl's content)
+                    ├── ItemsPresenter — finds owning ItemsControl, delegates to ItemsPanel
+                    ├── TextBlock (sealed) — Text, Foreground, Background, wrapping, trimming, alignment
+                    └── Border (sealed) — BorderStyle, Background, Foreground, Child (UIElement?)
 ```
 
-**Key Changes:**
+**Key Changes (from original codebase):**
 - `IControl` interface removed entirely — replaced by class hierarchy
 - `ControlBase` removed — replaced by `Visual` + `UIElement`
 - `IFocusable` interface removed — members moved to `UIElement` (Focusable, IsFocused, IsMouseOver, input events)
@@ -577,53 +614,28 @@ XAML changes:
 - `Stack.SizeMode` → `StackPanel.SizeMode`
 - `Stack.FixedSize` → `StackPanel.FixedSize`
 
-**Test Coverage:**
-- Added `PanelTests.cs` (32 tests) - Tests Panel base class and ObservableControlCollection
-- Added `StackPanelTests.cs` (34 tests) - Tests StackPanel layout, attached properties, and rendering
-- Removed old Stack tests (StackTests, StackChildTests, etc.)
-- **Total Tests**: 492 (up from 431)
-
 ### Windows Desktop Framework for IDE Support (Feb 1, 2026)
 
 Added `Microsoft.WindowsDesktop.App` framework reference to enable IDE XAML IntelliSense:
 - Changed TargetFramework from `net10.0` to `net10.0-windows` (Windows-only)
-- Added duplicate `System.Windows.Markup.XmlnsDefinition` attributes alongside `Portable.Xaml.Markup` versions
 - Rider/Visual Studio now recognize the XAML namespace and provide IntelliSense
 - Runtime behavior unchanged - Portable.Xaml still used for XAML parsing
-
-**Why Windows-only?**
-- IDE XAML language services require `System.Windows.Markup` attributes
-- These are only available in the Windows Desktop framework
-- Portable.Xaml alone doesn't provide IDE support
-
-### Element → Control Rename
-
-The entire codebase was renamed from "Element" terminology to "Control" terminology to align with WPF conventions:
-
-- **Namespaces**: `TerminalNinja.Elements` → `TerminalNinja.Controls`
-- **Types**: `IElement` → (later removed entirely), `ElementBase` → (later replaced by Visual/UIElement)
-- **Properties**: `Application.RootElement` → `Application.RootControl`
-- **Variables**: All `element` parameters/variables renamed to `control`
-- **Exception**: `FrameworkElement` keeps its name (matches WPF)
-
-### TypeConverter Refactoring
-
-Moved from runtime registration to declarative attributes:
-- All types now have `[TypeConverter]` attributes directly on them
-- Removed `TypeDescriptor.AddAttributes()` calls from `TerminalXamlSchemaContext`
-- Simplified schema context to just inherit from `XamlSchemaContext`
-- Deleted custom `EnumTypeConverter<T>` (using built-in `EnumConverter` now)
 
 ### XAML Features
 
 - **StaticResource**: `{StaticResource KeyName}` markup extension with resource lookup
 - **Data Binding**: `{Binding PropertyName}` with INotifyPropertyChanged support
+  - `BindingMode` — OneWay, TwoWay, OneTime
+  - `PropertyPath` — dot-separated property paths for nested bindings
+  - `RelativeSource` — bind to ancestor controls (`{RelativeSource FindAncestor, AncestorType=...}`)
+  - `ElementBinding` — bind to named elements
+  - `IValueConverter` — transform values between source and target
 - **Attached Properties**: StackPanel.SizeMode, StackPanel.FixedSize, Grid.Row, Grid.Column, etc.
 - **Styles**: Style/Setter pattern with TargetType validation
 - **Window pattern**: Window.Show() / Window.Close() with Application.Current.RootControl
 
 ## Current Test Stats
 
-- **Total Tests**: 492
+- **Total Tests**: 665
 - **Status**: All passing
-- **Test Coverage**: Unit tests for Controls, Styling, Resources, XAML loading, and rendering
+- **Test Coverage**: Unit tests for Controls, DependencySystem, Styling, Resources, XAML loading, Binding, and rendering

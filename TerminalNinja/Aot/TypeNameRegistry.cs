@@ -38,6 +38,10 @@ public static class TypeNameRegistry
         Register(typeof(TextAlignment));
         Register(typeof(BindingMode));
         Register(typeof(RelativeSourceMode));
+
+        // Non-instantiable framework types that may appear in XAML as type references
+        // (e.g., DataTemplate.DataType="b:RelativeSource")
+        Register(typeof(RelativeSource));
     }
 
     /// <summary>
