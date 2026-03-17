@@ -1,4 +1,4 @@
-using System.Windows.Markup;
+using TerminalNinja.Markup;
 
 // Map all CLR namespaces to a single XAML namespace URL
 [assembly: XmlnsDefinition("http://schemas.terminalninja.dev/xaml", "TerminalNinja.Controls")]
