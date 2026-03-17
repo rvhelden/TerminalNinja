@@ -1,3 +1,4 @@
+using System.Collections.ObjectModel;
 using System.ComponentModel;
 using TerminalNinja.Commands;
 using TerminalNinja.Xaml.Mvvm;
@@ -67,6 +68,33 @@ public class DemoViewModel : ViewModelBase
         get;
         set => SetProperty(ref field, value);
     } = DateTime.Now;
+
+    /// <summary>
+    /// Items for the ListBox demo.
+    /// </summary>
+    public ObservableCollection<string> MenuItems { get; } =
+    [
+        "Dashboard",
+        "Messages",
+        "Settings",
+        "Profile",
+        "Help"
+    ];
+
+    /// <summary>
+    /// Currently selected menu item.
+    /// </summary>
+    public string? SelectedMenuItem
+    {
+        get;
+        set
+        {
+            if (SetProperty(ref field, value))
+            {
+                StatusText = value != null ? $"Selected: {value}" : "No selection";
+            }
+        }
+    }
 
     public DemoViewModel()
     {

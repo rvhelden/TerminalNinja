@@ -60,10 +60,10 @@ public class Window : ContentControl
     /// </summary>
     public override Size2D GetPreferredSize(Rect parent)
     {
-        if (Content == null)
+        if (!HasContent)
             return new Size2D(0, 0);
         
-        return Content.GetPreferredSize(parent);
+        return base.GetPreferredSize(parent);
     }
     
     /// <summary>
@@ -79,14 +79,17 @@ public class Window : ContentControl
     
     /// <summary>
     /// Renders the window content to the buffer.
-    /// Window itself has no visual representation - it delegates to Content.
+    /// Window itself has no visual representation - it delegates to Content via ContentPresenter.
     /// </summary>
     public override void Render(CellBuffer buffer, Rect parentBounds)
     {
         var bounds = CalculateBounds(parentBounds);
         
-        // Render content if present
-        Content?.Render(buffer, bounds);
+        // Render content if present (delegated to ContentPresenter via base)
+        if (HasContent)
+        {
+            base.Render(buffer, bounds);
+        }
     }
 
     /// <summary>

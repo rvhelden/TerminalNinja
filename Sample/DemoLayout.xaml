@@ -84,18 +84,45 @@
             </StackPanel>
         </Border>
         
-        <!-- Content Area with data binding -->
-        <Border StackPanel.SizeMode="Stretch"
-                   Background="{StaticResource ContentBackground}"
-                   BorderStyle="Rounded">
-            <TextBlock x:Name="contentTextBlock"
-                   Text="{Binding Path=ContentText}"
-                   Foreground="White"
-                   HorizontalTextAlignment="Center"
-                   VerticalTextAlignment="Center"
-                   TextWrapping="Wrap"
-                   Padding="4,2,4,2" />
-        </Border>
+        <!-- Content Area with ListBox -->
+        <StackPanel StackPanel.SizeMode="Stretch" Orientation="Horizontal">
+            
+            <!-- Left: Content with data binding -->
+            <Border StackPanel.SizeMode="Stretch"
+                       Background="{StaticResource ContentBackground}"
+                       BorderStyle="Rounded">
+                <TextBlock x:Name="contentTextBlock"
+                       Text="{Binding Path=ContentText}"
+                       Foreground="White"
+                       HorizontalTextAlignment="Center"
+                       VerticalTextAlignment="Center"
+                       TextWrapping="Wrap"
+                       Padding="4,2,4,2" />
+            </Border>
+            
+            <!-- Right: ListBox demo -->
+            <Border StackPanel.SizeMode="Fixed" StackPanel.FixedSize="24"
+                       Background="#1A1A2E"
+                       Foreground="White"
+                       BorderStyle="Rounded">
+                <StackPanel Orientation="Vertical">
+                    <TextBlock StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1"
+                           Text=" Menu"
+                           Foreground="{StaticResource AccentColor}"
+                           Background="#1A1A2E" />
+                    <ListBox StackPanel.SizeMode="Stretch"
+                             x:Name="menuListBox"
+                             ItemsSource="{Binding MenuItems}"
+                             SelectedItem="{Binding SelectedMenuItem}"
+                             Background="#1A1A2E"
+                             Foreground="White"
+                             SelectedBackground="#2D5AA0"
+                             SelectedForeground="White"
+                             TabIndex="3" />
+                </StackPanel>
+            </Border>
+            
+        </StackPanel>
         
         <!-- Status Bar with data binding -->
         <Border StackPanel.SizeMode="Fixed" StackPanel.FixedSize="3"

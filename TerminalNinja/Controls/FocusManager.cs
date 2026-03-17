@@ -180,6 +180,9 @@ public sealed class FocusManager
     
     /// <summary>
     /// Handles a mouse event by dispatching it to the appropriate element.
+    /// Mouse events are delivered to the deepest element at the mouse position
+    /// (regardless of <see cref="UIElement.Focusable"/>). Focus is only transferred
+    /// to the nearest focusable ancestor.
     /// </summary>
     /// <param name="rootControl">The root element to search for hit targets.</param>
     /// <param name="rootBounds">The bounds of the root element.</param>
@@ -192,17 +195,35 @@ public sealed class FocusManager
             UpdateHover(rootControl, rootBounds, mouseEvent.X, mouseEvent.Y);
         }
         
-        // Find element to receive the event
-        var targetElement = HitTest(rootControl, rootBounds, mouseEvent.X, mouseEvent.Y);
+        // Find the deepest element at the mouse position (any element, not just focusable)
+        var targetElement = HitTestDeep(rootControl, rootBounds, mouseEvent.X, mouseEvent.Y);
         
-        // Focus element on left mouse button press
+        // Focus the nearest focusable ancestor on left mouse button press
         if (mouseEvent.Action == MouseAction.Press && mouseEvent.Button == MouseButton.Left)
         {
-            SetFocus(targetElement);
+            var focusTarget = FindFocusableAncestorOrSelf(targetElement);
+            SetFocus(focusTarget);
         }
         
-        // Dispatch event to target element
-        targetElement?.OnMouseEvent(mouseEvent);
+        // Bubble the event from the deepest target up through ancestors.
+        // This mirrors WPF's bubbling routed event strategy — every element
+        // in the ancestor chain gets a chance to handle the event.
+        BubbleMouseEvent(targetElement, mouseEvent);
+    }
+
+    /// <summary>
+    /// Dispatches a mouse event to the target element and then walks up the
+    /// <see cref="Visual.Parent"/> chain, giving each ancestor a chance to handle it.
+    /// </summary>
+    private static void BubbleMouseEvent(UIElement? target, MouseEvent mouseEvent)
+    {
+        var current = target as Visual;
+        while (current != null)
+        {
+            if (current is UIElement uie)
+                uie.OnMouseEvent(mouseEvent);
+            current = current.Parent;
+        }
     }
     
     /// <summary>
@@ -234,5 +255,48 @@ public sealed class FocusManager
         }
 
         return result;
+    }
+
+    /// <summary>
+    /// Performs a deep hit test that finds the leaf-most UIElement at the given
+    /// coordinates, regardless of whether it is focusable.
+    /// </summary>
+    private UIElement? HitTestDeep(UIElement element, Rect parentBounds, int x, int y)
+    {
+        var myBounds = element.CalculateBounds(parentBounds);
+
+        if (!myBounds.Contains(x, y))
+            return null;
+
+        // Recurse into children (last child wins — later children are visually on top)
+        UIElement? deepest = null;
+        foreach (var (child, childParentBounds) in element.GetChildrenWithBounds(myBounds))
+        {
+            if (child is UIElement childElement)
+            {
+                var hit = HitTestDeep(childElement, childParentBounds, x, y);
+                if (hit != null)
+                    deepest = hit;
+            }
+        }
+
+        return deepest ?? element;
+    }
+
+    /// <summary>
+    /// Walks up the parent chain from the given element to find the nearest
+    /// element with <see cref="UIElement.Focusable"/> set to <c>true</c>.
+    /// Returns null if no focusable ancestor exists.
+    /// </summary>
+    private static UIElement? FindFocusableAncestorOrSelf(UIElement? element)
+    {
+        var current = element as Visual;
+        while (current != null)
+        {
+            if (current is UIElement uie && uie.Focusable)
+                return uie;
+            current = current.Parent;
+        }
+        return null;
     }
 }

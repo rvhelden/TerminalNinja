@@ -50,7 +50,12 @@ public class ItemsControl : Control
     }
 
     private readonly List<object> _items = new();
-    private readonly Dictionary<object, UIElement> _itemContainers = new();
+    
+    /// <summary>
+    /// Maps data items to their generated UI containers.
+    /// Protected so subclasses (e.g., Selector) can look up containers for items.
+    /// </summary>
+    protected readonly Dictionary<object, UIElement> _itemContainers = new();
 
     /// <summary>
     /// Gets the collection of items directly added to this control.
@@ -90,11 +95,21 @@ public class ItemsControl : Control
             if (panel == null)
             {
                 panel = new StackPanel { Orientation = Orientation.Vertical };
+                panel.Parent = this;
                 SetValue(ItemsPanelProperty, panel);
             }
             return panel;
         }
-        set => SetValue(ItemsPanelProperty, value);
+        set
+        {
+            // Detach old panel
+            var old = (Panel?)GetValue(ItemsPanelProperty);
+            if (old != null) old.Parent = null;
+
+            // Attach new panel
+            if (value != null) value.Parent = this;
+            SetValue(ItemsPanelProperty, value);
+        }
     }
 
     /// <inheritdoc />
@@ -217,7 +232,7 @@ public class ItemsControl : Control
     /// <summary>
     /// Regenerates all item containers from the current ItemsSource or Items collection.
     /// </summary>
-    private void RefreshItems()
+    protected virtual void RefreshItems()
     {
         ItemsPanel.Children.Clear();
         _itemContainers.Clear();
@@ -240,31 +255,74 @@ public class ItemsControl : Control
     }
 
     /// <summary>
-    /// Generates a container control for the specified data item.
+    /// Determines whether the specified item is (or can be) its own container.
+    /// Override in subclasses to allow UIElements to be used directly without wrapping.
     /// </summary>
-    private UIElement? GenerateContainer(object item)
+    /// <param name="item">The item to check.</param>
+    /// <returns><c>true</c> if the item is its own container; otherwise, <c>false</c>.</returns>
+    protected virtual bool IsItemItsOwnContainer(object item) => item is UIElement;
+
+    /// <summary>
+    /// Creates a new container element to host the specified data item.
+    /// Override in subclasses (e.g., ListBox) to provide custom containers like ListBoxItem.
+    /// </summary>
+    /// <param name="item">The data item that needs a container.</param>
+    /// <returns>A new container element.</returns>
+    protected virtual UIElement CreateContainerForItem(object item)
+    {
+        // Use the ItemTemplate if available
+        if (ItemTemplate != null)
+        {
+            var container = ItemTemplate.CreateContent();
+            if (container is FrameworkElement fe)
+            {
+                fe.DataContext = item;
+            }
+            return container ?? new TextBlock { Text = item?.ToString() ?? string.Empty };
+        }
+
+        // No template — create a simple TextBlock with ToString()
+        return new TextBlock { Text = item?.ToString() ?? string.Empty };
+    }
+
+    /// <summary>
+    /// Prepares the specified container to display the given item.
+    /// Override in subclasses to set additional properties on the container.
+    /// </summary>
+    /// <param name="container">The container element.</param>
+    /// <param name="item">The data item.</param>
+    protected virtual void PrepareContainerForItem(UIElement container, object item)
+    {
+        // Base implementation sets DataContext on framework elements
+        if (container is FrameworkElement fe && !IsItemItsOwnContainer(item))
+        {
+            fe.DataContext = item;
+        }
+    }
+
+    /// <summary>
+    /// Generates a container control for the specified data item.
+    /// Uses the template method pattern: IsItemItsOwnContainer → CreateContainerForItem → PrepareContainerForItem.
+    /// </summary>
+    protected UIElement? GenerateContainer(object item)
     {
         UIElement? container;
 
-        // If the item is already a UIElement, use it directly
-        if (item is UIElement element)
+        // If the item is already a suitable container, use it directly
+        if (IsItemItsOwnContainer(item))
         {
-            container = element;
-        }
-        // Otherwise, use the ItemTemplate to create a container
-        else if (ItemTemplate != null)
-        {
-            container = ItemTemplate.CreateContent();
-            if (container is FrameworkElement fe)
-            {
-                // Set the DataContext so bindings work
-                fe.DataContext = item;
-            }
+            container = (UIElement)item;
         }
         else
         {
-            // No template - create a simple TextBlock with ToString()
-            container = new TextBlock { Text = item?.ToString() ?? string.Empty };
+            // Create a container via the overridable factory method
+            container = CreateContainerForItem(item);
+        }
+
+        // Let subclasses prepare the container (e.g., set selection state)
+        if (container != null)
+        {
+            PrepareContainerForItem(container, item);
         }
 
         return container;
@@ -275,6 +333,31 @@ public class ItemsControl : Control
     {
         // The ItemsControl defers to its ItemsPanel for size calculation
         return ItemsPanel.GetPreferredSize(parent);
+    }
+
+    /// <summary>
+    /// Gets the container element for the specified data item, or null if not found.
+    /// </summary>
+    /// <param name="item">The data item.</param>
+    /// <returns>The container element, or null.</returns>
+    public UIElement? ContainerFromItem(object item)
+    {
+        return _itemContainers.TryGetValue(item, out var container) ? container : null;
+    }
+
+    /// <summary>
+    /// Gets the data item for the specified container element, or null if not found.
+    /// </summary>
+    /// <param name="container">The container element.</param>
+    /// <returns>The data item, or null.</returns>
+    public object? ItemFromContainer(UIElement container)
+    {
+        foreach (var kvp in _itemContainers)
+        {
+            if (kvp.Value == container)
+                return kvp.Key;
+        }
+        return null;
     }
 
     /// <inheritdoc />
