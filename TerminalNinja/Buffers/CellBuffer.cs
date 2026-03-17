@@ -91,6 +91,17 @@ public sealed class CellBuffer
     }
     
     /// <summary>
+    /// Sets a cell with individual character, colors, and text decorations.
+    /// When <paramref name="bg"/> is transparent the existing cell's background is preserved.
+    /// </summary>
+    public void SetChar(int x, int y, char c, Color fg, Color bg, TextDecorations decorations)
+    {
+        if (bg.IsTransparent && IsInBounds(x, y))
+            bg = _current[Index(x, y)].Background;
+        SetCell(x, y, new Cell(c, fg, bg, decorations));
+    }
+    
+    /// <summary>
     /// Clears the entire buffer to empty cells.
     /// </summary>
     public void Clear()

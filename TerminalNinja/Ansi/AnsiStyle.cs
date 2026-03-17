@@ -13,11 +13,17 @@ public struct AnsiStyle
     /// <summary>The current background color.</summary>
     public Color Background;
     
+    /// <summary>The current text decorations.</summary>
+    public TextDecorations Decorations;
+    
     /// <summary>Whether foreground has been set.</summary>
     public bool ForegroundSet;
     
     /// <summary>Whether background has been set.</summary>
     public bool BackgroundSet;
+    
+    /// <summary>Whether decorations have been set.</summary>
+    public bool DecorationsSet;
     
     /// <summary>
     /// Checks if the foreground color needs to be updated.
@@ -28,6 +34,11 @@ public struct AnsiStyle
     /// Checks if the background color needs to be updated.
     /// </summary>
     public readonly bool NeedsBackground(Color color) => !BackgroundSet || Background != color;
+    
+    /// <summary>
+    /// Checks if the decorations need to be updated.
+    /// </summary>
+    public readonly bool NeedsDecorations(TextDecorations decorations) => !DecorationsSet || Decorations != decorations;
     
     /// <summary>
     /// Updates the tracked style.
@@ -47,5 +58,7 @@ public struct AnsiStyle
     {
         ForegroundSet = false;
         BackgroundSet = false;
+        DecorationsSet = false;
+        Decorations = TextDecorations.None;
     }
 }

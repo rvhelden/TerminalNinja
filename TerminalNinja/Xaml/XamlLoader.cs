@@ -364,8 +364,36 @@ internal sealed class XamlLoader
         // Determine the content property for this type
         var contentPropertyName = GetContentPropertyName(type);
 
-        foreach (var child in element.Elements())
+        // Check if the content property holds an InlineCollection (mixed content support).
+        // When it does, we iterate element.Nodes() to pick up both XText and XElement nodes,
+        // converting bare text nodes into Run objects automatically.
+        var isInlineContent = false;
+        if (contentPropertyName != null &&
+            PropertyAccessorRegistry.TryGetAccessor(type, contentPropertyName, out var contentAccessor))
         {
+            var propValue = contentAccessor.Value.Getter(instance);
+            isInlineContent = propValue is InlineCollection;
+        }
+
+        foreach (var node in element.Nodes())
+        {
+            // Handle bare text nodes — convert to Run and add to InlineCollection
+            if (node is XText textNode)
+            {
+                var text = textNode.Value;
+                if (string.IsNullOrEmpty(text)) continue;
+
+                if (isInlineContent && contentPropertyName != null)
+                {
+                    var run = new Run { Text = text };
+                    if (currentFe != null) run.Parent = currentFe;
+                    AddToContentProperty(instance, type, contentPropertyName, run);
+                }
+                continue;
+            }
+
+            if (node is not XElement child) continue;
+
             var childNs = child.Name.NamespaceName;
             var childLocalName = child.Name.LocalName;
 

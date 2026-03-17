@@ -1,0 +1,144 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="TerminalNinja is a WPF-inspired terminal UI framework for .NET with native AOT-first architecture.">
+  <title>TerminalNinja - WPF-Inspired TUI, Native AOT-First</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/styles/github-dark-dimmed.min.css">
+  <link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+  <div class="bg-grid" aria-hidden="true"></div>
+  <div class="bg-glow bg-glow-a" aria-hidden="true"></div>
+  <div class="bg-glow bg-glow-b" aria-hidden="true"></div>
+
+  <main class="shell">
+    <header class="hero">
+      <p class="eyebrow">TerminalNinja</p>
+      <h1>WPF-inspired TUI for .NET, built native AOT-first.</h1>
+      <p class="lede">
+        Build rich terminal interfaces with a familiar dependency property system, XAML markup,
+        and modern rendering architecture designed for performance and deployment simplicity.
+      </p>
+      <div class="hero-actions">
+        <a class="btn btn-primary" href="https://github.com" target="_blank" rel="noreferrer">View on GitHub</a>
+        <a class="btn btn-ghost" href="#getting-started">Start Reading</a>
+      </div>
+    </header>
+
+    <section class="panel intro" aria-label="Intro">
+      <h2>Why TerminalNinja</h2>
+      <ul>
+        <li>WPF-inspired control hierarchy and dependency property model</li>
+        <li>XAML-first authoring with bindings, templates, and static resources</li>
+        <li>Native AOT-oriented architecture with source generators and registries</li>
+        <li>Efficient terminal rendering focused on low overhead updates</li>
+      </ul>
+    </section>
+
+    <nav class="panel docs-nav" aria-label="Documentation sections">
+      <a href="#getting-started">01 Getting Started</a>
+      <a href="#wpf-concepts">02 WPF Concepts</a>
+      <a href="#controls">03 Controls Showcase</a>
+    </nav>
+
+    <section class="panel doc-section" id="getting-started" aria-label="Getting Started">
+      <h2>01 - Getting Started</h2>
+      <p class="section-copy">Create your first app in a few minutes.</p>
+      <ol>
+        <li>Create a console app targeting <code>net10.0-windows</code>.</li>
+        <li>Add a project reference to <code>TerminalNinja</code>.</li>
+        <li>Define your UI in XAML.</li>
+      </ol>
+      <pre><code class="language-bash">dotnet new console -n NinjaApp
+dotnet add NinjaApp/NinjaApp.csproj reference TerminalNinja/TerminalNinja.csproj
+dotnet run --project NinjaApp/NinjaApp.csproj</code></pre>
+      <pre><code class="language-xml">&lt;Window xmlns='http://schemas.terminalninja.dev/xaml'
+        Title='Getting Started'
+        Width='80' Height='24'&gt;
+  &lt;StackPanel Orientation='Vertical'&gt;
+    &lt;TextBlock Text='Welcome to TerminalNinja' /&gt;
+    &lt;Button Text='Run' /&gt;
+  &lt;/StackPanel&gt;
+&lt;/Window&gt;</code></pre>
+    </section>
+
+    <section class="panel doc-section" id="wpf-concepts" aria-label="WPF concepts">
+      <h2>02 - WPF Concepts in the Terminal</h2>
+      <p class="section-copy">TerminalNinja keeps WPF mental models so desktop developers can move fast.</p>
+      <div class="concept-grid">
+        <article>
+          <h3>Dependency Properties</h3>
+          <p>Control state is DP-backed for metadata, callbacks, styling, and binding support.</p>
+        </article>
+        <article>
+          <h3>XAML-First UI</h3>
+          <p>Describe UI declaratively with the TerminalNinja XML namespace and familiar property syntax.</p>
+        </article>
+        <article>
+          <h3>Binding + DataContext</h3>
+          <p>Use <code>{Binding}</code>, <code>RelativeSource</code>, converters, and view-model patterns.</p>
+        </article>
+        <article>
+          <h3>Resources + Styles</h3>
+          <p>Share values with <code>StaticResource</code> and apply consistent look with <code>Style</code>/<code>Setter</code>.</p>
+        </article>
+      </div>
+      <pre><code class="language-xml">&lt;Window xmlns='http://schemas.terminalninja.dev/xaml'
+        Title='Concept Demo' Width='80' Height='24'&gt;
+  &lt;StackPanel Orientation='Vertical'&gt;
+    &lt;TextBlock Text='{Binding AppTitle}' /&gt;
+    &lt;Button Text='Run Command' /&gt;
+  &lt;/StackPanel&gt;
+&lt;/Window&gt;</code></pre>
+    </section>
+
+    <section class="panel doc-section" id="controls" aria-label="Controls showcase">
+      <h2>03 - Controls Showcase</h2>
+      <p class="section-copy">A compact tour of the core controls available today.</p>
+      <div class="control-grid">
+        <article>
+          <h3>Layout</h3>
+          <p><code>StackPanel</code>, <code>Grid</code>, <code>Panel</code></p>
+        </article>
+        <article>
+          <h3>Content</h3>
+          <p><code>Window</code>, <code>UserControl</code>, <code>Border</code>, <code>TextBlock</code></p>
+        </article>
+        <article>
+          <h3>Items + Selection</h3>
+          <p><code>ItemsControl</code>, <code>ListBox</code>, <code>ListBoxItem</code>, <code>Selector</code></p>
+        </article>
+        <article>
+          <h3>Interaction</h3>
+          <p><code>ButtonBase</code>, <code>Button</code>, commands, keyboard and mouse input</p>
+        </article>
+      </div>
+      <pre><code class="language-xml">&lt;Window xmlns='http://schemas.terminalninja.dev/xaml'
+        Title='TerminalNinja Demo'
+        Width='80' Height='24'&gt;
+  &lt;Grid&gt;
+    &lt;Border Grid.Row='0' BorderStyle='Rounded'&gt;
+      &lt;TextBlock Text='TerminalNinja Controls' /&gt;
+    &lt;/Border&gt;
+    &lt;ListBox Grid.Row='1'&gt;
+      &lt;TextBlock Text='TextBlock' /&gt;
+      &lt;TextBlock Text='Button' /&gt;
+      &lt;TextBlock Text='Border' /&gt;
+      &lt;/ListBox&gt;
+  &lt;/Grid&gt;
+&lt;/Window&gt;</code></pre>
+    </section>
+
+    <footer class="footer">
+      <p>More docs and API references coming soon.</p>
+    </footer>
+  </main>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/highlight.min.js"></script>
+  <script>hljs.highlightAll();</script>
+</body>
+</html>

@@ -7,6 +7,7 @@
   - [ ] Add support for Gruvbox dark theme
 - [ ] Add support for custom themes
 - [ ] Add support for Brushes
+- [ ] Add support for Margin DependencyProperty
 
 # Controls
 - [ ] FontIcon control with Nerdfont icons support

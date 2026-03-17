@@ -157,6 +157,67 @@ public sealed class AnsiWriter : IDisposable
     }
     
     /// <summary>
+    /// Sets text decorations by emitting only the changed SGR codes.
+    /// Uses diff-based emission: only decorations that differ from the current state produce escape sequences.
+    /// </summary>
+    public void SetDecorations(TextDecorations decorations)
+    {
+        if (!_currentStyle.NeedsDecorations(decorations)) return;
+        
+        var current = _currentStyle.DecorationsSet ? _currentStyle.Decorations : TextDecorations.None;
+        var diff = current ^ decorations;
+        
+        if (diff == TextDecorations.None)
+        {
+            _currentStyle.DecorationsSet = true;
+            return;
+        }
+        
+        // Bold and Dim share the same "off" code (\e[22m), so handle them together.
+        // If either changed, we need to consider both.
+        if ((diff & (TextDecorations.Bold | TextDecorations.Dim)) != 0)
+        {
+            var wantBold = (decorations & TextDecorations.Bold) != 0;
+            var wantDim = (decorations & TextDecorations.Dim) != 0;
+            var hadBold = (current & TextDecorations.Bold) != 0;
+            var hadDim = (current & TextDecorations.Dim) != 0;
+            
+            // If turning off either bold or dim, we must emit \e[22m (resets both),
+            // then re-enable whichever one we still want.
+            if ((hadBold && !wantBold) || (hadDim && !wantDim))
+            {
+                WriteSpan(AnsiCodes.BoldOff); // \e[22m resets both
+                if (wantBold) WriteSpan(AnsiCodes.BoldOn);
+                if (wantDim) WriteSpan(AnsiCodes.DimOn);
+            }
+            else
+            {
+                // Turning on — just emit the "on" codes
+                if (wantBold && !hadBold) WriteSpan(AnsiCodes.BoldOn);
+                if (wantDim && !hadDim) WriteSpan(AnsiCodes.DimOn);
+            }
+        }
+        
+        if ((diff & TextDecorations.Italic) != 0)
+            WriteSpan((decorations & TextDecorations.Italic) != 0 ? AnsiCodes.ItalicOn : AnsiCodes.ItalicOff);
+        
+        if ((diff & TextDecorations.Underline) != 0)
+            WriteSpan((decorations & TextDecorations.Underline) != 0 ? AnsiCodes.UnderlineOn : AnsiCodes.UnderlineOff);
+        
+        if ((diff & TextDecorations.Blink) != 0)
+            WriteSpan((decorations & TextDecorations.Blink) != 0 ? AnsiCodes.BlinkOn : AnsiCodes.BlinkOff);
+        
+        if ((diff & TextDecorations.Inverse) != 0)
+            WriteSpan((decorations & TextDecorations.Inverse) != 0 ? AnsiCodes.InverseOn : AnsiCodes.InverseOff);
+        
+        if ((diff & TextDecorations.Strikethrough) != 0)
+            WriteSpan((decorations & TextDecorations.Strikethrough) != 0 ? AnsiCodes.StrikethroughOn : AnsiCodes.StrikethroughOff);
+        
+        _currentStyle.Decorations = decorations;
+        _currentStyle.DecorationsSet = true;
+    }
+    
+    /// <summary>
     /// Writes a single character to the output.
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -183,7 +244,7 @@ public sealed class AnsiWriter : IDisposable
     }
     
     /// <summary>
-    /// Writes a complete cell (position, colors, and character) in one operation.
+    /// Writes a complete cell (position, colors, decorations, and character) in one operation.
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void WriteCell(int x, int y, Cell cell)
@@ -191,6 +252,7 @@ public sealed class AnsiWriter : IDisposable
         MoveTo(x, y);
         SetForeground(cell.Foreground);
         SetBackground(cell.Background);
+        SetDecorations(cell.Decorations);
         WriteChar(cell.Character);
     }
     

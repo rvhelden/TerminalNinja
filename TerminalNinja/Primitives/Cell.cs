@@ -3,7 +3,7 @@ using System.Runtime.InteropServices;
 namespace TerminalNinja.Primitives;
 
 /// <summary>
-/// Represents a single terminal cell with a character and colors (8 bytes total).
+/// Represents a single terminal cell with a character, colors, and text decorations.
 /// </summary>
 [StructLayout(LayoutKind.Sequential, Pack = 1)]
 public readonly record struct Cell
@@ -17,6 +17,9 @@ public readonly record struct Cell
     /// <summary>Gets the background color.</summary>
     public readonly Color Background;
     
+    /// <summary>Gets the text decorations (bold, italic, underline, etc.).</summary>
+    public readonly TextDecorations Decorations;
+    
     /// <summary>
     /// Creates a new cell with the specified character and colors.
     /// </summary>
@@ -25,6 +28,18 @@ public readonly record struct Cell
         Character = character;
         Foreground = foreground;
         Background = background;
+        Decorations = TextDecorations.None;
+    }
+    
+    /// <summary>
+    /// Creates a new cell with the specified character, colors, and text decorations.
+    /// </summary>
+    public Cell(char character, Color foreground, Color background, TextDecorations decorations)
+    {
+        Character = character;
+        Foreground = foreground;
+        Background = background;
+        Decorations = decorations;
     }
     
     /// <summary>Gets an empty cell (space with white on black).</summary>
