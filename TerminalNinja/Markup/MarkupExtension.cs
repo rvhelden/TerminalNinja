@@ -1,0 +1,10 @@
+namespace TerminalNinja.Markup;
+
+/// <summary>
+/// Base class for XAML markup extensions.
+/// Shim for System.Windows.Markup.MarkupExtension to avoid WPF dependency.
+/// </summary>
+public abstract class MarkupExtension
+{
+    public abstract object? ProvideValue(IServiceProvider serviceProvider);
+}

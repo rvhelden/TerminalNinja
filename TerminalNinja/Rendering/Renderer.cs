@@ -47,7 +47,21 @@ public sealed class Renderer : IDisposable
     }
     
     /// <summary>
-    /// Creates a test renderer with explicit stream and dimensions (no terminal interaction).
+    /// Creates an offscreen renderer that writes ANSI sequences to the given stream.
+    /// No terminal interaction (no cursor hide/show, no ANSI mode toggling).
+    /// Useful for CLI snapshot tools, piping output, and WASM scenarios.
+    /// </summary>
+    /// <param name="output">The output stream to write ANSI sequences to.</param>
+    /// <param name="width">The viewport width in columns.</param>
+    /// <param name="height">The viewport height in rows.</param>
+    /// <returns>A renderer that writes to the stream.</returns>
+    public static Renderer CreateOffscreen(Stream output, int width, int height)
+    {
+        return new Renderer(output, width, height);
+    }
+
+    /// <summary>
+    /// Creates a renderer with explicit stream and dimensions (no terminal interaction).
     /// </summary>
     internal Renderer(Stream output, int width, int height)
     {
@@ -128,6 +142,15 @@ public sealed class Renderer : IDisposable
         return filePath;
     }
     
+    /// <summary>
+    /// Writes an ANSI reset sequence to restore default terminal attributes.
+    /// </summary>
+    public void WriteReset()
+    {
+        _writer.Reset();
+        _writer.Flush();
+    }
+
     /// <summary>
     /// Handles terminal resize events by recreating the buffer.
     /// </summary>
