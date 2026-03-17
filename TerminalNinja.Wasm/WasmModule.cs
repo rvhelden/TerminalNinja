@@ -1,4 +1,5 @@
 using System.Runtime.InteropServices.JavaScript;
+using System.Runtime.Versioning;
 using System.Text;
 using TerminalNinja.Controls;
 using TerminalNinja.Rendering;
@@ -11,6 +12,7 @@ namespace TerminalNinja.Wasm;
 /// Browser-WASM entry point that exposes XAML rendering to JavaScript.
 /// Call <see cref="RenderXaml"/> from JS after loading the dotnet WASM runtime.
 /// </summary>
+[SupportedOSPlatform("browser")]
 public partial class WasmModule
 {
     /// <summary>
