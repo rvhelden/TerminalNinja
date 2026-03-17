@@ -423,7 +423,68 @@ var window = TerminalXaml.LoadFromFile<Window>("DemoLayout.xaml");
 window.Show();  // Sets Application.Current.RootControl = window
 ```
 
-## Recent Changes (Feb 2026)
+## Recent Changes (Feb-Mar 2026)
+
+### DependencyProperty Conversion (Mar 2026)
+
+All ~43 CLR/auto properties across the entire control hierarchy have been converted to DependencyProperty-backed properties, matching WPF's property system. Attached properties (StackPanel.SizeMode/FixedSize, Grid.Row/Column/RowSpan/ColumnSpan) now use `DependencyProperty.RegisterAttached` instead of the old `AttachedPropertyStore`.
+
+**Pattern for regular DPs:**
+```csharp
+public static readonly DependencyProperty XxxProperty =
+    DependencyProperty.Register(nameof(Xxx), typeof(T), typeof(OwnerClass),
+        new FrameworkPropertyMetadata(defaultValue, affectsRender: true));
+
+public T Xxx
+{
+    get => (T)GetValue(XxxProperty)!;
+    set => SetValue(XxxProperty, value);
+}
+```
+
+**Pattern for attached DPs:**
+```csharp
+public static readonly DependencyProperty XxxProperty =
+    DependencyProperty.RegisterAttached("Xxx", typeof(T), typeof(OwnerClass),
+        new PropertyMetadata(defaultValue));
+
+public static T GetXxx(DependencyObject d) => (T)d.GetValue(XxxProperty)!;
+public static void SetXxx(DependencyObject d, T value) => d.SetValue(XxxProperty, value);
+```
+
+**Properties converted per class:**
+
+| Class | DependencyProperties |
+|-------|---------------------|
+| UIElement | Visibility, IsEnabled, Focusable, IsFocused, IsMouseOver |
+| FrameworkElement | HorizontalAlignment, VerticalAlignment, Name, DataContext, Style |
+| Control | Background, Foreground, Padding, BorderStyle, TabIndex, Template |
+| Panel | Background |
+| StackPanel | Orientation, CrossAxisAlignment + attached SizeMode, FixedSize |
+| Grid | Attached Row, Column, RowSpan, ColumnSpan |
+| ContentControl | Content (with PropertyChangedCallback for Parent management) |
+| ButtonBase | Command (with PropertyChangedCallback for CanExecuteChanged), CommandParameter |
+| Button | Text, FocusColor, HoverColor, Width, Height |
+| TextBlock | Text, Foreground, Background, Width, Height, HorizontalTextAlignment, VerticalTextAlignment, TextWrapping, TextTrimming, Padding |
+| Border | Background, Foreground, BorderStyle, Width, Height, Child (with PropertyChangedCallback) |
+| Window | Title, Width, Height |
+| ItemsControl | ItemsSource (with PropertyChangedCallback), ItemTemplate, ItemsPanel |
+
+**Metadata usage:**
+- Visual properties use `FrameworkPropertyMetadata(default, affectsRender: true)` — triggers `InvalidateVisual()` on change
+- Non-visual properties use `PropertyMetadata(default)` or `FrameworkPropertyMetadata(default, affectsRender: false)`
+- Properties with side effects (Content, Child, Command, ItemsSource) use `PropertyChangedCallback`
+- Nullable defaults use `(object?)null` to avoid CS8625
+
+**Deleted artifacts:**
+- `UIElement.SetProperty<T>()` helper — no longer needed since all properties use `DependencyObject.SetValue()`
+- `AttachedPropertyStore` / `AttachedPropertyKey` — replaced by `DependencyProperty.RegisterAttached`
+
+**No changes needed to infrastructure:**
+- PropertyAccessorGenerator — DP CLR wrappers look identical to normal properties
+- Style application — uses PropertyAccessorRegistry → CLR setter → `SetValue()` — works unchanged
+- Bindings — `DependencyObject.SetValue()` raises INPC, so bindings work unchanged
+- XAML loader — uses PropertyAccessorRegistry — works unchanged
 
 ### WPF-Aligned Class Hierarchy Refactoring (Feb-Mar 2026)
 

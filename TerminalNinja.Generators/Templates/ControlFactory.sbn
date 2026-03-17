@@ -31,7 +31,7 @@ internal static class GeneratedControlFactories
             typeof({{ ap.owner_full_name }}),
             "{{ ap.property_name }}",
             typeof({{ ap.parameter_full_name }}),
-            static (target, value) => {{ ap.owner_full_name }}.Set{{ ap.property_name }}(target, ({{ ap.parameter_full_name }})value!));
+            static (target, value) => {{ ap.owner_full_name }}.Set{{ ap.property_name }}(({{ ap.target_full_name }})target, ({{ ap.parameter_full_name }})value!));
         {{~ end ~}}
 
         // --- Type converters (from [TypeConverter] attributes, excluding EnumConverter) ---

@@ -216,14 +216,17 @@ public sealed class ControlFactoryGenerator : IIncrementalGenerator
                 if (!method.ReturnsVoid)
                     continue;
 
-                // First parameter must be 'object' (the target)
-                if (method.Parameters[0].Type.SpecialType != SpecialType.System_Object)
+                // First parameter must be DependencyObject (or a subclass thereof),
+                // matching WPF convention where attached setters take UIElement/DependencyObject.
+                var targetParamType = method.Parameters[0].Type;
+                if (!IsDependencyObject(targetParamType))
                     continue;
 
                 var propertyName = method.Name.Substring(3); // "SetRow" → "Row"
                 var parameterType = method.Parameters[1].Type;
                 var ownerFullName = GeneratorHelper.GetFullyQualifiedTypeName(type);
                 var parameterFullName = GeneratorHelper.GetFullyQualifiedTypeName(parameterType);
+                var targetFullName = GeneratorHelper.GetFullyQualifiedTypeName(targetParamType);
                 var dedupeKey = ownerFullName + "." + propertyName;
 
                 if (attachedSeen.Add(dedupeKey))
@@ -232,7 +235,8 @@ public sealed class ControlFactoryGenerator : IIncrementalGenerator
                     {
                         owner_full_name = ownerFullName,
                         property_name = propertyName,
-                        parameter_full_name = parameterFullName
+                        parameter_full_name = parameterFullName,
+                        target_full_name = targetFullName
                     });
                 }
             }
@@ -315,6 +319,21 @@ public sealed class ControlFactoryGenerator : IIncrementalGenerator
             }
         }
         return null;
+    }
+
+    /// <summary>
+    /// Checks whether the given type symbol is or derives from DependencyObject.
+    /// </summary>
+    private static bool IsDependencyObject(ITypeSymbol type)
+    {
+        var current = type;
+        while (current != null)
+        {
+            if (current.Name == "DependencyObject")
+                return true;
+            current = current.BaseType;
+        }
+        return false;
     }
 
     /// <summary>
