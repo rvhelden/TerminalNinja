@@ -1,0 +1,16 @@
+<!--
+  Repository-level Directory.Build.targets
+  
+  Imports the TerminalNinja MSBuild targets for all projects in the solution.
+  This is the development-time equivalent of NuGet's buildTransitive/ import.
+  
+  Only imports for projects that reference TerminalNinja (detected by the presence
+  of the ProjectReference or PackageReference). For simplicity during development,
+  we import unconditionally — the targets themselves are safe to import everywhere
+  (they only act on *.xaml files and have an opt-out property).
+-->
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+
+  <Import Project="TerminalNinja/build/TerminalNinja.targets" />
+
+</Project>

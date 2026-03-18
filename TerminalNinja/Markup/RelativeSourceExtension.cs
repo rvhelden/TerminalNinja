@@ -1,6 +1,8 @@
 using System.Windows.Markup;
+using TerminalNinja.Xaml;
+using TerminalNinja.Xaml.Binding;
 
-namespace TerminalNinja.Xaml.Binding;
+namespace TerminalNinja.Markup;
 
 /// <summary>
 /// Design-time markup extension stub for <c>{RelativeSource}</c> syntax in XAML.

@@ -5,10 +5,8 @@ namespace System.Windows.Markup;
 /// Indicates which property of a type is the XAML content property.
 /// Shim for System.Windows.Markup.ContentPropertyAttribute to avoid WPF dependency.
 /// </summary>
-[AttributeUsage(AttributeTargets.Class, Inherited = true, AllowMultiple = false)]
-public sealed class ContentPropertyAttribute : Attribute
+[AttributeUsage(AttributeTargets.Class)]
+public sealed class ContentPropertyAttribute(string name) : Attribute
 {
-    public ContentPropertyAttribute(string name) => Name = name;
-
-    public string Name { get; }
+    public string Name { get; } = name;
 }

@@ -6,14 +6,8 @@ namespace System.Windows.Markup;
 /// Shim for System.Windows.Markup.XmlnsDefinitionAttribute to avoid WPF dependency.
 /// </summary>
 [AttributeUsage(AttributeTargets.Assembly, AllowMultiple = true)]
-public sealed class XmlnsDefinitionAttribute : Attribute
+public sealed class XmlnsDefinitionAttribute(string xmlNamespace, string clrNamespace) : Attribute
 {
-    public XmlnsDefinitionAttribute(string xmlNamespace, string clrNamespace)
-    {
-        XmlNamespace = xmlNamespace;
-        ClrNamespace = clrNamespace;
-    }
-
-    public string XmlNamespace { get; }
-    public string ClrNamespace { get; }
+    public string XmlNamespace { get; } = xmlNamespace;
+    public string ClrNamespace { get; } = clrNamespace;
 }

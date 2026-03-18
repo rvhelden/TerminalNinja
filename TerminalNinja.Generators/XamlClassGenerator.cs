@@ -53,14 +53,26 @@ public sealed class XamlClassGenerator : IIncrementalGenerator
 
     public void Initialize(IncrementalGeneratorInitializationContext context)
     {
-        // Find all additional text files that are XAML
+        // Find all additional text files that are XAML, including TerminalNinjaResourceName metadata
         var xamlFiles = context.AdditionalTextsProvider
-            .Where(static file => file.Path.EndsWith(".xaml", StringComparison.OrdinalIgnoreCase))
-            .Select(static (file, ct) =>
+            .Combine(context.AnalyzerConfigOptionsProvider)
+            .Where(static pair => pair.Left.Path.EndsWith(".xaml", StringComparison.OrdinalIgnoreCase))
+            .Select(static (pair, ct) =>
             {
+                var file = pair.Left;
+                var optionsProvider = pair.Right;
                 var text = file.GetText(ct)?.ToString();
                 var path = file.Path;
-                return new XamlFileInfo(path, text);
+
+                // Read the TerminalNinjaResourceName metadata set by MSBuild targets
+                string? resourceName = null;
+                if (optionsProvider.GetOptions(file).TryGetValue(
+                    "build_metadata.AdditionalFiles.TerminalNinjaResourceName", out var rn))
+                {
+                    resourceName = rn;
+                }
+
+                return new XamlFileInfo(path, text, resourceName);
             })
             .Where(static info => info.Content != null);
 
@@ -151,10 +163,14 @@ public sealed class XamlClassGenerator : IIncrementalGenerator
         // Collect all x:Name'd elements
         var namedElements = CollectNamedElements(root);
 
-        // Build resource name: {AssemblyName}.{ClassName}.xaml
-        // Convention matches what users specify in .csproj as LogicalName
+        // Build resource name — prefer MSBuild-provided metadata, fall back to convention
         var assemblyName = compilation.AssemblyName ?? "Generated";
-        var resourceName = $"{assemblyName}.{className}.xaml";
+        var resourceName = xamlFile.ResourceName;
+        if (string.IsNullOrEmpty(resourceName))
+        {
+            // Fallback: {AssemblyName}.{ClassName}.xaml (legacy convention)
+            resourceName = $"{assemblyName}.{className}.xaml";
+        }
 
         // Generate source
         try
@@ -312,17 +328,19 @@ internal sealed class XamlFileInfo : IEquatable<XamlFileInfo>
 {
     public string FilePath { get; }
     public string? Content { get; }
+    public string? ResourceName { get; }
 
-    public XamlFileInfo(string filePath, string? content)
+    public XamlFileInfo(string filePath, string? content, string? resourceName = null)
     {
         FilePath = filePath;
         Content = content;
+        ResourceName = resourceName;
     }
 
     public bool Equals(XamlFileInfo? other)
     {
         if (other is null) return false;
-        return FilePath == other.FilePath && Content == other.Content;
+        return FilePath == other.FilePath && Content == other.Content && ResourceName == other.ResourceName;
     }
 
     public override bool Equals(object? obj) => Equals(obj as XamlFileInfo);

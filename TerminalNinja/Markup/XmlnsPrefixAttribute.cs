@@ -6,14 +6,8 @@ namespace System.Windows.Markup;
 /// Shim for System.Windows.Markup.XmlnsPrefixAttribute to avoid WPF dependency.
 /// </summary>
 [AttributeUsage(AttributeTargets.Assembly, AllowMultiple = true)]
-public sealed class XmlnsPrefixAttribute : Attribute
+public sealed class XmlnsPrefixAttribute(string xmlNamespace, string prefix) : Attribute
 {
-    public XmlnsPrefixAttribute(string xmlNamespace, string prefix)
-    {
-        XmlNamespace = xmlNamespace;
-        Prefix = prefix;
-    }
-
-    public string XmlNamespace { get; }
-    public string Prefix { get; }
+    public string XmlNamespace { get; } = xmlNamespace;
+    public string Prefix { get; } = prefix;
 }

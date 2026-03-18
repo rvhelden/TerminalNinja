@@ -16,24 +16,4 @@
                         OutputItemType="Analyzer"
                         ReferenceOutputAssembly="false" />
     </ItemGroup>
-
-    <ItemGroup>
-      <EmbeddedResource Include="DemoLayout.xaml">
-        <LogicalName>Sample.DemoLayout.xaml</LogicalName>
-      </EmbeddedResource>
-      <EmbeddedResource Include="ActivityLogControl.xaml">
-        <LogicalName>Sample.ActivityLogControl.xaml</LogicalName>
-      </EmbeddedResource>
-    </ItemGroup>
-
-    <ItemGroup>
-      <AdditionalFiles Include="ActivityLogControl.xaml" />
-    </ItemGroup>
-
-    <ItemGroup>
-      <Compile Update="ActivityLogControl.cs">
-        <DependentUpon>ActivityLogControl.xaml</DependentUpon>
-      </Compile>
-    </ItemGroup>
-
 </Project>

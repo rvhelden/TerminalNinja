@@ -1,4 +1,5 @@
 using TerminalNinja.Controls;
+using TerminalNinja.Markup;
 using TerminalNinja.Xaml;
 using TerminalNinja.Xaml.Binding;
 using TerminalNinja.Xaml.Mvvm;

@@ -1,4 +1,5 @@
 using System.Collections.Concurrent;
+using System.Diagnostics.CodeAnalysis;
 using TerminalNinja.Controls;
 using TerminalNinja.Primitives;
 using TerminalNinja.Styling;
@@ -65,9 +66,45 @@ public static class TypeNameRegistry
 
     /// <summary>
     /// Tries to resolve a type by its fully-qualified name.
+    /// Falls back to scanning loaded assemblies for consumer-defined types
+    /// (e.g., data model classes referenced via <c>clr-namespace:</c> in XAML).
+    /// Resolved types are cached so subsequent lookups are O(1).
     /// </summary>
     public static Type? ResolveType(string fullName)
     {
-        return Types.TryGetValue(fullName, out var type) ? type : null;
+        if (Types.TryGetValue(fullName, out var type))
+            return type;
+
+        // Fallback: scan loaded assemblies for the type.
+        // This handles consumer-defined types (data models, view models, etc.)
+        // that aren't pre-registered via source generators or static initializer.
+        var resolved = ResolveFromLoadedAssemblies(fullName);
+        if (resolved != null)
+        {
+            // Cache so future lookups are O(1)
+            Types[fullName] = resolved;
+        }
+
+        return resolved;
+    }
+
+    /// <summary>
+    /// Scans all loaded assemblies for a type by its fully-qualified name.
+    /// This is the runtime fallback for types not registered at compile time.
+    /// </summary>
+    [UnconditionalSuppressMessage("AOT", "IL2026",
+        Justification = "Runtime fallback for consumer-defined types (data models, view models) " +
+                         "referenced via clr-namespace: in XAML. These types are not subject to trimming " +
+                         "because the consuming application preserves them.")]
+    private static Type? ResolveFromLoadedAssemblies(string fullName)
+    {
+        foreach (var assembly in AppDomain.CurrentDomain.GetAssemblies())
+        {
+            var type = assembly.GetType(fullName);
+            if (type != null)
+                return type;
+        }
+
+        return null;
     }
 }

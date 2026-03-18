@@ -1,0 +1,32 @@
+﻿<Window xmlns="http://schemas.terminalninja.dev/xaml"
+        Title="Playground"
+        Width="80"
+        Height="24">
+    <StackPanel Orientation="Vertical">
+
+        <Border BorderStyle="Rounded"
+                Background="#1E1E50"
+                Foreground="#3DD9B1">
+            <TextBlock Text="  TerminalNinja Playground  "
+                       HorizontalTextAlignment="Center" />
+        </Border>
+
+        <TextBlock Text=""
+                   Foreground="#95A7BF" />
+
+        <TextBlock Text="  Edit this XAML and click Render!"
+                   Foreground="#D8E2F1" />
+
+        <TextBlock Text=""
+                   Foreground="#95A7BF" />
+
+        <Button Text="Hello World" />
+
+        <TextBlock Text=""
+                   Foreground="#95A7BF" />
+
+        <TextBlock Text="  StackPanel · Grid · Border · TextBlock · Button"
+                   Foreground="#49A7FF" />
+
+    </StackPanel>
+</Window>

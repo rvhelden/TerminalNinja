@@ -1,0 +1,72 @@
+<!--
+  TerminalNinja MSBuild targets
+  
+  Auto-includes all *.xaml files in the consuming project as:
+    1. EmbeddedResource — so they're available at runtime via Assembly.GetManifestResourceStream()
+    2. AdditionalFiles  — so source generators (XamlClassGenerator, XamlLayoutGenerator) can read them
+    
+  Resource naming convention (subdirectory-aware):
+    Views/Login.xaml  →  LogicalName = "MyApp.Views.Login.xaml"
+    HelloWorld.xaml    →  LogicalName = "MyApp.HelloWorld.xaml"
+    
+  The same name is passed as TerminalNinjaResourceName metadata on AdditionalFiles
+  so generators read it via AnalyzerConfigOptionsProvider — single source of truth.
+  
+  Items are declared in static ItemGroups (evaluation-time) so that source generators
+  receive both the files AND their metadata through AdditionalTextsProvider and
+  AnalyzerConfigOptionsProvider. A Target-based approach would add items too late
+  for generators to see the metadata.
+  
+  Opt-out: Set <EnableTerminalNinjaXamlAutoInclude>false</EnableTerminalNinjaXamlAutoInclude>
+  in your project to disable auto-inclusion.
+-->
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+
+  <PropertyGroup>
+    <EnableTerminalNinjaXamlAutoInclude Condition="'$(EnableTerminalNinjaXamlAutoInclude)' == ''">true</EnableTerminalNinjaXamlAutoInclude>
+  </PropertyGroup>
+
+  <!--
+    CompilerVisibleItemMetadata tells the Roslyn host to surface our custom metadata key
+    through AnalyzerConfigOptionsProvider so source generators can read it.
+  -->
+  <ItemGroup>
+    <CompilerVisibleItemMetadata Include="AdditionalFiles" MetadataName="TerminalNinjaResourceName" />
+  </ItemGroup>
+
+  <!--
+    Auto-discover *.xaml files and include them as EmbeddedResource + AdditionalFiles.
+    
+    Static ItemGroups are evaluated at project load time, which ensures:
+      1. Source generators see AdditionalFiles via AdditionalTextsProvider
+      2. TerminalNinjaResourceName metadata is visible via AnalyzerConfigOptionsProvider
+      
+    We include the XAML files directly into both item types, then use Update to
+    compute the subdirectory-aware resource name using property functions.
+  -->
+  <ItemGroup Condition="'$(EnableTerminalNinjaXamlAutoInclude)' == 'true'">
+    <EmbeddedResource Include="**/*.xaml"
+                      Exclude="bin/**;obj/**;$(BaseIntermediateOutputPath)**;$(IntermediateOutputPath)**" />
+    <AdditionalFiles Include="**/*.xaml"
+                     Exclude="bin/**;obj/**;$(BaseIntermediateOutputPath)**;$(IntermediateOutputPath)**" />
+  </ItemGroup>
+
+  <!--
+    Compute the subdirectory-aware resource name for each XAML file.
+    %(RecursiveDir) uses backslashes on Windows, forward slashes on Unix.
+    We replace both with dots to get: "MyApp.Views.Login.xaml"
+    
+    For EmbeddedResource: set LogicalName (controls manifest resource name at runtime).
+    For AdditionalFiles: set TerminalNinjaResourceName (surfaced to generators via
+    AnalyzerConfigOptionsProvider through CompilerVisibleItemMetadata).
+  -->
+  <ItemGroup Condition="'$(EnableTerminalNinjaXamlAutoInclude)' == 'true'">
+    <EmbeddedResource Update="**/*.xaml">
+      <LogicalName>$(AssemblyName).$([System.String]::new('%(RecursiveDir)%(Filename)%(Extension)').Replace('\','.').Replace('/','.'))</LogicalName>
+    </EmbeddedResource>
+    <AdditionalFiles Update="**/*.xaml">
+      <TerminalNinjaResourceName>$(AssemblyName).$([System.String]::new('%(RecursiveDir)%(Filename)%(Extension)').Replace('\','.').Replace('/','.'))</TerminalNinjaResourceName>
+    </AdditionalFiles>
+  </ItemGroup>
+
+</Project>

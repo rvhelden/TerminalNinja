@@ -5,10 +5,8 @@ namespace System.Windows.Markup;
 /// Indicates which property of a type maps to x:Name in XAML.
 /// Shim for System.Windows.Markup.RuntimeNamePropertyAttribute to avoid WPF dependency.
 /// </summary>
-[AttributeUsage(AttributeTargets.Class, Inherited = true, AllowMultiple = false)]
-public sealed class RuntimeNamePropertyAttribute : Attribute
+[AttributeUsage(AttributeTargets.Class)]
+public sealed class RuntimeNamePropertyAttribute(string name) : Attribute
 {
-    public RuntimeNamePropertyAttribute(string name) => Name = name;
-
-    public string Name { get; }
+    public string Name { get; } = name;
 }

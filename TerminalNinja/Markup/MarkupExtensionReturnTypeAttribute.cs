@@ -5,10 +5,8 @@ namespace System.Windows.Markup;
 /// Indicates the return type of a markup extension's ProvideValue method.
 /// Shim for System.Windows.Markup.MarkupExtensionReturnTypeAttribute to avoid WPF dependency.
 /// </summary>
-[AttributeUsage(AttributeTargets.Class, Inherited = true, AllowMultiple = false)]
-public sealed class MarkupExtensionReturnTypeAttribute : Attribute
+[AttributeUsage(AttributeTargets.Class)]
+public sealed class MarkupExtensionReturnTypeAttribute(Type returnType) : Attribute
 {
-    public MarkupExtensionReturnTypeAttribute(Type returnType) => ReturnType = returnType;
-
-    public Type ReturnType { get; }
+    public Type ReturnType { get; } = returnType;
 }

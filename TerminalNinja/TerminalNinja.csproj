@@ -20,4 +20,10 @@
                       ReferenceOutputAssembly="false" />
   </ItemGroup>
 
+  <!-- Include MSBuild targets in the NuGet package so consuming projects auto-import them -->
+  <ItemGroup>
+    <None Include="build\TerminalNinja.targets" Pack="true" PackagePath="build\" />
+    <None Include="build\TerminalNinja.targets" Pack="true" PackagePath="buildTransitive\" />
+  </ItemGroup>
+
 </Project>
