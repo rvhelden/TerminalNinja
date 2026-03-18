@@ -34,7 +34,7 @@ jobs:
         run: dotnet workload install wasm-tools
 
       - name: Publish WASM module
-        run: dotnet publish TerminalNinja.Wasm/TerminalNinja.Wasm.csproj -c Release -o docs/wasm
+        run: dotnet publish TerminalNinja.Wasm/TerminalNinja.Wasm.csproj -c Release
 
       - name: Copy WASM to docs/wasm
         run: |
