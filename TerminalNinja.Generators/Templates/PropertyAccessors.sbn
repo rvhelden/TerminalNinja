@@ -32,5 +32,9 @@ internal static class GeneratedPropertyAccessors
         {{~ end ~}}
 
         {{~ end ~}}
+        // --- DataType type registrations (data models referenced in XAML DataTemplates) ---
+        {{~ for fqn in type_name_registrations ~}}
+        TypeNameRegistry.Register(typeof({{ fqn }}));
+        {{~ end ~}}
     }
 }

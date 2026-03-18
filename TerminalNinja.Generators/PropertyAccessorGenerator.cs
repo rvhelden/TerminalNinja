@@ -153,17 +153,36 @@ public sealed class PropertyAccessorGenerator : IIncrementalGenerator
             }
         }
 
-        // Resolve DataType type names from XAML and add them
+        // Resolve DataType type names from XAML and add them.
+        // Also collect their fully-qualified names so we can register them
+        // in TypeNameRegistry (they aren't controls/ViewModels, so the
+        // ControlFactoryGenerator won't register them).
+        var dataTypeRegistrations = new List<string>();
+
+        // Collect debug info to embed as comments in generated source
+        var debugLines = new List<string>();
+        debugLines.Add($"// DEBUG: Assembly={compilation.AssemblyName}, DataTypeNames.Length={dataTypeNames.Length}, IsDefault={dataTypeNames.IsDefault}");
+        if (!dataTypeNames.IsDefaultOrEmpty)
+        {
+            foreach (var n in dataTypeNames)
+                debugLines.Add($"//   DataType: {n}");
+        }
+
         if (!dataTypeNames.IsDefaultOrEmpty)
         {
             foreach (var fullTypeName in dataTypeNames)
             {
-                if (!seen.Add(fullTypeName))
-                    continue; // Already discovered via class declarations
-
                 var symbol = compilation.GetTypeByMetadataName(fullTypeName);
-                if (symbol != null && !symbol.IsImplicitlyDeclared &&
-                    symbol.TypeKind == TypeKind.Class)
+
+                if (symbol == null || symbol.IsImplicitlyDeclared ||
+                    symbol.TypeKind != TypeKind.Class)
+                    continue;
+
+                // Always register in TypeNameRegistry (even if already in uniqueTypes)
+                var fqn = GeneratorHelper.GetFullyQualifiedTypeName(symbol);
+                dataTypeRegistrations.Add(fqn);
+
+                if (seen.Add(fullTypeName))
                 {
                     uniqueTypes.Add(symbol);
                 }
@@ -205,6 +224,7 @@ public sealed class PropertyAccessorGenerator : IIncrementalGenerator
             var scriptObject = new ScriptObject();
             scriptObject.Add("namespace", ns);
             scriptObject.Add("types", typeModels);
+            scriptObject.Add("type_name_registrations", dataTypeRegistrations);
 
             var templateContext = new TemplateContext();
             templateContext.PushGlobal(scriptObject);

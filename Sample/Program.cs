@@ -9,8 +9,6 @@ public static class Program
 {
     public static void Main()
     {
-        Console.Clear();
-        
         using var app = new Application(new ApplicationOptions
         {
             TargetFps = 60,
