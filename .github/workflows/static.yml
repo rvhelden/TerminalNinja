@@ -39,7 +39,7 @@ jobs:
       - name: Copy WASM AppBundle to docs/wasm
         run: |
           mkdir -p docs/wasm
-          cp -r TerminalNinja.Wasm/bin/Release/net10.0/browser-wasm/publish/AppBundle/. docs/wasm/
+          cp -r TerminalNinja.Wasm/bin/Release/net10.0/browser-wasm/AppBundle/. docs/wasm/
 
       - name: Setup Pages
         uses: actions/configure-pages@v5
