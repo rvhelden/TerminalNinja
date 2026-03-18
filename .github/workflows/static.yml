@@ -34,12 +34,7 @@ jobs:
         run: dotnet workload install wasm-tools
 
       - name: Publish WASM module
-        run: dotnet publish TerminalNinja.Wasm/TerminalNinja.Wasm.csproj -c Release
-
-      - name: Copy WASM AppBundle to docs/wasm
-        run: |
-          mkdir -p docs/wasm
-          cp -r TerminalNinja.Wasm/bin/Release/net10.0/browser-wasm/AppBundle/. docs/wasm/
+        run: dotnet publish TerminalNinja.Wasm/TerminalNinja.Wasm.csproj -c Release -o docs/wasm
 
       - name: Setup Pages
         uses: actions/configure-pages@v5

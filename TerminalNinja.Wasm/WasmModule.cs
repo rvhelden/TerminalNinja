@@ -44,7 +44,7 @@ public partial class WasmModule
         }
         catch (Exception ex)
         {
-            return $"\u001b[31mError: {ex.Message}\u001b[0m";
+            return $"\e[31mError: {ex.Message}\e[0m";
         }
     }
 }
