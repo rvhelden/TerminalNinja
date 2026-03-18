@@ -1,4 +1,4 @@
-using TerminalNinja.Markup;
+using System.Windows.Markup;
 using TerminalNinja.Buffers;
 using TerminalNinja.Input;
 using TerminalNinja.Primitives;

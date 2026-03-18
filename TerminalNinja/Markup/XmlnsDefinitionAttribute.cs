@@ -1,4 +1,5 @@
-namespace TerminalNinja.Markup;
+// ReSharper disable once CheckNamespace
+namespace System.Windows.Markup;
 
 /// <summary>
 /// Maps a CLR namespace to a XAML XML namespace.

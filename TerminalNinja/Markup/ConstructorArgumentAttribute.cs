@@ -1,4 +1,5 @@
-namespace TerminalNinja.Markup;
+// ReSharper disable once CheckNamespace
+namespace System.Windows.Markup;
 
 /// <summary>
 /// Indicates that a property can be initialized by a positional constructor argument in XAML.

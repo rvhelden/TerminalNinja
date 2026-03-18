@@ -1,4 +1,5 @@
-namespace TerminalNinja.Markup;
+// ReSharper disable once CheckNamespace
+namespace System.Windows.Markup;
 
 /// <summary>
 /// Indicates the return type of a markup extension's ProvideValue method.

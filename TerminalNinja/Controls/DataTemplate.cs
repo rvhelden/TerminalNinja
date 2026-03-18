@@ -1,5 +1,5 @@
 using System.ComponentModel;
-using TerminalNinja.Markup;
+using System.Windows.Markup;
 using TerminalNinja.Aot;
 using TerminalNinja.Xaml.Binding;
 

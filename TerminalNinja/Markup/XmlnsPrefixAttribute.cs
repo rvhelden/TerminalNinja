@@ -1,4 +1,5 @@
-namespace TerminalNinja.Markup;
+// ReSharper disable once CheckNamespace
+namespace System.Windows.Markup;
 
 /// <summary>
 /// Specifies the recommended prefix for a XAML XML namespace.

@@ -1,4 +1,5 @@
-namespace TerminalNinja.Markup;
+// ReSharper disable once CheckNamespace
+namespace System.Windows.Markup;
 
 /// <summary>
 /// Base class for XAML markup extensions.

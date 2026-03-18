@@ -1,6 +1,6 @@
 using System.Collections;
 using System.Collections.Specialized;
-using TerminalNinja.Markup;
+using System.Windows.Markup;
 using TerminalNinja.Buffers;
 using TerminalNinja.Primitives;
 

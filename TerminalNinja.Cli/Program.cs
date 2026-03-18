@@ -6,6 +6,8 @@ using TerminalNinja.Xaml.Binding;
 
 namespace TerminalNinja.Cli;
 
+using Console = System.Console;
+
 /// <summary>
 /// CLI tool that renders a XAML layout to ANSI escape sequences and writes them to stdout.
 /// Designed for snapshot generation, piping, and future WASM compilation.
