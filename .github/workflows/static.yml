@@ -36,6 +36,11 @@ jobs:
       - name: Publish WASM module
         run: dotnet publish TerminalNinja.Wasm/TerminalNinja.Wasm.csproj -c Release -o docs/wasm
 
+      - name: Copy WASM to docs/wasm
+        run: |
+          mkdir -p docs/wasm
+          cp -r TerminalNinja.Wasm/bin/Release/net10.0/publish/wwwroot/_framework/. docs/wasm/
+
       - name: Setup Pages
         uses: actions/configure-pages@v5
 
