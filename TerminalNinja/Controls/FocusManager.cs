@@ -155,6 +155,7 @@ public sealed class FocusManager
     
     /// <summary>
     /// Performs hit testing to find the focusable element at the specified coordinates.
+    /// Uses spatial pruning to skip subtrees whose bounds do not contain the point.
     /// </summary>
     /// <param name="rootControl">The root element to search.</param>
     /// <param name="rootBounds">The bounds of the root element.</param>
@@ -163,19 +164,7 @@ public sealed class FocusManager
     /// <returns>The topmost focusable element at the coordinates, or null if none.</returns>
     public UIElement? HitTest(UIElement rootControl, Rect rootBounds, int x, int y)
     {
-        // Collect all focusable elements with their bounds
-        var focusableElements = CollectFocusableElements(rootControl, rootBounds);
-        
-        // Find all elements that contain the point (later elements are on top)
-        UIElement? hitElement = null;
-        
-        foreach (var (element, bounds) in focusableElements)
-        {
-            if (bounds.Contains(x, y))
-                hitElement = element;
-        }
-        
-        return hitElement;
+        return HitTestFocusable(rootControl, rootBounds, x, y);
     }
     
     /// <summary>
@@ -242,6 +231,16 @@ public sealed class FocusManager
     private List<(UIElement Element, Rect Bounds)> CollectFocusableElements(UIElement element, Rect parentBounds)
     {
         var result = new List<(UIElement, Rect)>();
+        CollectFocusableElementsCore(element, parentBounds, result);
+        return result;
+    }
+
+    private static void CollectFocusableElementsCore(UIElement element, Rect parentBounds,
+        List<(UIElement Element, Rect Bounds)> result)
+    {
+        // Prune invisible or disabled subtrees — they cannot receive focus
+        if (element.Visibility != Visibility.Visible || !element.IsEnabled)
+            return;
 
         var myBounds = element.CalculateBounds(parentBounds);
 
@@ -251,10 +250,8 @@ public sealed class FocusManager
         foreach (var (child, childParentBounds) in element.GetChildrenWithBounds(myBounds))
         {
             if (child is UIElement childElement)
-                result.AddRange(CollectFocusableElements(childElement, childParentBounds));
+                CollectFocusableElementsCore(childElement, childParentBounds, result);
         }
-
-        return result;
     }
 
     /// <summary>
@@ -263,6 +260,10 @@ public sealed class FocusManager
     /// </summary>
     private UIElement? HitTestDeep(UIElement element, Rect parentBounds, int x, int y)
     {
+        // Prune invisible or disabled subtrees
+        if (element.Visibility != Visibility.Visible || !element.IsEnabled)
+            return null;
+
         var myBounds = element.CalculateBounds(parentBounds);
 
         if (!myBounds.Contains(x, y))
@@ -281,6 +282,40 @@ public sealed class FocusManager
         }
 
         return deepest ?? element;
+    }
+
+    /// <summary>
+    /// Performs a spatial-pruning hit test that finds the deepest focusable element at
+    /// the given coordinates without collecting all focusable elements into a list.
+    /// Skips invisible and disabled subtrees.
+    /// </summary>
+    private UIElement? HitTestFocusable(UIElement element, Rect parentBounds, int x, int y)
+    {
+        // Prune invisible or disabled subtrees
+        if (element.Visibility != Visibility.Visible || !element.IsEnabled)
+            return null;
+
+        var myBounds = element.CalculateBounds(parentBounds);
+
+        if (!myBounds.Contains(x, y))
+            return null;
+
+        // Recurse into children (last child wins — later children are visually on top)
+        UIElement? deepest = null;
+        foreach (var (child, childParentBounds) in element.GetChildrenWithBounds(myBounds))
+        {
+            if (child is UIElement childElement)
+            {
+                var hit = HitTestFocusable(childElement, childParentBounds, x, y);
+                if (hit != null)
+                    deepest = hit;
+            }
+        }
+
+        if (deepest != null)
+            return deepest;
+
+        return element.Focusable ? element : null;
     }
 
     /// <summary>
