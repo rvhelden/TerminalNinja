@@ -166,9 +166,17 @@ public sealed class TextBlock : FrameworkElement
         if (string.IsNullOrEmpty(Text))
             return new Size2D(Padding.HorizontalTotal, Padding.VerticalTotal);
 
-        var lines = NormalizeText(Text).Split('\n');
-        var maxLineWidth = lines.Max(l => l.Length);
-        return new Size2D(maxLineWidth + Padding.HorizontalTotal, lines.Length + Padding.VerticalTotal);
+        // Get line spans and calculate dimensions
+        var lines = SplitIntoLines(Text.AsSpan());
+        var maxLineWidth = 0;
+
+        foreach (var (_, length) in lines)
+        {
+            if (length > maxLineWidth)
+                maxLineWidth = length;
+        }
+
+        return new Size2D(maxLineWidth + Padding.HorizontalTotal, lines.Count + Padding.VerticalTotal);
     }
     
     /// <summary>
@@ -230,79 +238,85 @@ public sealed class TextBlock : FrameworkElement
             yield return inline;
     }
     
-    /// <summary>Normalizes line endings to \n.</summary>
-    private static string NormalizeText(string text) =>
-        text.Replace("\r\n", "\n", StringComparison.Ordinal).Replace('\r', '\n');
-
     private void RenderText(CellBuffer buffer, int x, int y, int width, int height)
     {
-        var normalized = NormalizeText(Text);
-        List<string> lines;
+        ReadOnlySpan<char> text = Text.AsSpan();
+        var decorations = TextDecorations;
+
+        // Split into lines
+        var lines = SplitIntoLines(text);
+
+        // Apply wrapping if needed
+        List<(int Start, int Length)> processedLines;
+
         if (TextWrapping == TextWrapping.Wrap)
         {
-            lines = [];
-            foreach (var segment in normalized.Split('\n'))
-                lines.AddRange(WrapText(segment, width));
+            processedLines = [];
+            foreach (var (start, length) in lines)
+            {
+                var segment = text.Slice(start, length);
+                WrapTextSpanToLines(segment, start, width, processedLines);
+            }
         }
         else
         {
-            lines = [.. normalized.Split('\n')];
+            processedLines = lines;
         }
-        
+
         // Apply vertical alignment
         var startY = VerticalTextAlignment switch
         {
-            TextAlignment.Center => y + (height - lines.Count) / 2,
-            TextAlignment.End => y + height - lines.Count,
+            TextAlignment.Center => y + (height - processedLines.Count) / 2,
+            TextAlignment.End => y + height - processedLines.Count,
             _ => y
         };
-        
-        // Clamp startY to valid range
+
         startY = Math.Max(y, Math.Min(startY, y + height - 1));
-        
-        var decorations = TextDecorations;
-        
+
         // Render each line
-        for (var i = 0; i < lines.Count && startY + i < y + height; i++)
+        for (var i = 0; i < processedLines.Count && startY + i < y + height; i++)
         {
-            var line = lines[i];
+            var (lineStart, lineLength) = processedLines[i];
+            var lineSpan = text.Slice(lineStart, lineLength);
             var lineY = startY + i;
-            
-            // Skip lines outside buffer
+
             if (lineY < 0 || lineY >= buffer.Height) continue;
-            
-            // Apply trimming if needed
-            if (line.Length > width && TextTrimming == TextTrimming.Ellipsis)
-            {
-                line = width >= 3 
-                    ? line[..(width - 3)] + "..." 
-                    : line[..width];
-            }
-            else if (line.Length > width)
-            {
-                line = line[..width];
-            }
-            
+
+            // Calculate effective line length (with trimming)
+            var effectiveLength = lineLength;
+            var needsEllipsis = lineLength > width && TextTrimming == TextTrimming.Ellipsis && width >= 3;
+
+            if (needsEllipsis)
+                effectiveLength = width;
+            else if (lineLength > width)
+                effectiveLength = width;
+
             // Apply horizontal alignment
             var startX = HorizontalTextAlignment switch
             {
-                TextAlignment.Center => x + (width - line.Length) / 2,
-                TextAlignment.End => x + width - line.Length,
+                TextAlignment.Center => x + (width - Math.Min(effectiveLength, lineLength)) / 2,
+                TextAlignment.End => x + width - Math.Min(effectiveLength, lineLength),
                 _ => x
             };
-            
-            // Clamp startX to valid range
+
             startX = Math.Max(x, Math.Min(startX, x + width - 1));
-            
+
             // Render characters
-            for (var j = 0; j < line.Length && startX + j < x + width; j++)
+            var renderLength = Math.Min(effectiveLength, width);
+            for (var j = 0; j < renderLength && startX + j < x + width; j++)
             {
                 var charX = startX + j;
-                
-                // Skip characters outside buffer
                 if (charX < 0 || charX >= buffer.Width) continue;
-                
-                buffer.SetChar(charX, lineY, line[j], Foreground, Background, decorations);
+
+                char ch;
+                if (needsEllipsis && j >= width - 3)
+                    ch = '.';
+                else if (j < lineSpan.Length)
+                    ch = lineSpan[j];
+                else
+                    continue;
+
+                buffer.SetChar(charX, lineY, ch, Foreground, Background, decorations);
             }
         }
     }
@@ -483,64 +497,141 @@ public sealed class TextBlock : FrameworkElement
         return total;
     }
     
-    private static List<string> WrapText(string text, int maxWidth)
+    /// <summary>
+    /// Splits text into line boundaries (start, length), handling \n, \r, and \r\n line endings.
+    /// Returns a list of line boundaries that can be used to slice the original span without allocations.
+    /// </summary>
+    private static List<(int Start, int Length)> SplitIntoLines(ReadOnlySpan<char> text)
     {
-        if (maxWidth <= 0) return [];
-        if (text.Length <= maxWidth) return [text];
-        
-        var lines = new List<string>();
-        var words = text.Split(' ', StringSplitOptions.RemoveEmptyEntries);
-        var currentLine = new System.Text.StringBuilder();
-        
-        foreach (var word in words)
+        var lines = new List<(int Start, int Length)>();
+        if (text.Length == 0)
         {
-            // If word itself is longer than maxWidth, split it
-            if (word.Length > maxWidth)
+            lines.Add((0, 0));
+            return lines;
+        }
+
+        var lineStart = 0;
+
+        for (var i = 0; i < text.Length; i++)
+        {
+            if (text[i] == '\n')
             {
-                // Flush current line first
-                if (currentLine.Length > 0)
-                {
-                    lines.Add(currentLine.ToString().TrimEnd());
-                    currentLine.Clear();
-                }
-                
-                // Split long word across lines
-                for (var i = 0; i < word.Length; i += maxWidth)
-                {
-                    var chunk = word.Substring(i, Math.Min(maxWidth, word.Length - i));
-                    lines.Add(chunk);
-                }
-                continue;
+                lines.Add((lineStart, i - lineStart));
+                lineStart = i + 1;
             }
-            
-            // Check if adding this word would exceed maxWidth
-            var testLength = currentLine.Length + (currentLine.Length > 0 ? 1 : 0) + word.Length;
-            
-            if (testLength > maxWidth)
+            else if (text[i] == '\r')
             {
-                // Start new line
-                if (currentLine.Length > 0)
+                lines.Add((lineStart, i - lineStart));
+                if (i + 1 < text.Length && text[i + 1] == '\n')
+                    i++; // Skip \n in \r\n
+                lineStart = i + 1;
+            }
+        }
+
+        // Add final line
+        if (lineStart <= text.Length)
+            lines.Add((lineStart, text.Length - lineStart));
+
+        return lines;
+    }
+
+    /// <summary>
+    /// Word-wraps a line span into multiple line boundaries without string allocations.
+    /// </summary>
+    private static void WrapTextSpanToLines(ReadOnlySpan<char> text, int baseOffset, int maxWidth, List<(int Start, int Length)> output)
+    {
+        if (maxWidth <= 0) return;
+        if (text.Length <= maxWidth)
+        {
+            output.Add((baseOffset, text.Length));
+            return;
+        }
+
+        var currentLineStart = 0;
+        var currentLineEnd = 0;
+        var wordStart = 0;
+        var inWord = false;
+
+        for (var i = 0; i < text.Length; i++)
+        {
+            var ch = text[i];
+            var isSpace = ch == ' ';
+
+            if (!isSpace && !inWord)
+            {
+                // Start of new word
+                wordStart = i;
+                inWord = true;
+            }
+            else if (isSpace && inWord)
+            {
+                // End of word
+                var wordEnd = i;
+                var lineLength = currentLineEnd - currentLineStart;
+                var wordLength = wordEnd - wordStart;
+
+                // Check if word fits on current line
+                var spaceNeeded = lineLength > 0 ? 1 + wordLength : wordLength;
+
+                if (lineLength + spaceNeeded <= maxWidth)
                 {
-                    lines.Add(currentLine.ToString().TrimEnd());
-                    currentLine.Clear();
+                    // Word fits
+                    currentLineEnd = wordEnd;
                 }
-                currentLine.Append(word);
+                else
+                {
+                    // Need to wrap
+                    if (lineLength > 0)
+                    {
+                        output.Add((baseOffset + currentLineStart, currentLineEnd - currentLineStart));
+                        currentLineStart = wordStart;
+                    }
+
+                    // Handle word longer than maxWidth
+                    if (wordLength > maxWidth)
+                    {
+                        for (var offset = 0; offset < wordLength; offset += maxWidth)
+                        {
+                            var chunkLen = Math.Min(maxWidth, wordLength - offset);
+                            output.Add((baseOffset + wordStart + offset, chunkLen));
+                        }
+                        currentLineStart = wordEnd + 1;
+                        currentLineEnd = currentLineStart;
+                    }
+                    else
+                    {
+                        currentLineEnd = wordEnd;
+                    }
+                }
+
+                inWord = false;
+            }
+        }
+
+        // Handle final word
+        if (inWord)
+        {
+            var wordEnd = text.Length;
+            var lineLength = currentLineEnd - currentLineStart;
+            var wordLength = wordEnd - wordStart;
+            var spaceNeeded = lineLength > 0 ? 1 + wordLength : wordLength;
+
+            if (lineLength > 0 && lineLength + spaceNeeded > maxWidth)
+            {
+                output.Add((baseOffset + currentLineStart, currentLineEnd - currentLineStart));
+                currentLineStart = wordStart;
+                currentLineEnd = wordEnd;
             }
             else
             {
-                // Add word to current line
-                if (currentLine.Length > 0)
-                    currentLine.Append(' ');
-                currentLine.Append(word);
+                currentLineEnd = wordEnd;
             }
         }
-        
+
         // Add final line
-        if (currentLine.Length > 0)
+        if (currentLineEnd > currentLineStart)
         {
-            lines.Add(currentLine.ToString().TrimEnd());
+            output.Add((baseOffset + currentLineStart, currentLineEnd - currentLineStart));
         }
-        
-        return lines.Count > 0 ? lines : [text];
     }
 }

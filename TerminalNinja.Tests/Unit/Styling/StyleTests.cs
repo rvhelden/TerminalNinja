@@ -209,7 +209,7 @@ public class StyleTests
     public async Task ApplyStyle_DerivedTypeMatchesTargetType_Works()
     {
         // Arrange
-        // TextBlock extends FrameworkElement, which extends ControlBase
+        // TextBlock extends FrameworkElement, which extends UIElement
         var label = new TextBlock();
         var style = new Style(typeof(FrameworkElement)); // Base type
         style.Setters.Add(new Setter("Name", "StyledTextBlock"));

@@ -32,6 +32,15 @@ public sealed class Application : IDisposable
     private bool _invalidated = true;
     private bool _disposed;
     
+    // FPS tracking
+    private int _frameCount;
+    private DateTime _lastFpsUpdate = DateTime.UtcNow;
+    private int _currentFps;
+    
+    // Time to first render tracking
+    private readonly DateTime _startTime;
+    private TimeSpan? _timeToFirstRender;
+    
     /// <summary>
     /// Event raised when a key is pressed. Set Handled to true to prevent default handling.
     /// </summary>
@@ -57,6 +66,21 @@ public sealed class Application : IDisposable
     /// Resources defined here are available to all controls in the application.
     /// </summary>
     public ResourceDictionary Resources => _resources;
+    
+    /// <summary>
+    /// Gets the target frames per second from the application options.
+    /// </summary>
+    public int TargetFps => _options.TargetFps;
+    
+    /// <summary>
+    /// Gets the current actual frames per second (updated every second).
+    /// </summary>
+    public int CurrentFps => _currentFps;
+    
+    /// <summary>
+    /// Gets the time taken to render the first frame, or null if first render hasn't happened yet.
+    /// </summary>
+    public TimeSpan? TimeToFirstRender => _timeToFirstRender;
     
     /// <summary>
     /// Gets or sets the root control to display.
@@ -86,6 +110,9 @@ public sealed class Application : IDisposable
     /// <param name="options">The configuration options.</param>
     public Application(ApplicationOptions options)
     {
+        // Record start time for time-to-first-render measurement
+        _startTime = DateTime.UtcNow;
+        
         // Set singleton (allow replacement for testing scenarios)
         _current = this;
         
@@ -161,6 +188,25 @@ public sealed class Application : IDisposable
                 _renderer.Draw(_rootControl);
                 _renderer.Present();
                 _invalidated = false;
+                
+                // Capture time to first render
+                if (_timeToFirstRender == null)
+                {
+                    _timeToFirstRender = DateTime.UtcNow - _startTime;
+                }
+                
+                // Track frame for FPS calculation
+                _frameCount++;
+            }
+            
+            // Update FPS counter every second
+            var now = DateTime.UtcNow;
+            var elapsed = (now - _lastFpsUpdate).TotalSeconds;
+            if (elapsed >= 1.0)
+            {
+                _currentFps = (int)(_frameCount / elapsed);
+                _frameCount = 0;
+                _lastFpsUpdate = now;
             }
             
             // Limit frame rate

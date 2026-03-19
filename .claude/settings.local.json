@@ -6,7 +6,14 @@
       "Bash(ls -la \"E:/TerminalNinja/Sample/\" | grep -E \"\\\\.cs$|\\\\.xaml$\")",
       "Bash(cd e:/TerminalNinja && dotnet build 2>&1 && dotnet test 2>&1)",
       "Bash(dotnet build:*)",
-      "Bash(dotnet test:*)"
+      "Bash(dotnet test:*)",
+      "Bash(ls:*)",
+      "Bash(grep:*)",
+      "Bash(mv:*)",
+      "Bash(where:*)",
+      "Read(//c/Program Files/Microsoft Visual Studio/**)",
+      "Read(//c/Program Files \\(x86\\)/Microsoft Visual Studio/**)",
+      "Bash(cmd /c \"call \\\\\"C:\\\\\\\\Program Files\\\\\\\\Microsoft Visual Studio\\\\\\\\18\\\\\\\\Enterprise\\\\\\\\Common7\\\\\\\\Tools\\\\\\\\VsDevCmd.bat\\\\\" -arch=x64 2>&1 && dotnet publish E:\\\\\\\\TerminalNinja\\\\\\\\Sample\\\\\\\\Sample.csproj -c Release 2>&1\")"
     ]
   }
 }

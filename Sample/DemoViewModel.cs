@@ -1,5 +1,6 @@
 using System.Collections.ObjectModel;
 using System.ComponentModel;
+using System.Diagnostics;
 using TerminalNinja.Commands;
 using TerminalNinja.Xaml.Mvvm;
 
@@ -70,6 +71,55 @@ public class DemoViewModel : ViewModelBase
     } = DateTime.Now;
 
     /// <summary>
+    /// Memory usage in MB.
+    /// </summary>
+    public double MemoryUsageMB
+    {
+        get;
+        set => SetProperty(ref field, value);
+    }
+
+    /// <summary>
+    /// CPU usage percentage (approximate).
+    /// </summary>
+    public double CpuUsagePercent
+    {
+        get;
+        set => SetProperty(ref field, value);
+    }
+
+    /// <summary>
+    /// Current frames per second (actual).
+    /// </summary>
+    public int CurrentFps
+    {
+        get;
+        set => SetProperty(ref field, value);
+    }
+    
+    /// <summary>
+    /// Target frames per second.
+    /// </summary>
+    public int TargetFps
+    {
+        get;
+        set => SetProperty(ref field, value);
+    }
+    
+    /// <summary>
+    /// Time to first render in milliseconds.
+    /// </summary>
+    public double TimeToFirstRenderMs
+    {
+        get;
+        set => SetProperty(ref field, value);
+    }
+
+    private Process? _currentProcess;
+    private DateTime _lastCpuTime = DateTime.UtcNow;
+    private TimeSpan _lastTotalProcessorTime;
+
+    /// <summary>
     /// Items for the ListBox demo.
     /// </summary>
     public ObservableCollection<string> MenuItems { get; } =
@@ -108,10 +158,58 @@ public class DemoViewModel : ViewModelBase
 
     public DemoViewModel()
     {
+        // Initialize performance monitoring
+        _currentProcess = Process.GetCurrentProcess();
+        _lastTotalProcessorTime = _currentProcess.TotalProcessorTime;
+
+        // Timer for time and performance stats
         _ = new Timer(_ =>
         {
             CurrentTime = DateTime.Now;
-        }, null, TimeSpan.Zero, TimeSpan.FromSeconds(1));
+            UpdatePerformanceStats();
+        }, null, TimeSpan.Zero, TimeSpan.FromMilliseconds(500));
+    }
+
+    private void UpdatePerformanceStats()
+    {
+        if (_currentProcess == null) return;
+
+        try
+        {
+            // Update memory usage
+            _currentProcess.Refresh();
+            MemoryUsageMB = _currentProcess.WorkingSet64 / (1024.0 * 1024.0);
+
+            // Calculate CPU usage
+            var currentTime = DateTime.UtcNow;
+            var currentTotalProcessorTime = _currentProcess.TotalProcessorTime;
+
+            var cpuUsedMs = (currentTotalProcessorTime - _lastTotalProcessorTime).TotalMilliseconds;
+            var totalMsPassed = (currentTime - _lastCpuTime).TotalMilliseconds;
+            var cpuUsageTotal = cpuUsedMs / (Environment.ProcessorCount * totalMsPassed);
+
+            CpuUsagePercent = cpuUsageTotal * 100.0;
+
+            _lastCpuTime = currentTime;
+            _lastTotalProcessorTime = currentTotalProcessorTime;
+            
+            // Update FPS and time-to-first-render from Application singleton
+            var app = TerminalNinja.App.Application.Current;
+            if (app != null)
+            {
+                CurrentFps = app.CurrentFps;
+                TargetFps = app.TargetFps;
+                
+                if (app.TimeToFirstRender.HasValue)
+                {
+                    TimeToFirstRenderMs = app.TimeToFirstRender.Value.TotalMilliseconds;
+                }
+            }
+        }
+        catch
+        {
+            // Ignore errors in performance monitoring
+        }
     }
     
     private void OnNew()

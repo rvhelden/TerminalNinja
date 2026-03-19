@@ -19,6 +19,7 @@
         <Color x:Key="AccentColor">Cyan</Color>
         <Color x:Key="HighlightColor">Yellow</Color>
         <data:DateTimeToStringConverter x:Key="DateTimeToStringConverter" />
+        <sample:PerformanceConverter x:Key="PerformanceConverter" />
     </Window.Resources>
     
     <StackPanel Orientation="Vertical">
@@ -129,7 +130,7 @@
             
         </StackPanel>
         
-        <!-- Status Bar with data binding -->
+        <!-- Status Bar with data binding and performance stats -->
         <Border StackPanel.SizeMode="Fixed" StackPanel.FixedSize="3"
                    Background="{StaticResource StatusBackground}"
                    Foreground="{StaticResource HighlightColor}"
@@ -142,11 +143,61 @@
                    HorizontalTextAlignment="Center"
                    VerticalTextAlignment="Center" />
             
+            <TextBlock StackPanel.SizeMode="Auto" x:Name="memoryTextBlock"
+                   Text="{Binding MemoryUsageMB, Converter={StaticResource PerformanceConverter}, ConverterParameter=Memory}"
+                   Foreground="{StaticResource AccentColor}"
+                   HorizontalTextAlignment="Center"
+                   VerticalTextAlignment="Center"
+                   Padding="2,0,2,0" />
+            
+            <TextBlock StackPanel.SizeMode="Auto" x:Name="cpuTextBlock"
+                   Text="{Binding CpuUsagePercent, Converter={StaticResource PerformanceConverter}, ConverterParameter=Cpu}"
+                   Foreground="{StaticResource AccentColor}"
+                   HorizontalTextAlignment="Center"
+                   VerticalTextAlignment="Center"
+                   Padding="2,0,2,0" />
+            
+            <TextBlock StackPanel.SizeMode="Auto" x:Name="fpsLabelTextBlock"
+                   Text="FPS:"
+                   Foreground="{StaticResource AccentColor}"
+                   HorizontalTextAlignment="Center"
+                   VerticalTextAlignment="Center"
+                   Padding="2,0,0,0" />
+            
+            <TextBlock StackPanel.SizeMode="Auto" x:Name="currentFpsTextBlock"
+                   Text="{Binding CurrentFps, Converter={StaticResource PerformanceConverter}, ConverterParameter=CurrentFps}"
+                   Foreground="{StaticResource AccentColor}"
+                   HorizontalTextAlignment="Center"
+                   VerticalTextAlignment="Center"
+                   Padding="0,0,0,0" />
+            
+            <TextBlock StackPanel.SizeMode="Auto" x:Name="fpsSeparatorTextBlock"
+                   Text="/"
+                   Foreground="{StaticResource AccentColor}"
+                   HorizontalTextAlignment="Center"
+                   VerticalTextAlignment="Center"
+                   Padding="0,0,0,0" />
+            
+            <TextBlock StackPanel.SizeMode="Auto" x:Name="targetFpsTextBlock"
+                   Text="{Binding TargetFps, Converter={StaticResource PerformanceConverter}, ConverterParameter=TargetFps}"
+                   Foreground="{StaticResource AccentColor}"
+                   HorizontalTextAlignment="Center"
+                   VerticalTextAlignment="Center"
+                   Padding="0,0,2,0" />
+            
+            <TextBlock StackPanel.SizeMode="Auto" x:Name="ttfrTextBlock"
+                   Text="{Binding TimeToFirstRenderMs, Converter={StaticResource PerformanceConverter}, ConverterParameter=TTFR}"
+                   Foreground="{StaticResource AccentColor}"
+                   HorizontalTextAlignment="Center"
+                   VerticalTextAlignment="Center"
+                   Padding="2,0,2,0" />
+            
             <TextBlock StackPanel.SizeMode="Auto" x:Name="timeTextBlock"
                    Text="{Binding CurrentTime, Converter={StaticResource DateTimeToStringConverter}, ConverterParameter=HH:mm:ss}"
                    Foreground="{StaticResource HighlightColor}"
                    HorizontalTextAlignment="Center"
-                   VerticalTextAlignment="Center" />
+                   VerticalTextAlignment="Center"
+                   Padding="2,0,0,0" />
             </StackPanel>
         </Border>
         
