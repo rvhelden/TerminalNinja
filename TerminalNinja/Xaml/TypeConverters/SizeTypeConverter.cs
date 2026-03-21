@@ -6,7 +6,7 @@ namespace TerminalNinja.Xaml.TypeConverters;
 
 /// <summary>
 /// Converts string values to Size struct for XAML parsing.
-/// Supports: "100" (absolute), "50%" (percent), "*" or "Stretch" (stretch).
+/// Supports: "Auto" (auto), "100" (absolute), "50%" (percent), "*" or "Stretch" (stretch).
 /// </summary>
 public class SizeTypeConverter : TypeConverter
 {
@@ -20,6 +20,12 @@ public class SizeTypeConverter : TypeConverter
         if (value is string str)
         {
             str = str.Trim();
+            
+            // Handle "Auto"
+            if (str.Equals("Auto", StringComparison.OrdinalIgnoreCase))
+            {
+                return Size.Auto;
+            }
             
             // Handle "*" or "Stretch"
             if (str == "*" || str.Equals("Stretch", StringComparison.OrdinalIgnoreCase))
@@ -44,7 +50,7 @@ public class SizeTypeConverter : TypeConverter
                 return Size.Absolute(absolute);
             }
             
-            throw new FormatException($"Invalid Size value: {str}. Expected: integer, percentage (50%), or * (stretch)");
+            throw new FormatException($"Invalid Size value: {str}. Expected: Auto, integer, percentage (50%), or * (stretch)");
         }
         
         return base.ConvertFrom(context, culture, value);
@@ -64,6 +70,7 @@ public class SizeTypeConverter : TypeConverter
                 SizeMode.Absolute => ((int)size.Value).ToString(CultureInfo.InvariantCulture),
                 SizeMode.Relative => $"{size.Value * 100:F0}%",
                 SizeMode.Stretch => "*",
+                SizeMode.Auto => "Auto",
                 _ => size.ToString()
             };
         }

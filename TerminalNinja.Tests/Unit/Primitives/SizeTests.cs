@@ -32,6 +32,11 @@ public class SizeTests
         yield return (Size.Stretch, 50, 50);
         yield return (Size.Stretch, 1, 1);
         
+        // Auto (resolves to parent size as fallback)
+        yield return (Size.Auto, 100, 100);
+        yield return (Size.Auto, 50, 50);
+        yield return (Size.Auto, 0, 0);
+        
         // Edge cases
         yield return (Size.Percent(50), 0, 0);
         yield return (Size.Absolute(10), 0, 10);
@@ -62,5 +67,14 @@ public class SizeTests
         
         await Assert.That(size.Value).IsEqualTo(1f);
         await Assert.That(size.Mode).IsEqualTo(SizeMode.Stretch);
+    }
+    
+    [Test]
+    public async Task Size_Auto_CreatesAutoSize()
+    {
+        var size = Size.Auto;
+        
+        await Assert.That(size.Value).IsEqualTo(0f);
+        await Assert.That(size.Mode).IsEqualTo(SizeMode.Auto);
     }
 }

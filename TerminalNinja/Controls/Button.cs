@@ -28,11 +28,11 @@ public sealed class Button : ButtonBase
 
     public static readonly DependencyProperty WidthProperty =
         DependencyProperty.Register(nameof(Width), typeof(Size), typeof(Button),
-            new FrameworkPropertyMetadata(Size.Absolute(10), affectsRender: true));
+            new FrameworkPropertyMetadata(Size.Auto, affectsRender: true));
 
     public static readonly DependencyProperty HeightProperty =
         DependencyProperty.Register(nameof(Height), typeof(Size), typeof(Button),
-            new FrameworkPropertyMetadata(Size.Absolute(3), affectsRender: true));
+            new FrameworkPropertyMetadata(Size.Auto, affectsRender: true));
 
     /// <summary>Gets or sets the button label text.</summary>
     public string Text
@@ -74,9 +74,8 @@ public sealed class Button : ButtonBase
     /// </summary>
     public override Size2D GetPreferredSize(Rect parent)
     {
-        // Button size is text length + 4 (2 chars padding on each side)
+        // Button auto size is text length + 4 (2 chars padding on each side) for width, 3 for height
         var textWidth = Text.Length + 4;
-        // Respect explicit Width/Height when set to Absolute mode
         var w = Width.Mode == SizeMode.Absolute ? Width.Resolve(parent.Width) : textWidth;
         var h = Height.Mode == SizeMode.Absolute ? Height.Resolve(parent.Height) : 3;
         return new Size2D(w, h);
@@ -87,8 +86,9 @@ public sealed class Button : ButtonBase
     /// </summary>
     public override Rect CalculateBounds(Rect parent)
     {
-        var w = Width.Resolve(parent.Width);
-        var h = Height.Resolve(parent.Height);
+        var preferred = GetPreferredSize(parent);
+        var w = Width.Mode == SizeMode.Auto ? preferred.Width : Width.Resolve(parent.Width);
+        var h = Height.Mode == SizeMode.Auto ? preferred.Height : Height.Resolve(parent.Height);
         
         return ApplyAlignment(parent, w, h);
     }

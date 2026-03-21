@@ -12,5 +12,8 @@ public enum SizeMode : byte
     Relative,
     
     /// <summary>Size should fill all available space in the parent.</summary>
-    Stretch
+    Stretch,
+    
+    /// <summary>Size is determined automatically by the control's content.</summary>
+    Auto
 }

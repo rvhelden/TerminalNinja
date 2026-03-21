@@ -225,7 +225,7 @@ public class DemoViewModel : ViewModelBase
 
     private static void OnGCCollect()
     {
-        GC.Collect(2, GCCollectionMode.Forced);
+        GC.Collect();
         GC.WaitForPendingFinalizers();
         GC.Collect();
     }
