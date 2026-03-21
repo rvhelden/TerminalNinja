@@ -54,6 +54,8 @@ public class DemoViewModel : ViewModelBase
     /// </summary>
     public ICommand NewCommand => field ??= new RelayCommand(OnNew);
     
+    public ICommand GCCollect => field ??= new RelayCommand(OnGCCollect);
+
     /// <summary>
     /// Command for the Open button.
     /// </summary>
@@ -219,6 +221,13 @@ public class DemoViewModel : ViewModelBase
         ContentText = "Creating a new document...\n\nData binding automatically updates the UI\nwhen properties change!";
         HeaderText = $"New Document - {DateTime.Now:HH:mm:ss}";
         LogEntries.Add(new LogEntry { Time = DateTime.Now.ToString("HH:mm:ss"), Message = "New document created" });
+    }
+
+    private static void OnGCCollect()
+    {
+        GC.Collect(2, GCCollectionMode.Forced);
+        GC.WaitForPendingFinalizers();
+        GC.Collect();
     }
     
     private void OnOpen()

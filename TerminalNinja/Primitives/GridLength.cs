@@ -76,6 +76,34 @@ public readonly record struct GridLength : IEquatable<GridLength>
     /// </summary>
     public static implicit operator GridLength(double value) => new(value, GridUnitType.Pixel);
     
+    /// <summary>
+    /// Parses a GridLength from a span without allocation.
+    /// Supports: "Auto", integer pixels, "*", "2*".
+    /// </summary>
+    public static GridLength Parse(ReadOnlySpan<char> span)
+    {
+        span = span.Trim();
+
+        if (span.Equals("Auto", StringComparison.OrdinalIgnoreCase))
+            return Auto;
+
+        if (span.Length > 0 && span[^1] == '*')
+        {
+            var weightSpan = span[..^1];
+            if (weightSpan.IsEmpty) return Star(1);
+            if (double.TryParse(weightSpan, System.Globalization.NumberStyles.Float,
+                    System.Globalization.CultureInfo.InvariantCulture, out var weight))
+                return Star(weight);
+            throw new FormatException($"Invalid star value: {span.ToString()}");
+        }
+
+        if (double.TryParse(span, System.Globalization.NumberStyles.Float,
+                System.Globalization.CultureInfo.InvariantCulture, out var pixels))
+            return new GridLength(pixels, GridUnitType.Pixel);
+
+        throw new FormatException($"Invalid GridLength: {span.ToString()}");
+    }
+
     public override string ToString() => UnitType switch
     {
         GridUnitType.Auto => "Auto",

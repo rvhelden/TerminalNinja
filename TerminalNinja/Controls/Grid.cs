@@ -32,18 +32,58 @@ public sealed class Grid : Panel
 
     private readonly List<RowDefinition> _rowDefinitions = new();
     private readonly List<ColumnDefinition> _columnDefinitions = new();
-    
+
     /// <summary>
     /// Gets the collection of row definitions for this grid.
     /// If empty, the grid has a single row that fills available height.
     /// </summary>
     public IList<RowDefinition> RowDefinitions => _rowDefinitions;
-    
+
     /// <summary>
     /// Gets the collection of column definitions for this grid.
     /// If empty, the grid has a single column that fills available width.
     /// </summary>
     public IList<ColumnDefinition> ColumnDefinitions => _columnDefinitions;
+
+    /// <summary>
+    /// Shorthand for defining rows as a space-separated list of GridLength values.
+    /// Examples: "5 * auto", "15 * auto", "* 2*"
+    /// Replaces any existing RowDefinitions.
+    /// </summary>
+    public string? Rows
+    {
+        set
+        {
+            _rowDefinitions.Clear();
+            if (string.IsNullOrWhiteSpace(value)) return;
+            foreach (var range in value.AsSpan().Split(' '))
+            {
+                var token = value.AsSpan()[range].Trim();
+                if (!token.IsEmpty)
+                    _rowDefinitions.Add(new RowDefinition { Height = GridLength.Parse(token) });
+            }
+        }
+    }
+
+    /// <summary>
+    /// Shorthand for defining columns as a space-separated list of GridLength values.
+    /// Examples: "* * auto", "* 35 24", "2* *"
+    /// Replaces any existing ColumnDefinitions.
+    /// </summary>
+    public string? Columns
+    {
+        set
+        {
+            _columnDefinitions.Clear();
+            if (string.IsNullOrWhiteSpace(value)) return;
+            foreach (var range in value.AsSpan().Split(' '))
+            {
+                var token = value.AsSpan()[range].Trim();
+                if (!token.IsEmpty)
+                    _columnDefinitions.Add(new ColumnDefinition { Width = GridLength.Parse(token) });
+            }
+        }
+    }
 
     // ─── Attached Property Accessors ─────────────────────────────────
     

@@ -206,6 +206,7 @@ public sealed class PropertyAccessorGenerator : IIncrementalGenerator
                 {
                     name = p.Name,
                     type = p.Type,
+                    can_read = p.CanRead,
                     can_write = p.CanWrite
                 }).ToArray()
             });

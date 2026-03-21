@@ -31,12 +31,14 @@ internal sealed class PropertyModel
 {
     public string Name { get; }
     public string Type { get; }
+    public bool CanRead { get; }
     public bool CanWrite { get; }
 
-    public PropertyModel(string name, string type, bool canWrite)
+    public PropertyModel(string name, string type, bool canRead, bool canWrite)
     {
         Name = name;
         Type = type;
+        CanRead = canRead;
         CanWrite = canWrite;
     }
 }
@@ -171,12 +173,10 @@ internal static class GeneratorHelper
                 property.DeclaredAccessibility != Accessibility.Internal)
                 continue;
 
-            // Must have a getter
-            if (property.GetMethod == null)
-                continue;
-            if (property.GetMethod.DeclaredAccessibility != Accessibility.Public &&
-                property.GetMethod.DeclaredAccessibility != Accessibility.Internal)
-                continue;
+            // Determine readability
+            bool canRead = property.GetMethod != null &&
+                           (property.GetMethod.DeclaredAccessibility == Accessibility.Public ||
+                            property.GetMethod.DeclaredAccessibility == Accessibility.Internal);
 
             // Determine if writable (init-only setters are NOT writable at runtime)
             bool canWrite = property.SetMethod != null &&
@@ -184,9 +184,13 @@ internal static class GeneratorHelper
                            (property.SetMethod.DeclaredAccessibility == Accessibility.Public ||
                             property.SetMethod.DeclaredAccessibility == Accessibility.Internal);
 
+            // Must be at least readable or writable
+            if (!canRead && !canWrite)
+                continue;
+
             var propertyType = GetFullyQualifiedTypeName(property.Type);
 
-            builder.Add(new PropertyModel(property.Name, propertyType, canWrite));
+            builder.Add(new PropertyModel(property.Name, propertyType, canRead, canWrite));
         }
 
         return builder.ToImmutable();

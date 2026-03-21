@@ -1,14 +1,14 @@
 <Window xmlns="http://schemas.terminalninja.dev/xaml"
-        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        x:Name="App"
-        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
-        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-        xmlns:sample="clr-namespace:Sample"
-        xmlns:data="clr-namespace:TerminalNinja.Xaml.Data;assembly=TerminalNinja"
-        mc:Ignorable="d"
-        d:DataContext="{d:DesignInstance sample:DemoViewModel}"
-        Title="TerminalNinja Demo">
-    
+       xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+       x:Name="App"
+       xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+       xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+       xmlns:sample="clr-namespace:Sample"
+       xmlns:data="clr-namespace:TerminalNinja.Xaml.Data;assembly=TerminalNinja"
+       mc:Ignorable="d"
+       d:DataContext="{d:DesignInstance sample:DemoViewModel}"
+       Title="TerminalNinja Demo">
+
     <!-- Window-level Resources -->
     <Window.Resources>
         <Color x:Key="HeaderBackground">#1E1E50</Color>
@@ -21,31 +21,33 @@
         <data:DateTimeToStringConverter x:Key="DateTimeToStringConverter" />
         <sample:PerformanceConverter x:Key="PerformanceConverter" />
     </Window.Resources>
-    
-    <StackPanel Orientation="Vertical">
-        
-        <!-- Header with data binding -->
-        <Border StackPanel.SizeMode="Fixed" StackPanel.FixedSize="5"
+
+    <!-- Rows: Header=5, Toolbar=5, Content=*, StatusBar=3 -->
+    <!-- Columns: Content=*, ActivityLog=35, Menu=24 -->
+    <Grid Rows="5 5 * 3" Columns="* 35 24">
+
+        <!-- Header spanning all 3 columns -->
+        <Border Grid.Row="0" Grid.ColumnSpan="3"
                    Background="{StaticResource HeaderBackground}"
                    Foreground="{StaticResource AccentColor}"
                    BorderStyle="Double">
-            <TextBlock x:Name="headerTextBlock"
+            <TextBlock x:Name="HeaderTextBlock"
                    Text="{Binding HeaderText}"
                    Foreground="{StaticResource AccentColor}"
                    HorizontalTextAlignment="Center"
                    VerticalTextAlignment="Center" />
         </Border>
-        
-        <!-- Toolbar with command binding -->
-        <Border StackPanel.SizeMode="Fixed" StackPanel.FixedSize="5"
+
+        <!-- Toolbar spanning all 3 columns -->
+        <Border Grid.Row="1" Grid.ColumnSpan="3"
                    Background="{StaticResource ToolbarBackground}"
                    BorderStyle="Single">
             <StackPanel Orientation="Horizontal">
                 <Border StackPanel.SizeMode="Auto"
                            Width="2"
                            Background="{StaticResource ToolbarBackground}" />
-                
-                <Button x:Name="newButton"
+
+                <Button x:Name="NewButton"
                         StackPanel.SizeMode="Auto"
                         Text="New"
                         Width="12"
@@ -56,8 +58,10 @@
                         Foreground="White"
                         Background="{StaticResource ButtonBackground}"
                         Command="{Binding NewCommand}" />
+
+                <Button x:Name="GcCollectButton" Text="GC Collect" Command="{Binding NewCommand}" />
                 
-                <Button x:Name="openButton"
+                <Button x:Name="OpenButton"
                         StackPanel.SizeMode="Auto"
                         Text="Open"
                         Width="12"
@@ -68,8 +72,8 @@
                         Foreground="White"
                         Background="{StaticResource ButtonBackground}"
                         Command="{Binding Path=OpenCommand}" />
-                
-                <Button x:Name="saveButton"
+
+                <Button x:Name="SaveButton"
                         StackPanel.SizeMode="Auto"
                         Text="Save"
                         Width="12"
@@ -80,119 +84,114 @@
                         Foreground="White"
                         Background="{StaticResource ButtonBackground}"
                         Command="{Binding Path=SaveCommand}" />
-                
+
                 <Border StackPanel.SizeMode="Stretch" Background="{StaticResource ToolbarBackground}" />
             </StackPanel>
         </Border>
-        
-        <!-- Content Area with ListBox -->
-        <StackPanel StackPanel.SizeMode="Stretch" Orientation="Horizontal">
-            
-            <!-- Left: Content with data binding -->
-            <Border StackPanel.SizeMode="Stretch"
-                       Background="{StaticResource ContentBackground}"
-                       BorderStyle="Rounded">
-                <TextBlock x:Name="contentTextBlock"
-                       Text="{Binding Path=ContentText}"
-                       Foreground="White"
-                       HorizontalTextAlignment="Center"
-                       VerticalTextAlignment="Center"
-                       TextWrapping="Wrap"
-                       Padding="4,2,4,2" />
-            </Border>
-            
-            <!-- Center: Activity Log (x:Class UserControl) -->
-            <sample:ActivityLogControl StackPanel.SizeMode="Fixed" StackPanel.FixedSize="35"
-                                        x:Name="activityLog"
-                                        ItemsSource="{Binding LogEntries}" />
-            
-            <!-- Right: ListBox demo -->
-            <Border StackPanel.SizeMode="Fixed" StackPanel.FixedSize="24"
-                       Background="#1A1A2E"
-                       Foreground="White"
-                       BorderStyle="Rounded">
-                <StackPanel Orientation="Vertical">
-                    <TextBlock StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1"
-                           Text=" Menu"
-                           Foreground="{StaticResource AccentColor}"
-                           Background="#1A1A2E" />
-                    <ListBox StackPanel.SizeMode="Stretch"
-                             x:Name="menuListBox"
-                             ItemsSource="{Binding MenuItems}"
-                             SelectedItem="{Binding SelectedMenuItem}"
-                             Background="#1A1A2E"
-                             Foreground="White"
-                             SelectedBackground="#2D5AA0"
-                             SelectedForeground="White"
-                             TabIndex="3" />
-                </StackPanel>
-            </Border>
-            
-        </StackPanel>
-        
-        <!-- Status Bar with data binding and performance stats -->
-        <Border StackPanel.SizeMode="Fixed" StackPanel.FixedSize="3"
+
+        <!-- Content area: column 0, row 2 -->
+        <Border Grid.Row="2" Grid.Column="0"
+                   Background="{StaticResource ContentBackground}"
+                   BorderStyle="Rounded">
+            <TextBlock x:Name="ContentTextBlock"
+                   Text="{Binding Path=ContentText}"
+                   Foreground="White"
+                   HorizontalTextAlignment="Center"
+                   VerticalTextAlignment="Center"
+                   TextWrapping="Wrap"
+                   Padding="4,2,4,2" />
+        </Border>
+
+        <!-- Activity Log: column 1, row 2 -->
+        <sample:ActivityLogControl Grid.Row="2" Grid.Column="1"
+                                    x:Name="ActivityLog"
+                                    ItemsSource="{Binding LogEntries}" />
+
+        <!-- Menu: column 2, row 2 -->
+        <Border Grid.Row="2" Grid.Column="2"
+                   Background="#1A1A2E"
+                   Foreground="White"
+                   BorderStyle="Rounded">
+            <StackPanel Orientation="Vertical">
+                <TextBlock StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1"
+                       Text=" Menu"
+                       Foreground="{StaticResource AccentColor}"
+                       Background="#1A1A2E" />
+                <ListBox StackPanel.SizeMode="Stretch"
+                         x:Name="MenuListBox"
+                         ItemsSource="{Binding MenuItems}"
+                         SelectedItem="{Binding SelectedMenuItem}"
+                         Background="#1A1A2E"
+                         Foreground="White"
+                         SelectedBackground="#2D5AA0"
+                         SelectedForeground="White"
+                         TabIndex="3" />
+            </StackPanel>
+        </Border>
+
+        <!-- Status Bar spanning all 3 columns -->
+        <Border Grid.Row="3" Grid.ColumnSpan="3"
                    Background="{StaticResource StatusBackground}"
                    Foreground="{StaticResource HighlightColor}"
                    BorderStyle="Single">
             <StackPanel Orientation="Horizontal">
-                
-            <TextBlock StackPanel.SizeMode="Stretch" x:Name="statusTextBlock"
+
+            <TextBlock StackPanel.SizeMode="Stretch" x:Name="StatusTextBlock"
                    Text="{Binding Path=StatusText}"
                    Foreground="{StaticResource HighlightColor}"
                    HorizontalTextAlignment="Center"
                    VerticalTextAlignment="Center" />
-            
-            <TextBlock StackPanel.SizeMode="Auto" x:Name="memoryTextBlock"
+
+            <TextBlock StackPanel.SizeMode="Auto" x:Name="MemoryTextBlock"
                    Text="{Binding MemoryUsageMB, Converter={StaticResource PerformanceConverter}, ConverterParameter=Memory}"
                    Foreground="{StaticResource AccentColor}"
                    HorizontalTextAlignment="Center"
                    VerticalTextAlignment="Center"
                    Padding="2,0,2,0" />
-            
-            <TextBlock StackPanel.SizeMode="Auto" x:Name="cpuTextBlock"
+
+            <TextBlock StackPanel.SizeMode="Auto" x:Name="CpuTextBlock"
                    Text="{Binding CpuUsagePercent, Converter={StaticResource PerformanceConverter}, ConverterParameter=Cpu}"
                    Foreground="{StaticResource AccentColor}"
                    HorizontalTextAlignment="Center"
                    VerticalTextAlignment="Center"
                    Padding="2,0,2,0" />
-            
-            <TextBlock StackPanel.SizeMode="Auto" x:Name="fpsLabelTextBlock"
+
+            <TextBlock StackPanel.SizeMode="Auto" x:Name="FpsLabelTextBlock"
                    Text="FPS:"
                    Foreground="{StaticResource AccentColor}"
                    HorizontalTextAlignment="Center"
                    VerticalTextAlignment="Center"
                    Padding="2,0,0,0" />
-            
-            <TextBlock StackPanel.SizeMode="Auto" x:Name="currentFpsTextBlock"
+
+            <TextBlock StackPanel.SizeMode="Auto" x:Name="CurrentFpsTextBlock"
                    Text="{Binding CurrentFps, Converter={StaticResource PerformanceConverter}, ConverterParameter=CurrentFps}"
                    Foreground="{StaticResource AccentColor}"
                    HorizontalTextAlignment="Center"
                    VerticalTextAlignment="Center"
                    Padding="0,0,0,0" />
-            
-            <TextBlock StackPanel.SizeMode="Auto" x:Name="fpsSeparatorTextBlock"
+
+            <TextBlock StackPanel.SizeMode="Auto" x:Name="FpsSeparatorTextBlock"
                    Text="/"
                    Foreground="{StaticResource AccentColor}"
                    HorizontalTextAlignment="Center"
                    VerticalTextAlignment="Center"
                    Padding="0,0,0,0" />
-            
-            <TextBlock StackPanel.SizeMode="Auto" x:Name="targetFpsTextBlock"
+
+            <TextBlock StackPanel.SizeMode="Auto" x:Name="TargetFpsTextBlock"
                    Text="{Binding TargetFps, Converter={StaticResource PerformanceConverter}, ConverterParameter=TargetFps}"
                    Foreground="{StaticResource AccentColor}"
                    HorizontalTextAlignment="Center"
                    VerticalTextAlignment="Center"
                    Padding="0,0,2,0" />
-            
-            <TextBlock StackPanel.SizeMode="Auto" x:Name="ttfrTextBlock"
+
+            <TextBlock StackPanel.SizeMode="Auto" x:Name="TtfrTextBlock"
                    Text="{Binding TimeToFirstRenderMs, Converter={StaticResource PerformanceConverter}, ConverterParameter=TTFR}"
                    Foreground="{StaticResource AccentColor}"
                    HorizontalTextAlignment="Center"
                    VerticalTextAlignment="Center"
                    Padding="2,0,2,0" />
-            
-            <TextBlock StackPanel.SizeMode="Auto" x:Name="timeTextBlock"
+
+            <TextBlock StackPanel.SizeMode="Auto" x:Name="TimeTextBlock"
                    Text="{Binding CurrentTime, Converter={StaticResource DateTimeToStringConverter}, ConverterParameter=HH:mm:ss}"
                    Foreground="{StaticResource HighlightColor}"
                    HorizontalTextAlignment="Center"
@@ -200,6 +199,6 @@
                    Padding="2,0,0,0" />
             </StackPanel>
         </Border>
-        
-    </StackPanel>
+
+    </Grid>
 </Window>

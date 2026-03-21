@@ -5,8 +5,8 @@ This document provides essential information for AI coding agents working in the
 ## Project Overview
 
 - **Language**: C# 13 (latest)
-- **Framework**: .NET 10.0-windows (requires Windows Desktop framework for IDE XAML support)
-- **Platform**: Windows-only (due to System.Windows.Markup dependency for IDE IntelliSense)
+- **Framework**: .NET 10.0
+- **Platform**: Cross-platform (Windows, Linux, macOS)
 - **Test Framework**: TUnit v1.12.93
 - **IDE**: JetBrains Rider (optional)
 - **Solution Structure**: 

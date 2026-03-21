@@ -22,7 +22,11 @@ internal static class GeneratedPropertyAccessors
             "{{ prop.name }}",
             new PropertyAccessor(
                 typeof({{ prop.type }}),
+                {{~ if prop.can_read ~}}
                 static obj => (({{ type.full_name }})obj).{{ prop.name }},
+                {{~ else ~}}
+                static obj => null,
+                {{~ end ~}}
                 {{~ if prop.can_write ~}}
                 static (obj, value) => (({{ type.full_name }})obj).{{ prop.name }} = ({{ prop.type }})value!
                 {{~ else ~}}
