@@ -59,7 +59,7 @@
                         Background="{StaticResource ButtonBackground}"
                         Command="{Binding NewCommand}" />
 
-                <Button x:Name="GcCollectButton" Text="GC Collect" Command="{Binding NewCommand}" />
+                <Button x:Name="GcCollectButton" Text="GC Collect" Command="{Binding GCCollect}" />
                 
                 <Button x:Name="OpenButton"
                         StackPanel.SizeMode="Auto"

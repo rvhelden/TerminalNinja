@@ -279,6 +279,78 @@ public class WindowTests
         await Assert.That(_buffer.GetCell(0, 10).Background).IsEqualTo(Color.Black);
     }
 
+    [Test]
+    public async Task Render_AfterResize_ContentStaysWithinWindowBounds()
+    {
+        // Arrange - Window with fixed 30x10 size
+        var content = new global::TerminalNinja.Controls.Border { Background = Color.Blue };
+        var window = new Window
+        {
+            Content = content,
+            Width = Size.Absolute(30),
+            Height = Size.Absolute(10)
+        };
+
+        // Initial render at 100x50 (simulates initial console size)
+        var initialParent = new Rect(0, 0, 100, 50);
+        window.Render(_buffer, initialParent);
+
+        // Verify initial render is correct
+        await Assert.That(_buffer.GetCell(0, 0).Background).IsEqualTo(Color.Blue);
+        await Assert.That(_buffer.GetCell(29, 9).Background).IsEqualTo(Color.Blue);
+        await Assert.That(_buffer.GetCell(30, 0).Background).IsEqualTo(Color.Black);
+
+        // Act - Simulate resize: create new larger buffer and re-render with larger parent bounds
+        var resizedBuffer = new CellBuffer(120, 60);
+        var resizedParent = new Rect(0, 0, 120, 60);
+        window.Render(resizedBuffer, resizedParent);
+
+        // Assert - Content should still be constrained to 30x10
+        await Assert.That(resizedBuffer.GetCell(0, 0).Background).IsEqualTo(Color.Blue);
+        await Assert.That(resizedBuffer.GetCell(29, 9).Background).IsEqualTo(Color.Blue);
+        // Outside the 30x10 window bounds should be black (not blue)
+        await Assert.That(resizedBuffer.GetCell(30, 0).Background).IsEqualTo(Color.Black);
+        await Assert.That(resizedBuffer.GetCell(0, 10).Background).IsEqualTo(Color.Black);
+        await Assert.That(resizedBuffer.GetCell(119, 59).Background).IsEqualTo(Color.Black);
+    }
+
+    [Test]
+    public async Task Render_WithXamlLoadedWindow_RespectsWidthHeightAfterResize()
+    {
+        // Arrange - Load Window from XAML with Width="80" Height="24"
+        var xaml = """
+            <Window xmlns="http://schemas.terminalninja.dev/xaml"
+                    Title="Test"
+                    Width="80"
+                    Height="24">
+                <Border Background="Green" />
+            </Window>
+            """;
+        var window = TerminalXaml.Load<Window>(xaml);
+
+        // Verify Width/Height were set correctly from XAML
+        await Assert.That(window.Width).IsEqualTo(Size.Absolute(80));
+        await Assert.That(window.Height).IsEqualTo(Size.Absolute(24));
+
+        // Initial render at 80x24 (console matches window size)
+        var buffer = new CellBuffer(80, 24);
+        window.Render(buffer, new Rect(0, 0, 80, 24));
+        await Assert.That(buffer.GetCell(0, 0).Background).IsEqualTo(Color.Green);
+        await Assert.That(buffer.GetCell(79, 23).Background).IsEqualTo(Color.Green);
+
+        // Act - Simulate resize to larger console (120x40)
+        buffer = new CellBuffer(120, 40);
+        window.Render(buffer, new Rect(0, 0, 120, 40));
+
+        // Assert - Content should stay within 80x24
+        await Assert.That(buffer.GetCell(0, 0).Background).IsEqualTo(Color.Green);
+        await Assert.That(buffer.GetCell(79, 23).Background).IsEqualTo(Color.Green);
+        // Outside window bounds should be black
+        await Assert.That(buffer.GetCell(80, 0).Background).IsEqualTo(Color.Black);
+        await Assert.That(buffer.GetCell(0, 24).Background).IsEqualTo(Color.Black);
+        await Assert.That(buffer.GetCell(119, 39).Background).IsEqualTo(Color.Black);
+    }
+
     #endregion
 
     #region Resources

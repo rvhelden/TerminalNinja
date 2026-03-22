@@ -113,6 +113,14 @@ public sealed class Renderer : IDisposable
             return; // No change needed
         
         _buffer.Resize(newWidth, newHeight);
+        
+        // Reset SGR attributes before clearing, so \e[2J fills with the
+        // default background (black) instead of whatever color was active
+        // from the previous frame. Without this reset, the clear screen
+        // would paint the entire terminal in the previous frame's last
+        // background color, and the diff-based Present() would not repaint
+        // cells outside the content area (they match _previous = empty).
+        _writer.Reset();
         _writer.ClearScreen();
     }
     

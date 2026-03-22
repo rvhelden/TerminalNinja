@@ -23,7 +23,7 @@ public static class Program
         // This validates all transitive dependencies (e.g., ActivityLogControl.xaml)
         // and loads the root layout from the embedded resource.
         var bindingManager = new BindingManager();
-        var window = TerminalXaml.Load<Window>(XamlLayouts.DemoLayout, viewModel, bindingManager);
+        var window = TerminalXaml.Load<Window>(XamlLayouts.HelloWorld, viewModel, bindingManager);
 
         // Use the WPF-style Window.Show() pattern
         // This sets app.RootControl = window internally

@@ -276,9 +276,14 @@ public sealed class AnsiWriter : IDisposable
     public void ShowCursor() => WriteSpan(AnsiCodes.ShowCursor);
     
     /// <summary>
-    /// Clears the screen and moves cursor to home.
+    /// Clears the screen and moves cursor to home position (0,0).
     /// </summary>
-    public void ClearScreen() => WriteSpan(AnsiCodes.ClearScreenAndHome);
+    public void ClearScreen()
+    {
+        WriteSpan(AnsiCodes.ClearScreenAndHome);
+        _cursorX = 0;
+        _cursorY = 0;
+    }
     
     /// <summary>
     /// Flushes the internal buffer to the output stream.

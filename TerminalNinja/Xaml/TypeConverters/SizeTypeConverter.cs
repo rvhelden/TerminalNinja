@@ -17,43 +17,44 @@ public class SizeTypeConverter : TypeConverter
     
     public override object? ConvertFrom(ITypeDescriptorContext? context, CultureInfo? culture, object value)
     {
-        if (value is string str)
+        if (value is not string str)
         {
-            str = str.Trim();
-            
-            // Handle "Auto"
-            if (str.Equals("Auto", StringComparison.OrdinalIgnoreCase))
-            {
-                return Size.Auto;
-            }
-            
-            // Handle "*" or "Stretch"
-            if (str == "*" || str.Equals("Stretch", StringComparison.OrdinalIgnoreCase))
-            {
-                return Size.Stretch;
-            }
-            
-            // Handle percentage like "50%"
-            if (str.EndsWith('%'))
-            {
-                var percentStr = str[..^1];
-                if (float.TryParse(percentStr, NumberStyles.Float, CultureInfo.InvariantCulture, out var percent))
-                {
-                    return Size.Percent(percent);
-                }
-                throw new FormatException($"Invalid percentage value: {str}");
-            }
-            
-            // Handle absolute integer like "100"
-            if (int.TryParse(str, NumberStyles.Integer, CultureInfo.InvariantCulture, out var absolute))
-            {
-                return Size.Absolute(absolute);
-            }
-            
-            throw new FormatException($"Invalid Size value: {str}. Expected: Auto, integer, percentage (50%), or * (stretch)");
+            return base.ConvertFrom(context, culture, value);
         }
         
-        return base.ConvertFrom(context, culture, value);
+        str = str.Trim();
+            
+        // Handle "Auto"
+        if (str.Equals("Auto", StringComparison.OrdinalIgnoreCase))
+        {
+            return Size.Auto;
+        }
+            
+        // Handle "*" or "Stretch"
+        if (str == "*" || str.Equals("Stretch", StringComparison.OrdinalIgnoreCase))
+        {
+            return Size.Stretch;
+        }
+            
+        // Handle percentage like "50%"
+        if (str.EndsWith('%'))
+        {
+            var percentStr = str[..^1];
+            if (float.TryParse(percentStr, NumberStyles.Float, CultureInfo.InvariantCulture, out var percent))
+            {
+                return Size.Percent(percent);
+            }
+            throw new FormatException($"Invalid percentage value: {str}");
+        }
+            
+        // Handle absolute integer like "100"
+        if (int.TryParse(str, NumberStyles.Integer, CultureInfo.InvariantCulture, out var absolute))
+        {
+            return Size.Absolute(absolute);
+        }
+            
+        throw new FormatException($"Invalid Size value: {str}. Expected: Auto, integer, percentage (50%), or * (stretch)");
+
     }
     
     public override bool CanConvertTo(ITypeDescriptorContext? context, Type? destinationType)

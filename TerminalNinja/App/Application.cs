@@ -314,11 +314,17 @@ public sealed class Application : IDisposable
     /// </summary>
     private void HandleResizeEvent(ResizeEvent resizeEvent)
     {
-        // Terminal size has changed - resize the renderer's buffer
-        _renderer.Resize(resizeEvent.Width, resizeEvent.Height);
+        // Use HandleResize() which reads the actual visible window dimensions
+        // from System.Console.WindowWidth/WindowHeight via the ITerminal
+        // abstraction. The ResizeEvent from WINDOW_BUFFER_SIZE_EVENT reports
+        // the screen *buffer* size which can be larger than the visible window
+        // (e.g. with scrollback), causing the renderer to allocate an oversized
+        // buffer that produces scrollbars and stretches content beyond the
+        // visible area.
+        _renderer.HandleResize();
         
-        // Notify subscribers of the resize
-        Resize?.Invoke(resizeEvent);
+        // Notify subscribers of the resize (pass the actual renderer dimensions)
+        Resize?.Invoke(new ResizeEvent(_renderer.Width, _renderer.Height));
         
         // Trigger a full re-render with new dimensions
         Invalidate();
