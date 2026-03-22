@@ -122,6 +122,7 @@ public class DemoViewModel : ViewModelBase
     private DateTime _lastCpuTime = DateTime.UtcNow;
     private TimeSpan _lastTotalProcessorTime;
     private readonly Timer _timer;
+    private readonly Timer _timer2;
 
     /// <summary>
     /// Items for the ListBox demo.
@@ -169,10 +170,15 @@ public class DemoViewModel : ViewModelBase
         // Timer for time and performance stats
         _timer = new Timer(_ =>
         {
-            CurrentTime = DateTime.Now;
-            UpdatePerformanceStats();
             UpdateBackgroundColor();
         }, null, TimeSpan.Zero, TimeSpan.FromMilliseconds(1));
+        
+        // Timer for time and performance stats
+        _timer2 = new Timer(_ =>
+        {
+            CurrentTime = DateTime.Now;
+            UpdatePerformanceStats();
+        }, null, TimeSpan.Zero, TimeSpan.FromMilliseconds(500));
     }
 
     public Color BackgroundColor

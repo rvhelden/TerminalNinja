@@ -84,7 +84,11 @@ internal sealed class PropertyPathObserver : IDisposable
     }
     
     /// <summary>
-    /// Handles PropertyChanged events from any object in the chain.
+    /// Handles a PropertyChanged event from any object in the observed path.
+    /// If the changed property matches a path segment, notifies the binding;
+    /// if it's an intermediate segment, tears down and rebuilds subscriptions
+    /// because the downstream object graph may have changed.
+    /// Ignores property names that aren't part of the observed path.
     /// </summary>
     private void OnPropertyChanged(object? sender, PropertyChangedEventArgs e)
     {
@@ -101,24 +105,35 @@ internal sealed class PropertyPathObserver : IDisposable
             return;
         }
         
-        // Check if this property is in our path
-        var isInPath = _path.Segments.Any(s => s.PropertyName == propertyName);
-        
-        if (isInPath)
+        // Find the segment index matching this property name
+        // (zero-allocation: no LINQ, no ToArray, no closures)
+        var segments = _path.Segments;
+        var segmentIndex = -1;
+        for (var i = 0; i < segments.Count; i++)
         {
-            // If an intermediate property changed, we need to resubscribe
-            // because the object graph may have changed
-            var segmentIndex = Array.FindIndex(_path.Segments.ToArray(), s => s.PropertyName == propertyName);
-            
-            if (segmentIndex < _path.Segments.Count - 1)
+            if (segments[i].PropertyName != propertyName)
             {
-                // Intermediate property changed - resubscribe
-                Unsubscribe();
-                Subscribe();
+                continue;
             }
-            
-            _onChanged();
+
+            segmentIndex = i;
+            break;
         }
+
+        if (segmentIndex < 0)
+        {
+            return;
+        }
+
+        // If an intermediate property changed, we need to resubscribe
+        // because the object graph may have changed
+        if (segmentIndex < segments.Count - 1)
+        {
+            Unsubscribe();
+            Subscribe();
+        }
+
+        _onChanged();
     }
     
     public void Dispose()
