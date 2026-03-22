@@ -9,16 +9,10 @@ namespace TerminalNinja.Controls;
 /// </summary>
 public abstract class Visual : DependencyObject
 {
-    private Visual? _parent;
-
     /// <summary>
     /// Gets or sets the parent visual in the visual tree.
     /// </summary>
-    public Visual? Parent
-    {
-        get => _parent;
-        set => _parent = value;
-    }
+    public Visual? Parent { get; set; }
 
     /// <summary>
     /// Enumerates each direct child together with the bounds that should be passed

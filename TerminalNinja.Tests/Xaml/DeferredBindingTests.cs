@@ -651,7 +651,7 @@ public class DeferredBindingTests
         var clone = template.CreateContent() as TextBlock;
         clone!.DataContext = new PlainPocoItem { Message = "Rendered" };
 
-        var buffer = new CellBuffer(20, 1);
+        using var buffer = new CellBuffer(20, 1);
         clone.Render(buffer, new Rect(0, 0, 20, 1));
 
         // Assert — first character of "Rendered" should appear in the buffer

@@ -60,7 +60,9 @@ public static class Program
     private static SnapshotOptions? ParseArgs(string[] args)
     {
         if (args.Length == 0)
+        {
             return null;
+        }
 
         var options = new SnapshotOptions();
         var i = 0;

@@ -59,7 +59,10 @@ public sealed class InlineCollection : IList<Inline>, IList
     public void Clear()
     {
         foreach (var item in _items)
+        {
             item.Parent = null;
+        }
+
         _items.Clear();
         _owner.InvalidateVisual();
     }
@@ -122,9 +125,13 @@ public sealed class InlineCollection : IList<Inline>, IList
         set
         {
             if (value is Inline inline)
+            {
                 this[index] = inline;
+            }
             else
+            {
                 throw new ArgumentException($"Expected Inline but got {value?.GetType().Name ?? "null"}", nameof(value));
+            }
         }
     }
 
@@ -145,15 +152,21 @@ public sealed class InlineCollection : IList<Inline>, IList
     void IList.Insert(int index, object? value)
     {
         if (value is Inline inline)
+        {
             Insert(index, inline);
+        }
         else
+        {
             throw new ArgumentException($"Expected Inline but got {value?.GetType().Name ?? "null"}", nameof(value));
+        }
     }
 
     void IList.Remove(object? value)
     {
         if (value is Inline inline)
+        {
             Remove(inline);
+        }
     }
 
     void IList.RemoveAt(int index) => RemoveAt(index);

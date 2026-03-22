@@ -60,7 +60,9 @@ public sealed class XamlLayoutGenerator : IIncrementalGenerator
         var xamlFiles = input.XamlFiles;
 
         if (xamlFiles.IsDefaultOrEmpty)
+        {
             return;
+        }
 
         var assemblyName = compilation.AssemblyName ?? "Generated";
 
@@ -99,7 +101,9 @@ public sealed class XamlLayoutGenerator : IIncrementalGenerator
         }
 
         if (layouts.Count == 0)
+        {
             return;
+        }
 
         // Phase 2: Resolve dependency references to field names
         // Build a map of element type full names → field names (for custom control refs)
@@ -124,7 +128,9 @@ public sealed class XamlLayoutGenerator : IIncrementalGenerator
                         if (xClassToFieldName.TryGetValue(dep.Value, out var fieldName))
                         {
                             if (!resolvedDeps.Contains(fieldName))
+                            {
                                 resolvedDeps.Add(fieldName);
+                            }
                         }
                         break;
 
@@ -133,7 +139,9 @@ public sealed class XamlLayoutGenerator : IIncrementalGenerator
                         if (resourceNameToFieldName.TryGetValue(dep.Value, out var dictFieldName))
                         {
                             if (!resolvedDeps.Contains(dictFieldName))
+                            {
                                 resolvedDeps.Add(dictFieldName);
+                            }
                         }
                         break;
                 }
@@ -187,7 +195,9 @@ public sealed class XamlLayoutGenerator : IIncrementalGenerator
     private static XamlLayoutModel? ParseXamlFile(XamlLayoutFileInfo xamlFile, string assemblyName)
     {
         if (string.IsNullOrWhiteSpace(xamlFile.Content))
+        {
             return null;
+        }
 
         XDocument doc;
         try
@@ -201,7 +211,9 @@ public sealed class XamlLayoutGenerator : IIncrementalGenerator
 
         var root = doc.Root;
         if (root == null)
+        {
             return null;
+        }
 
         // Determine resource name — prefer MSBuild-provided metadata, fall back to convention
         var resourceName = xamlFile.ResourceName;
@@ -214,7 +226,7 @@ public sealed class XamlLayoutGenerator : IIncrementalGenerator
 
         // Determine x:Class (if present)
         var xClassAttr = root.Attribute(XName.Get("Class", XamlXNs));
-        string? xClass = xClassAttr?.Value;
+        var xClass = xClassAttr?.Value;
 
         // Determine field name from x:Class or filename
         string fieldName;
@@ -241,11 +253,15 @@ public sealed class XamlLayoutGenerator : IIncrementalGenerator
         foreach (var attr in root.Attributes())
         {
             if (!attr.IsNamespaceDeclaration)
+            {
                 continue;
+            }
 
             var prefix = attr.Name.LocalName;
             if (attr.Name.Namespace != XNamespace.Xmlns)
+            {
                 continue; // default xmlns — skip
+            }
 
             var value = attr.Value;
             if (value.StartsWith("clr-namespace:", StringComparison.Ordinal))
@@ -253,7 +269,10 @@ public sealed class XamlLayoutGenerator : IIncrementalGenerator
                 var clrNs = value.Substring("clr-namespace:".Length);
                 var semiIdx = clrNs.IndexOf(';');
                 if (semiIdx >= 0)
+                {
                     clrNs = clrNs.Substring(0, semiIdx);
+                }
+
                 prefixToClrNamespace[prefix] = clrNs;
             }
         }
@@ -267,7 +286,9 @@ public sealed class XamlLayoutGenerator : IIncrementalGenerator
 
             // Skip property elements
             if (localName.Contains('.'))
+            {
                 continue;
+            }
 
             // Check if this element comes from a clr-namespace
             if (ns.StartsWith("clr-namespace:", StringComparison.Ordinal))
@@ -275,7 +296,9 @@ public sealed class XamlLayoutGenerator : IIncrementalGenerator
                 var clrNs = ns.Substring("clr-namespace:".Length);
                 var semiIdx = clrNs.IndexOf(';');
                 if (semiIdx >= 0)
+                {
                     clrNs = clrNs.Substring(0, semiIdx);
+                }
 
                 var fullTypeName = clrNs + "." + localName;
                 if (seenTypes.Add(fullTypeName))
@@ -290,15 +313,21 @@ public sealed class XamlLayoutGenerator : IIncrementalGenerator
         foreach (var element in root.DescendantsAndSelf())
         {
             if (element.Name.LocalName != "ResourceDictionary")
+            {
                 continue;
+            }
 
             var sourceAttr = element.Attribute("Source");
             if (sourceAttr == null)
+            {
                 continue;
+            }
 
             var source = sourceAttr.Value;
             if (string.IsNullOrEmpty(source))
+            {
                 continue;
+            }
 
             // Convert relative path to resource name convention
             // e.g., "Themes/Default.xaml" → "{AssemblyName}.Themes.Default.xaml"
@@ -317,18 +346,24 @@ public sealed class XamlLayoutGenerator : IIncrementalGenerator
     private static string SanitizeIdentifier(string name)
     {
         if (string.IsNullOrEmpty(name))
+        {
             return "_";
+        }
 
         var chars = name.ToCharArray();
-        for (int i = 0; i < chars.Length; i++)
+        for (var i = 0; i < chars.Length; i++)
         {
             if (!char.IsLetterOrDigit(chars[i]) && chars[i] != '_')
+            {
                 chars[i] = '_';
+            }
         }
 
         var result = new string(chars);
         if (char.IsDigit(result[0]))
+        {
             result = "_" + result;
+        }
 
         return result;
     }
@@ -353,7 +388,11 @@ internal sealed class XamlLayoutFileInfo : IEquatable<XamlLayoutFileInfo>
 
     public bool Equals(XamlLayoutFileInfo? other)
     {
-        if (other is null) return false;
+        if (other is null)
+        {
+            return false;
+        }
+
         return FilePath == other.FilePath && Content == other.Content && ResourceName == other.ResourceName;
     }
 

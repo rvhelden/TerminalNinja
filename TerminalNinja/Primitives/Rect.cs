@@ -31,8 +31,10 @@ public readonly record struct Rect(int X, int Y, int Width, int Height)
         var y2 = Math.Min(Bottom, other.Bottom);
         
         if (x2 <= x1 || y2 <= y1)
+        {
             return new Rect(0, 0, 0, 0);
-        
+        }
+
         return new Rect(x1, y1, x2 - x1, y2 - y1);
     }
     

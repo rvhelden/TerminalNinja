@@ -28,7 +28,10 @@ public sealed class Run : Inline
     /// <inheritdoc />
     public override void CollectRuns(List<InlineRun> runs, Color inheritedForeground, Color inheritedBackground, TextDecorations inheritedDecorations)
     {
-        if (string.IsNullOrEmpty(Text)) return;
+        if (string.IsNullOrEmpty(Text))
+        {
+            return;
+        }
 
         var fg = ResolveForeground(inheritedForeground);
         var bg = ResolveBackground(inheritedBackground);

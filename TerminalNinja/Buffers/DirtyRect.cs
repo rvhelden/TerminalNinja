@@ -37,10 +37,25 @@ public struct DirtyRect
         }
         else
         {
-            if (x < MinX) MinX = x;
-            if (x > MaxX) MaxX = x;
-            if (y < MinY) MinY = y;
-            if (y > MaxY) MaxY = y;
+            if (x < MinX)
+            {
+                MinX = x;
+            }
+
+            if (x > MaxX)
+            {
+                MaxX = x;
+            }
+
+            if (y < MinY)
+            {
+                MinY = y;
+            }
+
+            if (y > MaxY)
+            {
+                MaxY = y;
+            }
         }
     }
     

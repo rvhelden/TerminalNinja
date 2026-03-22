@@ -49,14 +49,32 @@ public class BorderTypeConverter : TypeConverter
     {
         if (destinationType == typeof(string) && value is BorderStyle border)
         {
-            if (border == BorderStyle.None) return "None";
-            
+            if (border == BorderStyle.None)
+            {
+                return "None";
+            }
+
             // Try to identify the border type by comparing characters
-            if (border.Chars == BorderChars.Single) return "Single";
-            if (border.Chars == BorderChars.Double) return "Double";
-            if (border.Chars == BorderChars.Rounded) return "Rounded";
-            if (border.Chars == BorderChars.Ascii) return "Ascii";
-            
+            if (border.Chars == BorderChars.Single)
+            {
+                return "Single";
+            }
+
+            if (border.Chars == BorderChars.Double)
+            {
+                return "Double";
+            }
+
+            if (border.Chars == BorderChars.Rounded)
+            {
+                return "Rounded";
+            }
+
+            if (border.Chars == BorderChars.Ascii)
+            {
+                return "Ascii";
+            }
+
             return border.ToString();
         }
         

@@ -103,8 +103,11 @@ public sealed class AnsiWriter : IDisposable
     public void MoveTo(int x, int y)
     {
         // Skip if already at position
-        if (_cursorX == x && _cursorY == y) return;
-        
+        if (_cursorX == x && _cursorY == y)
+        {
+            return;
+        }
+
         // \e[{row};{col}H  (1-based coordinates for ANSI)
         WriteSpan(AnsiCodes.EscapeStart);
         WriteInt(y + 1);
@@ -121,8 +124,11 @@ public sealed class AnsiWriter : IDisposable
     /// </summary>
     public void SetForeground(Color color)
     {
-        if (!_currentStyle.NeedsForeground(color)) return;
-        
+        if (!_currentStyle.NeedsForeground(color))
+        {
+            return;
+        }
+
         // \e[38;2;{r};{g};{b}m
         WriteSpan(AnsiCodes.ForegroundPrefix);
         WriteInt(color.R);
@@ -141,8 +147,11 @@ public sealed class AnsiWriter : IDisposable
     /// </summary>
     public void SetBackground(Color color)
     {
-        if (!_currentStyle.NeedsBackground(color)) return;
-        
+        if (!_currentStyle.NeedsBackground(color))
+        {
+            return;
+        }
+
         // \e[48;2;{r};{g};{b}m
         WriteSpan(AnsiCodes.BackgroundPrefix);
         WriteInt(color.R);
@@ -162,8 +171,11 @@ public sealed class AnsiWriter : IDisposable
     /// </summary>
     public void SetDecorations(TextDecorations decorations)
     {
-        if (!_currentStyle.NeedsDecorations(decorations)) return;
-        
+        if (!_currentStyle.NeedsDecorations(decorations))
+        {
+            return;
+        }
+
         var current = _currentStyle.DecorationsSet ? _currentStyle.Decorations : TextDecorations.None;
         var diff = current ^ decorations;
         
@@ -187,32 +199,56 @@ public sealed class AnsiWriter : IDisposable
             if ((hadBold && !wantBold) || (hadDim && !wantDim))
             {
                 WriteSpan(AnsiCodes.BoldOff); // \e[22m resets both
-                if (wantBold) WriteSpan(AnsiCodes.BoldOn);
-                if (wantDim) WriteSpan(AnsiCodes.DimOn);
+                if (wantBold)
+                {
+                    WriteSpan(AnsiCodes.BoldOn);
+                }
+
+                if (wantDim)
+                {
+                    WriteSpan(AnsiCodes.DimOn);
+                }
             }
             else
             {
                 // Turning on — just emit the "on" codes
-                if (wantBold && !hadBold) WriteSpan(AnsiCodes.BoldOn);
-                if (wantDim && !hadDim) WriteSpan(AnsiCodes.DimOn);
+                if (wantBold && !hadBold)
+                {
+                    WriteSpan(AnsiCodes.BoldOn);
+                }
+
+                if (wantDim && !hadDim)
+                {
+                    WriteSpan(AnsiCodes.DimOn);
+                }
             }
         }
         
         if ((diff & TextDecorations.Italic) != 0)
+        {
             WriteSpan((decorations & TextDecorations.Italic) != 0 ? AnsiCodes.ItalicOn : AnsiCodes.ItalicOff);
-        
+        }
+
         if ((diff & TextDecorations.Underline) != 0)
+        {
             WriteSpan((decorations & TextDecorations.Underline) != 0 ? AnsiCodes.UnderlineOn : AnsiCodes.UnderlineOff);
-        
+        }
+
         if ((diff & TextDecorations.Blink) != 0)
+        {
             WriteSpan((decorations & TextDecorations.Blink) != 0 ? AnsiCodes.BlinkOn : AnsiCodes.BlinkOff);
-        
+        }
+
         if ((diff & TextDecorations.Inverse) != 0)
+        {
             WriteSpan((decorations & TextDecorations.Inverse) != 0 ? AnsiCodes.InverseOn : AnsiCodes.InverseOff);
-        
+        }
+
         if ((diff & TextDecorations.Strikethrough) != 0)
+        {
             WriteSpan((decorations & TextDecorations.Strikethrough) != 0 ? AnsiCodes.StrikethroughOn : AnsiCodes.StrikethroughOff);
-        
+        }
+
         _currentStyle.Decorations = decorations;
         _currentStyle.DecorationsSet = true;
     }

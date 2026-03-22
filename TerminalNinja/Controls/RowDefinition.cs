@@ -7,7 +7,6 @@ namespace TerminalNinja.Controls;
 /// </summary>
 public class RowDefinition
 {
-    private GridLength _height = GridLength.Star();
     private int _minHeight;
     private int _maxHeight = int.MaxValue;
     
@@ -15,12 +14,8 @@ public class RowDefinition
     /// Gets or sets the height of this row.
     /// Default is "*" (Star), meaning proportional sizing.
     /// </summary>
-    public GridLength Height
-    {
-        get => _height;
-        set => _height = value;
-    }
-    
+    public GridLength Height { get; set; } = GridLength.Star();
+
     /// <summary>
     /// Gets or sets the minimum height of this row in characters.
     /// </summary>

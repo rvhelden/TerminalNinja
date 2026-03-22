@@ -60,7 +60,9 @@ public static class PropertyAccessorRegistry
     public static PropertyAccessor GetAccessor(Type type, string propertyName)
     {
         if (TryGetAccessor(type, propertyName, out var accessor))
+        {
             return accessor.Value;
+        }
 
         throw new InvalidOperationException(
             $"No property accessor registered for '{propertyName}' on type '{type.FullName}'. " +

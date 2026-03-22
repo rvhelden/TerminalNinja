@@ -118,9 +118,10 @@ public class DemoViewModel : ViewModelBase
         set => SetProperty(ref field, value);
     }
 
-    private Process? _currentProcess;
+    private readonly Process? _currentProcess;
     private DateTime _lastCpuTime = DateTime.UtcNow;
     private TimeSpan _lastTotalProcessorTime;
+    private readonly Timer _timer;
 
     /// <summary>
     /// Items for the ListBox demo.
@@ -166,7 +167,7 @@ public class DemoViewModel : ViewModelBase
         _lastTotalProcessorTime = _currentProcess.TotalProcessorTime;
 
         // Timer for time and performance stats
-        _ = new Timer(_ =>
+        _timer = new Timer(_ =>
         {
             CurrentTime = DateTime.Now;
             UpdatePerformanceStats();
@@ -179,7 +180,11 @@ public class DemoViewModel : ViewModelBase
         get;
         set
         {
-            if (value.Equals(field)) return;
+            if (value.Equals(field))
+            {
+                return;
+            }
+
             field = value;
             OnPropertyChanged();
         }
@@ -192,7 +197,10 @@ public class DemoViewModel : ViewModelBase
 
     private void UpdatePerformanceStats()
     {
-        if (_currentProcess == null) return;
+        if (_currentProcess == null)
+        {
+            return;
+        }
 
         try
         {

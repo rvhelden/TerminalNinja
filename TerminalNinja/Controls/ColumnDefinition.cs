@@ -7,7 +7,6 @@ namespace TerminalNinja.Controls;
 /// </summary>
 public class ColumnDefinition
 {
-    private GridLength _width = GridLength.Star();
     private int _minWidth;
     private int _maxWidth = int.MaxValue;
     
@@ -15,12 +14,8 @@ public class ColumnDefinition
     /// Gets or sets the width of this column.
     /// Default is "*" (Star), meaning proportional sizing.
     /// </summary>
-    public GridLength Width
-    {
-        get => _width;
-        set => _width = value;
-    }
-    
+    public GridLength Width { get; set; } = GridLength.Star();
+
     /// <summary>
     /// Gets or sets the minimum width of this column in characters.
     /// </summary>

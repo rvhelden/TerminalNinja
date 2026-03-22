@@ -23,7 +23,7 @@ public class ThicknessTypeConverter : TypeConverter
             var parts = str.Split(',');
             
             var values = new int[parts.Length];
-            for (int i = 0; i < parts.Length; i++)
+            for (var i = 0; i < parts.Length; i++)
             {
                 if (!int.TryParse(parts[i].Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out values[i]))
                 {

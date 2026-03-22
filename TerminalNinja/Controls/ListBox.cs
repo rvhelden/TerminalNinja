@@ -128,13 +128,23 @@ public class ListBox : Selector
     private void MoveSelection(int delta)
     {
         var count = ItemsPanel.Children.Count;
-        if (count == 0) return;
+        if (count == 0)
+        {
+            return;
+        }
 
         var newIndex = SelectedIndex + delta;
 
         // Clamp to valid range
-        if (newIndex < 0) newIndex = 0;
-        if (newIndex >= count) newIndex = count - 1;
+        if (newIndex < 0)
+        {
+            newIndex = 0;
+        }
+
+        if (newIndex >= count)
+        {
+            newIndex = count - 1;
+        }
 
         SelectedIndex = newIndex;
     }
@@ -145,7 +155,9 @@ public class ListBox : Selector
     private void SelectFirst()
     {
         if (ItemsPanel.Children.Count > 0)
+        {
             SelectedIndex = 0;
+        }
     }
 
     /// <summary>
@@ -155,7 +167,9 @@ public class ListBox : Selector
     {
         var count = ItemsPanel.Children.Count;
         if (count > 0)
+        {
             SelectedIndex = count - 1;
+        }
     }
 
     // ─── Rendering ───────────────────────────────────────────────────
@@ -167,7 +181,10 @@ public class ListBox : Selector
 
         // Fill background
         var clipped = bounds.Intersect(new Rect(0, 0, buffer.Width, buffer.Height));
-        if (clipped.Width <= 0 || clipped.Height <= 0) return;
+        if (clipped.Width <= 0 || clipped.Height <= 0)
+        {
+            return;
+        }
 
         var bgCell = new Cell(' ', Foreground, Background);
         buffer.FillRect(clipped, bgCell);

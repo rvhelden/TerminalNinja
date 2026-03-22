@@ -28,8 +28,10 @@ public readonly record struct GridLength : IEquatable<GridLength>
     public GridLength(double value, GridUnitType unitType = GridUnitType.Pixel)
     {
         if (unitType != GridUnitType.Auto && value < 0)
+        {
             throw new ArgumentException("Value cannot be negative", nameof(value));
-            
+        }
+
         Value = value;
         UnitType = unitType;
     }
@@ -85,21 +87,32 @@ public readonly record struct GridLength : IEquatable<GridLength>
         span = span.Trim();
 
         if (span.Equals("Auto", StringComparison.OrdinalIgnoreCase))
+        {
             return Auto;
+        }
 
         if (span.Length > 0 && span[^1] == '*')
         {
             var weightSpan = span[..^1];
-            if (weightSpan.IsEmpty) return Star(1);
+            if (weightSpan.IsEmpty)
+            {
+                return Star(1);
+            }
+
             if (double.TryParse(weightSpan, System.Globalization.NumberStyles.Float,
                     System.Globalization.CultureInfo.InvariantCulture, out var weight))
+            {
                 return Star(weight);
+            }
+
             throw new FormatException($"Invalid star value: {span.ToString()}");
         }
 
         if (double.TryParse(span, System.Globalization.NumberStyles.Float,
                 System.Globalization.CultureInfo.InvariantCulture, out var pixels))
+        {
             return new GridLength(pixels, GridUnitType.Pixel);
+        }
 
         throw new FormatException($"Invalid GridLength: {span.ToString()}");
     }

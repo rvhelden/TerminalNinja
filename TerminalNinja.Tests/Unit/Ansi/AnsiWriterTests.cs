@@ -356,8 +356,10 @@ public class AnsiWriterTests
     
     public static IEnumerable<int> GetSingleDigitCases()
     {
-        for (int i = 0; i < 10; i++)
+        for (var i = 0; i < 10; i++)
+        {
             yield return i;
+        }
     }
     
     [Test]

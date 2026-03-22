@@ -85,8 +85,10 @@ public sealed class BindingManager : IDisposable
     {
         // Check explicit DataContext first
         if (_elementDataContexts.TryGetValue(control, out var explicitContext))
+        {
             return explicitContext;
-        
+        }
+
         // Fall back to control's own DataContext (which may be inherited via GetEffectiveDataContext)
         return control.GetEffectiveDataContext();
     }

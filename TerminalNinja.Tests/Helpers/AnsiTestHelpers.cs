@@ -34,7 +34,7 @@ public static class AnsiTestHelpers
     /// <returns>The ANSI output as a string.</returns>
     public static string RenderControlToAnsi(UIElement control, int width, int height)
     {
-        var buffer = new CellBuffer(width, height);
+        using var buffer = new CellBuffer(width, height);
         var viewport = new Rect(0, 0, width, height);
         control.Render(buffer, viewport);
         
@@ -59,10 +59,12 @@ public static class AnsiTestHelpers
     public static int CountOccurrences(string text, string pattern)
     {
         if (string.IsNullOrEmpty(pattern))
+        {
             return 0;
-        
-        int count = 0;
-        int index = 0;
+        }
+
+        var count = 0;
+        var index = 0;
         
         while ((index = text.IndexOf(pattern, index, StringComparison.Ordinal)) != -1)
         {

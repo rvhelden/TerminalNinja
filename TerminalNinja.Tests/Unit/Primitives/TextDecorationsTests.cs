@@ -7,7 +7,7 @@ public class TextDecorationsTests
     [Test]
     public async Task TextDecorations_None_HasValueZero()
     {
-        byte value = (byte)TextDecorations.None;
+        var value = (byte)TextDecorations.None;
         await Assert.That(value).IsEqualTo((byte)0);
     }
 
@@ -168,7 +168,7 @@ public class TextDecorationsTests
     [Test]
     public async Task CellBuffer_SetChar_WithDecorations_StoresCorrectCell()
     {
-        var buffer = new CellBuffer(10, 5);
+        using var buffer = new CellBuffer(10, 5);
         buffer.SetChar(3, 2, 'X', Color.Red, Color.Blue, TextDecorations.Bold);
 
         var cell = buffer.GetCell(3, 2);
@@ -181,7 +181,7 @@ public class TextDecorationsTests
     [Test]
     public async Task CellBuffer_SetChar_WithDecorations_TransparentBgPreservesExisting()
     {
-        var buffer = new CellBuffer(10, 5);
+        using var buffer = new CellBuffer(10, 5);
         // First set a cell with a specific background
         buffer.SetCell(3, 2, new Cell(' ', Color.White, Color.Green));
         // Now set with transparent bg and decorations

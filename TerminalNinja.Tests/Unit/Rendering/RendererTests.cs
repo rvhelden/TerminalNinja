@@ -380,7 +380,9 @@ public class RendererTests
         {
             // Cleanup
             if (File.Exists(dumpPath))
+            {
                 File.Delete(dumpPath);
+            }
         }
     }
 
@@ -407,7 +409,9 @@ public class RendererTests
         {
             // Cleanup
             if (generatedPath != null && File.Exists(generatedPath))
+            {
                 File.Delete(generatedPath);
+            }
         }
     }
 
@@ -468,7 +472,9 @@ public class RendererTests
         finally
         {
             if (dumpPath != null && File.Exists(dumpPath))
+            {
                 File.Delete(dumpPath);
+            }
         }
 
         renderer.Present();
@@ -493,7 +499,7 @@ public class RendererTests
         };
 
         // ─── Frame 1: Initial render at 80x24 ───
-        var buffer = new CellBuffer(80, 24);
+        using var buffer = new CellBuffer(80, 24);
         buffer.Clear();
         window.Render(buffer, new Rect(0, 0, 80, 24));
 
@@ -550,7 +556,7 @@ public class RendererTests
         await Assert.That(window.Height).IsEqualTo(Size.Absolute(24));
 
         // ─── Frame 1: Initial render at 80x24 ───
-        var buffer = new CellBuffer(80, 24);
+        using var buffer = new CellBuffer(80, 24);
         buffer.Clear();
         window.Render(buffer, new Rect(0, 0, 80, 24));
 

@@ -55,12 +55,18 @@ public sealed class Grid : Panel
         set
         {
             _rowDefinitions.Clear();
-            if (string.IsNullOrWhiteSpace(value)) return;
+            if (string.IsNullOrWhiteSpace(value))
+            {
+                return;
+            }
+
             foreach (var range in value.AsSpan().Split(' '))
             {
                 var token = value.AsSpan()[range].Trim();
                 if (!token.IsEmpty)
+                {
                     _rowDefinitions.Add(new RowDefinition { Height = GridLength.Parse(token) });
+                }
             }
         }
     }
@@ -75,12 +81,18 @@ public sealed class Grid : Panel
         set
         {
             _columnDefinitions.Clear();
-            if (string.IsNullOrWhiteSpace(value)) return;
+            if (string.IsNullOrWhiteSpace(value))
+            {
+                return;
+            }
+
             foreach (var range in value.AsSpan().Split(' '))
             {
                 var token = value.AsSpan()[range].Trim();
                 if (!token.IsEmpty)
+                {
                     _columnDefinitions.Add(new ColumnDefinition { Width = GridLength.Parse(token) });
+                }
             }
         }
     }
@@ -179,8 +191,11 @@ public sealed class Grid : Panel
     public override void Render(CellBuffer buffer, Rect parentBounds)
     {
         var bounds = CalculateBounds(parentBounds);
-        if (Children.Count == 0) return;
-        
+        if (Children.Count == 0)
+        {
+            return;
+        }
+
         // Ensure we have at least one row and column definition
         var rows = _rowDefinitions.Count > 0 ? _rowDefinitions : [new RowDefinition()];
         var cols = _columnDefinitions.Count > 0 ? _columnDefinitions : [new ColumnDefinition()];
@@ -209,7 +224,10 @@ public sealed class Grid : Panel
     /// <inheritdoc />
     public override IEnumerable<(Visual Child, Rect ChildParentBounds)> GetChildrenWithBounds(Rect myBounds)
     {
-        if (Children.Count == 0) yield break;
+        if (Children.Count == 0)
+        {
+            yield break;
+        }
 
         var rows = _rowDefinitions.Count > 0 ? _rowDefinitions : [new RowDefinition()];
         var cols = _columnDefinitions.Count > 0 ? _columnDefinitions : [new ColumnDefinition()];
@@ -337,12 +355,16 @@ public sealed class Grid : Panel
         
         var width = 0;
         for (var c = col; c < col + colSpan && c < cols.Count; c++)
+        {
             width += cols[c].ActualWidth;
-        
+        }
+
         var height = 0;
         for (var r = row; r < row + rowSpan && r < rows.Count; r++)
+        {
             height += rows[r].ActualHeight;
-        
+        }
+
         return new Rect(x, y, width, height);
     }
 }

@@ -99,7 +99,9 @@ public readonly record struct Color(byte R, byte G, byte B, byte A = 255)
         var c = Math.Sqrt(okA * okA + okB * okB);
         var h = Math.Atan2(okB, okA) * (180d / Math.PI);
         if (h < 0d)
+        {
             h += 360d;
+        }
 
         return new Oklch(okl, c, h);
     }
@@ -112,17 +114,25 @@ public readonly record struct Color(byte R, byte G, byte B, byte A = 255)
     public static Color FromOklch(Oklch oklch, byte alpha = 255)
     {
         if (double.IsNaN(oklch.L) || double.IsInfinity(oklch.L))
+        {
             throw new ArgumentOutOfRangeException(nameof(oklch), "L must be a finite number.");
+        }
 
         if (double.IsNaN(oklch.C) || double.IsInfinity(oklch.C) || oklch.C < 0d)
+        {
             throw new ArgumentOutOfRangeException(nameof(oklch), "C must be a finite number greater than or equal to zero.");
+        }
 
         if (double.IsNaN(oklch.H) || double.IsInfinity(oklch.H))
+        {
             throw new ArgumentOutOfRangeException(nameof(oklch), "H must be a finite number.");
+        }
 
         var h = oklch.H % 360d;
         if (h < 0d)
+        {
             h += 360d;
+        }
 
         var hRadians = h * (Math.PI / 180d);
         var okA = oklch.C * Math.Cos(hRadians);
@@ -155,11 +165,15 @@ public readonly record struct Color(byte R, byte G, byte B, byte A = 255)
     public static Color FromHex(ReadOnlySpan<char> hex)
     {
         if (hex.Length > 0 && hex[0] == '#')
+        {
             hex = hex[1..];
-        
+        }
+
         if (hex.Length != 6)
+        {
             throw new ArgumentException("Hex color must be 6 characters (RRGGBB)", nameof(hex));
-        
+        }
+
         var r = byte.Parse(hex[0..2], System.Globalization.NumberStyles.HexNumber);
         var g = byte.Parse(hex[2..4], System.Globalization.NumberStyles.HexNumber);
         var b = byte.Parse(hex[4..6], System.Globalization.NumberStyles.HexNumber);

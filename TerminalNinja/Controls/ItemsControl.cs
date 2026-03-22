@@ -104,10 +104,17 @@ public class ItemsControl : Control
         {
             // Detach old panel
             var old = (Panel?)GetValue(ItemsPanelProperty);
-            if (old != null) old.Parent = null;
+            if (old != null)
+            {
+                old.Parent = null;
+            }
 
             // Attach new panel
-            if (value != null) value.Parent = this;
+            if (value != null)
+            {
+                value.Parent = this;
+            }
+
             SetValue(ItemsPanelProperty, value);
         }
     }
@@ -171,7 +178,7 @@ public class ItemsControl : Control
             case NotifyCollectionChangedAction.Replace:
                 if (e.OldItems != null && e.NewItems != null)
                 {
-                    for (int i = 0; i < e.OldItems.Count; i++)
+                    for (var i = 0; i < e.OldItems.Count; i++)
                     {
                         var oldItem = e.OldItems[i]!;
                         var newItem = e.NewItems[i]!;
@@ -239,7 +246,9 @@ public class ItemsControl : Control
 
         var source = ItemsSource ?? Items;
         if (source == null)
+        {
             return;
+        }
 
         foreach (var item in source)
         {
@@ -355,7 +364,9 @@ public class ItemsControl : Control
         foreach (var kvp in _itemContainers)
         {
             if (kvp.Value == container)
+            {
                 return kvp.Key;
+            }
         }
         return null;
     }

@@ -24,7 +24,9 @@ public class DependencyObject : INotifyPropertyChanged
         ArgumentNullException.ThrowIfNull(dp);
 
         if (_localValues?.TryGetValue(dp, out var local) == true)
+        {
             return local;
+        }
 
         return dp.DefaultMetadata.DefaultValue;
     }
@@ -42,10 +44,14 @@ public class DependencyObject : INotifyPropertyChanged
         var oldValue = GetValue(dp);
 
         if (metadata.CoerceValueCallback != null)
+        {
             value = metadata.CoerceValueCallback(this, value);
+        }
 
         if (Equals(oldValue, value))
+        {
             return;
+        }
 
         _localValues ??= new Dictionary<DependencyProperty, object?>();
         _localValues[dp] = value;
@@ -56,7 +62,9 @@ public class DependencyObject : INotifyPropertyChanged
         OnPropertyChanged(dp.Name);
 
         if (metadata is FrameworkPropertyMetadata { AffectsRender: true })
+        {
             OnPropertyAffectsRender(dp);
+        }
     }
 
     /// <summary>
@@ -68,21 +76,27 @@ public class DependencyObject : INotifyPropertyChanged
         ArgumentNullException.ThrowIfNull(dp);
 
         if (_localValues == null || !_localValues.ContainsKey(dp))
+        {
             return;
+        }
 
         var oldValue = GetValue(dp);
         _localValues.Remove(dp);
         var newValue = GetValue(dp); // default value
 
         if (Equals(oldValue, newValue))
+        {
             return;
+        }
 
         var args = new DependencyPropertyChangedEventArgs(dp, oldValue, newValue);
         dp.DefaultMetadata.PropertyChangedCallback?.Invoke(this, args);
         OnPropertyChanged(dp.Name);
 
         if (dp.DefaultMetadata is FrameworkPropertyMetadata { AffectsRender: true })
+        {
             OnPropertyAffectsRender(dp);
+        }
     }
 
     /// <summary>

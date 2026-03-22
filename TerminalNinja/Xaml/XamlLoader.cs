@@ -181,7 +181,9 @@ internal sealed class XamlLoader
         foreach (var attr in root.Attributes())
         {
             if (!attr.IsNamespaceDeclaration)
+            {
                 continue;
+            }
 
             var prefix = attr.Name.LocalName;
             if (attr.Name.Namespace == XNamespace.Xmlns)
@@ -217,14 +219,18 @@ internal sealed class XamlLoader
 
         var clrNamespaces = GetClrNamespaces(ns);
         if (clrNamespaces == null)
+        {
             return null;
+        }
 
         foreach (var clrNs in clrNamespaces)
         {
             var fullName = $"{clrNs}.{localName}";
             var type = ResolveTypeByName(fullName);
             if (type != null)
+            {
                 return type;
+            }
         }
 
         return null;
@@ -236,10 +242,14 @@ internal sealed class XamlLoader
     private List<string>? GetClrNamespaces(string xmlNs)
     {
         if (xmlNs == TerminalNinjaXamlNs)
+        {
             return [.. DefaultClrNamespaces];
+        }
 
         if (_xmlNsToClrNamespaces.TryGetValue(xmlNs, out var cached))
+        {
             return cached;
+        }
 
         // Try clr-namespace:...;assembly=... syntax
         if (xmlNs.StartsWith("clr-namespace:", StringComparison.Ordinal))
@@ -247,7 +257,10 @@ internal sealed class XamlLoader
             var clrNs = xmlNs["clr-namespace:".Length..];
             var semiIdx = clrNs.IndexOf(';');
             if (semiIdx >= 0)
+            {
                 clrNs = clrNs[..semiIdx];
+            }
+
             var list = new List<string> { clrNs };
             _xmlNsToClrNamespaces[xmlNs] = list;
             return list;
@@ -310,14 +323,18 @@ internal sealed class XamlLoader
         {
             // Skip namespace declarations
             if (attr.IsNamespaceDeclaration)
+            {
                 continue;
+            }
 
             var attrNs = attr.Name.NamespaceName;
             var attrName = attr.Name.LocalName;
 
             // Skip ignorable namespace attributes
             if (IsIgnorableNamespace(attrNs))
+            {
                 continue;
+            }
 
             // x:Name
             if (attrNs == XamlXNs && attrName == "Name")
@@ -333,11 +350,15 @@ internal sealed class XamlLoader
 
             // x:Key — handled by parent (Window.Resources, etc.)
             if (attrNs == XamlXNs && attrName == "Key")
+            {
                 continue;
+            }
 
             // Skip mc:Ignorable itself
             if (attrNs == MarkupCompatNs)
+            {
                 continue;
+            }
 
             // Attached property: Type.PropertyName (e.g., StackPanel.SizeMode)
             if (string.IsNullOrEmpty(attrNs) && attrName.Contains('.'))
@@ -348,7 +369,9 @@ internal sealed class XamlLoader
 
             // Skip attributes from non-empty namespaces we don't handle
             if (!string.IsNullOrEmpty(attrNs) && attrNs != TerminalNinjaXamlNs)
+            {
                 continue;
+            }
 
             // Regular property
             SetPropertyFromString(instance, type, attrName, attr.Value, currentFe);
@@ -381,25 +404,37 @@ internal sealed class XamlLoader
             if (node is XText textNode)
             {
                 var text = textNode.Value;
-                if (string.IsNullOrEmpty(text)) continue;
+                if (string.IsNullOrEmpty(text))
+                {
+                    continue;
+                }
 
                 if (isInlineContent && contentPropertyName != null)
                 {
                     var run = new Run { Text = text };
-                    if (currentFe != null) run.Parent = currentFe;
+                    if (currentFe != null)
+                    {
+                        run.Parent = currentFe;
+                    }
+
                     AddToContentProperty(instance, type, contentPropertyName, run);
                 }
                 continue;
             }
 
-            if (node is not XElement child) continue;
+            if (node is not XElement child)
+            {
+                continue;
+            }
 
             var childNs = child.Name.NamespaceName;
             var childLocalName = child.Name.LocalName;
 
             // Skip ignorable namespace elements
             if (IsIgnorableNamespace(childNs))
+            {
                 continue;
+            }
 
             // Property element syntax: <TypeName.PropertyName> ... </TypeName.PropertyName>
             if (childLocalName.Contains('.'))
@@ -493,7 +528,9 @@ internal sealed class XamlLoader
             // Get x:Key
             var keyAttr = child.Attribute(XName.Get("Key", XamlXNs));
             if (keyAttr == null)
+            {
                 continue;
+            }
 
             var key = keyAttr.Value;
             var childNs = child.Name.NamespaceName;
@@ -502,8 +539,10 @@ internal sealed class XamlLoader
             // Resolve the type
             var childType = ResolveType(child.Name);
             if (childType == null)
+            {
                 throw new InvalidOperationException(
                     $"Cannot resolve resource type '{childTypeName}' in namespace '{childNs}'");
+            }
 
             // Simple value types (like Color) — parse from text content
             if (child.HasElements == false)
@@ -606,30 +645,46 @@ internal sealed class XamlLoader
     private static object? ConvertValue(string value, Type targetType)
     {
         if (targetType == typeof(string))
+        {
             return value;
+        }
 
         // When the target type is object (e.g., Setter.Value), store as string.
         // The actual conversion happens later when the style is applied
         // and the concrete target property type is known.
         if (targetType == typeof(object))
+        {
             return value;
+        }
 
         // Handle enums directly (faster than TypeDescriptor for enums)
         if (targetType.IsEnum)
+        {
             return Enum.Parse(targetType, value, ignoreCase: true);
+        }
 
         // Handle common primitive types
         if (targetType == typeof(int))
+        {
             return int.Parse(value);
+        }
+
         if (targetType == typeof(double))
+        {
             return double.Parse(value);
+        }
+
         if (targetType == typeof(bool))
+        {
             return bool.Parse(value);
+        }
 
         // Use TypeConverterRegistry (AOT-safe replacement for TypeDescriptor.GetConverter)
         var converter = TypeConverterRegistry.GetConverterOrEnum(targetType);
         if (converter != null && converter.CanConvertFrom(typeof(string)))
+        {
             return converter.ConvertFromInvariantString(value);
+        }
 
         throw new InvalidOperationException(
             $"Cannot convert '{value}' to type '{targetType.Name}': no suitable TypeConverter found");
@@ -691,7 +746,10 @@ internal sealed class XamlLoader
         foreach (var clrNs in DefaultClrNamespaces)
         {
             var type = ResolveTypeByName($"{clrNs}.{typeName}");
-            if (type != null) return type;
+            if (type != null)
+            {
+                return type;
+            }
         }
 
         // Try CLR namespace mappings from xmlns declarations
@@ -700,7 +758,10 @@ internal sealed class XamlLoader
             foreach (var clrNs in nsMapping)
             {
                 var type = ResolveTypeByName($"{clrNs}.{typeName}");
-                if (type != null) return type;
+                if (type != null)
+                {
+                    return type;
+                }
             }
         }
 
@@ -735,7 +796,9 @@ internal sealed class XamlLoader
 
         // If the property value is a collection, add to it
         if (propValue != null && TryAddToCollection(propValue, child))
+        {
             return;
+        }
 
         // Otherwise set the property directly (single-child content, e.g., Rectangle.Child, Window.Content)
         if (accessor.Value.CanWrite)
@@ -763,7 +826,10 @@ internal sealed class XamlLoader
     /// </summary>
     private static bool AddToCollection(object? collection, object item)
     {
-        if (collection == null) return false;
+        if (collection == null)
+        {
+            return false;
+        }
 
         // ObservableControlCollection (Panel.Children)
         if (collection is ObservableControlCollection occ && item is UIElement uiElement)
@@ -827,7 +893,9 @@ internal sealed class XamlLoader
 
         // Remove "Binding" prefix
         if (inner.StartsWith("Binding", StringComparison.Ordinal))
+        {
             inner = inner["Binding".Length..].Trim();
+        }
 
         string? path = null;
         var mode = BindingMode.OneWay;
@@ -846,7 +914,9 @@ internal sealed class XamlLoader
         {
             var trimmed = part.Trim();
             if (string.IsNullOrEmpty(trimmed))
+            {
                 continue;
+            }
 
             var eqIdx = trimmed.IndexOf('=');
             if (eqIdx < 0)
@@ -881,7 +951,9 @@ internal sealed class XamlLoader
         }
 
         if (string.IsNullOrWhiteSpace(path))
+        {
             throw new InvalidOperationException("Binding markup extension requires a Path");
+        }
 
         _pendingBindings.Add(new PendingBinding(target, targetPropertyName, path, mode, converter, converterParameter)
         {
@@ -909,10 +981,14 @@ internal sealed class XamlLoader
 
         // Remove "RelativeSource" prefix
         if (inner.StartsWith("RelativeSource", StringComparison.Ordinal))
+        {
             inner = inner["RelativeSource".Length..].Trim();
+        }
 
         if (string.IsNullOrEmpty(inner))
+        {
             throw new InvalidOperationException("RelativeSource markup extension requires at least a Mode");
+        }
 
         // Parse inner arguments (comma-separated, but first positional = mode)
         var parts = SplitMarkupExtensionArgs(inner);
@@ -925,7 +1001,9 @@ internal sealed class XamlLoader
         {
             var trimmed = part.Trim();
             if (string.IsNullOrEmpty(trimmed))
+            {
                 continue;
+            }
 
             var eqIdx = trimmed.IndexOf('=');
             if (eqIdx < 0)
@@ -948,8 +1026,11 @@ internal sealed class XamlLoader
                 case "AncestorType":
                     ancestorType = ResolveTypeBySimpleName(val);
                     if (ancestorType == null)
+                    {
                         throw new InvalidOperationException(
                             $"Cannot resolve AncestorType '{val}'. Ensure the type is registered in TypeNameRegistry.");
+                    }
+
                     break;
                 case "AncestorLevel":
                     ancestorLevel = int.Parse(val);
@@ -958,7 +1039,9 @@ internal sealed class XamlLoader
         }
 
         if (!modeSet)
+        {
             throw new InvalidOperationException("RelativeSource markup extension requires a Mode");
+        }
 
         var relativeSource = new RelativeSource(mode)
         {
@@ -980,7 +1063,9 @@ internal sealed class XamlLoader
             var fullName = $"{ns}.{simpleName}";
             var type = ResolveTypeByName(fullName);
             if (type != null)
+            {
                 return type;
+            }
         }
 
         return null;
@@ -1017,7 +1102,9 @@ internal sealed class XamlLoader
                     {
                         var resolved = ResolveTypeByName($"{clrNs}.{typeName}");
                         if (resolved != null)
+                        {
                             return resolved;
+                        }
                     }
                 }
             }
@@ -1030,13 +1117,17 @@ internal sealed class XamlLoader
         {
             var direct = ResolveTypeByName(value);
             if (direct != null)
+            {
                 return direct;
+            }
         }
 
         // 3. Simple name (e.g., "Button") — search default CLR namespaces
         var simple = ResolveTypeBySimpleName(value);
         if (simple != null)
+        {
             return simple;
+        }
 
         // 4. Also search custom xmlns CLR namespace mappings
         foreach (var nsMapping in _xmlNsToClrNamespaces.Values)
@@ -1045,7 +1136,9 @@ internal sealed class XamlLoader
             {
                 var resolved = ResolveTypeByName($"{clrNs}.{value}");
                 if (resolved != null)
+                {
                     return resolved;
+                }
             }
         }
 
@@ -1062,10 +1155,14 @@ internal sealed class XamlLoader
 
         // Remove "StaticResource" prefix
         if (inner.StartsWith("StaticResource", StringComparison.Ordinal))
+        {
             inner = inner["StaticResource".Length..].Trim();
+        }
 
         if (string.IsNullOrEmpty(inner))
+        {
             throw new InvalidOperationException("StaticResource markup extension requires a resource key");
+        }
 
         var resourceKey = inner;
 
@@ -1136,13 +1233,17 @@ internal sealed class XamlLoader
         {
             var resolveFrom = pending.Target as FrameworkElement ?? pending.Context ?? root;
             if (resolveFrom == null)
+            {
                 throw new InvalidOperationException(
                     $"StaticResource '{pending.ResourceKey}' cannot be resolved: no FrameworkElement context");
+            }
 
             var resource = resolveFrom.TryFindResource(pending.ResourceKey);
             if (resource == null)
+            {
                 throw new InvalidOperationException(
                     $"StaticResource '{pending.ResourceKey}' not found for property '{pending.PropertyName}'");
+            }
 
             // Set the property value
             if (!PropertyAccessorRegistry.TryGetAccessor(pending.TargetType, pending.PropertyName, out var accessor)
@@ -1200,7 +1301,9 @@ internal sealed class XamlLoader
         }
 
         if (start < input.Length)
+        {
             result.Add(input[start..]);
+        }
 
         return result;
     }
@@ -1212,17 +1315,23 @@ internal sealed class XamlLoader
     private bool IsIgnorableNamespace(string namespaceUri)
     {
         if (string.IsNullOrEmpty(namespaceUri))
+        {
             return false;
+        }
 
         // Design-time and markup-compat are always ignorable
         if (namespaceUri == DesignTimeNs || namespaceUri == MarkupCompatNs)
+        {
             return true;
+        }
 
         // Check mc:Ignorable prefixes
         foreach (var prefix in _ignorablePrefixes)
         {
             if (_prefixToUri.TryGetValue(prefix, out var uri) && uri == namespaceUri)
+            {
                 return true;
+            }
         }
 
         return false;

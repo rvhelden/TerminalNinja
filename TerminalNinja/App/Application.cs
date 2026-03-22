@@ -13,20 +13,15 @@ namespace TerminalNinja.App;
 /// </summary>
 public sealed class Application : IDisposable
 {
-    private static Application? _current;
-    
     /// <summary>
     /// Gets the current application instance (singleton).
     /// Returns null if no Application has been created.
     /// </summary>
-    public static Application? Current => _current;
-    
+    public static Application? Current { get; private set; }
+
     private readonly ApplicationOptions _options;
-    private readonly Renderer _renderer;
     private readonly InputReader _inputReader;
-    private readonly FocusManager _focusManager;
-    private readonly ResourceDictionary _resources = new();
-    
+
     private UIElement? _rootControl;
     private bool _running;
     private bool _invalidated = true;
@@ -35,12 +30,10 @@ public sealed class Application : IDisposable
     // FPS tracking
     private int _frameCount;
     private DateTime _lastFpsUpdate = DateTime.UtcNow;
-    private int _currentFps;
-    
+
     // Time to first render tracking
     private readonly DateTime _startTime;
-    private TimeSpan? _timeToFirstRender;
-    
+
     /// <summary>
     /// Event raised when a key is pressed. Set Handled to true to prevent default handling.
     /// </summary>
@@ -54,19 +47,19 @@ public sealed class Application : IDisposable
     /// <summary>
     /// Gets the focus manager for this application.
     /// </summary>
-    public FocusManager FocusManager => _focusManager;
-    
+    public FocusManager FocusManager { get; }
+
     /// <summary>
     /// Gets the renderer for this application.
     /// </summary>
-    public Renderer Renderer => _renderer;
-    
+    public Renderer Renderer { get; }
+
     /// <summary>
     /// Gets the application-level resource dictionary.
     /// Resources defined here are available to all controls in the application.
     /// </summary>
-    public ResourceDictionary Resources => _resources;
-    
+    public ResourceDictionary Resources { get; } = new();
+
     /// <summary>
     /// Gets the target frames per second from the application options.
     /// </summary>
@@ -75,13 +68,13 @@ public sealed class Application : IDisposable
     /// <summary>
     /// Gets the current actual frames per second (updated every second).
     /// </summary>
-    public int CurrentFps => _currentFps;
-    
+    public int CurrentFps { get; private set; }
+
     /// <summary>
     /// Gets the time taken to render the first frame, or null if first render hasn't happened yet.
     /// </summary>
-    public TimeSpan? TimeToFirstRender => _timeToFirstRender;
-    
+    public TimeSpan? TimeToFirstRender { get; private set; }
+
     /// <summary>
     /// Gets or sets the root control to display.
     /// </summary>
@@ -92,7 +85,10 @@ public sealed class Application : IDisposable
         {
             _rootControl = value;
             if (_rootControl != null)
+            {
                 WireInvalidation(_rootControl);
+            }
+
             Invalidate();
         }
     }
@@ -114,19 +110,19 @@ public sealed class Application : IDisposable
         _startTime = DateTime.UtcNow;
         
         // Set singleton (allow replacement for testing scenarios)
-        _current = this;
+        Current = this;
         
         // Hook up resource lookup for FrameworkElement
-        FrameworkElement.ApplicationResourceLookup = key => _resources.TryGetValue(key, out var value) ? value : null;
+        FrameworkElement.ApplicationResourceLookup = key => Resources.TryGetValue(key, out var value) ? value : null;
         
         // Ensure UTF-8 encoding for proper Unicode character rendering
         System.Console.OutputEncoding = Encoding.UTF8;
         System.Console.InputEncoding = Encoding.UTF8;
 
         _options = options;
-        _renderer = new Renderer();
+        Renderer = new Renderer();
         _inputReader = new InputReader();
-        _focusManager = new FocusManager();
+        FocusManager = new FocusManager();
         
         if (_options.EnableMouseTracking)
         {
@@ -151,12 +147,14 @@ public sealed class Application : IDisposable
         control.InvalidationCallback = Invalidate;
 
         // Use visual tree traversal — works for all container types
-        var dummyBounds = new Rect(0, 0, _renderer.Width, _renderer.Height);
+        var dummyBounds = new Rect(0, 0, Renderer.Width, Renderer.Height);
         var myBounds = control.CalculateBounds(dummyBounds);
         foreach (var (child, _) in control.GetChildrenWithBounds(myBounds))
         {
             if (child is UIElement childElement)
+            {
                 WireInvalidation(childElement);
+            }
         }
     }
     
@@ -184,15 +182,15 @@ public sealed class Application : IDisposable
             // Render if needed
             if (_invalidated && _rootControl is not null)
             {
-                _renderer.Clear();
-                _renderer.Draw(_rootControl);
-                _renderer.Present();
+                Renderer.Clear();
+                Renderer.Draw(_rootControl);
+                Renderer.Present();
                 _invalidated = false;
                 
                 // Capture time to first render
-                if (_timeToFirstRender == null)
+                if (TimeToFirstRender == null)
                 {
-                    _timeToFirstRender = DateTime.UtcNow - _startTime;
+                    TimeToFirstRender = DateTime.UtcNow - _startTime;
                 }
                 
                 // Track frame for FPS calculation
@@ -204,7 +202,7 @@ public sealed class Application : IDisposable
             var elapsed = (now - _lastFpsUpdate).TotalSeconds;
             if (elapsed >= 1.0)
             {
-                _currentFps = (int)(_frameCount / elapsed);
+                CurrentFps = (int)(_frameCount / elapsed);
                 _frameCount = 0;
                 _lastFpsUpdate = now;
             }
@@ -223,7 +221,9 @@ public sealed class Application : IDisposable
         {
             var inputEvents = _inputReader.TryRead();
             if (inputEvents is null || inputEvents.Count == 0)
+            {
                 break;
+            }
 
             foreach (var inputEvent in inputEvents)
             {
@@ -264,7 +264,9 @@ public sealed class Application : IDisposable
             var args = new KeyEventArgs();
             KeyDown(keyEvent, args);
             if (args.Handled)
+            {
                 return;
+            }
         }
         
         // Escape key exits the application
@@ -279,21 +281,21 @@ public sealed class Application : IDisposable
         {
             if (keyEvent.Key == ConsoleKey.Tab && keyEvent.Shift)
             {
-                _focusManager.FocusPrevious(_rootControl, _renderer.Viewport);
+                FocusManager.FocusPrevious(_rootControl, Renderer.Viewport);
                 Invalidate();
                 return;
             }
             
             if (keyEvent.Key == ConsoleKey.Tab && !keyEvent.HasModifiers)
             {
-                _focusManager.FocusNext(_rootControl, _renderer.Viewport);
+                FocusManager.FocusNext(_rootControl, Renderer.Viewport);
                 Invalidate();
                 return;
             }
         }
         
         // Dispatch to focused control
-        _focusManager.HandleKeyEvent(keyEvent);
+        FocusManager.HandleKeyEvent(keyEvent);
         Invalidate();
     }
     
@@ -303,9 +305,11 @@ public sealed class Application : IDisposable
     private void HandleMouseEvent(MouseEvent mouseEvent)
     {
         if (_rootControl is null)
+        {
             return;
-        
-        _focusManager.HandleMouseEvent(_rootControl, _renderer.Viewport, mouseEvent);
+        }
+
+        FocusManager.HandleMouseEvent(_rootControl, Renderer.Viewport, mouseEvent);
         Invalidate();
     }
     
@@ -321,10 +325,10 @@ public sealed class Application : IDisposable
         // (e.g. with scrollback), causing the renderer to allocate an oversized
         // buffer that produces scrollbars and stretches content beyond the
         // visible area.
-        _renderer.HandleResize();
+        Renderer.HandleResize();
         
         // Notify subscribers of the resize (pass the actual renderer dimensions)
-        Resize?.Invoke(new ResizeEvent(_renderer.Width, _renderer.Height));
+        Resize?.Invoke(new ResizeEvent(Renderer.Width, Renderer.Height));
         
         // Trigger a full re-render with new dimensions
         Invalidate();
@@ -336,18 +340,20 @@ public sealed class Application : IDisposable
     public void Dispose()
     {
         if (_disposed)
+        {
             return;
-        
+        }
+
         _disposed = true;
         
         // Clean up singleton and resource lookup hook
-        if (_current == this)
+        if (Current == this)
         {
-            _current = null;
+            Current = null;
             FrameworkElement.ApplicationResourceLookup = null;
         }
         
         _inputReader.Dispose();
-        _renderer.Dispose();
+        Renderer.Dispose();
     }
 }

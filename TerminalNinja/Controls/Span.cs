@@ -21,7 +21,10 @@ public sealed class Span : Inline
     /// <inheritdoc />
     public override void CollectRuns(List<InlineRun> runs, Color inheritedForeground, Color inheritedBackground, TextDecorations inheritedDecorations)
     {
-        if (_inlines == null || _inlines.Count == 0) return;
+        if (_inlines == null || _inlines.Count == 0)
+        {
+            return;
+        }
 
         var fg = ResolveForeground(inheritedForeground);
         var bg = ResolveBackground(inheritedBackground);
@@ -36,8 +39,14 @@ public sealed class Span : Inline
     /// <inheritdoc />
     protected internal override IEnumerable<FrameworkElement> GetLogicalChildren()
     {
-        if (_inlines == null) yield break;
+        if (_inlines == null)
+        {
+            yield break;
+        }
+
         foreach (var inline in _inlines)
+        {
             yield return inline;
+        }
     }
 }

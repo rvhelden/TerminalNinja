@@ -29,7 +29,7 @@ public sealed class WindowsInputBackend : Input.IInputBackend
         }
 
         // Configure input mode for raw input
-        uint inputMode = _originalInputMode;
+        var inputMode = _originalInputMode;
 
         // Disable line input, echo, and processing for raw input
         inputMode &= ~Kernel32.ENABLE_LINE_INPUT;
@@ -54,7 +54,7 @@ public sealed class WindowsInputBackend : Input.IInputBackend
         ObjectDisposedException.ThrowIf(_disposed, this);
 
         // Check if there are pending events
-        if (!Kernel32.GetNumberOfConsoleInputEvents(_inputHandle, out uint count))
+        if (!Kernel32.GetNumberOfConsoleInputEvents(_inputHandle, out var count))
         {
             return null;
         }
@@ -66,7 +66,7 @@ public sealed class WindowsInputBackend : Input.IInputBackend
 
         // Peek at events
         var buffer = new Kernel32.INPUT_RECORD[Math.Min(count, 128)];
-        if (!Kernel32.PeekConsoleInput(_inputHandle, buffer, (uint)buffer.Length, out uint eventsRead))
+        if (!Kernel32.PeekConsoleInput(_inputHandle, buffer, (uint)buffer.Length, out var eventsRead))
         {
             return null;
         }
@@ -77,7 +77,7 @@ public sealed class WindowsInputBackend : Input.IInputBackend
         }
 
         // Now read them (remove from buffer)
-        if (!Kernel32.ReadConsoleInput(_inputHandle, buffer, eventsRead, out uint actualRead))
+        if (!Kernel32.ReadConsoleInput(_inputHandle, buffer, eventsRead, out var actualRead))
         {
             return null;
         }
@@ -91,7 +91,7 @@ public sealed class WindowsInputBackend : Input.IInputBackend
 
         var buffer = new Kernel32.INPUT_RECORD[128];
 
-        if (!Kernel32.ReadConsoleInput(_inputHandle, buffer, (uint)buffer.Length, out uint eventsRead))
+        if (!Kernel32.ReadConsoleInput(_inputHandle, buffer, (uint)buffer.Length, out var eventsRead))
         {
             throw new InvalidOperationException($"ReadConsoleInput failed. Error: {Marshal.GetLastWin32Error()}");
         }
@@ -104,9 +104,11 @@ public sealed class WindowsInputBackend : Input.IInputBackend
         ObjectDisposedException.ThrowIf(_disposed, this);
 
         if (_mouseTrackingEnabled)
+        {
             return;
+        }
 
-        if (!Kernel32.GetConsoleMode(_inputHandle, out uint currentMode))
+        if (!Kernel32.GetConsoleMode(_inputHandle, out var currentMode))
         {
             throw new InvalidOperationException($"Failed to get console mode. Error: {Marshal.GetLastWin32Error()}");
         }
@@ -126,9 +128,11 @@ public sealed class WindowsInputBackend : Input.IInputBackend
         ObjectDisposedException.ThrowIf(_disposed, this);
 
         if (!_mouseTrackingEnabled)
+        {
             return;
+        }
 
-        if (!Kernel32.GetConsoleMode(_inputHandle, out uint currentMode))
+        if (!Kernel32.GetConsoleMode(_inputHandle, out var currentMode))
         {
             throw new InvalidOperationException($"Failed to get console mode. Error: {Marshal.GetLastWin32Error()}");
         }
@@ -146,7 +150,9 @@ public sealed class WindowsInputBackend : Input.IInputBackend
     public void Dispose()
     {
         if (_disposed)
+        {
             return;
+        }
 
         // Restore original input mode
         Kernel32.SetConsoleMode(_inputHandle, _originalInputMode);
@@ -158,7 +164,7 @@ public sealed class WindowsInputBackend : Input.IInputBackend
     {
         var events = new List<Input.InputEvent>(count);
 
-        for (int i = 0; i < count; i++)
+        for (var i = 0; i < count; i++)
         {
             var record = records[i];
 
@@ -167,7 +173,10 @@ public sealed class WindowsInputBackend : Input.IInputBackend
                 case Kernel32.KEY_EVENT:
                     var keyEvent = ConvertKeyEvent(record.KeyEvent);
                     if (keyEvent != null)
+                    {
                         events.Add(keyEvent);
+                    }
+
                     break;
 
                 case Kernel32.MOUSE_EVENT:
@@ -175,7 +184,9 @@ public sealed class WindowsInputBackend : Input.IInputBackend
                     {
                         var mouseEvent = ConvertMouseEvent(record.MouseEvent);
                         if (mouseEvent != null)
+                        {
                             events.Add(mouseEvent);
+                        }
                     }
                     break;
 
@@ -198,11 +209,15 @@ public sealed class WindowsInputBackend : Input.IInputBackend
     {
         // Only process key down events (ignore key up)
         if (!keyRecord.bKeyDown)
+        {
             return null;
+        }
 
         // Skip if no character and no special key
         if (keyRecord.UnicodeChar == '\0' && keyRecord.wVirtualKeyCode == 0)
+        {
             return null;
+        }
 
         var key = (ConsoleKey)keyRecord.wVirtualKeyCode;
         var keyChar = keyRecord.UnicodeChar;
@@ -226,7 +241,7 @@ public sealed class WindowsInputBackend : Input.IInputBackend
         if (mouseRecord.dwEventFlags.HasFlag(Kernel32.MouseEventFlags.MOUSE_WHEELED))
         {
             // High word of dwButtonState contains wheel delta
-            int delta = (int)mouseRecord.dwButtonState >> 16;
+            var delta = (int)mouseRecord.dwButtonState >> 16;
             var action = delta > 0 ? Input.MouseAction.ScrollUp : Input.MouseAction.ScrollDown;
             return new Input.MouseEvent(x, y, Input.MouseButton.None, action);
         }
@@ -273,13 +288,19 @@ public sealed class WindowsInputBackend : Input.IInputBackend
     private Input.MouseButton ConvertMouseButton(Kernel32.MouseButtonState state)
     {
         if (state.HasFlag(Kernel32.MouseButtonState.FROM_LEFT_1ST_BUTTON_PRESSED))
+        {
             return Input.MouseButton.Left;
+        }
 
         if (state.HasFlag(Kernel32.MouseButtonState.RIGHTMOST_BUTTON_PRESSED))
+        {
             return Input.MouseButton.Right;
+        }
 
         if (state.HasFlag(Kernel32.MouseButtonState.FROM_LEFT_2ND_BUTTON_PRESSED))
+        {
             return Input.MouseButton.Middle;
+        }
 
         return Input.MouseButton.None;
     }

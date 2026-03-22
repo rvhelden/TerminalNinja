@@ -51,7 +51,9 @@ public static class ControlFactoryRegistry
     public static object Create(Type type)
     {
         if (TryCreate(type, out var instance))
+        {
             return instance;
+        }
 
         throw new InvalidOperationException(
             $"No factory registered for type '{type.FullName}'. " +

@@ -31,9 +31,14 @@ public class ContentControl : Control
     {
         // Manage parent relationships for Visual content
         if (e.OldValue is Visual oldChild)
+        {
             oldChild.Parent = null;
+        }
+
         if (e.NewValue is Visual newChild)
+        {
             newChild.Parent = d as Visual;
+        }
 
         // Forward to the internal ContentPresenter
         var cc = (ContentControl)d;
@@ -92,7 +97,9 @@ public class ContentControl : Control
     {
         // Expose the content presenter's logical children (the actual visual child)
         foreach (var child in _contentPresenter.GetLogicalChildren())
+        {
             yield return child;
+        }
     }
 
     /// <inheritdoc />

@@ -25,7 +25,7 @@ public class ContentPresenterTests
 
         // Act
         cp.Content = tb;
-        var buffer = new CellBuffer(20, 5);
+        using var buffer = new CellBuffer(20, 5);
         cp.Render(buffer, new Rect(0, 0, 20, 5));
 
         // Assert — 'H' should appear at (0,0)
@@ -113,7 +113,7 @@ public class ContentPresenterTests
 
         // Act
         cp.Content = "Hello World";
-        var buffer = new CellBuffer(20, 5);
+        using var buffer = new CellBuffer(20, 5);
         cp.Render(buffer, new Rect(0, 0, 20, 5));
 
         // Assert — 'H' should appear at (0,0)
@@ -175,7 +175,7 @@ public class ContentPresenterTests
 
         // Act
         cp.Content = item;
-        var buffer = new CellBuffer(20, 5);
+        using var buffer = new CellBuffer(20, 5);
         cp.Render(buffer, new Rect(0, 0, 20, 5));
 
         // Assert
@@ -339,7 +339,7 @@ public class ContentPresenterTests
         var cp = new ContentPresenter();
         cp.Content = null;
 
-        var buffer = new CellBuffer(10, 5);
+        using var buffer = new CellBuffer(10, 5);
         // Fill with a marker so we can verify nothing was written
         buffer.FillRect(new Rect(0, 0, 10, 5), new Cell('Z', Color.White, Color.Black));
 
@@ -415,7 +415,7 @@ public class ContentPresenterTests
         var cc = new ContentControl();
         cc.Content = "Hello CC";
 
-        var buffer = new CellBuffer(20, 5);
+        using var buffer = new CellBuffer(20, 5);
         cc.Render(buffer, new Rect(0, 0, 20, 5));
 
         await Assert.That(buffer.GetCell(0, 0).Character).IsEqualTo('H');
@@ -428,7 +428,7 @@ public class ContentPresenterTests
         var cc = new ContentControl();
         cc.Content = new TextBlock { Text = "UIE" };
 
-        var buffer = new CellBuffer(20, 5);
+        using var buffer = new CellBuffer(20, 5);
         cc.Render(buffer, new Rect(0, 0, 20, 5));
 
         await Assert.That(buffer.GetCell(0, 0).Character).IsEqualTo('U');
@@ -446,7 +446,7 @@ public class ContentPresenterTests
         };
         cc.Content = "data";
 
-        var buffer = new CellBuffer(20, 5);
+        using var buffer = new CellBuffer(20, 5);
         cc.Render(buffer, new Rect(0, 0, 20, 5));
 
         await Assert.That(buffer.GetCell(0, 0).Character).IsEqualTo('F');
@@ -492,7 +492,7 @@ public class ContentPresenterTests
         var window = new Window();
         window.Content = "Window Text";
 
-        var buffer = new CellBuffer(20, 5);
+        using var buffer = new CellBuffer(20, 5);
         window.Render(buffer, new Rect(0, 0, 20, 5));
 
         await Assert.That(buffer.GetCell(0, 0).Character).IsEqualTo('W');
@@ -504,7 +504,7 @@ public class ContentPresenterTests
         var window = new Window();
         window.Content = new TextBlock { Text = "WinUI" };
 
-        var buffer = new CellBuffer(20, 5);
+        using var buffer = new CellBuffer(20, 5);
         window.Render(buffer, new Rect(0, 0, 20, 5));
 
         await Assert.That(buffer.GetCell(0, 0).Character).IsEqualTo('W');
@@ -521,7 +521,7 @@ public class ContentPresenterTests
         var lbi = new ListBoxItem();
         lbi.Content = new TextBlock { Text = "Item" };
 
-        var buffer = new CellBuffer(20, 3);
+        using var buffer = new CellBuffer(20, 3);
         lbi.Render(buffer, new Rect(0, 0, 20, 1));
 
         await Assert.That(buffer.GetCell(0, 0).Character).IsEqualTo('I');
@@ -539,7 +539,7 @@ public class ContentPresenterTests
         };
         lbi.Content = new TextBlock { Text = "X" };
 
-        var buffer = new CellBuffer(10, 1);
+        using var buffer = new CellBuffer(10, 1);
         lbi.Render(buffer, new Rect(0, 0, 10, 1));
 
         // The character should be rendered with selected colors

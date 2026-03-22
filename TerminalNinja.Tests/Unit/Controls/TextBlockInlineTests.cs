@@ -18,6 +18,13 @@ public class TextBlockInlineTests
         return Task.CompletedTask;
     }
 
+    [After(Test)]
+    public Task Cleanup()
+    {
+        _buffer.Dispose();
+        return Task.CompletedTask;
+    }
+
     // ─── HasInlines behavior ────────────────────────────────────────
 
     [Test]
@@ -26,7 +33,7 @@ public class TextBlockInlineTests
         var tb = new TextBlock { Text = "Hello" };
 
         // HasInlines is internal, but we can test by checking that Text renders normally
-        var buffer = new CellBuffer(20, 5);
+        using var buffer = new CellBuffer(20, 5);
         tb.Render(buffer, new Rect(0, 0, 20, 5));
 
         await Assert.That(buffer.GetCell(0, 0).Character).IsEqualTo('H');

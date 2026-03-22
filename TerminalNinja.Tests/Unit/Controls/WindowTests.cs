@@ -23,6 +23,13 @@ public class WindowTests
         return Task.CompletedTask;
     }
 
+    [After(Test)]
+    public Task Cleanup()
+    {
+        _buffer.Dispose();
+        return Task.CompletedTask;
+    }
+
     #region Title Property
 
     [Test]
@@ -301,7 +308,7 @@ public class WindowTests
         await Assert.That(_buffer.GetCell(30, 0).Background).IsEqualTo(Color.Black);
 
         // Act - Simulate resize: create new larger buffer and re-render with larger parent bounds
-        var resizedBuffer = new CellBuffer(120, 60);
+        using var resizedBuffer = new CellBuffer(120, 60);
         var resizedParent = new Rect(0, 0, 120, 60);
         window.Render(resizedBuffer, resizedParent);
 
@@ -333,22 +340,22 @@ public class WindowTests
         await Assert.That(window.Height).IsEqualTo(Size.Absolute(24));
 
         // Initial render at 80x24 (console matches window size)
-        var buffer = new CellBuffer(80, 24);
+        using var buffer = new CellBuffer(80, 24);
         window.Render(buffer, new Rect(0, 0, 80, 24));
         await Assert.That(buffer.GetCell(0, 0).Background).IsEqualTo(Color.Green);
         await Assert.That(buffer.GetCell(79, 23).Background).IsEqualTo(Color.Green);
 
         // Act - Simulate resize to larger console (120x40)
-        buffer = new CellBuffer(120, 40);
-        window.Render(buffer, new Rect(0, 0, 120, 40));
+        using var buffer2 = new CellBuffer(120, 40);
+        window.Render(buffer2, new Rect(0, 0, 120, 40));
 
         // Assert - Content should stay within 80x24
-        await Assert.That(buffer.GetCell(0, 0).Background).IsEqualTo(Color.Green);
-        await Assert.That(buffer.GetCell(79, 23).Background).IsEqualTo(Color.Green);
+        await Assert.That(buffer2.GetCell(0, 0).Background).IsEqualTo(Color.Green);
+        await Assert.That(buffer2.GetCell(79, 23).Background).IsEqualTo(Color.Green);
         // Outside window bounds should be black
-        await Assert.That(buffer.GetCell(80, 0).Background).IsEqualTo(Color.Black);
-        await Assert.That(buffer.GetCell(0, 24).Background).IsEqualTo(Color.Black);
-        await Assert.That(buffer.GetCell(119, 39).Background).IsEqualTo(Color.Black);
+        await Assert.That(buffer2.GetCell(80, 0).Background).IsEqualTo(Color.Black);
+        await Assert.That(buffer2.GetCell(0, 24).Background).IsEqualTo(Color.Black);
+        await Assert.That(buffer2.GetCell(119, 39).Background).IsEqualTo(Color.Black);
     }
 
     #endregion

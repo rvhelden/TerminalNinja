@@ -11,15 +11,12 @@ namespace TerminalNinja.Xaml.Binding;
 /// </summary>
 internal sealed class BindingExpression : IDisposable
 {
-    private readonly object _target;
-    private readonly string _targetPropertyName;
     private readonly PropertyAccessor _targetAccessor;
     private readonly PropertyPath _sourcePath;
     private readonly BindingMode _mode;
     private readonly IValueConverter? _converter;
     private readonly object? _converterParameter;
-    private readonly bool _hasRelativeSource;
-    
+
     private PropertyPathObserver? _observer;
     private object? _source;
     private bool _isUpdating;
@@ -34,33 +31,33 @@ internal sealed class BindingExpression : IDisposable
         object? converterParameter = null,
         bool hasRelativeSource = false)
     {
-        _target = target ?? throw new ArgumentNullException(nameof(target));
+        Target = target ?? throw new ArgumentNullException(nameof(target));
         ArgumentException.ThrowIfNullOrWhiteSpace(targetPropertyName);
-        _targetPropertyName = targetPropertyName;
+        TargetPropertyName = targetPropertyName;
         _targetAccessor = targetAccessor;
         _sourcePath = sourcePath ?? throw new ArgumentNullException(nameof(sourcePath));
         _mode = mode;
         _converter = converter;
         _converterParameter = converterParameter;
-        _hasRelativeSource = hasRelativeSource;
+        HasRelativeSource = hasRelativeSource;
     }
     
     /// <summary>
     /// Gets the target object this binding is attached to.
     /// </summary>
-    public object Target => _target;
-    
+    public object Target { get; }
+
     /// <summary>
     /// Gets the target property name this binding updates.
     /// </summary>
-    public string TargetPropertyName => _targetPropertyName;
+    public string TargetPropertyName { get; }
 
     /// <summary>
     /// Gets whether this binding uses a <see cref="RelativeSource"/> for source resolution
     /// instead of DataContext. RelativeSource bindings are not re-activated when DataContext changes.
     /// </summary>
-    public bool HasRelativeSource => _hasRelativeSource;
-    
+    public bool HasRelativeSource { get; }
+
     /// <summary>
     /// Activates the binding with the specified source object.
     /// Safe to call multiple times — disposes any existing observer before creating a new one.
@@ -97,8 +94,11 @@ internal sealed class BindingExpression : IDisposable
     /// </summary>
     private void UpdateTarget()
     {
-        if (_isUpdating) return; // Prevent recursion
-        
+        if (_isUpdating)
+        {
+            return; // Prevent recursion
+        }
+
         try
         {
             _isUpdating = true;
@@ -108,7 +108,7 @@ internal sealed class BindingExpression : IDisposable
             
             if (_targetAccessor.CanWrite)
             {
-                _targetAccessor.Setter!(_target, convertedValue);
+                _targetAccessor.Setter!(Target, convertedValue);
             }
         }
         catch (Exception ex)
@@ -127,14 +127,21 @@ internal sealed class BindingExpression : IDisposable
     /// </summary>
     private void UpdateSource()
     {
-        if (_isUpdating) return; // Prevent recursion
-        if (_mode != BindingMode.TwoWay) return;
-        
+        if (_isUpdating)
+        {
+            return; // Prevent recursion
+        }
+
+        if (_mode != BindingMode.TwoWay)
+        {
+            return;
+        }
+
         try
         {
             _isUpdating = true;
             
-            var targetValue = _targetAccessor.Getter(_target);
+            var targetValue = _targetAccessor.Getter(Target);
             var convertedValue = ConvertValue(targetValue, _targetAccessor.PropertyType, forward: false);
             
             _sourcePath.SetValue(_source, convertedValue);
@@ -172,19 +179,25 @@ internal sealed class BindingExpression : IDisposable
     private static object? ConvertValueDefault(object? value, Type targetType)
     {
         if (value == null)
+        {
             return targetType.IsValueType ? GetDefaultValue(targetType) : null;
-        
+        }
+
         var valueType = value.GetType();
         
         // No conversion needed
         if (targetType.IsAssignableFrom(valueType))
+        {
             return value;
-        
+        }
+
         // Handle nullable types
         var underlyingType = Nullable.GetUnderlyingType(targetType);
         if (underlyingType != null)
+        {
             targetType = underlyingType;
-        
+        }
+
         // Try Convert.ChangeType
         try
         {
@@ -208,13 +221,40 @@ internal sealed class BindingExpression : IDisposable
     private static object GetDefaultValue(Type valueType)
     {
         // Common value types — avoid any overhead
-        if (valueType == typeof(int)) return 0;
-        if (valueType == typeof(bool)) return false;
-        if (valueType == typeof(double)) return 0.0;
-        if (valueType == typeof(float)) return 0.0f;
-        if (valueType == typeof(long)) return 0L;
-        if (valueType == typeof(byte)) return (byte)0;
-        if (valueType == typeof(char)) return '\0';
+        if (valueType == typeof(int))
+        {
+            return 0;
+        }
+
+        if (valueType == typeof(bool))
+        {
+            return false;
+        }
+
+        if (valueType == typeof(double))
+        {
+            return 0.0;
+        }
+
+        if (valueType == typeof(float))
+        {
+            return 0.0f;
+        }
+
+        if (valueType == typeof(long))
+        {
+            return 0L;
+        }
+
+        if (valueType == typeof(byte))
+        {
+            return (byte)0;
+        }
+
+        if (valueType == typeof(char))
+        {
+            return '\0';
+        }
 
         // For struct types in our system (Color, Thickness, Size, GridLength, etc.),
         // Activator.CreateInstance returns the zero-initialized struct.
@@ -235,7 +275,7 @@ internal sealed class BindingExpression : IDisposable
     /// </summary>
     private void SubscribeToTargetChanges()
     {
-        if (_target is INotifyPropertyChanged inpc)
+        if (Target is INotifyPropertyChanged inpc)
         {
             inpc.PropertyChanged += OnTargetPropertyChanged;
         }
@@ -246,7 +286,7 @@ internal sealed class BindingExpression : IDisposable
     /// </summary>
     private void UnsubscribeFromTargetChanges()
     {
-        if (_target is INotifyPropertyChanged inpc)
+        if (Target is INotifyPropertyChanged inpc)
         {
             inpc.PropertyChanged -= OnTargetPropertyChanged;
         }
@@ -257,7 +297,7 @@ internal sealed class BindingExpression : IDisposable
     /// </summary>
     private void OnTargetPropertyChanged(object? sender, PropertyChangedEventArgs e)
     {
-        if (e.PropertyName == _targetPropertyName || string.IsNullOrEmpty(e.PropertyName))
+        if (e.PropertyName == TargetPropertyName || string.IsNullOrEmpty(e.PropertyName))
         {
             UpdateSource();
         }

@@ -110,8 +110,10 @@ public sealed class Renderer : IDisposable
     public void Resize(int newWidth, int newHeight)
     {
         if (newWidth == Width && newHeight == Height)
+        {
             return; // No change needed
-        
+        }
+
         _buffer.Resize(newWidth, newHeight);
         
         // Reset SGR attributes before clearing, so \e[2J fills with the
@@ -165,8 +167,10 @@ public sealed class Renderer : IDisposable
     public void HandleResize()
     {
         if (_terminal == null)
+        {
             return; // Test renderer, no resize support
-            
+        }
+
         var newWidth = _terminal.Width;
         var newHeight = _terminal.Height;
         
@@ -178,9 +182,14 @@ public sealed class Renderer : IDisposable
     /// </summary>
     public void Dispose()
     {
-        if (_disposed) return;
+        if (_disposed)
+        {
+            return;
+        }
+
         _disposed = true;
         
+        _buffer.Dispose();
         _guard?.Dispose();
         _writer.Dispose();
     }

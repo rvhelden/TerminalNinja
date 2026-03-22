@@ -108,11 +108,11 @@ public class Kernel32StructTests
     [Test]
     public async Task EventType_Constants_HaveCorrectValues()
     {
-        ushort keyEvent = Kernel32.KEY_EVENT;
-        ushort mouseEvent = Kernel32.MOUSE_EVENT;
-        ushort windowBufferSizeEvent = Kernel32.WINDOW_BUFFER_SIZE_EVENT;
-        ushort menuEvent = Kernel32.MENU_EVENT;
-        ushort focusEvent = Kernel32.FOCUS_EVENT;
+        var keyEvent = Kernel32.KEY_EVENT;
+        var mouseEvent = Kernel32.MOUSE_EVENT;
+        var windowBufferSizeEvent = Kernel32.WINDOW_BUFFER_SIZE_EVENT;
+        var menuEvent = Kernel32.MENU_EVENT;
+        var focusEvent = Kernel32.FOCUS_EVENT;
 
         await Assert.That(keyEvent).IsEqualTo((ushort)0x0001);
         await Assert.That(mouseEvent).IsEqualTo((ushort)0x0002);

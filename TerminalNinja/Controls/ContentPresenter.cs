@@ -101,10 +101,16 @@ public class ContentPresenter : FrameworkElement
     /// </summary>
     private void EnsureTemplatedChild()
     {
-        if (_visualChild != null) return;
+        if (_visualChild != null)
+        {
+            return;
+        }
 
         var content = Content;
-        if (content == null) return;
+        if (content == null)
+        {
+            return;
+        }
 
         _visualChild = ChooseAndCreateVisualChild(content);
 
@@ -171,7 +177,9 @@ public class ContentPresenter : FrameworkElement
     {
         // Explicit ContentTemplate takes priority
         if (ContentTemplate != null)
+        {
             return ContentTemplate;
+        }
 
         // Future: implicit DataTemplate by DataType lookup in resources
         // var content = Content;
@@ -190,14 +198,18 @@ public class ContentPresenter : FrameworkElement
     public override IEnumerable<(Visual Child, Rect ChildParentBounds)> GetChildrenWithBounds(Rect myBounds)
     {
         if (_visualChild != null)
+        {
             yield return (_visualChild, myBounds);
+        }
     }
 
     /// <inheritdoc />
     protected internal override IEnumerable<FrameworkElement> GetLogicalChildren()
     {
         if (_visualChild is FrameworkElement fe)
+        {
             yield return fe;
+        }
     }
 
     /// <inheritdoc />

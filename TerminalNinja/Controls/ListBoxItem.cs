@@ -83,7 +83,10 @@ public class ListBoxItem : ContentControl
 
         // Clip to buffer
         var clipped = bounds.Intersect(new Rect(0, 0, buffer.Width, buffer.Height));
-        if (clipped.Width <= 0 || clipped.Height <= 0) return;
+        if (clipped.Width <= 0 || clipped.Height <= 0)
+        {
+            return;
+        }
 
         // Determine colors based on selection state
         var bg = IsSelected ? SelectedBackground : Background;
@@ -166,7 +169,10 @@ public class ListBoxItem : ContentControl
         while (current != null)
         {
             if (current is Selector selector)
+            {
                 return selector;
+            }
+
             current = current.Parent;
         }
         return null;

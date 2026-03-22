@@ -15,7 +15,9 @@ internal sealed class PropertyPath
         _segments = parts.Select(p => new PropertyPathSegment(p.Trim())).ToArray();
         
         if (_segments.Length == 0)
+        {
             throw new ArgumentException("Property path cannot be empty", nameof(path));
+        }
     }
     
     /// <summary>
@@ -40,15 +42,19 @@ internal sealed class PropertyPath
     public object? GetValue(object? source)
     {
         if (source == null)
+        {
             return null;
-        
+        }
+
         var current = source;
         
         foreach (var segment in _segments)
         {
             current = segment.GetValue(current);
             if (current == null)
+            {
                 return null;
+            }
         }
         
         return current;
@@ -61,16 +67,20 @@ internal sealed class PropertyPath
     public void SetValue(object? source, object? value)
     {
         if (source == null)
+        {
             throw new InvalidOperationException("Cannot set value on null source");
-        
+        }
+
         // Navigate to the parent of the final property
         var current = source;
         for (var i = 0; i < _segments.Length - 1; i++)
         {
             current = _segments[i].GetValue(current);
             if (current == null)
+            {
                 throw new InvalidOperationException(
                     $"Cannot set property '{Path}' - intermediate value at '{_segments[i].PropertyName}' is null");
+            }
         }
         
         // Set the final property
@@ -84,15 +94,19 @@ internal sealed class PropertyPath
     internal object? GetValueAtSegment(object? source, int segmentIndex)
     {
         if (source == null || segmentIndex < 0 || segmentIndex >= _segments.Length)
+        {
             return null;
-        
+        }
+
         var current = source;
         
         for (var i = 0; i <= segmentIndex; i++)
         {
             current = _segments[i].GetValue(current);
             if (current == null)
+            {
                 return null;
+            }
         }
         
         return current;

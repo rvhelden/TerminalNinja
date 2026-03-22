@@ -71,7 +71,9 @@ public sealed class InputReader : IDisposable
     public void Dispose()
     {
         if (_disposed)
+        {
             return;
+        }
 
         _backend.Dispose();
         _disposed = true;

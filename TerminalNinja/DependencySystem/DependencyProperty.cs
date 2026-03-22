@@ -66,8 +66,10 @@ public sealed class DependencyProperty
         {
             var key = (ownerType, name);
             if (_registry.ContainsKey(key))
+            {
                 throw new InvalidOperationException(
                     $"DependencyProperty '{name}' is already registered on type '{ownerType.Name}'.");
+            }
 
             _registry[key] = dp;
         }

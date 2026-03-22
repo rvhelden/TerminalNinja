@@ -27,8 +27,10 @@ public static class ControlExtensions
     {
         // Check if this control matches
         if (control is FrameworkElement fe && fe.Name == name)
+        {
             return fe;
-        
+        }
+
         // Use visual tree traversal — works for all container types
         var dummyBounds = new Rect(0, 0, 1000, 1000);
         var myBounds = control.CalculateBounds(dummyBounds);
@@ -37,7 +39,10 @@ public static class ControlExtensions
             if (child is UIElement childElement)
             {
                 var result = FindByNameRecursive(childElement, name);
-                if (result != null) return result;
+                if (result != null)
+                {
+                    return result;
+                }
             }
         }
         

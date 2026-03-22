@@ -14,7 +14,7 @@ public class ClearPresentOptimizationTests
     public async Task ClearThenPresent_WhenAlreadyClear_OutputsNothing()
     {
         // Arrange - Create buffer and clear it
-        var buffer = new CellBuffer(10, 10);
+        using var buffer = new CellBuffer(10, 10);
         buffer.Clear();
         
         // First present to establish baseline (empty screen)
@@ -32,7 +32,7 @@ public class ClearPresentOptimizationTests
         using var stream2 = new MemoryStream();
         using var writer2 = new AnsiWriter(stream2);
         
-        int cellsWritten = 0;
+        var cellsWritten = 0;
         foreach (var change in buffer.GetChanges())
         {
             writer2.WriteCell(change.X, change.Y, change.Cell);
@@ -49,7 +49,7 @@ public class ClearPresentOptimizationTests
     public async Task RenderClearPresent_ThenClearPresent_SecondClearOutputsNothing()
     {
         // Arrange - Render something, present it, then clear and present
-        var buffer = new CellBuffer(5, 5);
+        using var buffer = new CellBuffer(5, 5);
         var rect = new global::TerminalNinja.Controls.Border
         {
             Foreground = new Color(255, 0, 0)
@@ -70,7 +70,7 @@ public class ClearPresentOptimizationTests
         buffer.Clear();
         using var stream2 = new MemoryStream();
         using var writer2 = new AnsiWriter(stream2);
-        int firstClearCells = 0;
+        var firstClearCells = 0;
         foreach (var change in buffer.GetChanges())
         {
             writer2.WriteCell(change.X, change.Y, change.Cell);
@@ -83,7 +83,7 @@ public class ClearPresentOptimizationTests
         buffer.Clear();
         using var stream3 = new MemoryStream();
         using var writer3 = new AnsiWriter(stream3);
-        int secondClearCells = 0;
+        var secondClearCells = 0;
         foreach (var change in buffer.GetChanges())
         {
             writer3.WriteCell(change.X, change.Y, change.Cell);
@@ -104,7 +104,7 @@ public class ClearPresentOptimizationTests
     public async Task MultipleClearCalls_OnlyFirstPresentOutputsChanges()
     {
         // Arrange - Create buffer and render content
-        var buffer = new CellBuffer(3, 3);
+        using var buffer = new CellBuffer(3, 3);
         var rect = new global::TerminalNinja.Controls.Border
         {
             Foreground = new Color(0, 255, 0)
@@ -125,7 +125,7 @@ public class ClearPresentOptimizationTests
         buffer.Clear();
         using var streamClear1 = new MemoryStream();
         using var writerClear1 = new AnsiWriter(streamClear1);
-        int clear1Cells = 0;
+        var clear1Cells = 0;
         foreach (var change in buffer.GetChanges())
         {
             writerClear1.WriteCell(change.X, change.Y, change.Cell);
@@ -137,7 +137,7 @@ public class ClearPresentOptimizationTests
         buffer.Clear();
         using var streamClear2 = new MemoryStream();
         using var writerClear2 = new AnsiWriter(streamClear2);
-        int clear2Cells = 0;
+        var clear2Cells = 0;
         foreach (var change in buffer.GetChanges())
         {
             writerClear2.WriteCell(change.X, change.Y, change.Cell);
@@ -149,7 +149,7 @@ public class ClearPresentOptimizationTests
         buffer.Clear();
         using var streamClear3 = new MemoryStream();
         using var writerClear3 = new AnsiWriter(streamClear3);
-        int clear3Cells = 0;
+        var clear3Cells = 0;
         foreach (var change in buffer.GetChanges())
         {
             writerClear3.WriteCell(change.X, change.Y, change.Cell);
@@ -172,7 +172,7 @@ public class ClearPresentOptimizationTests
     public async Task ClearPresentCycle_WithIntermediateRender_OutputsCorrectly()
     {
         // Arrange - Create buffer
-        var buffer = new CellBuffer(4, 4);
+        using var buffer = new CellBuffer(4, 4);
         
         // Initial clear and present
         buffer.Clear();
@@ -190,7 +190,7 @@ public class ClearPresentOptimizationTests
         rect.Render(buffer, new Rect(0, 0, 4, 4));
         using var stream2 = new MemoryStream();
         using var writer2 = new AnsiWriter(stream2);
-        int renderCells = 0;
+        var renderCells = 0;
         foreach (var change in buffer.GetChanges())
         {
             writer2.WriteCell(change.X, change.Y, change.Cell);
@@ -203,7 +203,7 @@ public class ClearPresentOptimizationTests
         buffer.Clear();
         using var stream3 = new MemoryStream();
         using var writer3 = new AnsiWriter(stream3);
-        int clearCells = 0;
+        var clearCells = 0;
         foreach (var change in buffer.GetChanges())
         {
             writer3.WriteCell(change.X, change.Y, change.Cell);
@@ -216,7 +216,7 @@ public class ClearPresentOptimizationTests
         buffer.Clear();
         using var stream4 = new MemoryStream();
         using var writer4 = new AnsiWriter(stream4);
-        int secondClearCells = 0;
+        var secondClearCells = 0;
         foreach (var change in buffer.GetChanges())
         {
             writer4.WriteCell(change.X, change.Y, change.Cell);
@@ -239,7 +239,7 @@ public class ClearPresentOptimizationTests
     public async Task PartialRenderThenClear_OutputsOnlyChangedCells()
     {
         // Arrange - Render small rectangle in corner
-        var buffer = new CellBuffer(10, 10);
+        using var buffer = new CellBuffer(10, 10);
         buffer.Clear();
         using var stream1 = new MemoryStream();
         using var writer1 = new AnsiWriter(stream1);
@@ -255,7 +255,7 @@ public class ClearPresentOptimizationTests
         rect.Render(buffer, new Rect(0, 0, 3, 3));
         using var stream2 = new MemoryStream();
         using var writer2 = new AnsiWriter(stream2);
-        int renderCells = 0;
+        var renderCells = 0;
         foreach (var change in buffer.GetChanges())
         {
             writer2.WriteCell(change.X, change.Y, change.Cell);
@@ -268,7 +268,7 @@ public class ClearPresentOptimizationTests
         buffer.Clear();
         using var stream3 = new MemoryStream();
         using var writer3 = new AnsiWriter(stream3);
-        int clearCells = 0;
+        var clearCells = 0;
         foreach (var change in buffer.GetChanges())
         {
             writer3.WriteCell(change.X, change.Y, change.Cell);
@@ -290,13 +290,13 @@ public class ClearPresentOptimizationTests
     public async Task EmptyBufferFromStart_ClearPresent_OutputsNothing()
     {
         // Arrange - Create buffer but don't render anything
-        var buffer = new CellBuffer(5, 5);
+        using var buffer = new CellBuffer(5, 5);
         
         // Act - Clear and present without any prior rendering
         buffer.Clear();
         using var stream = new MemoryStream();
         using var writer = new AnsiWriter(stream);
-        int cellsWritten = 0;
+        var cellsWritten = 0;
         foreach (var change in buffer.GetChanges())
         {
             writer.WriteCell(change.X, change.Y, change.Cell);
@@ -314,7 +314,7 @@ public class ClearPresentOptimizationTests
     public async Task ClearAfterSwap_WithNoPriorPresent_DetectsChanges()
     {
         // Arrange - Create buffer, clear it, swap without presenting
-        var buffer = new CellBuffer(3, 3);
+        using var buffer = new CellBuffer(3, 3);
         buffer.Clear();
         buffer.SwapBuffers();
         
@@ -322,7 +322,7 @@ public class ClearPresentOptimizationTests
         buffer.Clear();
         using var stream = new MemoryStream();
         using var writer = new AnsiWriter(stream);
-        int cellsWritten = 0;
+        var cellsWritten = 0;
         foreach (var change in buffer.GetChanges())
         {
             writer.WriteCell(change.X, change.Y, change.Cell);

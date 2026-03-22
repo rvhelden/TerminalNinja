@@ -9,7 +9,7 @@ public class CellBufferDumpTests
     public async Task DumpToString_EmptyBuffer_ReturnsHeaderAndRuler()
     {
         // Arrange
-        var buffer = new CellBuffer(10, 5);
+        using var buffer = new CellBuffer(10, 5);
         
         // Act
         var dump = buffer.DumpToString();
@@ -24,7 +24,7 @@ public class CellBufferDumpTests
     public async Task DumpToString_WithContent_ShowsCharacters()
     {
         // Arrange
-        var buffer = new CellBuffer(10, 5);
+        using var buffer = new CellBuffer(10, 5);
         buffer.SetChar(0, 0, 'H', Color.White, Color.Black);
         buffer.SetChar(1, 0, 'i', Color.White, Color.Black);
         
@@ -39,7 +39,7 @@ public class CellBufferDumpTests
     public async Task DumpToString_WithColors_ShowsColorInfo()
     {
         // Arrange
-        var buffer = new CellBuffer(10, 5);
+        using var buffer = new CellBuffer(10, 5);
         buffer.SetChar(0, 0, 'X', Color.Red, Color.Blue);
         
         // Act
@@ -54,7 +54,7 @@ public class CellBufferDumpTests
     public async Task DumpToString_IncludesTimestamp()
     {
         // Arrange
-        var buffer = new CellBuffer(10, 5);
+        using var buffer = new CellBuffer(10, 5);
         
         // Act
         var dump = buffer.DumpToString();

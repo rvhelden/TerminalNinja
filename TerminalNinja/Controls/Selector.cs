@@ -35,7 +35,10 @@ public abstract class Selector : ItemsControl
     private static void OnSelectedIndexChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
     {
         var selector = (Selector)d;
-        if (selector._updatingSelection) return;
+        if (selector._updatingSelection)
+        {
+            return;
+        }
 
         var newIndex = (int)e.NewValue!;
         selector._updatingSelection = true;
@@ -71,7 +74,10 @@ public abstract class Selector : ItemsControl
     private static void OnSelectedItemChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
     {
         var selector = (Selector)d;
-        if (selector._updatingSelection) return;
+        if (selector._updatingSelection)
+        {
+            return;
+        }
 
         selector._updatingSelection = true;
         try
@@ -233,7 +239,9 @@ public abstract class Selector : ItemsControl
             foreach (var item in source)
             {
                 if (item != null)
+                {
                     list.Add(item);
+                }
             }
         }
         return list;

@@ -280,7 +280,7 @@ public class ItemsPresenterTests
         var presenter = new ItemsPresenter();
         presenter.Parent = itemsControl;
 
-        var buffer = new CellBuffer(20, 5);
+        using var buffer = new CellBuffer(20, 5);
 
         // Act
         presenter.Render(buffer, new Rect(0, 0, 20, 5));
@@ -295,7 +295,7 @@ public class ItemsPresenterTests
     {
         // Arrange
         var presenter = new ItemsPresenter();
-        var buffer = new CellBuffer(20, 5);
+        using var buffer = new CellBuffer(20, 5);
 
         // Act & Assert — should not throw
         presenter.Render(buffer, new Rect(0, 0, 20, 5));
@@ -313,7 +313,7 @@ public class ItemsPresenterTests
         var presenter = new ItemsPresenter();
         presenter.Parent = itemsControl;
 
-        var buffer = new CellBuffer(20, 5);
+        using var buffer = new CellBuffer(20, 5);
 
         // Act
         presenter.Render(buffer, new Rect(0, 0, 20, 5));

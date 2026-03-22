@@ -9,42 +9,41 @@ namespace TerminalNinja.Controls;
 /// </summary>
 public sealed class FocusManager
 {
-    private UIElement? _focusedElement;
-    private UIElement? _hoveredElement;
-    
     /// <summary>
     /// Gets the currently focused element, or null if no element has focus.
     /// </summary>
-    public UIElement? FocusedElement => _focusedElement;
-    
+    public UIElement? FocusedElement { get; private set; }
+
     /// <summary>
     /// Gets the currently hovered element, or null if no element is hovered.
     /// </summary>
-    public UIElement? HoveredElement => _hoveredElement;
-    
+    public UIElement? HoveredElement { get; private set; }
+
     /// <summary>
     /// Sets focus to the specified element. Pass null to clear focus.
     /// </summary>
     /// <param name="element">The element to focus, or null to clear focus.</param>
     public void SetFocus(UIElement? element)
     {
-        if (_focusedElement == element)
-            return;
-        
-        // Blur previous element
-        if (_focusedElement is not null)
+        if (FocusedElement == element)
         {
-            _focusedElement.IsFocused = false;
-            _focusedElement.OnLostFocus();
+            return;
+        }
+
+        // Blur previous element
+        if (FocusedElement is not null)
+        {
+            FocusedElement.IsFocused = false;
+            FocusedElement.OnLostFocus();
         }
         
-        _focusedElement = element;
+        FocusedElement = element;
         
         // Focus new element
-        if (_focusedElement is not null)
+        if (FocusedElement is not null)
         {
-            _focusedElement.IsFocused = true;
-            _focusedElement.OnGotFocus();
+            FocusedElement.IsFocused = true;
+            FocusedElement.OnGotFocus();
         }
     }
     
@@ -67,15 +66,17 @@ public sealed class FocusManager
             .ToList();
         
         if (focusableElements.Count == 0)
+        {
             return;
-        
-        if (_focusedElement is null)
+        }
+
+        if (FocusedElement is null)
         {
             SetFocus(focusableElements[0].Element);
             return;
         }
         
-        var currentIndex = focusableElements.FindIndex(x => x.Element == _focusedElement);
+        var currentIndex = focusableElements.FindIndex(x => x.Element == FocusedElement);
         if (currentIndex == -1)
         {
             SetFocus(focusableElements[0].Element);
@@ -100,15 +101,17 @@ public sealed class FocusManager
             .ToList();
         
         if (focusableElements.Count == 0)
+        {
             return;
-        
-        if (_focusedElement is null)
+        }
+
+        if (FocusedElement is null)
         {
             SetFocus(focusableElements[^1].Element);
             return;
         }
         
-        var currentIndex = focusableElements.FindIndex(x => x.Element == _focusedElement);
+        var currentIndex = focusableElements.FindIndex(x => x.Element == FocusedElement);
         if (currentIndex == -1)
         {
             SetFocus(focusableElements[^1].Element);
@@ -131,23 +134,25 @@ public sealed class FocusManager
     {
         var hitElement = HitTest(rootControl, rootBounds, mouseX, mouseY);
         
-        if (_hoveredElement == hitElement)
-            return hitElement;
-        
-        // Leave previous element
-        if (_hoveredElement is not null)
+        if (HoveredElement == hitElement)
         {
-            _hoveredElement.IsMouseOver = false;
-            _hoveredElement.OnMouseLeave();
+            return hitElement;
+        }
+
+        // Leave previous element
+        if (HoveredElement is not null)
+        {
+            HoveredElement.IsMouseOver = false;
+            HoveredElement.OnMouseLeave();
         }
         
-        _hoveredElement = hitElement;
+        HoveredElement = hitElement;
         
         // Enter new element
-        if (_hoveredElement is not null)
+        if (HoveredElement is not null)
         {
-            _hoveredElement.IsMouseOver = true;
-            _hoveredElement.OnMouseEnter();
+            HoveredElement.IsMouseOver = true;
+            HoveredElement.OnMouseEnter();
         }
         
         return hitElement;
@@ -210,7 +215,10 @@ public sealed class FocusManager
         while (current != null)
         {
             if (current is UIElement uie)
+            {
                 uie.OnMouseEvent(mouseEvent);
+            }
+
             current = current.Parent;
         }
     }
@@ -221,7 +229,7 @@ public sealed class FocusManager
     /// <param name="keyEvent">The keyboard event to handle.</param>
     public void HandleKeyEvent(KeyEvent keyEvent)
     {
-        _focusedElement?.OnKeyEvent(keyEvent);
+        FocusedElement?.OnKeyEvent(keyEvent);
     }
     
     /// <summary>
@@ -240,17 +248,23 @@ public sealed class FocusManager
     {
         // Prune invisible or disabled subtrees — they cannot receive focus
         if (element.Visibility != Visibility.Visible || !element.IsEnabled)
+        {
             return;
+        }
 
         var myBounds = element.CalculateBounds(parentBounds);
 
         if (element.Focusable)
+        {
             result.Add((element, myBounds));
+        }
 
         foreach (var (child, childParentBounds) in element.GetChildrenWithBounds(myBounds))
         {
             if (child is UIElement childElement)
+            {
                 CollectFocusableElementsCore(childElement, childParentBounds, result);
+            }
         }
     }
 
@@ -262,12 +276,16 @@ public sealed class FocusManager
     {
         // Prune invisible or disabled subtrees
         if (element.Visibility != Visibility.Visible || !element.IsEnabled)
+        {
             return null;
+        }
 
         var myBounds = element.CalculateBounds(parentBounds);
 
         if (!myBounds.Contains(x, y))
+        {
             return null;
+        }
 
         // Recurse into children (last child wins — later children are visually on top)
         UIElement? deepest = null;
@@ -277,7 +295,9 @@ public sealed class FocusManager
             {
                 var hit = HitTestDeep(childElement, childParentBounds, x, y);
                 if (hit != null)
+                {
                     deepest = hit;
+                }
             }
         }
 
@@ -293,12 +313,16 @@ public sealed class FocusManager
     {
         // Prune invisible or disabled subtrees
         if (element.Visibility != Visibility.Visible || !element.IsEnabled)
+        {
             return null;
+        }
 
         var myBounds = element.CalculateBounds(parentBounds);
 
         if (!myBounds.Contains(x, y))
+        {
             return null;
+        }
 
         // Recurse into children (last child wins — later children are visually on top)
         UIElement? deepest = null;
@@ -308,12 +332,16 @@ public sealed class FocusManager
             {
                 var hit = HitTestFocusable(childElement, childParentBounds, x, y);
                 if (hit != null)
+                {
                     deepest = hit;
+                }
             }
         }
 
         if (deepest != null)
+        {
             return deepest;
+        }
 
         return element.Focusable ? element : null;
     }
@@ -329,7 +357,10 @@ public sealed class FocusManager
         while (current != null)
         {
             if (current is UIElement uie && uie.Focusable)
+            {
                 return uie;
+            }
+
             current = current.Parent;
         }
         return null;

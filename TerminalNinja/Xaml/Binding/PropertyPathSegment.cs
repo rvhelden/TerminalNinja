@@ -8,29 +8,30 @@ namespace TerminalNinja.Xaml.Binding;
 /// </summary>
 internal sealed class PropertyPathSegment
 {
-    private readonly string _propertyName;
     private PropertyAccessor? _cachedAccessor;
     private Type? _cachedSourceType;
     
     public PropertyPathSegment(string propertyName)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(propertyName);
-        _propertyName = propertyName;
+        PropertyName = propertyName;
     }
     
     /// <summary>
     /// Gets the property name for this segment.
     /// </summary>
-    public string PropertyName => _propertyName;
-    
+    public string PropertyName { get; }
+
     /// <summary>
     /// Gets the value of this property segment from the source object.
     /// </summary>
     public object? GetValue(object? source)
     {
         if (source == null)
+        {
             return null;
-        
+        }
+
         var accessor = ResolveAccessor(source.GetType());
         return accessor.Getter(source);
     }
@@ -41,15 +42,19 @@ internal sealed class PropertyPathSegment
     public void SetValue(object? target, object? value)
     {
         if (target == null)
+        {
             return;
-        
+        }
+
         var targetType = target.GetType();
         var accessor = ResolveAccessor(targetType);
         
         if (!accessor.CanWrite)
+        {
             throw new InvalidOperationException(
-                $"Property '{_propertyName}' on type '{targetType.Name}' is read-only");
-        
+                $"Property '{PropertyName}' on type '{targetType.Name}' is read-only");
+        }
+
         accessor.Setter!(target, value);
     }
     
@@ -59,9 +64,11 @@ internal sealed class PropertyPathSegment
     public PropertyAccessor? GetAccessor(Type sourceType)
     {
         if (_cachedAccessor.HasValue && _cachedSourceType == sourceType)
+        {
             return _cachedAccessor;
-        
-        if (PropertyAccessorRegistry.TryGetAccessor(sourceType, _propertyName, out var accessor))
+        }
+
+        if (PropertyAccessorRegistry.TryGetAccessor(sourceType, PropertyName, out var accessor))
         {
             _cachedAccessor = accessor;
             _cachedSourceType = sourceType;
@@ -78,9 +85,11 @@ internal sealed class PropertyPathSegment
     {
         // Cache for performance
         if (_cachedAccessor.HasValue && _cachedSourceType == sourceType)
+        {
             return _cachedAccessor.Value;
-        
-        var accessor = PropertyAccessorRegistry.GetAccessor(sourceType, _propertyName);
+        }
+
+        var accessor = PropertyAccessorRegistry.GetAccessor(sourceType, PropertyName);
         _cachedAccessor = accessor;
         _cachedSourceType = sourceType;
         

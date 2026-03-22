@@ -159,12 +159,17 @@ public sealed class TextBlock : FrameworkElement
         {
             var totalLength = GetInlineTextLength();
             if (totalLength == 0)
+            {
                 return new Size2D(Padding.HorizontalTotal, Padding.VerticalTotal);
+            }
+
             return new Size2D(totalLength + Padding.HorizontalTotal, 1 + Padding.VerticalTotal);
         }
 
         if (string.IsNullOrEmpty(Text))
+        {
             return new Size2D(Padding.HorizontalTotal, Padding.VerticalTotal);
+        }
 
         // Get line spans and calculate dimensions
         var lines = SplitIntoLines(Text.AsSpan());
@@ -173,7 +178,9 @@ public sealed class TextBlock : FrameworkElement
         foreach (var (_, length) in lines)
         {
             if (length > maxLineWidth)
+            {
                 maxLineWidth = length;
+            }
         }
 
         return new Size2D(maxLineWidth + Padding.HorizontalTotal, lines.Count + Padding.VerticalTotal);
@@ -199,8 +206,11 @@ public sealed class TextBlock : FrameworkElement
         
         // Clip to buffer bounds
         var clipped = bounds.Intersect(new Rect(0, 0, buffer.Width, buffer.Height));
-        if (clipped.Width <= 0 || clipped.Height <= 0) return;
-        
+        if (clipped.Width <= 0 || clipped.Height <= 0)
+        {
+            return;
+        }
+
         // Fill background (skip when transparent — let parent's background show through)
         if (!Background.IsTransparent)
         {
@@ -214,7 +224,10 @@ public sealed class TextBlock : FrameworkElement
         var textWidth = Math.Max(0, bounds.Width - Padding.HorizontalTotal);
         var textHeight = Math.Max(0, bounds.Height - Padding.VerticalTotal);
         
-        if (textWidth <= 0 || textHeight <= 0) return;
+        if (textWidth <= 0 || textHeight <= 0)
+        {
+            return;
+        }
 
         if (HasInlines)
         {
@@ -223,8 +236,11 @@ public sealed class TextBlock : FrameworkElement
         else
         {
             // If no text, we're done
-            if (string.IsNullOrEmpty(Text)) return;
-            
+            if (string.IsNullOrEmpty(Text))
+            {
+                return;
+            }
+
             // Render text with wrapping/alignment
             RenderText(buffer, textX, textY, textWidth, textHeight);
         }
@@ -233,14 +249,20 @@ public sealed class TextBlock : FrameworkElement
     /// <inheritdoc />
     protected internal override IEnumerable<FrameworkElement> GetLogicalChildren()
     {
-        if (_inlines == null) yield break;
+        if (_inlines == null)
+        {
+            yield break;
+        }
+
         foreach (var inline in _inlines)
+        {
             yield return inline;
+        }
     }
     
     private void RenderText(CellBuffer buffer, int x, int y, int width, int height)
     {
-        ReadOnlySpan<char> text = Text.AsSpan();
+        var text = Text.AsSpan();
         var decorations = TextDecorations;
 
         // Split into lines
@@ -280,16 +302,23 @@ public sealed class TextBlock : FrameworkElement
             var lineSpan = text.Slice(lineStart, lineLength);
             var lineY = startY + i;
 
-            if (lineY < 0 || lineY >= buffer.Height) continue;
+            if (lineY < 0 || lineY >= buffer.Height)
+            {
+                continue;
+            }
 
             // Calculate effective line length (with trimming)
             var effectiveLength = lineLength;
             var needsEllipsis = lineLength > width && TextTrimming == TextTrimming.Ellipsis && width >= 3;
 
             if (needsEllipsis)
+            {
                 effectiveLength = width;
+            }
             else if (lineLength > width)
+            {
                 effectiveLength = width;
+            }
 
             // Apply horizontal alignment
             var startX = HorizontalTextAlignment switch
@@ -306,15 +335,24 @@ public sealed class TextBlock : FrameworkElement
             for (var j = 0; j < renderLength && startX + j < x + width; j++)
             {
                 var charX = startX + j;
-                if (charX < 0 || charX >= buffer.Width) continue;
+                if (charX < 0 || charX >= buffer.Width)
+                {
+                    continue;
+                }
 
                 char ch;
                 if (needsEllipsis && j >= width - 3)
+                {
                     ch = '.';
+                }
                 else if (j < lineSpan.Length)
+                {
                     ch = lineSpan[j];
+                }
                 else
+                {
                     continue;
+                }
 
                 buffer.SetChar(charX, lineY, ch, Foreground, Background, decorations);
             }
@@ -333,14 +371,22 @@ public sealed class TextBlock : FrameworkElement
             inline.CollectRuns(runs, Foreground, Background, TextDecorations);
         }
 
-        if (runs.Count == 0) return;
+        if (runs.Count == 0)
+        {
+            return;
+        }
 
         // Build the full text and a parallel array of style info per character
         var totalLength = 0;
         foreach (var run in runs)
+        {
             totalLength += run.Text.Length;
+        }
 
-        if (totalLength == 0) return;
+        if (totalLength == 0)
+        {
+            return;
+        }
 
         // For NoWrap mode, render as a single line with per-character styling
         if (TextWrapping == TextWrapping.NoWrap)
@@ -366,7 +412,10 @@ public sealed class TextBlock : FrameworkElement
             _ => y
         };
 
-        if (lineY < 0 || lineY >= buffer.Height || lineY >= y + height) return;
+        if (lineY < 0 || lineY >= buffer.Height || lineY >= y + height)
+        {
+            return;
+        }
 
         // Determine visible length (after trimming)
         var visibleLength = Math.Min(totalLength, width);
@@ -388,10 +437,16 @@ public sealed class TextBlock : FrameworkElement
         {
             for (var i = 0; i < run.Text.Length; i++)
             {
-                if (charIndex >= width) return; // past visible area
+                if (charIndex >= width)
+                {
+                    return; // past visible area
+                }
 
                 var charX = startX + charIndex;
-                if (charX >= x + width) return;
+                if (charX >= x + width)
+                {
+                    return;
+                }
 
                 if (charX >= 0 && charX < buffer.Width)
                 {
@@ -421,7 +476,9 @@ public sealed class TextBlock : FrameworkElement
         foreach (var run in runs)
         {
             foreach (var c in run.Text)
+            {
                 styledChars.Add((c, run.Foreground, run.Background, run.Decorations));
+            }
         }
 
         // Wrap into lines
@@ -445,7 +502,9 @@ public sealed class TextBlock : FrameworkElement
             }
         }
         if (currentLine.Count > 0)
+        {
             wrappedLines.Add(currentLine);
+        }
 
         // Apply vertical alignment
         var startY = VerticalTextAlignment switch
@@ -461,7 +520,10 @@ public sealed class TextBlock : FrameworkElement
         {
             var line = wrappedLines[lineIdx];
             var lineY = startY + lineIdx;
-            if (lineY < 0 || lineY >= buffer.Height) continue;
+            if (lineY < 0 || lineY >= buffer.Height)
+            {
+                continue;
+            }
 
             var startX = HorizontalTextAlignment switch
             {
@@ -474,7 +536,10 @@ public sealed class TextBlock : FrameworkElement
             for (var j = 0; j < line.Count && startX + j < x + width; j++)
             {
                 var charX = startX + j;
-                if (charX < 0 || charX >= buffer.Width) continue;
+                if (charX < 0 || charX >= buffer.Width)
+                {
+                    continue;
+                }
 
                 var sc = line[j];
                 buffer.SetChar(charX, lineY, sc.Char, sc.Fg, sc.Bg, sc.Deco);
@@ -489,11 +554,16 @@ public sealed class TextBlock : FrameworkElement
     {
         var runs = new List<InlineRun>();
         foreach (var inline in _inlines!)
+        {
             inline.CollectRuns(runs, Foreground, Background, TextDecorations);
+        }
 
         var total = 0;
         foreach (var run in runs)
+        {
             total += run.Text.Length;
+        }
+
         return total;
     }
     
@@ -523,14 +593,19 @@ public sealed class TextBlock : FrameworkElement
             {
                 lines.Add((lineStart, i - lineStart));
                 if (i + 1 < text.Length && text[i + 1] == '\n')
+                {
                     i++; // Skip \n in \r\n
+                }
+
                 lineStart = i + 1;
             }
         }
 
         // Add final line
         if (lineStart <= text.Length)
+        {
             lines.Add((lineStart, text.Length - lineStart));
+        }
 
         return lines;
     }
@@ -540,7 +615,11 @@ public sealed class TextBlock : FrameworkElement
     /// </summary>
     private static void WrapTextSpanToLines(ReadOnlySpan<char> text, int baseOffset, int maxWidth, List<(int Start, int Length)> output)
     {
-        if (maxWidth <= 0) return;
+        if (maxWidth <= 0)
+        {
+            return;
+        }
+
         if (text.Length <= maxWidth)
         {
             output.Add((baseOffset, text.Length));

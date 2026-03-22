@@ -88,7 +88,9 @@ public sealed class XamlClassGenerator : IIncrementalGenerator
         var xamlFiles = input.XamlFiles;
 
         if (xamlFiles.IsDefaultOrEmpty)
+        {
             return;
+        }
 
         foreach (var xamlFile in xamlFiles)
         {
@@ -116,7 +118,9 @@ public sealed class XamlClassGenerator : IIncrementalGenerator
     private static void ProcessXamlFile(SourceProductionContext context, Compilation compilation, XamlFileInfo xamlFile)
     {
         if (string.IsNullOrWhiteSpace(xamlFile.Content))
+        {
             return;
+        }
 
         XDocument doc;
         try
@@ -131,12 +135,16 @@ public sealed class XamlClassGenerator : IIncrementalGenerator
 
         var root = doc.Root;
         if (root == null)
+        {
             return;
+        }
 
         // Look for x:Class attribute on root element
         var xClassAttr = root.Attribute(XName.Get("Class", XamlXNs));
         if (xClassAttr == null)
+        {
             return; // No x:Class — this XAML doesn't need a generated partial class
+        }
 
         var fullClassName = xClassAttr.Value; // e.g., "Sample.ActivityLogControl"
 
@@ -239,7 +247,10 @@ public sealed class XamlClassGenerator : IIncrementalGenerator
             var clrNs = ns.Substring("clr-namespace:".Length);
             var semiIdx = clrNs.IndexOf(';');
             if (semiIdx >= 0)
+            {
                 clrNs = clrNs.Substring(0, semiIdx);
+            }
+
             return clrNs + "." + localName;
         }
 
@@ -256,7 +267,9 @@ public sealed class XamlClassGenerator : IIncrementalGenerator
 
         // Fast path: known content control types
         if (ContentControlTypes.Contains(localName))
+        {
             return true;
+        }
 
         // Check if the type inherits from ContentControl by looking at compilation symbols
         var ns = root.Name.NamespaceName;
@@ -285,7 +298,10 @@ public sealed class XamlClassGenerator : IIncrementalGenerator
         while (current != null)
         {
             if (current.Name == baseClassName)
+            {
                 return true;
+            }
+
             current = current.BaseType;
         }
         return false;
@@ -305,11 +321,15 @@ public sealed class XamlClassGenerator : IIncrementalGenerator
 
             // Skip property elements (e.g., <UserControl.Resources>)
             if (localName.Contains('.'))
+            {
                 continue;
+            }
 
             var nameAttr = element.Attribute(XName.Get("Name", XamlXNs));
             if (nameAttr == null)
+            {
                 continue;
+            }
 
             var fieldName = nameAttr.Value;
             var typeName = ResolveElementTypeName(element);
@@ -339,7 +359,11 @@ internal sealed class XamlFileInfo : IEquatable<XamlFileInfo>
 
     public bool Equals(XamlFileInfo? other)
     {
-        if (other is null) return false;
+        if (other is null)
+        {
+            return false;
+        }
+
         return FilePath == other.FilePath && Content == other.Content && ResourceName == other.ResourceName;
     }
 
@@ -363,7 +387,11 @@ internal sealed class NamedElementInfo : IEquatable<NamedElementInfo>
 
     public bool Equals(NamedElementInfo? other)
     {
-        if (other is null) return false;
+        if (other is null)
+        {
+            return false;
+        }
+
         return Name == other.Name && TypeName == other.TypeName;
     }
 

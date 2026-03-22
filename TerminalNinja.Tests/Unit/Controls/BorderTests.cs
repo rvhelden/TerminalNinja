@@ -23,6 +23,13 @@ public class BorderTests
         return Task.CompletedTask;
     }
 
+    [After(Test)]
+    public Task Cleanup()
+    {
+        _buffer.Dispose();
+        return Task.CompletedTask;
+    }
+
     #region CalculateBounds - Basic
 
     [Test]

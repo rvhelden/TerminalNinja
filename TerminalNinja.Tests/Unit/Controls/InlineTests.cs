@@ -548,7 +548,7 @@ public class InlineTests
     public async Task Inline_Render_DoesNothing()
     {
         var run = new Run { Text = "Test", Foreground = Color.Red };
-        var buffer = new CellBuffer(10, 5);
+        using var buffer = new CellBuffer(10, 5);
 
         // Should not throw and should not modify buffer
         run.Render(buffer, new Rect(0, 0, 10, 5));

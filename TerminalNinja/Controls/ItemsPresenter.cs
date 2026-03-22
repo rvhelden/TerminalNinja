@@ -35,7 +35,10 @@ public class ItemsPresenter : FrameworkElement
         while (current != null)
         {
             if (current is ItemsControl ic)
+            {
                 return ic;
+            }
+
             current = current.Parent;
         }
         return null;
@@ -57,7 +60,9 @@ public class ItemsPresenter : FrameworkElement
     {
         var panel = Owner?.ItemsPanel;
         if (panel != null)
+        {
             yield return (panel, myBounds);
+        }
     }
 
     /// <inheritdoc />
@@ -65,7 +70,9 @@ public class ItemsPresenter : FrameworkElement
     {
         var panel = Owner?.ItemsPanel;
         if (panel != null)
+        {
             yield return panel;
+        }
     }
 
     /// <inheritdoc />

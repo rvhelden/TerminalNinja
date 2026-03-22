@@ -20,7 +20,9 @@ public sealed class UnixInputBackend : Input.IInputBackend
         ObjectDisposedException.ThrowIf(_disposed, this);
 
         if (!System.Console.KeyAvailable)
+        {
             return null;
+        }
 
         var keyInfo = System.Console.ReadKey(intercept: true);
         var keyEvent = ConvertKeyInfo(keyInfo);
@@ -44,7 +46,9 @@ public sealed class UnixInputBackend : Input.IInputBackend
         ObjectDisposedException.ThrowIf(_disposed, this);
 
         if (_mouseTrackingEnabled)
+        {
             return;
+        }
 
         // Enable ANSI mouse tracking
         // SGR mode (1006) for extended coordinates + Any-event tracking (1003)
@@ -58,7 +62,9 @@ public sealed class UnixInputBackend : Input.IInputBackend
         ObjectDisposedException.ThrowIf(_disposed, this);
 
         if (!_mouseTrackingEnabled)
+        {
             return;
+        }
 
         // Disable ANSI mouse tracking
         System.Console.Write("\u001b[?1003l\u001b[?1006l");
@@ -69,7 +75,9 @@ public sealed class UnixInputBackend : Input.IInputBackend
     public void Dispose()
     {
         if (_disposed)
+        {
             return;
+        }
 
         if (_mouseTrackingEnabled)
         {

@@ -31,7 +31,10 @@ public static class ContentPropertyRegistry
         while (current != null)
         {
             if (ContentProperties.TryGetValue(current, out var name))
+            {
                 return name;
+            }
+
             current = current.BaseType;
         }
         return null;

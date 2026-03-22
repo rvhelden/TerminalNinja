@@ -102,13 +102,18 @@ public sealed class Button : ButtonBase
         
         // Clip to buffer bounds
         var clipped = bounds.Intersect(new Rect(0, 0, buffer.Width, buffer.Height));
-        if (clipped.Width <= 0 || clipped.Height <= 0) return;
-        
+        if (clipped.Width <= 0 || clipped.Height <= 0)
+        {
+            return;
+        }
+
         // Choose border color based on focus/hover state (dimmed if disabled)
         var borderColor = IsFocused ? FocusColor : IsMouseOver ? HoverColor : Foreground;
         if (!IsEnabled)
+        {
             borderColor = new Color((byte)(borderColor.R / 2), (byte)(borderColor.G / 2), (byte)(borderColor.B / 2)); // Dim by 50%
-        
+        }
+
         // Create rounded border with appropriate color
         var border = Styling.BorderStyle.Rounded(borderColor);
         
@@ -132,8 +137,10 @@ public sealed class Button : ButtonBase
                 
                 // Skip characters outside buffer
                 if (charX < 0 || charX >= buffer.Width || textY < 0 || textY >= buffer.Height)
+                {
                     continue;
-                
+                }
+
                 buffer.SetChar(charX, textY, Text[i], textColor, Background);
             }
         }
@@ -144,18 +151,25 @@ public sealed class Button : ButtonBase
     /// </summary>
     private void DrawBorder(CellBuffer buffer, Rect bounds, BorderChars chars, Color color)
     {
-        if (chars.IsEmpty) return;
-        
+        if (chars.IsEmpty)
+        {
+            return;
+        }
+
         // Top and bottom edges
         for (var x = bounds.X + 1; x < bounds.X + bounds.Width - 1; x++)
         {
             if (x >= 0 && x < buffer.Width)
             {
                 if (bounds.Y >= 0 && bounds.Y < buffer.Height)
+                {
                     buffer.SetChar(x, bounds.Y, chars.Horizontal, color, Background);
-                
+                }
+
                 if (bounds.Y + bounds.Height - 1 >= 0 && bounds.Y + bounds.Height - 1 < buffer.Height)
+                {
                     buffer.SetChar(x, bounds.Y + bounds.Height - 1, chars.Horizontal, color, Background);
+                }
             }
         }
         
@@ -165,28 +179,40 @@ public sealed class Button : ButtonBase
             if (y >= 0 && y < buffer.Height)
             {
                 if (bounds.X >= 0 && bounds.X < buffer.Width)
+                {
                     buffer.SetChar(bounds.X, y, chars.Vertical, color, Background);
-                
+                }
+
                 if (bounds.X + bounds.Width - 1 >= 0 && bounds.X + bounds.Width - 1 < buffer.Width)
+                {
                     buffer.SetChar(bounds.X + bounds.Width - 1, y, chars.Vertical, color, Background);
+                }
             }
         }
         
         // Corners
         if (bounds.X >= 0 && bounds.X < buffer.Width && bounds.Y >= 0 && bounds.Y < buffer.Height)
+        {
             buffer.SetChar(bounds.X, bounds.Y, chars.TopLeft, color, Background);
-        
+        }
+
         if (bounds.X + bounds.Width - 1 >= 0 && bounds.X + bounds.Width - 1 < buffer.Width &&
             bounds.Y >= 0 && bounds.Y < buffer.Height)
+        {
             buffer.SetChar(bounds.X + bounds.Width - 1, bounds.Y, chars.TopRight, color, Background);
-        
+        }
+
         if (bounds.X >= 0 && bounds.X < buffer.Width &&
             bounds.Y + bounds.Height - 1 >= 0 && bounds.Y + bounds.Height - 1 < buffer.Height)
+        {
             buffer.SetChar(bounds.X, bounds.Y + bounds.Height - 1, chars.BottomLeft, color, Background);
-        
+        }
+
         if (bounds.X + bounds.Width - 1 >= 0 && bounds.X + bounds.Width - 1 < buffer.Width &&
             bounds.Y + bounds.Height - 1 >= 0 && bounds.Y + bounds.Height - 1 < buffer.Height)
+        {
             buffer.SetChar(bounds.X + bounds.Width - 1, bounds.Y + bounds.Height - 1, chars.BottomRight, color, Background);
+        }
     }
     
     /// <summary>

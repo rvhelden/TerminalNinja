@@ -82,28 +82,40 @@ internal static class GeneratorHelper
     {
         // Skip compiler-generated types
         if (type.IsImplicitlyDeclared)
+        {
             return false;
+        }
 
         // Must be a class (not interface, struct, enum, delegate)
         if (type.TypeKind != TypeKind.Class)
+        {
             return false;
+        }
 
         // Skip types that aren't accessible from generated top-level code
         // (e.g., private nested test classes)
         if (!IsAccessibleFromGeneratedCode(type))
+        {
             return false;
+        }
 
         // Check if it inherits from target base classes
         if (InheritsFrom(type, TargetBaseClassNames))
+        {
             return true;
+        }
 
         // Check if it implements INotifyPropertyChanged (catches other bindable types)
         if (ImplementsInterface(type, new[] { NotifyPropertyChangedName }))
+        {
             return true;
+        }
 
         // Check if it's one of the additional XAML types that need accessors
         if (AdditionalAccessorTypes.Contains(type.Name))
+        {
             return true;
+        }
 
         return false;
     }
@@ -119,19 +131,27 @@ internal static class GeneratorHelper
     {
         // Skip compiler-generated types
         if (type.IsImplicitlyDeclared)
+        {
             return false;
+        }
 
         // Must be a class (not interface, struct, enum, delegate)
         if (type.TypeKind != TypeKind.Class)
+        {
             return false;
+        }
 
         // Skip types that aren't accessible from generated top-level code
         if (!IsAccessibleFromGeneratedCode(type))
+        {
             return false;
+        }
 
         // Already covered by IsTargetType — skip to avoid duplicate registration
         if (IsTargetType(type))
+        {
             return false;
+        }
 
         // Check for [BindableObject] attribute
         return HasAttribute(type, BindableObjectAttributeName);
@@ -145,7 +165,9 @@ internal static class GeneratorHelper
         foreach (var attr in type.GetAttributes())
         {
             if (attr.AttributeClass?.Name == attributeName)
+            {
                 return true;
+            }
         }
         return false;
     }
@@ -162,31 +184,43 @@ internal static class GeneratorHelper
         foreach (var member in type.GetMembers())
         {
             if (member is not IPropertySymbol property)
+            {
                 continue;
+            }
 
             // Skip static, indexers, and non-public properties
             if (property.IsStatic)
+            {
                 continue;
+            }
+
             if (property.IsIndexer)
+            {
                 continue;
+            }
+
             if (property.DeclaredAccessibility != Accessibility.Public &&
                 property.DeclaredAccessibility != Accessibility.Internal)
+            {
                 continue;
+            }
 
             // Determine readability
-            bool canRead = property.GetMethod != null &&
-                           (property.GetMethod.DeclaredAccessibility == Accessibility.Public ||
-                            property.GetMethod.DeclaredAccessibility == Accessibility.Internal);
+            var canRead = property.GetMethod != null &&
+                          (property.GetMethod.DeclaredAccessibility == Accessibility.Public ||
+                           property.GetMethod.DeclaredAccessibility == Accessibility.Internal);
 
             // Determine if writable (init-only setters are NOT writable at runtime)
-            bool canWrite = property.SetMethod != null &&
+            var canWrite = property.SetMethod != null &&
                            !property.SetMethod.IsInitOnly &&
                            (property.SetMethod.DeclaredAccessibility == Accessibility.Public ||
                             property.SetMethod.DeclaredAccessibility == Accessibility.Internal);
 
             // Must be at least readable or writable
             if (!canRead && !canWrite)
+            {
                 continue;
+            }
 
             var propertyType = GetFullyQualifiedTypeName(property.Type);
 
@@ -222,7 +256,9 @@ internal static class GeneratorHelper
             foreach (var name in interfaceNames)
             {
                 if (iface.Name == name)
+                {
                     return true;
+                }
             }
         }
         return false;
@@ -236,7 +272,9 @@ internal static class GeneratorHelper
             foreach (var name in baseClassNames)
             {
                 if (current.Name == name)
+                {
                     return true;
+                }
             }
             current = current.BaseType;
         }

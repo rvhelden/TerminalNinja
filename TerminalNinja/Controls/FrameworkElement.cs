@@ -105,7 +105,9 @@ public abstract class FrameworkElement : UIElement
     internal void ActivatePendingBindings(BindingManager bindingManager, object dataContext)
     {
         if (_pendingBindings == null || _pendingBindings.Count == 0)
+        {
             return;
+        }
 
         var bindings = _pendingBindings;
         _pendingBindings = null; // Clear before activating to prevent re-entrancy
@@ -149,7 +151,9 @@ public abstract class FrameworkElement : UIElement
     {
         var dc = DataContext;
         if (dc != null)
+        {
             return dc;
+        }
 
         return Parent switch
         {
@@ -189,12 +193,16 @@ public abstract class FrameworkElement : UIElement
         
         // 1. Check own Resources
         if (_resources != null && _resources.TryGetValue(key, out var value))
+        {
             return value;
-        
+        }
+
         // 2. Walk up Parent chain (if FrameworkElement)
         if (Parent is FrameworkElement parentFe)
+        {
             return parentFe.TryFindResource(key);
-        
+        }
+
         // 3. Check Application.Current.Resources
         return ApplicationResourceLookup?.Invoke(key);
     }
@@ -209,7 +217,10 @@ public abstract class FrameworkElement : UIElement
     {
         var result = TryFindResource(key);
         if (result == null)
+        {
             throw new ResourceNotFoundException($"Resource with key '{key}' not found");
+        }
+
         return result;
     }
     
@@ -262,8 +273,11 @@ public abstract class FrameworkElement : UIElement
     protected virtual void ApplyStyle()
     {
         var style = Style;
-        if (style == null) return;
-        
+        if (style == null)
+        {
+            return;
+        }
+
         // Check if style is compatible with this element type
         if (style.TargetType != null && !style.TargetType.IsInstanceOfType(this))
         {
@@ -276,8 +290,10 @@ public abstract class FrameworkElement : UIElement
         foreach (var setter in style.Setters)
         {
             if (string.IsNullOrEmpty(setter.Property))
+            {
                 continue;
-            
+            }
+
             var accessor = PropertyAccessorRegistry.GetAccessor(controlType, setter.Property);
             
             if (!accessor.CanWrite)

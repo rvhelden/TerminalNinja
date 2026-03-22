@@ -28,8 +28,10 @@ internal sealed class PropertyPathObserver : IDisposable
     public void UpdateSource(object? newSource)
     {
         if (ReferenceEquals(_source, newSource))
+        {
             return;
-        
+        }
+
         Unsubscribe();
         _source = newSource;
         Subscribe();
@@ -41,8 +43,10 @@ internal sealed class PropertyPathObserver : IDisposable
     private void Subscribe()
     {
         if (_source == null)
+        {
             return;
-        
+        }
+
         var current = _source;
         
         // Subscribe to each level in the path
@@ -60,7 +64,9 @@ internal sealed class PropertyPathObserver : IDisposable
             {
                 current = _path.Segments[i].GetValue(current);
                 if (current == null)
+                {
                     break; // Stop if intermediate value is null
+                }
             }
         }
     }
@@ -102,8 +108,7 @@ internal sealed class PropertyPathObserver : IDisposable
         {
             // If an intermediate property changed, we need to resubscribe
             // because the object graph may have changed
-            var segmentIndex = Array.FindIndex(_path.Segments.ToArray(), 
-                s => s.PropertyName == propertyName);
+            var segmentIndex = Array.FindIndex(_path.Segments.ToArray(), s => s.PropertyName == propertyName);
             
             if (segmentIndex < _path.Segments.Count - 1)
             {

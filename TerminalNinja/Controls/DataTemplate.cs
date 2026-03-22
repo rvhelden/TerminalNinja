@@ -91,11 +91,15 @@ public class DataTemplate
 
             // Skip special properties that shouldn't be cloned
             if (SkipProperties.Contains(propertyName))
+            {
                 continue;
+            }
 
             // Skip read-only properties
             if (!accessor.CanWrite)
+            {
                 continue;
+            }
 
             try
             {

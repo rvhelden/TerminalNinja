@@ -69,14 +69,20 @@ public static class Terminal
     {
         // Unix systems have ANSI support by default
         if (!OperatingSystem.IsWindows())
+        {
             return true;
+        }
 
         var handle = GetStdHandle(STD_OUTPUT_HANDLE);
         if (handle == IntPtr.Zero)
+        {
             return false;
+        }
 
         if (!GetConsoleMode(handle, out _originalMode))
+        {
             return false;
+        }
 
         var newMode = _originalMode | ENABLE_VIRTUAL_TERMINAL_PROCESSING | DISABLE_NEWLINE_AUTO_RETURN;
 
@@ -95,7 +101,9 @@ public static class Terminal
     public static void DisableAnsiMode()
     {
         if (!OperatingSystem.IsWindows() || !_modeChanged)
+        {
             return;
+        }
 
         var handle = GetStdHandle(STD_OUTPUT_HANDLE);
         if (handle != IntPtr.Zero)

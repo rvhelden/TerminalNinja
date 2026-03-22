@@ -38,7 +38,11 @@ public sealed class TerminalGuard : IDisposable
     /// </summary>
     public void Dispose()
     {
-        if (_disposed) return;
+        if (_disposed)
+        {
+            return;
+        }
+
         _disposed = true;
         
         _writer.Reset();

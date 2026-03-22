@@ -73,19 +73,27 @@ public sealed class ControlFactoryGenerator : IIncrementalGenerator
     {
         var classDecl = (ClassDeclarationSyntax)context.Node;
         if (context.SemanticModel.GetDeclaredSymbol(classDecl) is not INamedTypeSymbol symbol)
+        {
             return null;
+        }
 
         // Must be non-abstract and non-static to be instantiable
         if (symbol.IsAbstract || symbol.IsStatic)
+        {
             return null;
+        }
 
         // Check if it implements IControl
         if (GeneratorHelper.IsTargetType(symbol))
+        {
             return symbol;
+        }
 
         // Check if it's one of the additional types needed for XAML
         if (AdditionalFactoryTypes.Contains(symbol.Name))
+        {
             return symbol;
+        }
 
         // Check if it implements one of the additional factory interfaces (e.g., IValueConverter)
         foreach (var iface in symbol.AllInterfaces)
@@ -93,7 +101,9 @@ public sealed class ControlFactoryGenerator : IIncrementalGenerator
             foreach (var name in AdditionalFactoryInterfaces)
             {
                 if (iface.Name == name)
+                {
                     return symbol;
+                }
             }
         }
 
@@ -118,18 +128,24 @@ public sealed class ControlFactoryGenerator : IIncrementalGenerator
         }
 
         if (symbol == null)
+        {
             return null;
+        }
 
         // Skip types that aren't accessible
         if (symbol.DeclaredAccessibility != Accessibility.Public &&
             symbol.DeclaredAccessibility != Accessibility.Internal)
+        {
             return null;
+        }
 
         // Look for [TypeConverter(typeof(SomeConverter))] attribute
         foreach (var attr in symbol.GetAttributes())
         {
             if (attr.AttributeClass?.Name != "TypeConverterAttribute")
+            {
                 continue;
+            }
 
             // Get the converter type from the constructor argument
             if (attr.ConstructorArguments.Length == 1 &&
@@ -140,7 +156,9 @@ public sealed class ControlFactoryGenerator : IIncrementalGenerator
 
                 // Skip EnumConverter — those are handled automatically at runtime
                 if (converterType.Name == "EnumConverter")
+                {
                     return null;
+                }
 
                 return new TypeConverterModel(targetFullName, converterFullName);
             }
@@ -166,7 +184,10 @@ public sealed class ControlFactoryGenerator : IIncrementalGenerator
             foreach (var type in types)
             {
                 if (type.IsAbstract || type.IsStatic)
+                {
                     continue;
+                }
+
                 var key = type.ToDisplayString();
                 if (seen.Add(key))
                 {
@@ -186,7 +207,9 @@ public sealed class ControlFactoryGenerator : IIncrementalGenerator
         {
             var contentPropName = GetContentPropertyAttributeValue(type);
             if (contentPropName == null)
+            {
                 continue;
+            }
 
             var fullName = GeneratorHelper.GetFullyQualifiedTypeName(type);
             if (contentSeen.Add(fullName))
@@ -208,19 +231,32 @@ public sealed class ControlFactoryGenerator : IIncrementalGenerator
             foreach (var method in type.GetMembers().OfType<IMethodSymbol>())
             {
                 if (!method.IsStatic || method.DeclaredAccessibility != Accessibility.Public)
+                {
                     continue;
+                }
+
                 if (!method.Name.StartsWith("Set", StringComparison.Ordinal) || method.Name.Length <= 3)
+                {
                     continue;
+                }
+
                 if (method.Parameters.Length != 2)
+                {
                     continue;
+                }
+
                 if (!method.ReturnsVoid)
+                {
                     continue;
+                }
 
                 // First parameter must be DependencyObject (or a subclass thereof),
                 // matching WPF convention where attached setters take UIElement/DependencyObject.
                 var targetParamType = method.Parameters[0].Type;
                 if (!IsDependencyObject(targetParamType))
+                {
                     continue;
+                }
 
                 var propertyName = method.Name.Substring(3); // "SetRow" → "Row"
                 var parameterType = method.Parameters[1].Type;
@@ -263,7 +299,9 @@ public sealed class ControlFactoryGenerator : IIncrementalGenerator
         // Skip if nothing to generate
         if (factoryTypeModels.Count == 0 && contentPropertyModels.Count == 0 &&
             attachedPropertyModels.Count == 0 && typeConverterModels.Count == 0)
+        {
             return;
+        }
 
         var ns = compilation.AssemblyName ?? "Generated";
 
@@ -310,7 +348,9 @@ public sealed class ControlFactoryGenerator : IIncrementalGenerator
         foreach (var attr in type.GetAttributes())
         {
             if (attr.AttributeClass?.Name != "ContentPropertyAttribute")
+            {
                 continue;
+            }
 
             if (attr.ConstructorArguments.Length == 1 &&
                 attr.ConstructorArguments[0].Value is string propertyName)
@@ -330,7 +370,10 @@ public sealed class ControlFactoryGenerator : IIncrementalGenerator
         while (current != null)
         {
             if (current.Name == "DependencyObject")
+            {
                 return true;
+            }
+
             current = current.BaseType;
         }
         return false;
@@ -355,7 +398,9 @@ public sealed class ControlFactoryGenerator : IIncrementalGenerator
                 {
                     var key = symbol.ToDisplayString();
                     if (seen.Add(key))
+                    {
                         yield return symbol;
+                    }
                 }
             }
         }
@@ -379,7 +424,11 @@ internal sealed class TypeConverterModel : IEquatable<TypeConverterModel>
 
     public bool Equals(TypeConverterModel? other)
     {
-        if (other is null) return false;
+        if (other is null)
+        {
+            return false;
+        }
+
         return TargetFullName == other.TargetFullName && ConverterFullName == other.ConverterFullName;
     }
 

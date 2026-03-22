@@ -91,7 +91,9 @@ public class ColorTypeConverter : TypeConverter
             foreach (var kvp in NamedColors)
             {
                 if (kvp.Value == color)
+                {
                     return kvp.Key;
+                }
             }
             
             // Return as hex

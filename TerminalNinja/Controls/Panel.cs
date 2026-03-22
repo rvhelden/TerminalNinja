@@ -47,7 +47,9 @@ public abstract class Panel : FrameworkElement
         foreach (var child in _children)
         {
             if (child is FrameworkElement fe)
+            {
                 yield return fe;
+            }
         }
     }
     

@@ -25,7 +25,7 @@ public class ListBoxTests
 
         await Assert.That(listBox.ItemsPanel.Children.Count).IsEqualTo(3);
 
-        for (int i = 0; i < 3; i++)
+        for (var i = 0; i < 3; i++)
         {
             var child = listBox.ItemsPanel.Children[i];
             await Assert.That(child).IsTypeOf<ListBoxItem>();
@@ -235,7 +235,7 @@ public class ListBoxTests
         listBox.ItemsSource = new ObservableCollection<string> { "Hello" };
         listBox.SelectedIndex = 0;
 
-        var buffer = new CellBuffer(20, 5);
+        using var buffer = new CellBuffer(20, 5);
         listBox.Render(buffer, new Rect(0, 0, 20, 5));
 
         // The selected item should render with the SelectedBackground color
@@ -257,7 +257,7 @@ public class ListBoxTests
         // Select second item
         listBox.SelectedIndex = 1;
 
-        var buffer = new CellBuffer(20, 5);
+        using var buffer = new CellBuffer(20, 5);
         listBox.Render(buffer, new Rect(0, 0, 20, 5));
 
         // First item (unselected) should NOT have selectedBackground
@@ -271,7 +271,7 @@ public class ListBoxTests
         var listBox = new ListBox();
         listBox.ItemsSource = new ObservableCollection<string>();
 
-        var buffer = new CellBuffer(20, 5);
+        using var buffer = new CellBuffer(20, 5);
 
         // Should not throw
         listBox.Render(buffer, new Rect(0, 0, 20, 5));
@@ -290,7 +290,7 @@ public class ListBoxTests
         listBox.ItemsSource = new ObservableCollection<string> { "Test" };
         listBox.SelectedIndex = 0;
 
-        var buffer = new CellBuffer(20, 5);
+        using var buffer = new CellBuffer(20, 5);
         listBox.Render(buffer, new Rect(0, 0, 20, 5));
 
         // The first char of "Test" should be 'T'
@@ -379,7 +379,7 @@ public class ListBoxTests
             Content = new TextBlock { Text = "X" }
         };
 
-        var buffer = new CellBuffer(10, 1);
+        using var buffer = new CellBuffer(10, 1);
         lbi.Render(buffer, new Rect(0, 0, 10, 1));
 
         var cell = buffer.GetCell(0, 0);
@@ -397,7 +397,7 @@ public class ListBoxTests
             Content = new TextBlock { Text = "X" }
         };
 
-        var buffer = new CellBuffer(10, 1);
+        using var buffer = new CellBuffer(10, 1);
         lbi.Render(buffer, new Rect(0, 0, 10, 1));
 
         var cell = buffer.GetCell(0, 0);
@@ -444,7 +444,7 @@ public class ListBoxTests
         var focusManager = new FocusManager();
 
         // Render to establish layout
-        var buffer = new CellBuffer(20, 10);
+        using var buffer = new CellBuffer(20, 10);
         listBox.Render(buffer, rootBounds);
 
         // Act — click on the second item (row index 1, which is y=1)
@@ -466,7 +466,7 @@ public class ListBoxTests
         var rootBounds = new Rect(0, 0, 20, 10);
         var focusManager = new FocusManager();
 
-        var buffer = new CellBuffer(20, 10);
+        using var buffer = new CellBuffer(20, 10);
         listBox.Render(buffer, rootBounds);
 
         // Act — click on the first item
@@ -487,7 +487,7 @@ public class ListBoxTests
         var rootBounds = new Rect(0, 0, 20, 10);
         var focusManager = new FocusManager();
 
-        var buffer = new CellBuffer(20, 10);
+        using var buffer = new CellBuffer(20, 10);
         listBox.Render(buffer, rootBounds);
 
         // Act — click on the third item (y=2)

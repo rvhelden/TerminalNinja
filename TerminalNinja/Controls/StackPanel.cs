@@ -94,8 +94,10 @@ public class StackPanel : Panel
     public override Size2D GetPreferredSize(Rect parent)
     {
         if (Children.Count == 0)
+        {
             return new Size2D(0, 0);
-        
+        }
+
         var totalMainAxis = 0;
         var maxCrossAxis = 0;
         
@@ -135,8 +137,11 @@ public class StackPanel : Panel
     /// </summary>
     public override void Render(CellBuffer buffer, Rect parentBounds)
     {
-        if (Children.Count == 0) return;
-        
+        if (Children.Count == 0)
+        {
+            return;
+        }
+
         var bounds = CalculateBounds(parentBounds);
         
         // Calculate sizes for each child
@@ -150,8 +155,11 @@ public class StackPanel : Panel
             var child = Children[i];
             var size = childSizes[i];
             
-            if (size <= 0) continue; // Skip zero-size children
-            
+            if (size <= 0)
+            {
+                continue; // Skip zero-size children
+            }
+
             var childBounds = CreateChildBounds(bounds, position, size);
             child.Render(buffer, childBounds);
             
@@ -168,7 +176,11 @@ public class StackPanel : Panel
         for (var i = 0; i < Children.Count; i++)
         {
             var size = childSizes[i];
-            if (size <= 0) continue;
+            if (size <= 0)
+            {
+                continue;
+            }
+
             yield return (Children[i], CreateChildBounds(myBounds, position, size));
             position += size;
         }

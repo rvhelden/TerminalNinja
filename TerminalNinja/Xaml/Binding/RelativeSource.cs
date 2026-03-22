@@ -74,12 +74,16 @@ public sealed class RelativeSource
     private object? FindAncestor(Controls.Visual target)
     {
         if (AncestorType == null)
+        {
             throw new InvalidOperationException(
                 "AncestorType must be set when using RelativeSourceMode.FindAncestor.");
+        }
 
         if (AncestorLevel < 1)
+        {
             throw new InvalidOperationException(
                 $"AncestorLevel must be >= 1, but was {AncestorLevel}.");
+        }
 
         var current = target.Parent;
         var matchCount = 0;
@@ -90,7 +94,9 @@ public sealed class RelativeSource
             {
                 matchCount++;
                 if (matchCount >= AncestorLevel)
+                {
                     return current;
+                }
             }
 
             current = current.Parent;

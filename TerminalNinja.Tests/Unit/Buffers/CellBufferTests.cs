@@ -11,7 +11,7 @@ public class CellBufferTests
     [Test]
     public async Task Constructor_InitializesSize()
     {
-        var buffer = new CellBuffer(80, 24);
+        using var buffer = new CellBuffer(80, 24);
         
         await Assert.That(buffer.Width).IsEqualTo(80);
         await Assert.That(buffer.Height).IsEqualTo(24);
@@ -20,7 +20,7 @@ public class CellBufferTests
     [Test]
     public async Task IsInBounds_ReturnsTrueForValidCoordinates()
     {
-        var buffer = new CellBuffer(10, 10);
+        using var buffer = new CellBuffer(10, 10);
         
         await Assert.That(buffer.IsInBounds(0, 0)).IsTrue();
         await Assert.That(buffer.IsInBounds(9, 9)).IsTrue();
@@ -30,7 +30,7 @@ public class CellBufferTests
     [Test]
     public async Task IsInBounds_ReturnsFalseForInvalidCoordinates()
     {
-        var buffer = new CellBuffer(10, 10);
+        using var buffer = new CellBuffer(10, 10);
         
         await Assert.That(buffer.IsInBounds(-1, 5)).IsFalse();
         await Assert.That(buffer.IsInBounds(5, -1)).IsFalse();
@@ -45,7 +45,7 @@ public class CellBufferTests
     [Test]
     public async Task GetCell_ReturnsSetCell()
     {
-        var buffer = new CellBuffer(10, 10);
+        using var buffer = new CellBuffer(10, 10);
         var cell = new Cell('A', Color.Red, Color.Blue);
         
         buffer.SetCell(5, 5, cell);
@@ -57,7 +57,7 @@ public class CellBufferTests
     [Test]
     public async Task GetCell_OutOfBounds_ReturnsEmpty()
     {
-        var buffer = new CellBuffer(10, 10);
+        using var buffer = new CellBuffer(10, 10);
         
         await Assert.That(buffer.GetCell(-1, 5)).IsEqualTo(Cell.Empty);
         await Assert.That(buffer.GetCell(5, -1)).IsEqualTo(Cell.Empty);
@@ -68,7 +68,7 @@ public class CellBufferTests
     [Test]
     public async Task SetCell_OutOfBounds_DoesNotThrow()
     {
-        var buffer = new CellBuffer(10, 10);
+        using var buffer = new CellBuffer(10, 10);
         
         // Should not throw
         buffer.SetCell(-1, 5, Cell.Empty);
@@ -83,7 +83,7 @@ public class CellBufferTests
     [Test]
     public async Task SetChar_StoresCell()
     {
-        var buffer = new CellBuffer(10, 10);
+        using var buffer = new CellBuffer(10, 10);
         
         buffer.SetChar(5, 5, 'X', Color.Red, Color.Blue);
         
@@ -100,7 +100,7 @@ public class CellBufferTests
     [Test]
     public async Task Clear_FillsWithEmptyCells()
     {
-        var buffer = new CellBuffer(5, 5);
+        using var buffer = new CellBuffer(5, 5);
         buffer.SetCell(2, 2, new Cell('X', Color.Red, Color.Blue));
         
         buffer.Clear();
@@ -112,7 +112,7 @@ public class CellBufferTests
     [Test]
     public async Task FillRect_FillsRegion()
     {
-        var buffer = new CellBuffer(10, 10);
+        using var buffer = new CellBuffer(10, 10);
         var cell = new Cell('X', Color.Red, Color.Blue);
         var rect = new Rect(2, 2, 3, 3);
         
@@ -135,7 +135,7 @@ public class CellBufferTests
     [Test]
     public async Task GetChanges_IncludesModifiedCells()
     {
-        var buffer = new CellBuffer(10, 10);
+        using var buffer = new CellBuffer(10, 10);
         
         // Swap buffers to clear initial "all changed" state
         buffer.SwapBuffers();
@@ -161,7 +161,7 @@ public class CellBufferTests
     [Test]
     public async Task SetSameCellTwice_OnlyMarkedOnce()
     {
-        var buffer = new CellBuffer(10, 10);
+        using var buffer = new CellBuffer(10, 10);
         var cell = new Cell('A', Color.Red, Color.Blue);
         
         buffer.SetCell(5, 5, cell);
@@ -188,7 +188,7 @@ public class CellBufferTests
     public async Task GetChanges_FirstRow_StartsAtZeroZero()
     {
         // Arrange
-        var buffer = new CellBuffer(10, 10);
+        using var buffer = new CellBuffer(10, 10);
         buffer.Clear();
         buffer.SwapBuffers();
         
@@ -211,12 +211,12 @@ public class CellBufferTests
     public async Task GetChanges_EntireFirstRow_HasCorrectCoordinates()
     {
         // Arrange
-        var buffer = new CellBuffer(10, 3);
+        using var buffer = new CellBuffer(10, 3);
         buffer.Clear();
         buffer.SwapBuffers();
         
         // Act - Fill entire first row (y=0, x=0 to 9)
-        for (int x = 0; x < 10; x++)
+        for (var x = 0; x < 10; x++)
         {
             buffer.SetCell(x, 0, new Cell((char)('A' + x), Color.White, Color.Black));
         }
@@ -230,7 +230,7 @@ public class CellBufferTests
         // Assert - Should have 10 changes, all with y=0
         await Assert.That(changes.Count).IsEqualTo(10);
         
-        for (int i = 0; i < 10; i++)
+        for (var i = 0; i < 10; i++)
         {
             await Assert.That(changes[i].X).IsEqualTo(i);
             await Assert.That(changes[i].Y).IsEqualTo(0);
@@ -242,7 +242,7 @@ public class CellBufferTests
     public async Task GetChanges_SecondRowFirstCell_IsZeroOne()
     {
         // Arrange
-        var buffer = new CellBuffer(10, 10);
+        using var buffer = new CellBuffer(10, 10);
         buffer.Clear();
         buffer.SwapBuffers();
         
@@ -265,7 +265,7 @@ public class CellBufferTests
     public async Task GetChanges_FirstRowLastCell_ThenSecondRowFirstCell_CorrectOrder()
     {
         // Arrange
-        var buffer = new CellBuffer(10, 10);
+        using var buffer = new CellBuffer(10, 10);
         buffer.Clear();
         buffer.SwapBuffers();
         
@@ -297,12 +297,12 @@ public class CellBufferTests
     public async Task GetChanges_MultipleRows_AllStartAtXZero()
     {
         // Arrange
-        var buffer = new CellBuffer(10, 5);
+        using var buffer = new CellBuffer(10, 5);
         buffer.Clear();
         buffer.SwapBuffers();
         
         // Act - Set first cell of each row
-        for (int y = 0; y < 5; y++)
+        for (var y = 0; y < 5; y++)
         {
             buffer.SetCell(0, y, new Cell((char)('A' + y), Color.White, Color.Black));
         }
@@ -316,7 +316,7 @@ public class CellBufferTests
         // Assert - All changes should have x=0
         await Assert.That(changes.Count).IsEqualTo(5);
         
-        for (int y = 0; y < 5; y++)
+        for (var y = 0; y < 5; y++)
         {
             await Assert.That(changes[y].X).IsEqualTo(0);
             await Assert.That(changes[y].Y).IsEqualTo(y);
@@ -328,16 +328,16 @@ public class CellBufferTests
     public async Task GetChanges_FillEntireBuffer_CoordinatesMatchSetCellCalls()
     {
         // Arrange
-        var buffer = new CellBuffer(5, 5);
+        using var buffer = new CellBuffer(5, 5);
         buffer.Clear();
         buffer.SwapBuffers();
         
         // Act - Fill entire buffer with known pattern
-        for (int y = 0; y < 5; y++)
+        for (var y = 0; y < 5; y++)
         {
-            for (int x = 0; x < 5; x++)
+            for (var x = 0; x < 5; x++)
             {
-                char ch = (char)('A' + (y * 5 + x));
+                var ch = (char)('A' + (y * 5 + x));
                 buffer.SetCell(x, y, new Cell(ch, Color.White, Color.Black));
             }
         }
@@ -352,15 +352,15 @@ public class CellBufferTests
         await Assert.That(changes.Count).IsEqualTo(25);
         
         // Verify each coordinate matches what we set
-        int index = 0;
-        for (int y = 0; y < 5; y++)
+        var index = 0;
+        for (var y = 0; y < 5; y++)
         {
-            for (int x = 0; x < 5; x++)
+            for (var x = 0; x < 5; x++)
             {
                 await Assert.That(changes[index].X).IsEqualTo(x);
                 await Assert.That(changes[index].Y).IsEqualTo(y);
                 
-                char expectedChar = (char)('A' + (y * 5 + x));
+                var expectedChar = (char)('A' + (y * 5 + x));
                 await Assert.That(changes[index].Cell.Character).IsEqualTo(expectedChar);
                 
                 index++;
@@ -372,7 +372,7 @@ public class CellBufferTests
     public async Task GetChanges_BottomRightCorner_HasCorrectCoordinates()
     {
         // Arrange
-        var buffer = new CellBuffer(10, 10);
+        using var buffer = new CellBuffer(10, 10);
         buffer.Clear();
         buffer.SwapBuffers();
         
@@ -395,7 +395,7 @@ public class CellBufferTests
     public async Task GetChanges_SparsePattern_AllCoordinatesCorrect()
     {
         // Arrange
-        var buffer = new CellBuffer(10, 10);
+        using var buffer = new CellBuffer(10, 10);
         buffer.Clear();
         buffer.SwapBuffers();
         
@@ -428,7 +428,7 @@ public class CellBufferTests
         // Changes are returned in row-major order (y first, then x)
         var sortedExpected = expectedCells.OrderBy(c => c.Item2).ThenBy(c => c.Item1).ToList();
         
-        for (int i = 0; i < sortedExpected.Count; i++)
+        for (var i = 0; i < sortedExpected.Count; i++)
         {
             await Assert.That(changes[i].X).IsEqualTo(sortedExpected[i].Item1);
             await Assert.That(changes[i].Y).IsEqualTo(sortedExpected[i].Item2);
@@ -444,7 +444,7 @@ public class CellBufferTests
     public async Task GetChanges_TwoRowsFirstColumn_RevealsOffByOneError()
     {
         // Arrange
-        var buffer = new CellBuffer(10, 10);
+        using var buffer = new CellBuffer(10, 10);
         buffer.Clear();
         buffer.SwapBuffers();
         
@@ -477,7 +477,7 @@ public class CellBufferTests
     public async Task GetChanges_ThreeRowsFirstColumn_ShowsPattern()
     {
         // Arrange
-        var buffer = new CellBuffer(10, 10);
+        using var buffer = new CellBuffer(10, 10);
         buffer.Clear();
         buffer.SwapBuffers();
         
@@ -496,7 +496,7 @@ public class CellBufferTests
         // Assert - If off-by-one error exists, we might get (0,0), (1,1), (2,2) or skip some
         await Assert.That(changes.Count).IsEqualTo(3);
         
-        for (int i = 0; i < 3; i++)
+        for (var i = 0; i < 3; i++)
         {
             await Assert.That(changes[i].x).IsEqualTo(0);
             await Assert.That(changes[i].y).IsEqualTo(i);
@@ -508,12 +508,12 @@ public class CellBufferTests
     public async Task GetChanges_FullFirstRowAndSecondRowStart_ShowsSkipping()
     {
         // Arrange
-        var buffer = new CellBuffer(10, 10);
+        using var buffer = new CellBuffer(10, 10);
         buffer.Clear();
         buffer.SwapBuffers();
         
         // Act - Fill entire first row and first cell of second row
-        for (int x = 0; x < 10; x++)
+        for (var x = 0; x < 10; x++)
         {
             buffer.SetCell(x, 0, new Cell((char)('0' + x), Color.White, Color.Black));
         }
@@ -531,7 +531,7 @@ public class CellBufferTests
         await Assert.That(changes.Count).IsEqualTo(11);
         
         // Verify first row
-        for (int x = 0; x < 10; x++)
+        for (var x = 0; x < 10; x++)
         {
             await Assert.That(changes[x].x).IsEqualTo(x);
             await Assert.That(changes[x].y).IsEqualTo(0);
@@ -550,7 +550,7 @@ public class CellBufferTests
     [Test]
     public async Task SwapBuffers_ClearsChanges()
     {
-        var buffer = new CellBuffer(10, 10);
+        using var buffer = new CellBuffer(10, 10);
         buffer.SetCell(5, 5, new Cell('A', Color.Red, Color.Blue));
         
         buffer.SwapBuffers();
@@ -576,8 +576,231 @@ public class CellBufferTests
         
         await Assert.That(buffer.Width).IsEqualTo(20);
         await Assert.That(buffer.Height).IsEqualTo(30);
-        // After resize, content should be empty
-        await Assert.That(buffer.GetCell(5, 5)).IsEqualTo(Cell.Empty);
+        // After resize, overlapping content should be preserved
+        await Assert.That(buffer.GetCell(5, 5)).IsEqualTo(new Cell('A', Color.Red, Color.Blue));
+        // New cells should be empty
+        await Assert.That(buffer.GetCell(15, 25)).IsEqualTo(Cell.Empty);
+        
+        buffer.Dispose();
+    }
+    
+    [Test]
+    public async Task Resize_Shrink_PreservesOverlappingContent()
+    {
+        var buffer = new CellBuffer(20, 20);
+        buffer.SetCell(3, 3, new Cell('X', Color.Green, Color.Black));
+        buffer.SetCell(15, 15, new Cell('Y', Color.Red, Color.Black));
+        
+        buffer.Resize(10, 10);
+        
+        await Assert.That(buffer.Width).IsEqualTo(10);
+        await Assert.That(buffer.Height).IsEqualTo(10);
+        // Cell within new bounds is preserved
+        await Assert.That(buffer.GetCell(3, 3)).IsEqualTo(new Cell('X', Color.Green, Color.Black));
+        // Cell outside new bounds is inaccessible (returns Cell.Empty from bounds check)
+        await Assert.That(buffer.GetCell(15, 15)).IsEqualTo(Cell.Empty);
+        
+        buffer.Dispose();
+    }
+    
+    [Test]
+    public async Task Resize_WidthGrew_PreservesExistingRows()
+    {
+        var buffer = new CellBuffer(5, 3);
+        // Fill row 0: "ABCDE", row 1: "FGHIJ", row 2: "KLMNO"
+        for (var i = 0; i < 5; i++)
+        {
+            buffer.SetCell(i, 0, new Cell((char)('A' + i), Color.White, Color.Black));
+            buffer.SetCell(i, 1, new Cell((char)('F' + i), Color.White, Color.Black));
+            buffer.SetCell(i, 2, new Cell((char)('K' + i), Color.White, Color.Black));
+        }
+        
+        buffer.Resize(10, 3); // Width grew, height same
+        
+        // Original content preserved
+        await Assert.That(buffer.GetCell(0, 0).Character).IsEqualTo('A');
+        await Assert.That(buffer.GetCell(4, 0).Character).IsEqualTo('E');
+        await Assert.That(buffer.GetCell(0, 1).Character).IsEqualTo('F');
+        await Assert.That(buffer.GetCell(4, 2).Character).IsEqualTo('O');
+        // New columns are Cell.Empty
+        await Assert.That(buffer.GetCell(5, 0)).IsEqualTo(Cell.Empty);
+        await Assert.That(buffer.GetCell(9, 2)).IsEqualTo(Cell.Empty);
+        
+        buffer.Dispose();
+    }
+    
+    [Test]
+    public async Task Resize_WidthShrunk_TruncatesRows()
+    {
+        var buffer = new CellBuffer(10, 3);
+        for (var i = 0; i < 10; i++)
+        {
+            buffer.SetCell(i, 0, new Cell((char)('A' + i), Color.White, Color.Black));
+            buffer.SetCell(i, 1, new Cell((char)('K' + i), Color.White, Color.Black));
+        }
+        
+        buffer.Resize(5, 3); // Width shrunk
+        
+        // First 5 columns preserved
+        await Assert.That(buffer.GetCell(0, 0).Character).IsEqualTo('A');
+        await Assert.That(buffer.GetCell(4, 0).Character).IsEqualTo('E');
+        await Assert.That(buffer.GetCell(0, 1).Character).IsEqualTo('K');
+        await Assert.That(buffer.GetCell(4, 1).Character).IsEqualTo('O');
+        // Columns beyond new width are out of bounds
+        await Assert.That(buffer.GetCell(5, 0)).IsEqualTo(Cell.Empty);
+        
+        buffer.Dispose();
+    }
+    
+    [Test]
+    public async Task Resize_WithinCapacity_DoesNotReallocate()
+    {
+        // Start with 100x100 = 10000, capacity rounds to 16384
+        var buffer = new CellBuffer(100, 100);
+        var initialCapacity = buffer.Capacity;
+        
+        buffer.SetCell(5, 5, new Cell('Z', Color.Cyan, Color.Black));
+        
+        // Shrink to 50x50 = 2500, well within 16384
+        buffer.Resize(50, 50);
+        
+        await Assert.That(buffer.Capacity).IsEqualTo(initialCapacity);
+        await Assert.That(buffer.GetCell(5, 5)).IsEqualTo(new Cell('Z', Color.Cyan, Color.Black));
+        
+        buffer.Dispose();
+    }
+    
+    [Test]
+    public async Task Resize_ExceedsCapacity_AllocatesLarger()
+    {
+        var buffer = new CellBuffer(10, 10); // 100 cells, capacity 128
+        var initialCapacity = buffer.Capacity;
+        
+        buffer.SetCell(3, 3, new Cell('W', Color.Yellow, Color.Black));
+        
+        // Grow to 200x200 = 40000, well beyond 128
+        buffer.Resize(200, 200);
+        
+        await Assert.That(buffer.Capacity).IsGreaterThan(initialCapacity);
+        // Content in overlapping region preserved
+        await Assert.That(buffer.GetCell(3, 3)).IsEqualTo(new Cell('W', Color.Yellow, Color.Black));
+        
+        buffer.Dispose();
+    }
+    
+    [Test]
+    public async Task Capacity_IsPowerOf2()
+    {
+        var buffer = new CellBuffer(17, 13); // 221 cells
+        // Capacity should be next power of 2 >= 221 → 256
+        await Assert.That(buffer.Capacity).IsEqualTo(256);
+        
+        buffer.Dispose();
+    }
+    
+    [Test]
+    public async Task Dispose_IsIdempotent()
+    {
+        var buffer = new CellBuffer(10, 10);
+        buffer.SetCell(0, 0, new Cell('A', Color.White, Color.Black));
+        
+        buffer.Dispose();
+        buffer.Dispose(); // Should not throw
+        
+        await Assert.That(buffer.Width).IsEqualTo(0);
+        await Assert.That(buffer.Height).IsEqualTo(0);
+    }
+    
+    [Test]
+    public async Task GetRow_ReturnsCorrectSpan()
+    {
+        var buffer = new CellBuffer(5, 3);
+        buffer.SetCell(0, 1, new Cell('A', Color.White, Color.Black));
+        buffer.SetCell(4, 1, new Cell('Z', Color.White, Color.Black));
+        
+        var rowLength = buffer.GetRow(1).Length;
+        var firstChar = buffer.GetRow(1)[0].Character;
+        var lastChar = buffer.GetRow(1)[4].Character;
+        
+        await Assert.That(rowLength).IsEqualTo(5);
+        await Assert.That(firstChar).IsEqualTo('A');
+        await Assert.That(lastChar).IsEqualTo('Z');
+        
+        buffer.Dispose();
+    }
+    
+    [Test]
+    public async Task Indexer_ReturnsRef()
+    {
+        var buffer = new CellBuffer(5, 3);
+        buffer.SetCell(2, 1, new Cell('Q', Color.Red, Color.Black));
+        
+        var character = buffer[2, 1].Character;
+        var foreground = buffer[2, 1].Foreground;
+        
+        await Assert.That(character).IsEqualTo('Q');
+        await Assert.That(foreground).IsEqualTo(Color.Red);
+        
+        buffer.Dispose();
+    }
+    
+    [Test]
+    public async Task Resize_HeightGrew_NewRowsAreEmpty()
+    {
+        var buffer = new CellBuffer(10, 5);
+        buffer.SetCell(0, 0, new Cell('A', Color.White, Color.Black));
+        buffer.SetCell(9, 4, new Cell('Z', Color.White, Color.Black));
+        
+        buffer.Resize(10, 10); // Same width, more rows
+        
+        await Assert.That(buffer.GetCell(0, 0).Character).IsEqualTo('A');
+        await Assert.That(buffer.GetCell(9, 4).Character).IsEqualTo('Z');
+        // New rows are empty
+        await Assert.That(buffer.GetCell(0, 5)).IsEqualTo(Cell.Empty);
+        await Assert.That(buffer.GetCell(9, 9)).IsEqualTo(Cell.Empty);
+        
+        buffer.Dispose();
+    }
+    
+    [Test]
+    public async Task Resize_PreviousBufferReset_ForcesFullRepaint()
+    {
+        // After resize, _previous must be Cell.Empty so the diff engine reports
+        // ALL non-empty cells as changes (the terminal screen is cleared on resize).
+        var buffer = new CellBuffer(10, 5);
+        var testCell = new Cell('X', Color.Red, Color.Blue);
+        buffer.SetCell(3, 2, testCell);
+        
+        // Simulate a render cycle: swap buffers so _previous has the 'X' cell
+        buffer.SwapBuffers();
+        // Now _previous has 'X' at (3,2). Set the same cell in _current.
+        buffer.SetCell(3, 2, testCell);
+        
+        // Before resize, changes should be empty (current == previous at that cell)
+        var changesBefore = new List<CellChange>();
+        foreach (var c in buffer.GetChanges())
+        {
+            changesBefore.Add(c);
+        }
+
+        await Assert.That(changesBefore.Count).IsEqualTo(0);
+        
+        // Resize to different dimensions — this should reset _previous to Cell.Empty
+        buffer.Resize(12, 6);
+        
+        // _current was preserved by resize, so (3,2) still has 'X'
+        // _previous is now Cell.Empty, so the diff should report (3,2) as changed
+        var changesAfter = new List<CellChange>();
+        foreach (var c in buffer.GetChanges())
+        {
+            changesAfter.Add(c);
+        }
+
+        // The 'X' cell at (3,2) should appear in the diff because _previous is empty
+        var xChange = changesAfter.FirstOrDefault(ch => ch.X == 3 && ch.Y == 2);
+        await Assert.That(xChange.Cell).IsEqualTo(testCell);
+        
+        buffer.Dispose();
     }
     
     #endregion

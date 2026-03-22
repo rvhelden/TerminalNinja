@@ -61,8 +61,10 @@ public class Window : ContentControl
     public override Size2D GetPreferredSize(Rect parent)
     {
         if (!HasContent)
+        {
             return new Size2D(0, 0);
-        
+        }
+
         return base.GetPreferredSize(parent);
     }
     

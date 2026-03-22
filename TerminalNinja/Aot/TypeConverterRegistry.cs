@@ -47,7 +47,9 @@ public static class TypeConverterRegistry
     public static TypeConverter? GetConverterOrEnum(Type type)
     {
         if (Converters.TryGetValue(type, out var converter))
+        {
             return converter;
+        }
 
         // Auto-create EnumConverter for any enum type
         if (type.IsEnum)

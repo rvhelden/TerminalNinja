@@ -145,7 +145,9 @@ public static class TerminalXaml
     private static void CollectDependencies(IXamlLayout layout, HashSet<string> visited, List<IXamlLayout> ordered)
     {
         if (!visited.Add(layout.ResourceName))
+        {
             return;
+        }
 
         foreach (var dep in layout.Dependencies)
         {

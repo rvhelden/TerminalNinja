@@ -17,7 +17,7 @@ public class BorderRenderingTests
     private static string RenderBorderToAnsi(ControlBorder rectangle, int bufferWidth, int bufferHeight)
     {
         // Create a buffer and render the rectangle
-        var buffer = new CellBuffer(bufferWidth, bufferHeight);
+        using var buffer = new CellBuffer(bufferWidth, bufferHeight);
         var viewport = new Rect(0, 0, bufferWidth, bufferHeight);
         rectangle.Render(buffer, viewport);
         
@@ -284,7 +284,7 @@ public class BorderRenderingTests
         };
         
         // Act - render with parent offset
-        var buffer = new CellBuffer(10, 10);
+        using var buffer = new CellBuffer(10, 10);
         var parentBounds = new Rect(2, 3, 10, 10);
         rect.Render(buffer, parentBounds);
         
@@ -345,7 +345,7 @@ public class BorderRenderingTests
     {
         // Arrange - Small 2x2 rectangle in large 100x100 buffer
         // First initialize the buffer by rendering once and swapping
-        var buffer = new CellBuffer(100, 100);
+        using var buffer = new CellBuffer(100, 100);
         var viewport = new Rect(0, 0, 100, 100);
         
         // Create a simple rectangle and render it
@@ -363,7 +363,7 @@ public class BorderRenderingTests
         using var stream = new MemoryStream();
         using var writer = new AnsiWriter(stream);
         
-        int cellCount = 0;
+        var cellCount = 0;
         foreach (var change in buffer.GetChanges())
         {
             writer.WriteCell(change.X, change.Y, change.Cell);
@@ -414,8 +414,8 @@ public class BorderRenderingTests
     /// </summary>
     private static int CountOccurrences(string text, string pattern)
     {
-        int count = 0;
-        int index = 0;
+        var count = 0;
+        var index = 0;
         while ((index = text.IndexOf(pattern, index, StringComparison.Ordinal)) != -1)
         {
             count++;

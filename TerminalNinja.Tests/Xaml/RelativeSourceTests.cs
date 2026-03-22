@@ -588,7 +588,10 @@ public class RelativeSourceTests
             foreach (var child in current.GetLogicalChildren())
             {
                 if (child is T found)
+                {
                     return found;
+                }
+
                 queue.Enqueue(child);
             }
         }

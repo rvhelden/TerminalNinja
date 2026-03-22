@@ -18,7 +18,9 @@ public sealed class TextDecorationsTypeConverter : TypeConverter
         {
             text = text.Trim();
             if (string.IsNullOrEmpty(text) || text.Equals("None", StringComparison.OrdinalIgnoreCase))
+            {
                 return TextDecorations.None;
+            }
 
             var result = TextDecorations.None;
             foreach (var part in text.Split(',', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries))
@@ -50,16 +52,46 @@ public sealed class TextDecorationsTypeConverter : TypeConverter
         if (destinationType == typeof(string) && value is TextDecorations decorations)
         {
             if (decorations == TextDecorations.None)
+            {
                 return "None";
+            }
 
             var parts = new List<string>();
-            if (decorations.HasFlag(TextDecorations.Bold)) parts.Add("Bold");
-            if (decorations.HasFlag(TextDecorations.Dim)) parts.Add("Dim");
-            if (decorations.HasFlag(TextDecorations.Italic)) parts.Add("Italic");
-            if (decorations.HasFlag(TextDecorations.Underline)) parts.Add("Underline");
-            if (decorations.HasFlag(TextDecorations.Blink)) parts.Add("Blink");
-            if (decorations.HasFlag(TextDecorations.Inverse)) parts.Add("Inverse");
-            if (decorations.HasFlag(TextDecorations.Strikethrough)) parts.Add("Strikethrough");
+            if (decorations.HasFlag(TextDecorations.Bold))
+            {
+                parts.Add("Bold");
+            }
+
+            if (decorations.HasFlag(TextDecorations.Dim))
+            {
+                parts.Add("Dim");
+            }
+
+            if (decorations.HasFlag(TextDecorations.Italic))
+            {
+                parts.Add("Italic");
+            }
+
+            if (decorations.HasFlag(TextDecorations.Underline))
+            {
+                parts.Add("Underline");
+            }
+
+            if (decorations.HasFlag(TextDecorations.Blink))
+            {
+                parts.Add("Blink");
+            }
+
+            if (decorations.HasFlag(TextDecorations.Inverse))
+            {
+                parts.Add("Inverse");
+            }
+
+            if (decorations.HasFlag(TextDecorations.Strikethrough))
+            {
+                parts.Add("Strikethrough");
+            }
+
             return string.Join(",", parts);
         }
 

@@ -44,9 +44,14 @@ public sealed class Border : FrameworkElement
     private static void OnChildChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
     {
         if (e.OldValue is UIElement oldChild)
+        {
             oldChild.Parent = null;
+        }
+
         if (e.NewValue is UIElement newChild)
+        {
             newChild.Parent = d as Visual;
+        }
     }
 
     public Color Background
@@ -93,7 +98,11 @@ public sealed class Border : FrameworkElement
     /// <inheritdoc />
     public override IEnumerable<(Visual Child, Rect ChildParentBounds)> GetChildrenWithBounds(Rect myBounds)
     {
-        if (Child == null) yield break;
+        if (Child == null)
+        {
+            yield break;
+        }
+
         var innerBounds = BorderStyle.HasBorder && myBounds.Width >= 2 && myBounds.Height >= 2
             ? new Rect(myBounds.X + 1, myBounds.Y + 1, myBounds.Width - 2, myBounds.Height - 2)
             : myBounds;
@@ -104,7 +113,9 @@ public sealed class Border : FrameworkElement
     protected internal override IEnumerable<FrameworkElement> GetLogicalChildren()
     {
         if (Child is FrameworkElement fe)
+        {
             yield return fe;
+        }
     }
 
     /// <summary>
@@ -139,8 +150,11 @@ public sealed class Border : FrameworkElement
         
         // Clip to buffer bounds
         var clipped = bounds.Intersect(new Rect(0, 0, buffer.Width, buffer.Height));
-        if (clipped.Width <= 0 || clipped.Height <= 0) return;
-        
+        if (clipped.Width <= 0 || clipped.Height <= 0)
+        {
+            return;
+        }
+
         // Fill background
         var bgCell = new Cell(' ', Foreground, Background);
         buffer.FillRect(clipped, bgCell);

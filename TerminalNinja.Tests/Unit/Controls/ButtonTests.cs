@@ -121,7 +121,7 @@ public class ButtonTests
     public async Task Render_Auto_DoesNotThrow()
     {
         var button = new Button { Text = "Test" };
-        var buffer = new CellBuffer(40, 10);
+        using var buffer = new CellBuffer(40, 10);
         
         button.Render(buffer, new Rect(0, 0, 40, 10));
         

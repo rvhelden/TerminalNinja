@@ -10,7 +10,9 @@ public class PerformanceConverter : IValueConverter
     public object? Convert(object? value, Type targetType, object? parameter)
     {
         if (value == null || parameter is not string format)
+        {
             return value?.ToString();
+        }
 
         return format switch
         {

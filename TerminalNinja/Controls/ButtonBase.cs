@@ -22,9 +22,15 @@ public abstract class ButtonBase : ContentControl
     {
         var button = (ButtonBase)d;
         if (e.OldValue is ICommand oldCmd)
+        {
             oldCmd.CanExecuteChanged -= button.OnCanExecuteChanged;
+        }
+
         if (e.NewValue is ICommand newCmd)
+        {
             newCmd.CanExecuteChanged += button.OnCanExecuteChanged;
+        }
+
         button.UpdateCanExecute();
     }
 
@@ -65,11 +71,16 @@ public abstract class ButtonBase : ContentControl
     /// </summary>
     protected void RaiseClick()
     {
-        if (!IsEnabled) return;
+        if (!IsEnabled)
+        {
+            return;
+        }
 
         // Execute command if available
         if (Command?.CanExecute(CommandParameter) == true)
+        {
             Command.Execute(CommandParameter);
+        }
 
         // Also raise Click event
         Click?.Invoke();

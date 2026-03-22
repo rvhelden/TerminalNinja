@@ -54,7 +54,9 @@ public sealed class PropertyAccessorGenerator : IIncrementalGenerator
     {
         var classDecl = (ClassDeclarationSyntax)context.Node;
         if (context.SemanticModel.GetDeclaredSymbol(classDecl) is not INamedTypeSymbol symbol)
+        {
             return null;
+        }
 
         return GeneratorHelper.IsTargetType(symbol) || GeneratorHelper.IsBindableType(symbol)
             ? symbol
@@ -80,20 +82,28 @@ public sealed class PropertyAccessorGenerator : IIncrementalGenerator
         }
 
         if (doc.Root == null)
+        {
             return builder.ToImmutable();
+        }
 
         // Build prefix → CLR namespace map from root xmlns declarations
         var prefixToClrNamespace = new Dictionary<string, string>();
         foreach (var attr in doc.Root.Attributes())
         {
             if (!attr.IsNamespaceDeclaration)
+            {
                 continue;
+            }
 
             var prefix = attr.Name.LocalName;
             if (attr.Name.Namespace == XNamespace.Xmlns)
+            {
                 prefix = attr.Name.LocalName; // xmlns:sample="..."
+            }
             else if (attr.Name.LocalName == "xmlns")
+            {
                 continue; // default xmlns — not a prefix we resolve DataType with
+            }
 
             var value = attr.Value;
             if (value.StartsWith("clr-namespace:", StringComparison.Ordinal))
@@ -101,7 +111,10 @@ public sealed class PropertyAccessorGenerator : IIncrementalGenerator
                 var clrNs = value.Substring("clr-namespace:".Length);
                 var semiIdx = clrNs.IndexOf(';');
                 if (semiIdx >= 0)
+                {
                     clrNs = clrNs.Substring(0, semiIdx);
+                }
+
                 prefixToClrNamespace[prefix] = clrNs;
             }
         }
@@ -111,12 +124,16 @@ public sealed class PropertyAccessorGenerator : IIncrementalGenerator
         {
             var dataTypeAttr = element.Attribute("DataType");
             if (dataTypeAttr == null)
+            {
                 continue;
+            }
 
             var value = dataTypeAttr.Value; // e.g., "sample:LogEntry"
             var colonIdx = value.IndexOf(':');
             if (colonIdx < 0)
+            {
                 continue; // No prefix — would need default namespace resolution, skip
+            }
 
             var prefix = value.Substring(0, colonIdx);
             var typeName = value.Substring(colonIdx + 1);
@@ -149,7 +166,9 @@ public sealed class PropertyAccessorGenerator : IIncrementalGenerator
             {
                 var key = type.ToDisplayString();
                 if (seen.Add(key))
+                {
                     uniqueTypes.Add(type);
+                }
             }
         }
 
@@ -165,7 +184,9 @@ public sealed class PropertyAccessorGenerator : IIncrementalGenerator
         if (!dataTypeNames.IsDefaultOrEmpty)
         {
             foreach (var n in dataTypeNames)
+            {
                 debugLines.Add($"//   DataType: {n}");
+            }
         }
 
         if (!dataTypeNames.IsDefaultOrEmpty)
@@ -176,7 +197,9 @@ public sealed class PropertyAccessorGenerator : IIncrementalGenerator
 
                 if (symbol == null || symbol.IsImplicitlyDeclared ||
                     symbol.TypeKind != TypeKind.Class)
+                {
                     continue;
+                }
 
                 // Always register in TypeNameRegistry (even if already in uniqueTypes)
                 var fqn = GeneratorHelper.GetFullyQualifiedTypeName(symbol);
@@ -195,7 +218,9 @@ public sealed class PropertyAccessorGenerator : IIncrementalGenerator
         {
             var model = GeneratorHelper.CreateTypeModel(type);
             if (model.Properties.Length == 0)
+            {
                 continue;
+            }
 
             typeModels.Add(new
             {
@@ -213,7 +238,9 @@ public sealed class PropertyAccessorGenerator : IIncrementalGenerator
         }
 
         if (typeModels.Count == 0)
+        {
             return;
+        }
 
         // Determine namespace from the assembly
         var ns = compilation.AssemblyName ?? "Generated";

@@ -26,7 +26,10 @@ public class ResourceDictionary : IDictionary<object, object?>
         get
         {
             if (TryGetValue(key, out var value))
+            {
                 return value;
+            }
+
             throw new KeyNotFoundException($"Resource with key '{key}' not found");
         }
         set => _resources[key] = value;
@@ -94,13 +97,17 @@ public class ResourceDictionary : IDictionary<object, object?>
         
         // Check this dictionary first
         if (_resources.ContainsKey(key))
+        {
             return true;
-        
+        }
+
         // Check merged dictionaries in reverse order
         for (var i = _mergedDictionaries.Count - 1; i >= 0; i--)
         {
             if (_mergedDictionaries[i].ContainsKey(key))
+            {
                 return true;
+            }
         }
         
         return false;
@@ -148,13 +155,17 @@ public class ResourceDictionary : IDictionary<object, object?>
         
         // Check this dictionary first
         if (_resources.TryGetValue(key, out value))
+        {
             return true;
-        
+        }
+
         // Check merged dictionaries in reverse order (last added = highest priority)
         for (var i = _mergedDictionaries.Count - 1; i >= 0; i--)
         {
             if (_mergedDictionaries[i].TryGetValue(key, out value))
+            {
                 return true;
+            }
         }
         
         value = null;
