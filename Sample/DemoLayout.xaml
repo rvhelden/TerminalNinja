@@ -28,7 +28,7 @@
 
         <!-- Header spanning all 3 columns -->
         <Border Grid.Row="0" Grid.ColumnSpan="3"
-                   Background="{StaticResource HeaderBackground}"
+                   Background="{Binding BackgroundColor}"
                    Foreground="{StaticResource AccentColor}"
                    BorderStyle="Double">
             <TextBlock x:Name="HeaderTextBlock"

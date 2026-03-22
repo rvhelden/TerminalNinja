@@ -1,7 +1,8 @@
 using System.Collections.ObjectModel;
-using System.ComponentModel;
 using System.Diagnostics;
 using TerminalNinja.Commands;
+using TerminalNinja.DependencySystem;
+using TerminalNinja.Primitives;
 using TerminalNinja.Xaml.Mvvm;
 
 namespace Sample;
@@ -169,7 +170,24 @@ public class DemoViewModel : ViewModelBase
         {
             CurrentTime = DateTime.Now;
             UpdatePerformanceStats();
-        }, null, TimeSpan.Zero, TimeSpan.FromMilliseconds(500));
+            UpdateBackgroundColor();
+        }, null, TimeSpan.Zero, TimeSpan.FromMilliseconds(1));
+    }
+
+    public Color BackgroundColor
+    {
+        get;
+        set
+        {
+            if (value.Equals(field)) return;
+            field = value;
+            OnPropertyChanged();
+        }
+    } = Color.FromOklch(Oklch.FromColor(Color.Green) with { H = 120 });
+
+    private void UpdateBackgroundColor()
+    {
+        BackgroundColor = Color.FromOklch(Oklch.FromColor(Color.Green) with { H = DateTime.Now.Millisecond / 10d % 360 });
     }
 
     private void UpdatePerformanceStats()

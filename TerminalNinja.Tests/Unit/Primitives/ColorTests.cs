@@ -84,4 +84,59 @@ public class ColorTests
         
         await Assert.That(parsed).IsEqualTo(original);
     }
+
+    [Test]
+    public async Task ToArgb_FromArgb_RoundTrip()
+    {
+        var original = new Color(17, 34, 51, 68);
+
+        var argb = original.ToArgb();
+        var parsed = Color.FromArgb(argb);
+
+        await Assert.That(argb).IsEqualTo(0x44112233u);
+        await Assert.That(parsed).IsEqualTo(original);
+    }
+
+    [Test]
+    public async Task Oklch_Conversions_RoundTripForColor()
+    {
+        var original = new Color(123, 45, 67, 200);
+
+        var oklch = original.ToOklch();
+        var converted = Color.FromOklch(oklch, original.A);
+
+        await Assert.That(Math.Abs(converted.R - original.R)).IsLessThanOrEqualTo(1);
+        await Assert.That(Math.Abs(converted.G - original.G)).IsLessThanOrEqualTo(1);
+        await Assert.That(Math.Abs(converted.B - original.B)).IsLessThanOrEqualTo(1);
+        await Assert.That(converted.A).IsEqualTo(original.A);
+    }
+
+    [Test]
+    public async Task Oklch_FromArgb_ToArgb_PreservesAlphaAndNearRgb()
+    {
+        const uint argb = 0x802A80D0u;
+
+        var oklch = Oklch.FromArgb(argb);
+        var convertedArgb = oklch.ToArgb(0x80);
+        var converted = Color.FromArgb(convertedArgb);
+        var original = Color.FromArgb(argb);
+
+        await Assert.That(converted.A).IsEqualTo(original.A);
+        await Assert.That(Math.Abs(converted.R - original.R)).IsLessThanOrEqualTo(1);
+        await Assert.That(Math.Abs(converted.G - original.G)).IsLessThanOrEqualTo(1);
+        await Assert.That(Math.Abs(converted.B - original.B)).IsLessThanOrEqualTo(1);
+    }
+
+    [Test]
+    public async Task FromOklch_InvalidValues_ThrowsArgumentOutOfRangeException()
+    {
+        await Assert.That(() => Color.FromOklch(new Oklch(double.NaN, 0.1, 20)))
+            .ThrowsExactly<ArgumentOutOfRangeException>();
+
+        await Assert.That(() => Color.FromOklch(new Oklch(0.5, -0.1, 20)))
+            .ThrowsExactly<ArgumentOutOfRangeException>();
+
+        await Assert.That(() => Color.FromOklch(new Oklch(0.5, 0.1, double.PositiveInfinity)))
+            .ThrowsExactly<ArgumentOutOfRangeException>();
+    }
 }
