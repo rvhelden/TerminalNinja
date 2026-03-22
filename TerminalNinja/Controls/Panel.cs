@@ -15,7 +15,7 @@ public abstract class Panel : FrameworkElement
 
     public static readonly DependencyProperty BackgroundProperty =
         DependencyProperty.Register(nameof(Background), typeof(Color?), typeof(Panel),
-            new FrameworkPropertyMetadata((object?)null, affectsRender: true));
+            new FrameworkPropertyMetadata(null, affectsRender: true));
 
     private readonly ObservableControlCollection _children;
     

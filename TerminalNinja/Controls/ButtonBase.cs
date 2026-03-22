@@ -12,11 +12,11 @@ public abstract class ButtonBase : ContentControl
 
     public static readonly DependencyProperty CommandProperty =
         DependencyProperty.Register(nameof(Command), typeof(ICommand), typeof(ButtonBase),
-            new PropertyMetadata((object?)null, OnCommandChanged));
+            new PropertyMetadata(null, OnCommandChanged));
 
     public static readonly DependencyProperty CommandParameterProperty =
         DependencyProperty.Register(nameof(CommandParameter), typeof(object), typeof(ButtonBase),
-            new PropertyMetadata((object?)null, OnCommandParameterChanged));
+            new PropertyMetadata(null, OnCommandParameterChanged));
 
     private static void OnCommandChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
     {

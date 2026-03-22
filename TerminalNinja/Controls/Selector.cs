@@ -19,7 +19,7 @@ public abstract class Selector : ItemsControl
 
     public static readonly DependencyProperty SelectedItemProperty =
         DependencyProperty.Register(nameof(SelectedItem), typeof(object), typeof(Selector),
-            new FrameworkPropertyMetadata((object?)null, affectsRender: true,
+            new FrameworkPropertyMetadata(null, affectsRender: true,
                 propertyChangedCallback: OnSelectedItemChanged));
 
     public static readonly DependencyProperty SelectionModeProperty =

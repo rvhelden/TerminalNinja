@@ -16,12 +16,12 @@ public class ContentPresenter : FrameworkElement
 
     public static readonly DependencyProperty ContentProperty =
         DependencyProperty.Register(nameof(Content), typeof(object), typeof(ContentPresenter),
-            new FrameworkPropertyMetadata((object?)null, affectsRender: true,
+            new FrameworkPropertyMetadata(null, affectsRender: true,
                 propertyChangedCallback: OnContentChanged));
 
     public static readonly DependencyProperty ContentTemplateProperty =
         DependencyProperty.Register(nameof(ContentTemplate), typeof(DataTemplate), typeof(ContentPresenter),
-            new FrameworkPropertyMetadata((object?)null, affectsRender: true,
+            new FrameworkPropertyMetadata(null, affectsRender: true,
                 propertyChangedCallback: (d, _) => ((ContentPresenter)d).InvalidateTemplatedChild()));
 
     private static void OnContentChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)

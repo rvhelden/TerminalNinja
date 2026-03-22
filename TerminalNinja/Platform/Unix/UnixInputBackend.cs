@@ -52,7 +52,7 @@ public sealed class UnixInputBackend : Input.IInputBackend
 
         // Enable ANSI mouse tracking
         // SGR mode (1006) for extended coordinates + Any-event tracking (1003)
-        System.Console.Write("\u001b[?1003h\u001b[?1006h");
+        System.Console.Write("\e[?1003h\e[?1006h");
 
         _mouseTrackingEnabled = true;
     }
@@ -67,7 +67,7 @@ public sealed class UnixInputBackend : Input.IInputBackend
         }
 
         // Disable ANSI mouse tracking
-        System.Console.Write("\u001b[?1003l\u001b[?1006l");
+        System.Console.Write("\e[?1003l\e[?1006l");
 
         _mouseTrackingEnabled = false;
     }

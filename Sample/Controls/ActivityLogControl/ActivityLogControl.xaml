@@ -6,7 +6,11 @@
 
     <UserControl.Resources>
         <DataTemplate x:Key="LogEntryTemplate" DataType="sample:LogEntry">
-            <TextBlock Text="{Binding Message}" Foreground="White" Background="#141428" />
+            <TextBlock Foreground="White" Background="#141428">
+                <Run Text="{Binding Time}" />
+                <![CDATA[ ]]> 
+                <Run Text="{Binding Message}" />
+            </TextBlock>
         </DataTemplate>
     </UserControl.Resources>
 

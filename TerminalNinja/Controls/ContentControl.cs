@@ -19,12 +19,12 @@ public class ContentControl : Control
 
     public static readonly DependencyProperty ContentProperty =
         DependencyProperty.Register(nameof(Content), typeof(object), typeof(ContentControl),
-            new FrameworkPropertyMetadata((object?)null, affectsRender: true,
+            new FrameworkPropertyMetadata(null, affectsRender: true,
                 propertyChangedCallback: OnContentChanged));
 
     public static readonly DependencyProperty ContentTemplateProperty =
         DependencyProperty.Register(nameof(ContentTemplate), typeof(DataTemplate), typeof(ContentControl),
-            new FrameworkPropertyMetadata((object?)null, affectsRender: true,
+            new FrameworkPropertyMetadata(null, affectsRender: true,
                 propertyChangedCallback: OnContentTemplateChanged));
 
     private static void OnContentChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)

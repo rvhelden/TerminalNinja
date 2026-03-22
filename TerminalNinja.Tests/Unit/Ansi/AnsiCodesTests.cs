@@ -29,7 +29,7 @@ public class AnsiCodesTests
         var str = Encoding.UTF8.GetString(reset);
 
         // Assert
-        await Assert.That(str).IsEqualTo("\u001B[0m");
+        await Assert.That(str).IsEqualTo("\e[0m");
     }
 
     [Test]
@@ -40,7 +40,7 @@ public class AnsiCodesTests
         var str = Encoding.UTF8.GetString(clearScreen);
 
         // Assert
-        await Assert.That(str).IsEqualTo("\u001B[2J");
+        await Assert.That(str).IsEqualTo("\e[2J");
     }
 
     [Test]
@@ -51,7 +51,7 @@ public class AnsiCodesTests
         var str = Encoding.UTF8.GetString(clearAndHome);
 
         // Assert
-        await Assert.That(str).IsEqualTo("\u001B[2J\u001B[H");
+        await Assert.That(str).IsEqualTo("\e[2J\e[H");
     }
 
     [Test]
@@ -62,7 +62,7 @@ public class AnsiCodesTests
         var str = Encoding.UTF8.GetString(hideCursor);
 
         // Assert
-        await Assert.That(str).IsEqualTo("\u001B[?25l");
+        await Assert.That(str).IsEqualTo("\e[?25l");
     }
 
     [Test]
@@ -73,7 +73,7 @@ public class AnsiCodesTests
         var str = Encoding.UTF8.GetString(showCursor);
 
         // Assert
-        await Assert.That(str).IsEqualTo("\u001B[?25h");
+        await Assert.That(str).IsEqualTo("\e[?25h");
     }
 
     [Test]
@@ -84,7 +84,7 @@ public class AnsiCodesTests
         var str = Encoding.UTF8.GetString(home);
 
         // Assert
-        await Assert.That(str).IsEqualTo("\u001B[H");
+        await Assert.That(str).IsEqualTo("\e[H");
     }
 
     [Test]
@@ -95,7 +95,7 @@ public class AnsiCodesTests
         var str = Encoding.UTF8.GetString(escapeStart);
 
         // Assert
-        await Assert.That(str).IsEqualTo("\u001B[");
+        await Assert.That(str).IsEqualTo("\e[");
     }
 
     [Test]
@@ -106,7 +106,7 @@ public class AnsiCodesTests
         var str = Encoding.UTF8.GetString(fgPrefix);
 
         // Assert
-        await Assert.That(str).IsEqualTo("\u001B[38;2;");
+        await Assert.That(str).IsEqualTo("\e[38;2;");
     }
 
     [Test]
@@ -117,6 +117,6 @@ public class AnsiCodesTests
         var str = Encoding.UTF8.GetString(bgPrefix);
 
         // Assert
-        await Assert.That(str).IsEqualTo("\u001B[48;2;");
+        await Assert.That(str).IsEqualTo("\e[48;2;");
     }
 }

@@ -17,17 +17,17 @@ public class ItemsControl : Control
 
     public static readonly DependencyProperty ItemsSourceProperty =
         DependencyProperty.Register(nameof(ItemsSource), typeof(IEnumerable), typeof(ItemsControl),
-            new FrameworkPropertyMetadata((object?)null, affectsRender: true,
+            new FrameworkPropertyMetadata(null, affectsRender: true,
                 propertyChangedCallback: OnItemsSourceChanged));
 
     public static readonly DependencyProperty ItemTemplateProperty =
         DependencyProperty.Register(nameof(ItemTemplate), typeof(DataTemplate), typeof(ItemsControl),
-            new FrameworkPropertyMetadata((object?)null, affectsRender: true,
+            new FrameworkPropertyMetadata(null, affectsRender: true,
                 propertyChangedCallback: (d, _) => ((ItemsControl)d).RefreshItems()));
 
     public static readonly DependencyProperty ItemsPanelProperty =
         DependencyProperty.Register(nameof(ItemsPanel), typeof(Panel), typeof(ItemsControl),
-            new FrameworkPropertyMetadata((object?)null, affectsRender: true,
+            new FrameworkPropertyMetadata(null, affectsRender: true,
                 propertyChangedCallback: (d, _) => ((ItemsControl)d).RefreshItems()));
 
     private static void OnItemsSourceChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)

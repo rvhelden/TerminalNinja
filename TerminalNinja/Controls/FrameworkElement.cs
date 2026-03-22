@@ -29,7 +29,7 @@ public abstract class FrameworkElement : UIElement
 
     public static readonly DependencyProperty DataContextProperty =
         DependencyProperty.Register(nameof(DataContext), typeof(object), typeof(FrameworkElement),
-            new PropertyMetadata((object?)null,
+            new PropertyMetadata(null,
                 propertyChangedCallback: (d, e) => ((FrameworkElement)d).OnDataContextChanged(e.OldValue, e.NewValue)));
 
     public static readonly DependencyProperty StyleProperty =
@@ -130,15 +130,38 @@ public abstract class FrameworkElement : UIElement
     }
 
     /// <summary>
-    /// Called when DataContext changes. If transitioning from null to non-null
-    /// and pending bindings exist, activates them with a new BindingManager.
+    /// Called when DataContext changes. Activates any pending bindings on this element,
+    /// then recursively propagates to logical children that inherit DataContext
+    /// (i.e., children without their own explicit DataContext).
+    /// This mirrors WPF's DataContext inheritance down the logical tree.
     /// </summary>
     private void OnDataContextChanged(object? oldValue, object? newValue)
     {
-        if (newValue != null && _pendingBindings is { Count: > 0 })
+        if (newValue != null)
+        {
+            ActivatePendingBindingsRecursive(newValue);
+        }
+    }
+
+    /// <summary>
+    /// Activates pending bindings on this element and recursively on logical children
+    /// that don't have their own explicit DataContext.
+    /// </summary>
+    private void ActivatePendingBindingsRecursive(object dataContext)
+    {
+        if (_pendingBindings is { Count: > 0 })
         {
             var manager = new BindingManager();
-            ActivatePendingBindings(manager, newValue);
+            ActivatePendingBindings(manager, dataContext);
+        }
+
+        foreach (var child in GetLogicalChildren())
+        {
+            // Only propagate to children that inherit DataContext (no explicit DC set)
+            if (child.DataContext == null)
+            {
+                child.ActivatePendingBindingsRecursive(dataContext);
+            }
         }
     }
 

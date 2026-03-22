@@ -27,7 +27,7 @@ public partial class ActivityLogControl : UserControl
 
     public static readonly DependencyProperty ItemsSourceProperty =
         DependencyProperty.Register(nameof(ItemsSource), typeof(IEnumerable), typeof(ActivityLogControl),
-            new FrameworkPropertyMetadata((object?)null, affectsRender: true,
+            new FrameworkPropertyMetadata(null, affectsRender: true,
                 propertyChangedCallback: (d, e) =>
                 {
                     var control = (ActivityLogControl)d;

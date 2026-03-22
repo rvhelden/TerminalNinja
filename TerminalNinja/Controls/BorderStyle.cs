@@ -38,7 +38,7 @@ public sealed class Border : FrameworkElement
 
     public static readonly DependencyProperty ChildProperty =
         DependencyProperty.Register(nameof(Child), typeof(UIElement), typeof(Border),
-            new FrameworkPropertyMetadata((object?)null, affectsRender: true,
+            new FrameworkPropertyMetadata(null, affectsRender: true,
                 propertyChangedCallback: OnChildChanged));
 
     private static void OnChildChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
