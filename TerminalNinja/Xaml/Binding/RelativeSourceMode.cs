@@ -1,25 +1,23 @@
-namespace TerminalNinja.Xaml.Binding;
+// ReSharper disable once CheckNamespace
+namespace System.Windows.Data;
 
-/// <summary>
-/// Describes the location of the binding source relative to the binding target.
+/// <summary> This enum describes the type of RelativeSource
 /// </summary>
 public enum RelativeSourceMode
 {
-    /// <summary>
-    /// The binding source is the element itself (the target element is used as the source).
-    /// Example: <c>{Binding Width, RelativeSource={RelativeSource Self}}</c>
+    /// <summary>use the DataContext from the previous scope
+    /// </summary>
+    PreviousData,
+
+    /// <summary>use the target element's styled parent
+    /// </summary>
+    TemplatedParent,
+
+    /// <summary>use the target element itself
     /// </summary>
     Self,
 
-    /// <summary>
-    /// The binding source is an ancestor in the visual tree of the specified <see cref="RelativeSource.AncestorType"/>.
-    /// Example: <c>{Binding Title, RelativeSource={RelativeSource FindAncestor, AncestorType=Window}}</c>
+    /// <summary>use the target element's ancestor of a specified Type
     /// </summary>
-    FindAncestor,
-
-    /// <summary>
-    /// The binding source is the control whose template contains this element.
-    /// Reserved for future use — the template system is not yet implemented.
-    /// </summary>
-    TemplatedParent
+    FindAncestor
 }

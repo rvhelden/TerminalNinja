@@ -1,3 +1,4 @@
+using System.Windows.Data;
 using System.Xml.Linq;
 using TerminalNinja.Aot;
 using TerminalNinja.Controls;
@@ -1024,7 +1025,7 @@ internal sealed class XamlLoader
                     modeSet = true;
                     break;
                 case "AncestorType":
-                    ancestorType = ResolveTypeBySimpleName(val);
+                    ancestorType = ResolveAncestorType(val);
                     if (ancestorType == null)
                     {
                         throw new InvalidOperationException(
@@ -1038,9 +1039,17 @@ internal sealed class XamlLoader
             }
         }
 
+        // If AncestorType was specified without an explicit Mode, default to FindAncestor (WPF behavior)
         if (!modeSet)
         {
-            throw new InvalidOperationException("RelativeSource markup extension requires a Mode");
+            if (ancestorType != null)
+            {
+                mode = RelativeSourceMode.FindAncestor;
+            }
+            else
+            {
+                throw new InvalidOperationException("RelativeSource markup extension requires a Mode");
+            }
         }
 
         var relativeSource = new RelativeSource(mode)
@@ -1050,6 +1059,41 @@ internal sealed class XamlLoader
         };
 
         return relativeSource;
+    }
+
+    /// <summary>
+    /// Resolves an AncestorType value from a RelativeSource markup extension.
+    /// Handles three formats:
+    /// <list type="bullet">
+    ///   <item><c>Window</c> — simple name, searched across default CLR namespaces</item>
+    ///   <item><c>sample:ActivityLogControl</c> — prefixed name, resolved via xmlns mapping</item>
+    ///   <item><c>{system:Type sample:ActivityLogControl}</c> — {x:Type} / {system:Type} markup extension wrapper</item>
+    /// </list>
+    /// </summary>
+    private Type? ResolveAncestorType(string value)
+    {
+        var typeName = value;
+
+        // Unwrap {x:Type ...} or {system:Type ...} markup extension if present
+        if (typeName.StartsWith("{", StringComparison.Ordinal) && typeName.EndsWith("}", StringComparison.Ordinal))
+        {
+            var inner = typeName[1..^1].Trim();
+
+            // Strip the "x:Type" or "system:Type" prefix
+            var spaceIdx = inner.IndexOf(' ');
+            if (spaceIdx > 0)
+            {
+                typeName = inner[(spaceIdx + 1)..].Trim();
+            }
+            else
+            {
+                typeName = inner;
+            }
+        }
+
+        // Try instance method first (handles prefixed names like "sample:ActivityLogControl"
+        // and fully-qualified names like "Sample.ActivityLogControl")
+        return ResolveTypeFromXamlString(typeName) ?? ResolveTypeBySimpleName(typeName);
     }
 
     /// <summary>

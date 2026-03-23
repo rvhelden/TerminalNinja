@@ -1,4 +1,5 @@
 using System.Collections.Concurrent;
+using System.Windows.Data;
 using TerminalNinja.Controls;
 using TerminalNinja.Primitives;
 using TerminalNinja.Styling;

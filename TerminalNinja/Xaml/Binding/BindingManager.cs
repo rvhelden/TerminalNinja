@@ -1,3 +1,4 @@
+using System.Windows.Data;
 using TerminalNinja.Aot;
 using TerminalNinja.Controls;
 using TerminalNinja.Xaml.Data;
@@ -16,14 +17,7 @@ public sealed class BindingManager : IDisposable
     /// <summary>
     /// Creates a new binding and adds it to the manager.
     /// </summary>
-    public void CreateBinding(
-        FrameworkElement target,
-        string targetPropertyName,
-        string sourcePath,
-        BindingMode mode = BindingMode.OneWay,
-        IValueConverter? converter = null,
-        object? converterParameter = null,
-        RelativeSource? relativeSource = null)
+    public void CreateBinding(FrameworkElement target, string targetPropertyName, string sourcePath, BindingMode mode = BindingMode.OneWay, IValueConverter? converter = null, object? converterParameter = null, RelativeSource? relativeSource = null)
     {
         ArgumentNullException.ThrowIfNull(target);
         ArgumentException.ThrowIfNullOrWhiteSpace(targetPropertyName);
@@ -49,17 +43,11 @@ public sealed class BindingManager : IDisposable
         _bindings.Add(binding);
         
         // Resolve the binding source
-        object? source;
-        if (relativeSource != null)
-        {
+        var source =
             // RelativeSource binding — resolve from the visual tree, not DataContext
-            source = relativeSource.ResolveSource(target);
-        }
-        else
-        {
+            relativeSource != null ? ResolveSource(relativeSource, target) :
             // Standard DataContext binding
-            source = GetDataContext(target);
-        }
+            GetDataContext(target);
 
         binding.Activate(source);
     }
@@ -119,6 +107,51 @@ public sealed class BindingManager : IDisposable
         {
             SetDataContextRecursive(child, dataContext);
         }
+    }
+    
+    private Visual? ResolveSource(RelativeSource relativeSource, FrameworkElement target)
+    {
+        ArgumentNullException.ThrowIfNull(target);
+
+        return relativeSource.Mode switch
+        {
+            RelativeSourceMode.Self => target,
+            RelativeSourceMode.FindAncestor => FindAncestor(relativeSource, target),
+            RelativeSourceMode.TemplatedParent => null, // Template system not yet implemented
+            _ => null
+        };
+    }
+
+    private static Visual? FindAncestor(RelativeSource relativeSource, Visual target)
+    {
+        if (relativeSource.AncestorType == null)
+        {
+            throw new InvalidOperationException("AncestorType must be set when using RelativeSourceMode.FindAncestor.");
+        }
+
+        if (relativeSource.AncestorLevel < 1)
+        {
+            throw new InvalidOperationException($"AncestorLevel must be >= 1, but was {relativeSource.AncestorLevel}.");
+        }
+
+        var current = target.Parent;
+        var matchCount = 0;
+
+        while (current != null && relativeSource.AncestorType != null)
+        {
+            if (relativeSource.AncestorType.IsInstanceOfType(current))
+            {
+                matchCount++;
+                if (matchCount >= relativeSource.AncestorLevel)
+                {
+                    return current;
+                }
+            }
+
+            current = current.Parent;
+        }
+
+        return null; // Ancestor not found — WPF returns null silently
     }
     
     /// <summary>

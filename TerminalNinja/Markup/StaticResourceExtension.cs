@@ -1,6 +1,4 @@
 using TerminalNinja.Xaml;
-using TerminalNinja.Xaml.Binding;
-using TerminalNinja.Xaml.Data;
 
 // ReSharper disable once CheckNamespace
 namespace System.Windows.Markup;
@@ -30,11 +28,4 @@ public sealed class StaticResourceExtension : MarkupExtension
     /// </summary>
     [ConstructorArgument("path")]
     public string? Path { get; set; }
-
-    /// <inheritdoc />
-    public override object? ProvideValue(IServiceProvider serviceProvider)
-    {
-        // Never called at runtime — XamlLoader handles {Binding} via string parsing.
-        return null;
-    }
 }

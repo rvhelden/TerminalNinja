@@ -1,36 +1,31 @@
-using TerminalNinja.Xaml;
 using TerminalNinja.Xaml.Binding;
 using TerminalNinja.Xaml.Data;
 
 // ReSharper disable once CheckNamespace
 namespace System.Windows.Markup;
 
-/// <summary>
-/// Design-time markup extension stub for <c>{Binding}</c> syntax in XAML.
-/// Provides IDE IntelliSense support in Rider/Visual Studio.
-/// At runtime, <c>{Binding}</c> expressions are parsed by <see cref="XamlLoader"/>
-/// via string manipulation — this class's <see cref="ProvideValue"/> is never called.
-/// </summary>
-[MarkupExtensionReturnType(typeof(object))]
-public sealed class BindingExtension : MarkupExtension
+public sealed class Binding : MarkupExtension
 {
-    /// <summary>
-    /// Creates a new <see cref="BindingExtension"/> with no initial path.
-    /// </summary>
-    public BindingExtension() { }
-
-    /// <summary>
-    /// Creates a new <see cref="BindingExtension"/> with the specified property path.
-    /// Supports positional syntax: <c>{Binding PropertyName}</c>.
-    /// </summary>
-    public BindingExtension(string path) => Path = path;
+    public Binding() { }
+    public Binding(string path) => Path = path;
 
     /// <summary>
     /// The source property path to bind to.
     /// </summary>
     [ConstructorArgument("path")]
     public string? Path { get; set; }
+    
+    public object? FallbackValue { get; set; }
+    
+    public string? StringFormat { get; set; }
+    public object? TargetNullValue { get; set; }
 
+    public UpdateSourceTrigger UpdateSourceTrigger { get; set; } = UpdateSourceTrigger.Default;
+    
+    /// <summary> object to use as the source </summary>
+    /// <remarks> To clear this property, set it to DependencyProperty.UnsetValue. </remarks>
+    public object? Source { get; set; }
+    
     /// <summary>
     /// The binding mode (OneWay, TwoWay, OneTime).
     /// </summary>
@@ -52,11 +47,12 @@ public sealed class BindingExtension : MarkupExtension
     /// <see cref="Xaml.Binding.RelativeSource"/> instead of DataContext.
     /// </summary>
     public RelativeSource? RelativeSource { get; set; }
+}
 
-    /// <inheritdoc />
-    public override object? ProvideValue(IServiceProvider serviceProvider)
-    {
-        // Never called at runtime — XamlLoader handles {Binding} via string parsing.
-        return null;
-    }
+public enum UpdateSourceTrigger
+{
+    Default = 0,
+    Explicit = 3,
+    LostFocus = 2,
+    PropertyChanged = 1,
 }

@@ -26,13 +26,7 @@ public partial class ActivityLogControl : UserControl
     // ─── Dependency Properties ───────────────────────────────────────
 
     public static readonly DependencyProperty ItemsSourceProperty =
-        DependencyProperty.Register(nameof(ItemsSource), typeof(IEnumerable), typeof(ActivityLogControl),
-            new FrameworkPropertyMetadata(null, affectsRender: true,
-                propertyChangedCallback: (d, e) =>
-                {
-                    var control = (ActivityLogControl)d;
-                    control.LogItemsControl.ItemsSource = (IEnumerable?)e.NewValue;
-                }));
+        DependencyProperty.Register(nameof(ItemsSource), typeof(IEnumerable), typeof(ActivityLogControl), new FrameworkPropertyMetadata(null, affectsRender: true));
 
     /// <summary>
     /// Gets or sets the collection of items displayed in the activity log.

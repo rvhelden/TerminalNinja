@@ -7,5 +7,4 @@ namespace System.Windows.Markup;
 /// </summary>
 public abstract class MarkupExtension
 {
-    public abstract object? ProvideValue(IServiceProvider serviceProvider);
 }
