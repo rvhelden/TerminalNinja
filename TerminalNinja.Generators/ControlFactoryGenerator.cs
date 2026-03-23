@@ -32,7 +32,8 @@ public sealed class ControlFactoryGenerator : IIncrementalGenerator
         "RowDefinition",
         "ColumnDefinition",
         "Style",
-        "Setter"
+        "Setter",
+        "ResourceDictionary"
     };
 
     /// <summary>

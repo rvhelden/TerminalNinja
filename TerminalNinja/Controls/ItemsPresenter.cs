@@ -17,6 +17,11 @@ namespace TerminalNinja.Controls;
 /// </summary>
 public class ItemsPresenter : FrameworkElement
 {
+    public ItemsPresenter()
+    {
+        DefaultStyleKey = typeof(ItemsPresenter);
+    }
+
     private ItemsControl? _owner;
 
     /// <summary>

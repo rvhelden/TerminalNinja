@@ -4,6 +4,7 @@ using TerminalNinja.Input;
 using TerminalNinja.Primitives;
 using TerminalNinja.Rendering;
 using TerminalNinja.Resources;
+using TerminalNinja.Xaml;
 
 namespace TerminalNinja.App;
 
@@ -59,6 +60,105 @@ public sealed class Application : IDisposable
     /// Resources defined here are available to all controls in the application.
     /// </summary>
     public ResourceDictionary Resources { get; } = new();
+
+    /// <summary>
+    /// The currently loaded theme ResourceDictionary, or null if no theme is loaded.
+    /// </summary>
+    private ResourceDictionary? _themeDictionary;
+
+    /// <summary>
+    /// The name of the currently active theme.
+    /// </summary>
+    private string? _themeName;
+
+    /// <summary>
+    /// Gets the names of all built-in themes.
+    /// </summary>
+    public static IReadOnlyList<string> BuiltInThemes { get; } = ["Dark", "Dracula", "GruvboxDark"];
+
+    /// <summary>
+    /// Gets or sets the name of the active theme.
+    /// Setting this property loads the corresponding theme XAML from embedded resources
+    /// and merges it into <see cref="Resources"/>.MergedDictionaries.
+    /// Built-in themes: "Dark", "Dracula", "GruvboxDark".
+    /// Set to null to clear the current theme.
+    /// </summary>
+    public string? ThemeName
+    {
+        get => _themeName;
+        set
+        {
+            if (string.Equals(_themeName, value, StringComparison.Ordinal))
+            {
+                return;
+            }
+
+            // Remove the previous theme dictionary
+            if (_themeDictionary != null)
+            {
+                Resources.MergedDictionaries.Remove(_themeDictionary);
+                _themeDictionary = null;
+            }
+
+            _themeName = value;
+
+            if (value != null)
+            {
+                _themeDictionary = LoadThemeResourceDictionary(value);
+                // Insert at position 0 so theme resources have lowest priority
+                // (app-level resources and control-level resources override theme)
+                Resources.MergedDictionaries.Insert(0, _themeDictionary);
+            }
+
+            // Invalidate all controls so implicit styles re-resolve
+            InvalidateImplicitStyles();
+            Invalidate();
+        }
+    }
+
+    /// <summary>
+    /// Loads a theme ResourceDictionary from embedded XAML resources.
+    /// </summary>
+    private static ResourceDictionary LoadThemeResourceDictionary(string themeName)
+    {
+        var resourceName = $"TerminalNinja.Themes.{themeName}.xaml";
+        var assembly = typeof(Application).Assembly;
+        using var stream = assembly.GetManifestResourceStream(resourceName);
+        if (stream == null)
+        {
+            var available = assembly.GetManifestResourceNames();
+            throw new InvalidOperationException(
+                $"Theme '{themeName}' not found. Expected embedded resource '{resourceName}'. " +
+                $"Available resources: [{string.Join(", ", available)}]. " +
+                $"Built-in themes: [{string.Join(", ", BuiltInThemes)}]");
+        }
+
+        return TerminalXaml.LoadResourceDictionary(stream);
+    }
+
+    /// <summary>
+    /// Invalidates implicit styles on the root control and all its descendants
+    /// so they re-resolve against the new theme dictionary.
+    /// </summary>
+    private void InvalidateImplicitStyles()
+    {
+        if (_rootControl is FrameworkElement rootFe)
+        {
+            InvalidateImplicitStylesRecursive(rootFe);
+        }
+    }
+
+    private static void InvalidateImplicitStylesRecursive(FrameworkElement fe)
+    {
+        fe.InvalidateImplicitStyle();
+        foreach (var child in fe.GetLogicalChildren())
+        {
+            if (child is FrameworkElement childFe)
+            {
+                InvalidateImplicitStylesRecursive(childFe);
+            }
+        }
+    }
 
     /// <summary>
     /// Gets the target frames per second from the application options.

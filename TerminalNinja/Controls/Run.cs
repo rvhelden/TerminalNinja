@@ -11,6 +11,11 @@ namespace TerminalNinja.Controls;
 [RuntimeNameProperty("Name")]
 public sealed class Run : Inline
 {
+    public Run()
+    {
+        DefaultStyleKey = typeof(Run);
+    }
+
     // ─── Dependency Properties ───────────────────────────────────────
 
     /// <summary>Identifies the <see cref="Text"/> dependency property.</summary>

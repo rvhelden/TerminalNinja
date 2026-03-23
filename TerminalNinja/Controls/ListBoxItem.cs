@@ -35,6 +35,7 @@ public class ListBoxItem : ContentControl
     /// </summary>
     public ListBoxItem()
     {
+        DefaultStyleKey = typeof(ListBoxItem);
         Focusable = false;
     }
 
@@ -99,7 +100,7 @@ public class ListBoxItem : ContentControl
         // Resolve the visual child to render.
         // The ContentPresenter (via base) handles UIElement/string/object content.
         // We need to access the actual visual to override its colors when selected.
-        var visualChild = GetVisualChildForRendering();
+        var visualChild = GetVisualChildForRendering(bounds);
 
         if (visualChild != null)
         {
@@ -119,21 +120,31 @@ public class ListBoxItem : ContentControl
                 visualChild.Render(buffer, bounds);
             }
         }
+        else
+        {
+            // Fallback to the default ContentControl rendering path.
+            // This guarantees content still renders even when we cannot directly
+            // resolve the generated visual child.
+            base.Render(buffer, bounds);
+        }
     }
 
     /// <summary>
     /// Gets the actual UIElement visual child for rendering purposes.
     /// Walks through the internal ContentPresenter to find the renderable element.
     /// </summary>
-    private UIElement? GetVisualChildForRendering()
+    private UIElement? GetVisualChildForRendering(Rect bounds)
     {
         // GetChildrenWithBounds yields the ContentPresenter.
         // The ContentPresenter's GetChildrenWithBounds yields the actual visual child.
-        foreach (var (child, _) in GetChildrenWithBounds(new Rect(0, 0, 0, 0)))
+        foreach (var (child, childBounds) in GetChildrenWithBounds(bounds))
         {
             if (child is ContentPresenter cp)
             {
-                foreach (var (innerChild, _) in cp.GetChildrenWithBounds(new Rect(0, 0, 0, 0)))
+                // Ensure template/string content is materialized before enumerating children.
+                cp.GetPreferredSize(childBounds);
+
+                foreach (var (innerChild, _) in cp.GetChildrenWithBounds(childBounds))
                 {
                     return innerChild as UIElement;
                 }

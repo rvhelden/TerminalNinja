@@ -11,37 +11,205 @@
 
 // ── Default XAML snippet shown in the editor on first load ──────────────────
 const DEFAULT_XAML = `<Window xmlns="http://schemas.terminalninja.dev/xaml"
-        Title="Playground"
-        Width="80"
-        Height="24">
-  <StackPanel Orientation="Vertical">
+       xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+       x:Name="App"
+       xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+       xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+       xmlns:data="clr-namespace:TerminalNinja.Xaml.Data;assembly=TerminalNinja"
+       mc:Ignorable="d"
+       d:DataContext="{d:DesignInstance sample:DemoViewModel}"
+       Title="TerminalNinja Demo">
 
-    <Border BorderStyle="Rounded"
-            Background="#1E1E50"
-            Foreground="#3DD9B1">
-      <TextBlock Text="  TerminalNinja Playground  "
-                 HorizontalTextAlignment="Center" />
-    </Border>
+    <!-- Window-level Resources -->
+    <Window.Resources>
+        <Color x:Key="HeaderBackground">#1E1E50</Color>
+        <Color x:Key="ToolbarBackground">#19192D</Color>
+        <Color x:Key="ContentBackground">#FF0000</Color>
+        <Color x:Key="StatusBackground">#282828</Color>
+        <Color x:Key="ButtonBackground">#141414</Color>
+        <Color x:Key="AccentColor">Cyan</Color>
+        <Color x:Key="HighlightColor">Yellow</Color>
+        <data:DateTimeToStringConverter x:Key="DateTimeToStringConverter" />
+    </Window.Resources>
 
-    <TextBlock Text=""
-               Foreground="#95A7BF" />
+    <!-- Rows: Header=5, Toolbar=5, Content=*, StatusBar=3 -->
+    <!-- Columns: Content=*, ActivityLog=35, Menu=24 -->
+    <Grid Rows="5 5 * 3" Columns="* 35 24">
 
-    <TextBlock Text="  Edit this XAML and click Render!"
-               Foreground="#D8E2F1" />
+        <!-- Header spanning all 3 columns -->
+        <Border Grid.Row="0" Grid.ColumnSpan="3"
+                   Background="{Binding BackgroundColor}"
+                   Foreground="{StaticResource AccentColor}"
+                   BorderStyle="Double">
+            <TextBlock x:Name="HeaderTextBlock"
+                   Text="{Binding HeaderText}"
+                   Foreground="{StaticResource AccentColor}"
+                   HorizontalTextAlignment="Center"
+                   VerticalTextAlignment="Center" />
+        </Border>
 
-    <TextBlock Text=""
-               Foreground="#95A7BF" />
+        <!-- Toolbar spanning all 3 columns -->
+        <Border Grid.Row="1" Grid.ColumnSpan="3"
+                   Background="{StaticResource ToolbarBackground}"
+                   BorderStyle="Single">
+            <StackPanel Orientation="Horizontal">
+                <Border StackPanel.SizeMode="Auto"
+                           Width="2"
+                           Background="{StaticResource ToolbarBackground}" />
 
-    <Button Text="Hello World" />
+                <Button x:Name="NewButton"
+                        StackPanel.SizeMode="Auto"
+                        Text="New"
+                        Width="12"
+                        Height="3"
+                        TabIndex="0"
+                        FocusColor="{StaticResource AccentColor}"
+                        HoverColor="{StaticResource HighlightColor}"
+                        Foreground="White"
+                        Background="{StaticResource ButtonBackground}"
+                        Command="{Binding NewCommand}" />
 
-    <TextBlock Text=""
-               Foreground="#95A7BF" />
+                <Button x:Name="GcCollectButton" Text="GC Collect" Command="{Binding GCCollect}" />
+                
+                <Button x:Name="OpenButton"
+                        StackPanel.SizeMode="Auto"
+                        Text="Open"
+                        Width="12"
+                        Height="3"
+                        TabIndex="1"
+                        FocusColor="{StaticResource AccentColor}"
+                        HoverColor="{StaticResource HighlightColor}"
+                        Foreground="White"
+                        Background="{StaticResource ButtonBackground}"
+                        Command="{Binding Path=OpenCommand}" />
 
-    <TextBlock Text="  StackPanel · Grid · Border · TextBlock · Button"
-               Foreground="#49A7FF" />
+                <Button x:Name="SaveButton"
+                        StackPanel.SizeMode="Auto"
+                        Text="Save"
+                        Width="12"
+                        Height="3"
+                        TabIndex="2"
+                        FocusColor="{StaticResource AccentColor}"
+                        HoverColor="{StaticResource HighlightColor}"
+                        Foreground="White"
+                        Background="{StaticResource ButtonBackground}"
+                        Command="{Binding Path=SaveCommand}" />
 
-  </StackPanel>
-</Window>`;
+                <Border StackPanel.SizeMode="Stretch" Background="{StaticResource ToolbarBackground}" />
+            </StackPanel>
+        </Border>
+
+        <!-- Content area: column 0, row 2 -->
+        <Border Grid.Row="2" Grid.Column="0"
+                   Background="{StaticResource ContentBackground}"
+                   BorderStyle="Rounded">
+            <TextBlock x:Name="ContentTextBlock"
+                   Text="{Binding Path=ContentText}"
+                   Foreground="White"
+                   HorizontalTextAlignment="Center"
+                   VerticalTextAlignment="Center"
+                   TextWrapping="Wrap"
+                   Padding="4,2,4,2" />
+        </Border>
+
+        <!-- Menu: column 2, row 2 -->
+        <Border Grid.Row="2" Grid.Column="2" Grid.ColumnSpan="2"
+                   Background="#1A1A2E"
+                   Foreground="White"
+                   BorderStyle="Rounded">
+            <StackPanel Orientation="Vertical">
+                <TextBlock StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1"
+                       Text=" Menu"
+                       Foreground="{StaticResource AccentColor}"
+                       Background="#1A1A2E" />
+                <ListBox StackPanel.SizeMode="Stretch"
+                         x:Name="MenuListBox"
+                         Background="#1A1A2E"
+                         Foreground="White"
+                         SelectedBackground="#2D5AA0"
+                         SelectedForeground="White"
+                         TabIndex="3">                         
+                <ListBoxItem>ListBox Item #1</ListBoxItem>
+                <ListBoxItem>ListBox Item #2</ListBoxItem>
+                <ListBoxItem>ListBox Item #3</ListBoxItem>
+                </ListBox>
+            </StackPanel>
+        </Border>
+
+        <!-- Status Bar spanning all 3 columns -->
+        <Border Grid.Row="3" Grid.ColumnSpan="3"
+                   Background="{StaticResource StatusBackground}"
+                   Foreground="{StaticResource HighlightColor}"
+                   BorderStyle="Single">
+            <StackPanel Orientation="Horizontal">
+
+            <TextBlock StackPanel.SizeMode="Stretch" x:Name="StatusTextBlock"
+                   Text="{Binding Path=StatusText}"
+                   Foreground="{StaticResource HighlightColor}"
+                   HorizontalTextAlignment="Center"
+                   VerticalTextAlignment="Center" />
+
+            <TextBlock StackPanel.SizeMode="Auto" x:Name="MemoryTextBlock"
+                   Text="{Binding MemoryUsageMB, Converter={StaticResource PerformanceConverter}, ConverterParameter=Memory}"
+                   Foreground="{StaticResource AccentColor}"
+                   HorizontalTextAlignment="Center"
+                   VerticalTextAlignment="Center"
+                   Padding="2,0,2,0" />
+
+            <TextBlock StackPanel.SizeMode="Auto" x:Name="CpuTextBlock"
+                   Text="{Binding CpuUsagePercent, Converter={StaticResource PerformanceConverter}, ConverterParameter=Cpu}"
+                   Foreground="{StaticResource AccentColor}"
+                   HorizontalTextAlignment="Center"
+                   VerticalTextAlignment="Center"
+                   Padding="2,0,2,0" />
+
+            <TextBlock StackPanel.SizeMode="Auto" x:Name="FpsLabelTextBlock"
+                   Text="FPS:"
+                   Foreground="{StaticResource AccentColor}"
+                   HorizontalTextAlignment="Center"
+                   VerticalTextAlignment="Center"
+                   Padding="2,0,0,0" />
+
+            <TextBlock StackPanel.SizeMode="Auto" x:Name="CurrentFpsTextBlock"
+                   Text="{Binding CurrentFps, Converter={StaticResource PerformanceConverter}, ConverterParameter=CurrentFps}"
+                   Foreground="{StaticResource AccentColor}"
+                   HorizontalTextAlignment="Center"
+                   VerticalTextAlignment="Center"
+                   Padding="0,0,0,0" />
+
+            <TextBlock StackPanel.SizeMode="Auto" x:Name="FpsSeparatorTextBlock"
+                   Text="/"
+                   Foreground="{StaticResource AccentColor}"
+                   HorizontalTextAlignment="Center"
+                   VerticalTextAlignment="Center"
+                   Padding="0,0,0,0" />
+
+            <TextBlock StackPanel.SizeMode="Auto" x:Name="TargetFpsTextBlock"
+                   Text="{Binding TargetFps, Converter={StaticResource PerformanceConverter}, ConverterParameter=TargetFps}"
+                   Foreground="{StaticResource AccentColor}"
+                   HorizontalTextAlignment="Center"
+                   VerticalTextAlignment="Center"
+                   Padding="0,0,2,0" />
+
+            <TextBlock StackPanel.SizeMode="Auto" x:Name="TtfrTextBlock"
+                   Text="{Binding TimeToFirstRenderMs, Converter={StaticResource PerformanceConverter}, ConverterParameter=TTFR}"
+                   Foreground="{StaticResource AccentColor}"
+                   HorizontalTextAlignment="Center"
+                   VerticalTextAlignment="Center"
+                   Padding="2,0,2,0" />
+
+            <TextBlock StackPanel.SizeMode="Auto" x:Name="TimeTextBlock"
+                   Text="{Binding CurrentTime, Converter={StaticResource DateTimeToStringConverter}, ConverterParameter=HH:mm:ss}"
+                   Foreground="{StaticResource HighlightColor}"
+                   HorizontalTextAlignment="Center"
+                   VerticalTextAlignment="Center"
+                   Padding="2,0,0,0" />
+            </StackPanel>
+        </Border>
+
+    </Grid>
+</Window>
+`;
 
 // ── DOM refs ─────────────────────────────────────────────────────────────────
 const statusDot  = document.getElementById('status-dot');

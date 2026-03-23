@@ -11,6 +11,11 @@ namespace TerminalNinja.Controls;
 [RuntimeNameProperty("Name")]
 public sealed class Span : Inline
 {
+    public Span()
+    {
+        DefaultStyleKey = typeof(Span);
+    }
+
     private InlineCollection? _inlines;
 
     /// <summary>

@@ -500,4 +500,113 @@ public class ListBoxTests
     }
 
     #endregion
+
+    #region Items Collection (Direct Add)
+
+    [Test]
+    public async Task Items_Add_SyncsToItemsPanel()
+    {
+        // Bug fix: Items.Add should immediately sync to ItemsPanel.Children
+        var listBox = new ListBox();
+        var lbi1 = new ListBoxItem { Content = new TextBlock { Text = "A" } };
+        var lbi2 = new ListBoxItem { Content = new TextBlock { Text = "B" } };
+
+        listBox.Items.Add(lbi1);
+        listBox.Items.Add(lbi2);
+
+        await Assert.That(listBox.ItemsPanel.Children.Count).IsEqualTo(2);
+        await Assert.That(listBox.ItemsPanel.Children[0]).IsEqualTo(lbi1);
+        await Assert.That(listBox.ItemsPanel.Children[1]).IsEqualTo(lbi2);
+    }
+
+    [Test]
+    public async Task Items_AddStringContent_RendersText()
+    {
+        // Simulates the XAML pattern: <ListBoxItem>Hello</ListBoxItem>
+        // where Content is a string (not a TextBlock)
+        var listBox = new ListBox();
+        var lbi = new ListBoxItem { Content = "Hello" };
+        listBox.Items.Add(lbi);
+
+        using var buffer = new CellBuffer(20, 5);
+        listBox.Render(buffer, new Rect(0, 0, 20, 5));
+
+        // "Hello" should render as text
+        await Assert.That(buffer.GetCell(0, 0).Character).IsEqualTo('H');
+        await Assert.That(buffer.GetCell(4, 0).Character).IsEqualTo('o');
+    }
+
+    [Test]
+    public async Task Items_Remove_SyncsToItemsPanel()
+    {
+        var listBox = new ListBox();
+        var lbi1 = new ListBoxItem { Content = "A" };
+        var lbi2 = new ListBoxItem { Content = "B" };
+        listBox.Items.Add(lbi1);
+        listBox.Items.Add(lbi2);
+
+        await Assert.That(listBox.ItemsPanel.Children.Count).IsEqualTo(2);
+
+        listBox.Items.Remove(lbi1);
+
+        await Assert.That(listBox.ItemsPanel.Children.Count).IsEqualTo(1);
+        await Assert.That(listBox.ItemsPanel.Children[0]).IsEqualTo(lbi2);
+    }
+
+    #endregion
+
+    #region XAML Loading
+
+    [Test]
+    public async Task Xaml_ListBoxItem_BareTextContent_SetsContent()
+    {
+        // Bug fix: <ListBoxItem>text</ListBoxItem> should set Content = "text"
+        var xaml = """
+            <ListBox xmlns="http://schemas.terminalninja.dev/xaml">
+                <ListBoxItem>Item One</ListBoxItem>
+                <ListBoxItem>Item Two</ListBoxItem>
+            </ListBox>
+            """;
+
+        var listBox = TerminalXaml.Load<ListBox>(xaml);
+
+        await Assert.That(listBox.ItemsPanel.Children.Count).IsEqualTo(2);
+
+        var lbi1 = listBox.ItemsPanel.Children[0] as ListBoxItem;
+        var lbi2 = listBox.ItemsPanel.Children[1] as ListBoxItem;
+        await Assert.That(lbi1).IsNotNull();
+        await Assert.That(lbi2).IsNotNull();
+        await Assert.That(lbi1!.Content).IsEqualTo("Item One");
+        await Assert.That(lbi2!.Content).IsEqualTo("Item Two");
+    }
+
+    [Test]
+    public async Task Xaml_ListBoxItem_BareTextContent_RendersText()
+    {
+        // End-to-end: XAML-loaded ListBoxItems with bare text content render visibly
+        var xaml = """
+            <ListBox xmlns="http://schemas.terminalninja.dev/xaml"
+                     Background="#1A1A2E" Foreground="White"
+                     SelectedBackground="Blue" SelectedForeground="White">
+                <ListBoxItem>Hello</ListBoxItem>
+                <ListBoxItem>World</ListBoxItem>
+            </ListBox>
+            """;
+
+        var listBox = TerminalXaml.Load<ListBox>(xaml);
+        listBox.SelectedIndex = 0;
+
+        using var buffer = new CellBuffer(20, 5);
+        listBox.Render(buffer, new Rect(0, 0, 20, 5));
+
+        // First item "Hello" should render
+        await Assert.That(buffer.GetCell(0, 0).Character).IsEqualTo('H');
+        await Assert.That(buffer.GetCell(4, 0).Character).IsEqualTo('o');
+
+        // Second item "World" should render on the next row
+        await Assert.That(buffer.GetCell(0, 1).Character).IsEqualTo('W');
+        await Assert.That(buffer.GetCell(4, 1).Character).IsEqualTo('d');
+    }
+
+    #endregion
 }

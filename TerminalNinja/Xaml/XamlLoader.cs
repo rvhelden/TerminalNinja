@@ -1,7 +1,10 @@
 using System.Windows.Data;
 using System.Xml.Linq;
 using TerminalNinja.Aot;
+using TerminalNinja.Buffers;
 using TerminalNinja.Controls;
+using TerminalNinja.Primitives;
+using TerminalNinja.Resources;
 using TerminalNinja.Styling;
 using TerminalNinja.Xaml.Binding;
 using TerminalNinja.Xaml.Data;
@@ -109,7 +112,7 @@ internal sealed class XamlLoader
         ResolveStaticResources(rootObjectInstance);
 
         // Activate bindings via the new expression-based system
-        ActivateBindings(rootObjectInstance);
+        ActivateBindings();
 
         // Set DataContext if provided
         // (For x:Class, DataContext is typically set later by the consumer.)
@@ -140,7 +143,7 @@ internal sealed class XamlLoader
         // which attaches a BindingExpression to the target DP.
         // The expression resolves its source (DataContext, RelativeSource, explicit Source)
         // on attach and re-evaluates when the environment changes.
-        ActivateBindings(typed as FrameworkElement);
+        ActivateBindings();
 
         // Set DataContext (this will trigger Invalidate on DataContext-dependent bindings)
         if (dataContext != null)
@@ -149,6 +152,286 @@ internal sealed class XamlLoader
         }
 
         return typed;
+    }
+
+    // ────────────────────────────────────────────────────────────────
+    //  ResourceDictionary loading (standalone theme XAML files)
+    // ────────────────────────────────────────────────────────────────
+
+    /// <summary>
+    /// Loads a standalone <c>&lt;ResourceDictionary&gt;</c> XAML document.
+    /// Used for theme files where the root element is <c>ResourceDictionary</c>
+    /// rather than a <c>FrameworkElement</c>-derived control.
+    /// </summary>
+    /// <remarks>
+    /// <c>{StaticResource}</c> references within the dictionary resolve against
+    /// resources already added earlier in the same dictionary (document order).
+    /// </remarks>
+    public ResourceDictionary LoadResourceDictionary(string xaml)
+    {
+        var doc = XDocument.Parse(xaml);
+        return LoadResourceDictionaryFromDocument(doc);
+    }
+
+    /// <summary>
+    /// Loads a standalone <c>&lt;ResourceDictionary&gt;</c> XAML document from a stream.
+    /// </summary>
+    public ResourceDictionary LoadResourceDictionaryFromStream(Stream stream)
+    {
+        var doc = XDocument.Load(stream);
+        return LoadResourceDictionaryFromDocument(doc);
+    }
+
+    private ResourceDictionary LoadResourceDictionaryFromDocument(XDocument doc)
+    {
+        var root = doc.Root ?? throw new InvalidOperationException("XAML document has no root element");
+
+        // Collect xmlns prefix → URI mappings and mc:Ignorable prefixes
+        CollectNamespaces(root);
+
+        // Verify root element is ResourceDictionary
+        var rootType = ResolveType(root.Name);
+        if (rootType != typeof(ResourceDictionary))
+        {
+            throw new InvalidOperationException(
+                $"Expected root element 'ResourceDictionary', got '{root.Name.LocalName}'");
+        }
+
+        var dict = new ResourceDictionary();
+
+        // Process MergedDictionaries if present (as a property element)
+        foreach (var propElement in root.Elements())
+        {
+            if (IsPropertyElement(propElement.Name, "MergedDictionaries"))
+            {
+                foreach (var mergedChild in propElement.Elements())
+                {
+                    var mergedType = ResolveType(mergedChild.Name);
+                    if (mergedType != typeof(ResourceDictionary))
+                    {
+                        throw new InvalidOperationException(
+                            $"Expected 'ResourceDictionary' inside MergedDictionaries, got '{mergedChild.Name.LocalName}'");
+                    }
+
+                    // Recursively load nested ResourceDictionary
+                    var nestedLoader = new XamlLoader();
+                    var nestedDoc = new XDocument(new XElement(mergedChild));
+                    // Copy namespace declarations from root to nested element
+                    foreach (var attr in root.Attributes().Where(a => a.IsNamespaceDeclaration))
+                    {
+                        if (nestedDoc.Root!.Attribute(attr.Name) == null)
+                        {
+                            nestedDoc.Root.Add(attr);
+                        }
+                    }
+                    dict.MergedDictionaries.Add(nestedLoader.LoadResourceDictionaryFromDocument(nestedDoc));
+                }
+                continue;
+            }
+
+            // Skip other property elements (e.g., ResourceDictionary.SomeProperty)
+            if (IsPropertyElement(propElement.Name))
+            {
+                continue;
+            }
+
+            // Process resource entries
+            ProcessResourceDictionaryEntry(propElement, dict);
+        }
+
+        // Resolve pending {StaticResource} lookups against the dictionary itself
+        ResolveStaticResourcesAgainstDictionary(dict);
+
+        return dict;
+    }
+
+    /// <summary>
+    /// Processes a single child element within a standalone <c>&lt;ResourceDictionary&gt;</c>.
+    /// Similar to <see cref="ProcessResourcesElement"/> but stores into a dictionary parameter
+    /// instead of a FrameworkElement's Resources.
+    /// </summary>
+    private void ProcessResourceDictionaryEntry(XElement child, ResourceDictionary dict)
+    {
+        var keyAttr = child.Attribute(XName.Get("Key", XamlXNs));
+        var childTypeName = child.Name.LocalName;
+
+        var childType = ResolveType(child.Name);
+        if (childType == null)
+        {
+            throw new InvalidOperationException(
+                $"Cannot resolve resource type '{childTypeName}' in namespace '{child.Name.NamespaceName}'");
+        }
+
+        // Implicit Style keying (Style without x:Key, keyed by TargetType)
+        if (keyAttr == null)
+        {
+            if (childType == typeof(Style) || childType.IsSubclassOf(typeof(Style)))
+            {
+                if (ControlFactoryRegistry.TryCreate(childType, out var styleInstance))
+                {
+                    // Create a temporary FrameworkElement so that {StaticResource} references
+                    // inside style setters can resolve against the dictionary being built.
+                    // We use a DictionaryBackedFrameworkElement wrapper for this purpose.
+                    var tempFe = new DictionaryBackedFrameworkElement(dict);
+                    ProcessAttributes(child, styleInstance, childType, tempFe);
+                    if (child.HasElements)
+                    {
+                        ProcessChildElements(child, styleInstance, childType, tempFe);
+                    }
+
+                    var style = (Style)styleInstance;
+                    if (style.TargetType != null)
+                    {
+                        dict[style.TargetType] = style;
+                    }
+                    else
+                    {
+                        throw new InvalidOperationException(
+                            "Style without x:Key must have a TargetType for implicit style keying.");
+                    }
+                }
+                else
+                {
+                    throw new InvalidOperationException(
+                        $"No factory registered for Style type '{childType.FullName}'");
+                }
+                return;
+            }
+
+            // Not a Style and no x:Key — skip
+            return;
+        }
+
+        var key = keyAttr.Value;
+
+        // Simple value types (like Color) — parse from text content
+        if (!child.HasElements)
+        {
+            var textValue = child.Value.Trim();
+            if (!string.IsNullOrEmpty(textValue))
+            {
+                var converter = TypeConverterRegistry.GetConverterOrEnum(childType);
+                if (converter != null && converter.CanConvertFrom(typeof(string)))
+                {
+                    var value = converter.ConvertFromInvariantString(textValue);
+                    dict[key] = value;
+                    return;
+                }
+            }
+        }
+
+        // Complex types — instantiate
+        if (ControlFactoryRegistry.TryCreate(childType, out var resourceInstance))
+        {
+            var tempFe = new DictionaryBackedFrameworkElement(dict);
+            ProcessAttributes(child, resourceInstance, childType, tempFe);
+            if (child.HasElements)
+            {
+                ProcessChildElements(child, resourceInstance, childType, tempFe);
+            }
+
+            dict[key] = resourceInstance;
+        }
+        else
+        {
+            throw new InvalidOperationException(
+                $"No factory registered for resource type '{childType.FullName}'");
+        }
+    }
+
+    /// <summary>
+    /// Checks if an element name is a property element (e.g., "ResourceDictionary.MergedDictionaries").
+    /// </summary>
+    private static bool IsPropertyElement(XName name)
+    {
+        return name.LocalName.Contains('.');
+    }
+
+    /// <summary>
+    /// Checks if an element name is a specific property element.
+    /// </summary>
+    private static bool IsPropertyElement(XName name, string propertyName)
+    {
+        return name.LocalName.Contains('.') && name.LocalName.EndsWith("." + propertyName, StringComparison.Ordinal);
+    }
+
+    /// <summary>
+    /// Resolves pending <c>{StaticResource}</c> lookups against a standalone dictionary.
+    /// Resources added earlier in document order are available for later references.
+    /// </summary>
+    private void ResolveStaticResourcesAgainstDictionary(ResourceDictionary dict)
+    {
+        foreach (var pending in _pendingStaticResources)
+        {
+            object? resource;
+
+            // First try to resolve from the DictionaryBackedFrameworkElement (which delegates to dict)
+            if (pending.Context is DictionaryBackedFrameworkElement dfe)
+            {
+                resource = dfe.TryFindResource(pending.ResourceKey);
+            }
+            else
+            {
+                // Fallback: look up directly in the dictionary
+                dict.TryGetValue(pending.ResourceKey, out resource);
+            }
+
+            if (resource == null)
+            {
+                throw new InvalidOperationException(
+                    $"StaticResource '{pending.ResourceKey}' not found in ResourceDictionary " +
+                    $"for property '{pending.PropertyName}' on type '{pending.TargetType.Name}'");
+            }
+
+            if (!PropertyAccessorRegistry.TryGetAccessor(pending.TargetType, pending.PropertyName, out var accessor)
+                || !accessor.Value.CanWrite)
+            {
+                throw new InvalidOperationException(
+                    $"Property '{pending.PropertyName}' not found or is read-only on type '{pending.TargetType.Name}'");
+            }
+
+            var value = resource;
+            if (!accessor.Value.PropertyType.IsInstanceOfType(value))
+            {
+                var converter = TypeConverterRegistry.GetConverterOrEnum(accessor.Value.PropertyType);
+                if (converter != null && converter.CanConvertFrom(value.GetType()))
+                {
+                    value = converter.ConvertFrom(value);
+                }
+            }
+
+            accessor.Value.Setter!(pending.Target, value);
+        }
+    }
+
+    /// <summary>
+    /// A minimal FrameworkElement that delegates TryFindResource to a ResourceDictionary.
+    /// Used during standalone ResourceDictionary loading so that {StaticResource} markup
+    /// extensions inside the dictionary can resolve against resources already added to it.
+    /// </summary>
+    private sealed class DictionaryBackedFrameworkElement : FrameworkElement
+    {
+        private readonly ResourceDictionary _dict;
+
+        public DictionaryBackedFrameworkElement(ResourceDictionary dict)
+        {
+            _dict = dict;
+        }
+
+        public override object? TryFindResource(object key)
+        {
+            if (_dict.TryGetValue(key, out var value))
+            {
+                return value;
+            }
+
+            // Fall back to Application.Resources if available
+            return base.TryFindResource(key);
+        }
+
+        public override void Render(CellBuffer buffer, Rect parentBounds) { }
+        public override Rect CalculateBounds(Rect parentBounds) => default;
+        public override Size2D GetPreferredSize(Rect parentBounds) => default;
     }
 
     // ────────────────────────────────────────────────────────────────
@@ -398,6 +681,21 @@ internal sealed class XamlLoader
 
                     AddToContentProperty(instance, type, contentPropertyName, run);
                 }
+                else if (contentPropertyName != null)
+                {
+                    // Set bare text as the content property value (e.g., <ListBoxItem>Hello</ListBoxItem>
+                    // sets Content = "Hello"). Only applies to writable non-collection content properties.
+                    if (PropertyAccessorRegistry.TryGetAccessor(type, contentPropertyName, out var textAccessor)
+                        && textAccessor.Value.CanWrite)
+                    {
+                        var propValue = textAccessor.Value.Getter(instance);
+                        // Don't overwrite collection properties — only set scalar content
+                        if (propValue == null || !TryAddToCollection(propValue, text))
+                        {
+                            textAccessor.Value.Setter!(instance, text);
+                        }
+                    }
+                }
                 continue;
             }
 
@@ -529,12 +827,6 @@ internal sealed class XamlLoader
         {
             // Get x:Key
             var keyAttr = child.Attribute(XName.Get("Key", XamlXNs));
-            if (keyAttr == null)
-            {
-                continue;
-            }
-
-            var key = keyAttr.Value;
             var childNs = child.Name.NamespaceName;
             var childTypeName = child.Name.LocalName;
 
@@ -545,6 +837,43 @@ internal sealed class XamlLoader
                 throw new InvalidOperationException(
                     $"Cannot resolve resource type '{childTypeName}' in namespace '{childNs}'");
             }
+
+            // If no x:Key, allow implicit Style keying by TargetType
+            if (keyAttr == null)
+            {
+                if (childType == typeof(Styling.Style) || childType.IsSubclassOf(typeof(Styling.Style)))
+                {
+                    // Create the Style, process attributes/children, then derive key from TargetType
+                    if (ControlFactoryRegistry.TryCreate(childType, out var styleInstance))
+                    {
+                        ProcessAttributes(child, styleInstance, childType, fe);
+                        if (child.HasElements)
+                        {
+                            ProcessChildElements(child, styleInstance, childType, fe);
+                        }
+
+                        var style = (Styling.Style)styleInstance;
+                        if (style.TargetType != null)
+                        {
+                            fe.Resources[style.TargetType] = style;
+                        }
+                        else
+                        {
+                            throw new InvalidOperationException(
+                                "Style without x:Key must have a TargetType for implicit style keying.");
+                        }
+                    }
+                    else
+                    {
+                        throw new InvalidOperationException(
+                            $"No factory registered for Style type '{childType.FullName}'");
+                    }
+                }
+                // Not a Style and no x:Key — skip
+                continue;
+            }
+
+            var key = keyAttr.Value;
 
             // Simple value types (like Color) — parse from text content
             if (child.HasElements == false)
@@ -1365,7 +1694,7 @@ internal sealed class XamlLoader
         }
 
         // Design-time and markup-compat are always ignorable
-        if (namespaceUri == DesignTimeNs || namespaceUri == MarkupCompatNs)
+        if (namespaceUri is DesignTimeNs or MarkupCompatNs)
         {
             return true;
         }
@@ -1400,8 +1729,7 @@ internal sealed class XamlLoader
     /// <see cref="BindingExpression"/>s attached to the target's <see cref="DependencyProperty"/>
     /// via <see cref="BindingOperations.SetBinding"/>.
     /// </summary>
-    /// <param name="root">The root element (unused for resolution, but available for diagnostics).</param>
-    private void ActivateBindings(FrameworkElement? root)
+    private void ActivateBindings()
     {
         foreach (var pb in _pendingBindings)
         {

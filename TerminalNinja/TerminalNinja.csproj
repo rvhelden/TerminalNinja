@@ -27,4 +27,11 @@
     <None Include="build\TerminalNinja.targets" Pack="true" PackagePath="buildTransitive\" />
   </ItemGroup>
 
+  <!-- Built-in theme XAML files as embedded resources -->
+  <ItemGroup>
+    <EmbeddedResource Update="Themes\Dark.xaml" LogicalName="TerminalNinja.Themes.Dark.xaml" />
+    <EmbeddedResource Update="Themes\Dracula.xaml" LogicalName="TerminalNinja.Themes.Dracula.xaml" />
+    <EmbeddedResource Update="Themes\GruvboxDark.xaml" LogicalName="TerminalNinja.Themes.GruvboxDark.xaml" />
+  </ItemGroup>
+
 </Project>

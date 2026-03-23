@@ -12,6 +12,11 @@ namespace TerminalNinja.Controls;
 [RuntimeNameProperty("Name")]
 public class Window : ContentControl
 {
+    public Window()
+    {
+        DefaultStyleKey = typeof(Window);
+    }
+
     // ─── Dependency Properties ───────────────────────────────────────
 
     public static readonly DependencyProperty TitleProperty =

@@ -1,4 +1,5 @@
 using TerminalNinja.Controls;
+using TerminalNinja.Resources;
 
 namespace TerminalNinja.Xaml;
 
@@ -110,6 +111,38 @@ public static class TerminalXaml
         var loader = new XamlLoader();
         loader.LoadFromStreamOntoInstance(stream, rootObjectInstance);
         return new XamlLoadResult<T>(rootObjectInstance, loader.NamedElements);
+    }
+
+    // ────────────────────────────────────────────────────────────────
+    //  ResourceDictionary loading (standalone theme XAML files)
+    // ────────────────────────────────────────────────────────────────
+
+    /// <summary>
+    /// Loads a standalone <c>&lt;ResourceDictionary&gt;</c> from a XAML string.
+    /// Used for theme files where the root element is <c>ResourceDictionary</c>.
+    /// </summary>
+    /// <param name="xaml">The XAML markup string with a ResourceDictionary root element.</param>
+    /// <returns>The loaded ResourceDictionary containing all resources and styles.</returns>
+    public static ResourceDictionary LoadResourceDictionary(string xaml)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(xaml);
+
+        var loader = new XamlLoader();
+        return loader.LoadResourceDictionary(xaml);
+    }
+
+    /// <summary>
+    /// Loads a standalone <c>&lt;ResourceDictionary&gt;</c> from a stream.
+    /// Used for theme files where the root element is <c>ResourceDictionary</c>.
+    /// </summary>
+    /// <param name="stream">The stream containing XAML markup.</param>
+    /// <returns>The loaded ResourceDictionary containing all resources and styles.</returns>
+    public static ResourceDictionary LoadResourceDictionary(Stream stream)
+    {
+        ArgumentNullException.ThrowIfNull(stream);
+
+        var loader = new XamlLoader();
+        return loader.LoadResourceDictionaryFromStream(stream);
     }
 
     // ────────────────────────────────────────────────────────────────

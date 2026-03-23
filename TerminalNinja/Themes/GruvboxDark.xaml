@@ -1,0 +1,82 @@
+<ResourceDictionary
+    xmlns="http://schemas.terminalninja.dev/xaml"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <!-- ═══════════════════════════════════════════════════════════════
+         Gruvbox Dark Theme — https://github.com/morhetz/gruvbox
+         bg0:    #282828   bg1:    #3c3836   bg2:    #504945
+         fg0:    #fbf1c7   fg1:    #ebdbb2
+         red:    #fb4934   green:  #b8bb26   yellow: #fabd2f
+         blue:   #83a598   purple: #d3869b   aqua:   #8ec07c
+         orange: #fe8019   gray:   #928374
+         ═══════════════════════════════════════════════════════════════ -->
+
+    <!-- Global colors -->
+    <Color x:Key="ThemeBackgroundColor">#282828</Color>
+    <Color x:Key="ThemeForegroundColor">#ebdbb2</Color>
+    <Color x:Key="ThemeAccentColor">#fabd2f</Color>
+    <Color x:Key="ThemeAccentSecondaryColor">#fe8019</Color>
+
+    <!-- Border colors -->
+    <Color x:Key="ThemeBorderForegroundColor">#928374</Color>
+    <Color x:Key="ThemeBorderBackgroundColor">#282828</Color>
+
+    <!-- Button colors -->
+    <Color x:Key="ThemeButtonBackgroundColor">#3c3836</Color>
+    <Color x:Key="ThemeButtonForegroundColor">#ebdbb2</Color>
+    <Color x:Key="ThemeButtonFocusColor">#fabd2f</Color>
+    <Color x:Key="ThemeButtonHoverColor">#fe8019</Color>
+
+    <!-- Text colors -->
+    <Color x:Key="ThemeTextForegroundColor">#ebdbb2</Color>
+    <Color x:Key="ThemeTextBackgroundColor">Transparent</Color>
+
+    <!-- Selection colors -->
+    <Color x:Key="ThemeSelectedBackgroundColor">#504945</Color>
+    <Color x:Key="ThemeSelectedForegroundColor">#fbf1c7</Color>
+
+    <!-- Surface colors -->
+    <Color x:Key="ThemeSurfaceColor">#3c3836</Color>
+    <Color x:Key="ThemeMutedForegroundColor">#928374</Color>
+
+    <!-- ═══════════════════════════════════════════════════════════════
+         Implicit Styles
+         ═══════════════════════════════════════════════════════════════ -->
+
+    <Style TargetType="TextBlock">
+        <Setter Property="Foreground" Value="#ebdbb2" />
+        <Setter Property="Background" Value="Transparent" />
+    </Style>
+
+    <Style TargetType="Button">
+        <Setter Property="Background" Value="#3c3836" />
+        <Setter Property="Foreground" Value="#ebdbb2" />
+        <Setter Property="FocusColor" Value="#fabd2f" />
+        <Setter Property="HoverColor" Value="#fe8019" />
+    </Style>
+
+    <Style TargetType="Border">
+        <Setter Property="Foreground" Value="#928374" />
+        <Setter Property="Background" Value="#282828" />
+    </Style>
+
+    <Style TargetType="Window">
+        <Setter Property="Background" Value="#282828" />
+        <Setter Property="Foreground" Value="#ebdbb2" />
+    </Style>
+
+    <Style TargetType="ListBox">
+        <Setter Property="Background" Value="#282828" />
+        <Setter Property="Foreground" Value="#ebdbb2" />
+        <Setter Property="SelectedBackground" Value="#504945" />
+        <Setter Property="SelectedForeground" Value="#fbf1c7" />
+    </Style>
+
+    <Style TargetType="ListBoxItem">
+        <Setter Property="Background" Value="#282828" />
+        <Setter Property="Foreground" Value="#ebdbb2" />
+        <Setter Property="SelectedBackground" Value="#504945" />
+        <Setter Property="SelectedForeground" Value="#fbf1c7" />
+    </Style>
+
+</ResourceDictionary>

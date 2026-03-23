@@ -17,6 +17,7 @@ public class UserControl : ContentControl
     /// </summary>
     public UserControl()
     {
+        DefaultStyleKey = typeof(UserControl);
         Focusable = false;
     }
 }

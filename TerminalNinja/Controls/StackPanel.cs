@@ -12,6 +12,11 @@ namespace TerminalNinja.Controls;
 [RuntimeNameProperty("Name")]
 public class StackPanel : Panel
 {
+    public StackPanel()
+    {
+        DefaultStyleKey = typeof(StackPanel);
+    }
+
     // ─── Dependency Properties ───────────────────────────────────────
 
     public static readonly DependencyProperty OrientationProperty =

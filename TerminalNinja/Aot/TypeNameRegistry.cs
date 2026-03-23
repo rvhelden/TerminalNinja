@@ -2,6 +2,7 @@ using System.Collections.Concurrent;
 using System.Windows.Data;
 using TerminalNinja.Controls;
 using TerminalNinja.Primitives;
+using TerminalNinja.Resources;
 using TerminalNinja.Styling;
 using TerminalNinja.Xaml.Binding;
 
@@ -39,6 +40,9 @@ public static class TypeNameRegistry
         Register(typeof(TextAlignment));
         Register(typeof(BindingMode));
         Register(typeof(RelativeSourceMode));
+
+        // Resource infrastructure types
+        Register(typeof(ResourceDictionary));
 
         // Non-instantiable framework types that may appear in XAML as type references
         // (e.g., DataTemplate.DataType="b:RelativeSource")

@@ -12,6 +12,11 @@ namespace TerminalNinja.Controls;
 [RuntimeNameProperty("Name")]
 public sealed class Grid : Panel
 {
+    public Grid()
+    {
+        DefaultStyleKey = typeof(Grid);
+    }
+
     // ─── Attached Dependency Properties ──────────────────────────────
 
     public static readonly DependencyProperty RowProperty =

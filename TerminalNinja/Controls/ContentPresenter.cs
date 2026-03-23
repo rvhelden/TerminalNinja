@@ -12,6 +12,11 @@ namespace TerminalNinja.Controls;
 /// </summary>
 public class ContentPresenter : FrameworkElement
 {
+    public ContentPresenter()
+    {
+        DefaultStyleKey = typeof(ContentPresenter);
+    }
+
     // ─── Dependency Properties ───────────────────────────────────────
 
     public static readonly DependencyProperty ContentProperty =

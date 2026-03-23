@@ -119,13 +119,15 @@
                        Background="#1A1A2E" />
                 <ListBox StackPanel.SizeMode="Stretch"
                          x:Name="MenuListBox"
-                         ItemsSource="{Binding MenuItems}"
-                         SelectedItem="{Binding SelectedMenuItem}"
                          Background="#1A1A2E"
                          Foreground="White"
                          SelectedBackground="#2D5AA0"
                          SelectedForeground="White"
-                         TabIndex="3" />
+                         TabIndex="3">                         
+                <ListBoxItem>ListBox Item #1</ListBoxItem>
+                <ListBoxItem>ListBox Item #2</ListBoxItem>
+                <ListBoxItem>ListBox Item #3</ListBoxItem>
+                </ListBox>
             </StackPanel>
         </Border>
 

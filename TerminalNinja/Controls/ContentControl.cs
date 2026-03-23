@@ -60,6 +60,7 @@ public class ContentControl : Control
     /// </summary>
     public ContentControl()
     {
+        DefaultStyleKey = typeof(ContentControl);
         _contentPresenter = new ContentPresenter();
         _contentPresenter.Parent = this;
     }

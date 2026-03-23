@@ -1,0 +1,83 @@
+<ResourceDictionary
+    xmlns="http://schemas.terminalninja.dev/xaml"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <!-- ═══════════════════════════════════════════════════════════════
+         Dracula Theme — https://draculatheme.com/
+         Background: #282a36  Current Line: #44475a
+         Foreground: #f8f8f2  Comment:      #6272a4
+         Cyan:       #8be9fd  Green:        #50fa7b
+         Orange:     #ffb86c  Pink:         #ff79c6
+         Purple:     #bd93f9  Red:          #ff5555
+         Yellow:     #f1fa8c
+         ═══════════════════════════════════════════════════════════════ -->
+
+    <!-- Global colors -->
+    <Color x:Key="ThemeBackgroundColor">#282a36</Color>
+    <Color x:Key="ThemeForegroundColor">#f8f8f2</Color>
+    <Color x:Key="ThemeAccentColor">#bd93f9</Color>
+    <Color x:Key="ThemeAccentSecondaryColor">#ff79c6</Color>
+
+    <!-- Border colors -->
+    <Color x:Key="ThemeBorderForegroundColor">#6272a4</Color>
+    <Color x:Key="ThemeBorderBackgroundColor">#282a36</Color>
+
+    <!-- Button colors -->
+    <Color x:Key="ThemeButtonBackgroundColor">#44475a</Color>
+    <Color x:Key="ThemeButtonForegroundColor">#f8f8f2</Color>
+    <Color x:Key="ThemeButtonFocusColor">#bd93f9</Color>
+    <Color x:Key="ThemeButtonHoverColor">#ff79c6</Color>
+
+    <!-- Text colors -->
+    <Color x:Key="ThemeTextForegroundColor">#f8f8f2</Color>
+    <Color x:Key="ThemeTextBackgroundColor">Transparent</Color>
+
+    <!-- Selection colors -->
+    <Color x:Key="ThemeSelectedBackgroundColor">#44475a</Color>
+    <Color x:Key="ThemeSelectedForegroundColor">#f8f8f2</Color>
+
+    <!-- Surface colors -->
+    <Color x:Key="ThemeSurfaceColor">#343746</Color>
+    <Color x:Key="ThemeMutedForegroundColor">#6272a4</Color>
+
+    <!-- ═══════════════════════════════════════════════════════════════
+         Implicit Styles
+         ═══════════════════════════════════════════════════════════════ -->
+
+    <Style TargetType="TextBlock">
+        <Setter Property="Foreground" Value="#f8f8f2" />
+        <Setter Property="Background" Value="Transparent" />
+    </Style>
+
+    <Style TargetType="Button">
+        <Setter Property="Background" Value="#44475a" />
+        <Setter Property="Foreground" Value="#f8f8f2" />
+        <Setter Property="FocusColor" Value="#bd93f9" />
+        <Setter Property="HoverColor" Value="#ff79c6" />
+    </Style>
+
+    <Style TargetType="Border">
+        <Setter Property="Foreground" Value="#6272a4" />
+        <Setter Property="Background" Value="#282a36" />
+    </Style>
+
+    <Style TargetType="Window">
+        <Setter Property="Background" Value="#282a36" />
+        <Setter Property="Foreground" Value="#f8f8f2" />
+    </Style>
+
+    <Style TargetType="ListBox">
+        <Setter Property="Background" Value="#282a36" />
+        <Setter Property="Foreground" Value="#f8f8f2" />
+        <Setter Property="SelectedBackground" Value="#44475a" />
+        <Setter Property="SelectedForeground" Value="#f8f8f2" />
+    </Style>
+
+    <Style TargetType="ListBoxItem">
+        <Setter Property="Background" Value="#282a36" />
+        <Setter Property="Foreground" Value="#f8f8f2" />
+        <Setter Property="SelectedBackground" Value="#44475a" />
+        <Setter Property="SelectedForeground" Value="#f8f8f2" />
+    </Style>
+
+</ResourceDictionary>

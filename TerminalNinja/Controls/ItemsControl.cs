@@ -1,4 +1,5 @@
 using System.Collections;
+using System.Collections.ObjectModel;
 using System.Collections.Specialized;
 using System.Windows.Markup;
 using TerminalNinja.Buffers;
@@ -13,6 +14,12 @@ namespace TerminalNinja.Controls;
 [ContentProperty("Items")]
 public class ItemsControl : Control
 {
+    public ItemsControl()
+    {
+        DefaultStyleKey = typeof(ItemsControl);
+        _items.CollectionChanged += OnItemsCollectionChanged;
+    }
+
     // ─── Dependency Properties ───────────────────────────────────────
 
     public static readonly DependencyProperty ItemsSourceProperty =
@@ -49,7 +56,7 @@ public class ItemsControl : Control
         control.RefreshItems();
     }
 
-    private readonly List<object> _items = new();
+    private readonly ObservableCollection<object> _items = new();
     
     /// <summary>
     /// Maps data items to their generated UI containers.
@@ -59,9 +66,31 @@ public class ItemsControl : Control
 
     /// <summary>
     /// Gets the collection of items directly added to this control.
-    /// Note: When ItemsSource is set, Items is read-only.
+    /// Adding or removing items automatically updates the visual panel.
+    /// Note: When ItemsSource is set, Items should not be used directly.
     /// </summary>
     public IList<object> Items => _items;
+
+    /// <summary>
+    /// When true, suppresses RefreshItems calls (used during lazy ItemsPanel initialization).
+    /// </summary>
+    private bool _suppressRefresh;
+
+    /// <summary>
+    /// Handles changes to the direct Items collection (adds/removes/resets).
+    /// Only processes changes when ItemsSource is not set, since ItemsSource
+    /// takes priority over direct Items.
+    /// </summary>
+    private void OnItemsCollectionChanged(object? sender, NotifyCollectionChangedEventArgs e)
+    {
+        // If ItemsSource is set, it takes priority — ignore Items changes
+        if (ItemsSource != null)
+        {
+            return;
+        }
+
+        OnCollectionChanged(sender, e);
+    }
 
     /// <summary>
     /// Gets or sets the collection used to generate the content of the ItemsControl.
@@ -96,7 +125,17 @@ public class ItemsControl : Control
             {
                 panel = new StackPanel { Orientation = Orientation.Vertical };
                 panel.Parent = this;
-                SetValue(ItemsPanelProperty, panel);
+                // Suppress RefreshItems during lazy init — the panel is empty and
+                // OnCollectionChanged already processes Items additions in real time.
+                _suppressRefresh = true;
+                try
+                {
+                    SetValue(ItemsPanelProperty, panel);
+                }
+                finally
+                {
+                    _suppressRefresh = false;
+                }
             }
             return panel;
         }
@@ -241,6 +280,11 @@ public class ItemsControl : Control
     /// </summary>
     protected virtual void RefreshItems()
     {
+        if (_suppressRefresh)
+        {
+            return;
+        }
+
         ItemsPanel.Children.Clear();
         _itemContainers.Clear();
 

@@ -14,6 +14,11 @@ namespace TerminalNinja.Controls;
 [RuntimeNameProperty("Name")]
 public sealed class Border : FrameworkElement
 {
+    public Border()
+    {
+        DefaultStyleKey = typeof(Border);
+    }
+
     // ─── Dependency Properties ───────────────────────────────────────
 
     public static readonly DependencyProperty BackgroundProperty =

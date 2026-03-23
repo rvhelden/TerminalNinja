@@ -14,6 +14,11 @@ namespace TerminalNinja.Controls;
 [RuntimeNameProperty("Name")]
 public sealed class TextBlock : FrameworkElement
 {
+    public TextBlock()
+    {
+        DefaultStyleKey = typeof(TextBlock);
+    }
+
     // ─── Dependency Properties ───────────────────────────────────────
 
     public static readonly DependencyProperty TextProperty =

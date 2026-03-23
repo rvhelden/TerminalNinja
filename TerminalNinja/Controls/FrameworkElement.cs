@@ -35,7 +35,17 @@ public abstract class FrameworkElement : UIElement
     public static readonly DependencyProperty StyleProperty =
         DependencyProperty.Register(nameof(Style), typeof(Style), typeof(FrameworkElement),
             new FrameworkPropertyMetadata(null, affectsRender: true,
-                propertyChangedCallback: (d, _) => ((FrameworkElement)d).ApplyStyle()));
+                propertyChangedCallback: (d, _) => ((FrameworkElement)d).OnStyleChanged()));
+
+    /// <summary>
+    /// Identifies the <see cref="DefaultStyleKey"/> dependency property.
+    /// Each control type overrides this property's metadata to set <c>typeof(Self)</c>,
+    /// enabling implicit style lookup from resource dictionaries.
+    /// </summary>
+    public static readonly DependencyProperty DefaultStyleKeyProperty =
+        DependencyProperty.Register(nameof(DefaultStyleKey), typeof(Type), typeof(FrameworkElement),
+            new PropertyMetadata(null,
+                propertyChangedCallback: (d, _) => ((FrameworkElement)d).InvalidateImplicitStyle()));
 
     /// <summary>
     /// Gets or sets the horizontal alignment of this element within its parent container.
@@ -73,6 +83,26 @@ public abstract class FrameworkElement : UIElement
         get => GetValue(DataContextProperty);
         set => SetValue(DataContextProperty, value);
     }
+
+    /// <summary>
+    /// Gets or sets the key used to look up the default (implicit) style for this element.
+    /// Controls override this property's metadata in their static constructor to set
+    /// <c>typeof(Self)</c>, which causes the framework to automatically look up a
+    /// <see cref="Style"/> resource keyed by that <see cref="Type"/> and apply it.
+    /// </summary>
+    protected Type? DefaultStyleKey
+    {
+        get => (Type?)GetValue(DefaultStyleKeyProperty);
+        set => SetValue(DefaultStyleKeyProperty, value);
+    }
+
+    // ─── Implicit Style ──────────────────────────────────────────────
+
+    /// <summary>
+    /// The implicit (theme) style resolved from resources keyed by <see cref="DefaultStyleKey"/>.
+    /// Applied at lower priority than the explicit <see cref="Style"/> property.
+    /// </summary>
+    private Style? _implicitStyle;
 
     // ─── Binding Support ──────────────────────────────────────────────
 
@@ -142,7 +172,8 @@ public abstract class FrameworkElement : UIElement
 
     /// <summary>
     /// Called when this element's visual parent changes.
-    /// Re-evaluates RelativeSource bindings and propagates inherited DataContext.
+    /// Re-evaluates RelativeSource bindings, propagates inherited DataContext,
+    /// and resolves implicit styles now that the element is in the tree.
     /// </summary>
     protected override void OnVisualParentChanged(Visual? oldParent)
     {
@@ -157,6 +188,10 @@ public abstract class FrameworkElement : UIElement
         {
             InvalidateDataContextBindings();
         }
+
+        // Resolve implicit style now that we are in the visual tree
+        // (resources can be looked up via TryFindResource)
+        InvalidateImplicitStyle();
     }
 
     /// <summary>
@@ -219,7 +254,7 @@ public abstract class FrameworkElement : UIElement
     /// </summary>
     /// <param name="key">The resource key.</param>
     /// <returns>The resource value, or null if not found.</returns>
-    public object? TryFindResource(object key)
+    public virtual object? TryFindResource(object key)
     {
         ArgumentNullException.ThrowIfNull(key);
         
@@ -300,25 +335,108 @@ public abstract class FrameworkElement : UIElement
     }
 
     /// <summary>
-    /// Applies the current style to this element by setting property values.
+    /// Called when the explicit <see cref="Style"/> property changes.
+    /// Re-applies the combined implicit + explicit style.
     /// </summary>
-    protected virtual void ApplyStyle()
+    private void OnStyleChanged()
     {
-        var style = Style;
-        if (style == null)
+        ApplyEffectiveStyle();
+    }
+
+    /// <summary>
+    /// Resolves the implicit style for this element from the resource chain.
+    /// Called when the element enters the visual tree, or when <see cref="DefaultStyleKey"/> changes.
+    /// </summary>
+    internal void InvalidateImplicitStyle()
+    {
+        var key = DefaultStyleKey;
+        if (key == null)
         {
+            if (_implicitStyle != null)
+            {
+                _implicitStyle = null;
+                ApplyEffectiveStyle();
+            }
             return;
         }
-
-        // Check if style is compatible with this element type
-        if (style.TargetType != null && !style.TargetType.IsInstanceOfType(this))
+        
+        var resolved = TryFindResource(key) as Style;
+        if (!ReferenceEquals(resolved, _implicitStyle))
         {
-            throw new InvalidOperationException(
-                $"Style with TargetType '{style.TargetType.Name}' cannot be applied to control of type '{GetType().Name}'");
+            _implicitStyle = resolved;
+            ApplyEffectiveStyle();
+        }
+    }
+
+    /// <summary>
+    /// Applies the effective style to this element.
+    /// The implicit style (keyed by <see cref="DefaultStyleKey"/>) is applied first (lowest priority),
+    /// then the explicit <see cref="Style"/> property overrides on top.
+    /// Walks <see cref="Style.BasedOn"/> chains depth-first: base-most setters are applied first.
+    /// </summary>
+    protected virtual void ApplyEffectiveStyle()
+    {
+        var controlType = GetType();
+
+        // 1. Apply implicit (theme) style first — lowest priority
+        if (_implicitStyle != null)
+        {
+            var chain = FlattenStyleChain(_implicitStyle);
+            for (var i = chain.Count - 1; i >= 0; i--)
+            {
+                ApplySetters(chain[i], controlType);
+            }
         }
         
-        // Apply each setter
-        var controlType = GetType();
+        // 2. Apply explicit style on top — highest priority (overrides implicit)
+        var explicitStyle = Style;
+        if (explicitStyle != null)
+        {
+            var chain = FlattenStyleChain(explicitStyle);
+            for (var i = chain.Count - 1; i >= 0; i--)
+            {
+                ApplySetters(chain[i], controlType);
+            }
+        }
+    }
+    
+    /// <summary>
+    /// Flattens a <see cref="Style.BasedOn"/> chain into a list ordered from derived to base.
+    /// Throws on circular references or incompatible TargetType.
+    /// </summary>
+    private List<Style> FlattenStyleChain(Style style)
+    {
+        var chain = new List<Style>();
+        var visited = new HashSet<Style>(ReferenceEqualityComparer.Instance);
+        var current = style;
+        
+        while (current != null)
+        {
+            if (!visited.Add(current))
+            {
+                throw new InvalidOperationException(
+                    "Circular Style.BasedOn reference detected");
+            }
+            
+            // Validate TargetType compatibility
+            if (current.TargetType != null && !current.TargetType.IsInstanceOfType(this))
+            {
+                throw new InvalidOperationException(
+                    $"Style with TargetType '{current.TargetType.Name}' cannot be applied to control of type '{GetType().Name}'");
+            }
+            
+            chain.Add(current);
+            current = current.BasedOn;
+        }
+        
+        return chain;
+    }
+    
+    /// <summary>
+    /// Applies all setters from a single <see cref="Style"/> to this element.
+    /// </summary>
+    private void ApplySetters(Style style, Type controlType)
+    {
         foreach (var setter in style.Setters)
         {
             if (string.IsNullOrEmpty(setter.Property))

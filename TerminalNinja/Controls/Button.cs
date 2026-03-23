@@ -12,6 +12,11 @@ namespace TerminalNinja.Controls;
 [RuntimeNameProperty("Name")]
 public sealed class Button : ButtonBase
 {
+    public Button()
+    {
+        DefaultStyleKey = typeof(Button);
+    }
+
     // ─── Dependency Properties ───────────────────────────────────────
 
     public static readonly DependencyProperty TextProperty =

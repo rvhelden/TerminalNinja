@@ -15,6 +15,11 @@ namespace TerminalNinja.Controls;
 [RuntimeNameProperty("Name")]
 public class ListBox : Selector
 {
+    public ListBox()
+    {
+        DefaultStyleKey = typeof(ListBox);
+    }
+
     // ─── Dependency Properties ───────────────────────────────────────
 
     public static readonly DependencyProperty SelectedBackgroundProperty =

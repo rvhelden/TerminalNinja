@@ -66,7 +66,8 @@ internal static class GeneratorHelper
         "Style",
         "Setter",
         "RowDefinition",
-        "ColumnDefinition"
+        "ColumnDefinition",
+        "ResourceDictionary"
     };
 
     /// <summary>

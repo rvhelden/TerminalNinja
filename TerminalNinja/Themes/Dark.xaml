@@ -1,0 +1,77 @@
+<ResourceDictionary
+    xmlns="http://schemas.terminalninja.dev/xaml"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <!-- ═══════════════════════════════════════════════════════════════
+         Dark Theme — Default dark terminal color scheme
+         ═══════════════════════════════════════════════════════════════ -->
+
+    <!-- Global colors -->
+    <Color x:Key="ThemeBackgroundColor">#1e1e1e</Color>
+    <Color x:Key="ThemeForegroundColor">#d4d4d4</Color>
+    <Color x:Key="ThemeAccentColor">#569cd6</Color>
+    <Color x:Key="ThemeAccentSecondaryColor">#dcdcaa</Color>
+
+    <!-- Border colors -->
+    <Color x:Key="ThemeBorderForegroundColor">#808080</Color>
+    <Color x:Key="ThemeBorderBackgroundColor">#1e1e1e</Color>
+
+    <!-- Button colors -->
+    <Color x:Key="ThemeButtonBackgroundColor">#3c3c3c</Color>
+    <Color x:Key="ThemeButtonForegroundColor">#d4d4d4</Color>
+    <Color x:Key="ThemeButtonFocusColor">#569cd6</Color>
+    <Color x:Key="ThemeButtonHoverColor">#dcdcaa</Color>
+
+    <!-- Text colors -->
+    <Color x:Key="ThemeTextForegroundColor">#d4d4d4</Color>
+    <Color x:Key="ThemeTextBackgroundColor">Transparent</Color>
+
+    <!-- Selection colors -->
+    <Color x:Key="ThemeSelectedBackgroundColor">#264f78</Color>
+    <Color x:Key="ThemeSelectedForegroundColor">#ffffff</Color>
+
+    <!-- Surface colors -->
+    <Color x:Key="ThemeSurfaceColor">#252526</Color>
+    <Color x:Key="ThemeMutedForegroundColor">#808080</Color>
+
+    <!-- ═══════════════════════════════════════════════════════════════
+         Implicit Styles — applied automatically by control type
+         ═══════════════════════════════════════════════════════════════ -->
+
+    <Style TargetType="TextBlock">
+        <Setter Property="Foreground" Value="#d4d4d4" />
+        <Setter Property="Background" Value="Transparent" />
+    </Style>
+
+    <Style TargetType="Button">
+        <Setter Property="Background" Value="#3c3c3c" />
+        <Setter Property="Foreground" Value="#d4d4d4" />
+        <Setter Property="FocusColor" Value="#569cd6" />
+        <Setter Property="HoverColor" Value="#dcdcaa" />
+    </Style>
+
+    <Style TargetType="Border">
+        <Setter Property="Foreground" Value="#808080" />
+        <Setter Property="Background" Value="#1e1e1e" />
+    </Style>
+
+    <Style TargetType="Window">
+        <Setter Property="Background" Value="#1e1e1e" />
+        <Setter Property="Foreground" Value="#d4d4d4" />
+    </Style>
+
+    <Style TargetType="ListBox">
+        <Setter Property="Background" Value="#1e1e1e" />
+        <Setter Property="Foreground" Value="#d4d4d4" />
+        <Setter Property="SelectedBackground" Value="#264f78" />
+        <Setter Property="SelectedForeground" Value="#ffffff" />
+    </Style>
+
+    <Style TargetType="ListBoxItem">
+        <Setter Property="Background" Value="#1e1e1e" />
+        <Setter Property="Foreground" Value="#d4d4d4" />
+        <Setter Property="SelectedBackground" Value="#264f78" />
+        <Setter Property="SelectedForeground" Value="#ffffff" />
+    </Style>
+
+</ResourceDictionary>
