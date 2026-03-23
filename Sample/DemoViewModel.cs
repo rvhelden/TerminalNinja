@@ -1,7 +1,9 @@
 using System.Collections.ObjectModel;
 using System.Diagnostics;
 using TerminalNinja.Commands;
+using TerminalNinja.Controls;
 using TerminalNinja.Primitives;
+using TerminalNinja.Styling;
 using TerminalNinja.Xaml.Mvvm;
 
 namespace Sample;
@@ -66,6 +68,11 @@ public class DemoViewModel : ViewModelBase
     /// </summary>
     public ICommand SaveCommand => field ??= new RelayCommand(OnSave);
 
+    /// <summary>
+    /// Command for the Dialog button. Shows a modal confirm dialog.
+    /// </summary>
+    public ICommand ShowDialogCommand => field ??= new RelayCommand(OnShowDialog);
+
     public DateTime CurrentTime
     {
         get;
@@ -112,6 +119,16 @@ public class DemoViewModel : ViewModelBase
     /// Time to first render in milliseconds.
     /// </summary>
     public double TimeToFirstRenderMs
+    {
+        get;
+        set => SetProperty(ref field, value);
+    }
+
+    /// <summary>
+    /// Progress value that cycles from 0 to 100 over time.
+    /// Demonstrates the ProgressBar control with data binding.
+    /// </summary>
+    public double ProgressValue
     {
         get;
         set => SetProperty(ref field, value);
@@ -177,6 +194,7 @@ public class DemoViewModel : ViewModelBase
         {
             CurrentTime = DateTime.Now;
             UpdatePerformanceStats();
+            UpdateProgress();
         }, null, TimeSpan.Zero, TimeSpan.FromMilliseconds(500));
     }
 
@@ -244,6 +262,13 @@ public class DemoViewModel : ViewModelBase
             // Ignore errors in performance monitoring
         }
     }
+
+    private void UpdateProgress()
+    {
+        // Cycle progress from 0 to 100 and back
+        ProgressValue = (ProgressValue + 2) % 102;
+        if (ProgressValue > 100) ProgressValue = 0;
+    }
     
     private void OnNew()
     {
@@ -277,5 +302,105 @@ public class DemoViewModel : ViewModelBase
         ContentText = "Saving document...\n\nThe ICommand pattern works perfectly\nwith data binding!";
         HeaderText = $"Saved - {DateTime.Now:HH:mm:ss}";
         LogEntries.Add(new LogEntry { Time = DateTime.Now.ToString("HH:mm:ss"), Message = "Document saved" });
+    }
+
+    private async void OnShowDialog()
+    {
+        ClickCount++;
+        LogEntries.Add(new LogEntry { Time = DateTime.Now.ToString("HH:mm:ss"), Message = "Opening dialog..." });
+
+        // Build the dialog content programmatically
+        var okButton = new Button
+        {
+            Text = "OK",
+            Width = Size.Absolute(12),
+            Height = Size.Absolute(3),
+            Foreground = Color.White,
+            Background = new Color(30, 80, 30),
+            FocusColor = Color.Cyan,
+            HoverColor = Color.Green,
+            TabIndex = 0
+        };
+        StackPanel.SetSizeMode(okButton, ChildSizeMode.Auto);
+
+        var cancelButton = new Button
+        {
+            Text = "Cancel",
+            Width = Size.Absolute(12),
+            Height = Size.Absolute(3),
+            Foreground = Color.White,
+            Background = new Color(80, 30, 30),
+            FocusColor = Color.Cyan,
+            HoverColor = Color.Red,
+            TabIndex = 1
+        };
+        StackPanel.SetSizeMode(cancelButton, ChildSizeMode.Auto);
+
+        var buttonPanel = new StackPanel { Orientation = Orientation.Horizontal };
+        StackPanel.SetSizeMode(buttonPanel, ChildSizeMode.Fixed);
+        StackPanel.SetFixedSize(buttonPanel, 3);
+        buttonPanel.Children.Add(okButton);
+        buttonPanel.Children.Add(cancelButton);
+
+        var messageText = new TextBlock
+        {
+            Text = "Are you sure you want to proceed?\n\nThis is a modal dialog demo.\nThe background is dimmed and input\nis restricted to this window.",
+            Foreground = Color.White,
+            Background = new Color(26, 26, 46),
+            HorizontalTextAlignment = TextAlignment.Center,
+            VerticalTextAlignment = TextAlignment.Center,
+            TextWrapping = TextWrapping.Wrap,
+            Padding = new Thickness(2, 1, 2, 1)
+        };
+        StackPanel.SetSizeMode(messageText, ChildSizeMode.Stretch);
+
+        var titleText = new TextBlock
+        {
+            Text = " Confirm Action",
+            Foreground = Color.Cyan,
+            Background = new Color(26, 26, 46)
+        };
+        StackPanel.SetSizeMode(titleText, ChildSizeMode.Fixed);
+        StackPanel.SetFixedSize(titleText, 1);
+
+        var contentPanel = new StackPanel { Orientation = Orientation.Vertical };
+        contentPanel.Children.Add(titleText);
+        contentPanel.Children.Add(messageText);
+        contentPanel.Children.Add(buttonPanel);
+
+        var dialogWindow = new Window
+        {
+            Width = Size.Absolute(44),
+            Height = Size.Absolute(14),
+            Content = new Border
+            {
+                Background = new Color(26, 26, 46),
+                Foreground = Color.White,
+                BorderStyle = BorderStyle.Rounded(Color.Cyan),
+                Child = contentPanel
+            }
+        };
+
+        // Wire buttons to set DialogResult
+        okButton.Click += () => dialogWindow.DialogResult = true;
+        cancelButton.Click += () => dialogWindow.DialogResult = false;
+
+        // Show modal and await result
+        var result = await dialogWindow.ShowDialogAsync();
+
+        // Handle the result
+        var resultText = result switch
+        {
+            true => "Confirmed",
+            false => "Cancelled",
+            null => "Dismissed"
+        };
+
+        StatusText = $"Dialog result: {resultText}";
+        LogEntries.Add(new LogEntry
+        {
+            Time = DateTime.Now.ToString("HH:mm:ss"),
+            Message = $"Dialog closed: {resultText}"
+        });
     }
 }

@@ -1,6 +1,6 @@
 ﻿# Features to create
-- [ ] Add support for modal dialogs
-- [ ] Add support for popups
+- [x] Add support for modal dialogs
+- [x] Add support for popups
 - [ ] Add support for Theme resources
   - [ ] Add support for Dark theme
   - [ ] Add support for Dracula theme
@@ -11,7 +11,7 @@
 
 # Controls
 - [ ] FontIcon control with Nerdfont icons support
-- [ ] Add ProgressBar control
+- [x] Add ProgressBar control
 - [ ] Add ScrollViewer control
 - [ ] Add TabControl control
 - [ ] Add TreeView control

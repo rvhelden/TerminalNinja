@@ -1010,6 +1010,14 @@ internal sealed class XamlLoader
             return bool.Parse(value);
         }
 
+        if (targetType == typeof(char))
+        {
+            if (value.Length != 1)
+                throw new InvalidOperationException(
+                    $"Cannot convert '{value}' to Char: string must be exactly one character");
+            return value[0];
+        }
+
         // Use TypeConverterRegistry (AOT-safe replacement for TypeDescriptor.GetConverter)
         var converter = TypeConverterRegistry.GetConverterOrEnum(targetType);
         if (converter != null && converter.CanConvertFrom(typeof(string)))

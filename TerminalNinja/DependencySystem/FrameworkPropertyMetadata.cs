@@ -37,4 +37,10 @@ public class FrameworkPropertyMetadata : PropertyMetadata
     {
         AffectsRender = affectsRender;
     }
+
+    public FrameworkPropertyMetadata(object? defaultValue, bool affectsRender, PropertyChangedCallback? propertyChangedCallback, CoerceValueCallback? coerceValueCallback)
+        : base(defaultValue, propertyChangedCallback, coerceValueCallback)
+    {
+        AffectsRender = affectsRender;
+    }
 }

@@ -14,6 +14,8 @@ public static class Program
             EnableMouseTracking = true,
             EnableTabNavigation = true
         });
+        
+        app.ThemeName = "Dark"; // Load the "Dark" theme from embedded XAML resources (e.g., Themes/Dark.xaml)
 
         // Create ViewModel
         var viewModel = new DemoViewModel();

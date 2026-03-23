@@ -87,6 +87,26 @@ public sealed class Renderer : IDisposable
     }
     
     /// <summary>
+    /// Dims the entire buffer to create a backdrop effect for modal overlays.
+    /// Should be called after <see cref="Draw"/> and before drawing overlay content.
+    /// </summary>
+    public void DimBackground()
+    {
+        _buffer.DimAll();
+    }
+    
+    /// <summary>
+    /// Draws an overlay UIElement on top of the existing buffer content.
+    /// Unlike <see cref="Draw"/>, this does NOT clear the buffer first —
+    /// the overlay paints over whatever is already in the buffer.
+    /// </summary>
+    /// <param name="overlay">The overlay control to draw.</param>
+    public void DrawOverlay(UIElement overlay)
+    {
+        overlay.Render(_buffer, Viewport);
+    }
+    
+    /// <summary>
     /// Presents the rendered frame to the terminal with zero-allocation diffing.
     /// Only changed cells are transmitted to the terminal.
     /// </summary>

@@ -15,6 +15,13 @@ namespace TerminalNinja.App;
 public sealed class Application : IDisposable
 {
     /// <summary>
+    /// Represents a single entry in the overlay stack.
+    /// </summary>
+    /// <param name="Element">The overlay UIElement to render.</param>
+    /// <param name="IsModal">Whether this overlay captures all input (modal behavior).</param>
+    /// <param name="DimBackground">Whether to dim the background beneath this overlay.</param>
+    public sealed record OverlayEntry(UIElement Element, bool IsModal, bool DimBackground);
+    /// <summary>
     /// Gets the current application instance (singleton).
     /// Returns null if no Application has been created.
     /// </summary>
@@ -27,6 +34,9 @@ public sealed class Application : IDisposable
     private bool _running;
     private bool _invalidated = true;
     private bool _disposed;
+    
+    // Overlay / modal stack
+    private readonly List<OverlayEntry> _overlayStack = [];
     
     // FPS tracking
     private int _frameCount;
@@ -193,6 +203,82 @@ public sealed class Application : IDisposable
         }
     }
     
+    // ─── Overlay / Modal API ─────────────────────────────────────────
+
+    /// <summary>
+    /// Gets a read-only view of the current overlay stack (bottom to top).
+    /// </summary>
+    public IReadOnlyList<OverlayEntry> Overlays => _overlayStack;
+
+    /// <summary>
+    /// Gets the topmost modal overlay, or null if no modal is active.
+    /// </summary>
+    public OverlayEntry? ActiveModal =>
+        _overlayStack.FindLast(e => e.IsModal);
+
+    /// <summary>
+    /// Returns true if there is at least one modal overlay on the stack.
+    /// </summary>
+    public bool IsModal => _overlayStack.Exists(e => e.IsModal);
+
+    /// <summary>
+    /// Pushes an overlay onto the stack. The overlay renders on top of
+    /// the root control and any previously pushed overlays.
+    /// </summary>
+    /// <param name="element">The UI element to display as an overlay.</param>
+    /// <param name="isModal">
+    /// If true, all keyboard and mouse input is restricted to this overlay
+    /// (and any overlays pushed on top of it later).
+    /// </param>
+    /// <param name="dimBackground">
+    /// If true, the content beneath this overlay is dimmed before the overlay
+    /// is rendered, giving a visual cue that the background is inactive.
+    /// </param>
+    public void PushOverlay(UIElement element, bool isModal = false, bool dimBackground = false)
+    {
+        ArgumentNullException.ThrowIfNull(element);
+
+        var entry = new OverlayEntry(element, isModal, dimBackground);
+        _overlayStack.Add(entry);
+        WireInvalidation(element);
+        Invalidate();
+    }
+
+    /// <summary>
+    /// Removes the specified overlay from the stack.
+    /// </summary>
+    /// <param name="element">The overlay element to remove.</param>
+    /// <returns>True if the overlay was found and removed.</returns>
+    public bool RemoveOverlay(UIElement element)
+    {
+        var index = _overlayStack.FindIndex(e => e.Element == element);
+        if (index < 0)
+        {
+            return false;
+        }
+
+        _overlayStack.RemoveAt(index);
+        Invalidate();
+        return true;
+    }
+
+    /// <summary>
+    /// Pops the topmost overlay from the stack.
+    /// </summary>
+    /// <returns>The removed overlay entry, or null if the stack was empty.</returns>
+    public OverlayEntry? PopOverlay()
+    {
+        if (_overlayStack.Count == 0)
+        {
+            return null;
+        }
+
+        var entry = _overlayStack[^1];
+        _overlayStack.RemoveAt(_overlayStack.Count - 1);
+        Invalidate();
+        return entry;
+    }
+    
     /// <summary>
     /// Creates a new application with default options.
     /// </summary>
@@ -214,14 +300,25 @@ public sealed class Application : IDisposable
         
         // Hook up resource lookup for FrameworkElement
         FrameworkElement.ApplicationResourceLookup = key => Resources.TryGetValue(key, out var value) ? value : null;
-        
-        // Ensure UTF-8 encoding for proper Unicode character rendering
-        System.Console.OutputEncoding = Encoding.UTF8;
-        System.Console.InputEncoding = Encoding.UTF8;
 
         _options = options;
-        Renderer = new Renderer();
-        _inputReader = new InputReader();
+
+        if (options.Headless)
+        {
+            // Headless mode: no-op input backend and offscreen renderer.
+            // Used for unit testing and CI environments without a real console.
+            Renderer = Renderer.CreateOffscreen(Stream.Null, options.HeadlessWidth, options.HeadlessHeight);
+            _inputReader = new InputReader(new NullInputBackend());
+        }
+        else
+        {
+            // Production mode: real terminal
+            System.Console.OutputEncoding = Encoding.UTF8;
+            System.Console.InputEncoding = Encoding.UTF8;
+            Renderer = new Renderer();
+            _inputReader = new InputReader();
+        }
+        
         FocusManager = new FocusManager();
         
         if (_options.EnableMouseTracking)
@@ -284,6 +381,18 @@ public sealed class Application : IDisposable
             {
                 Renderer.Clear();
                 Renderer.Draw(_rootControl);
+                
+                // Render overlays on top (bottom to top order)
+                foreach (var overlay in _overlayStack)
+                {
+                    if (overlay.DimBackground)
+                    {
+                        Renderer.DimBackground();
+                    }
+
+                    Renderer.DrawOverlay(overlay.Element);
+                }
+                
                 Renderer.Present();
                 _invalidated = false;
                 
@@ -369,26 +478,49 @@ public sealed class Application : IDisposable
             }
         }
         
-        // Escape key exits the application
+        // Escape key: close the topmost modal overlay first, then exit the app
         if (keyEvent.Key == ConsoleKey.Escape && !keyEvent.HasModifiers)
         {
+            var modal = ActiveModal;
+            if (modal != null)
+            {
+                // Close the topmost modal by removing it from the overlay stack.
+                // If the modal is a Window with ShowDialogAsync, setting DialogResult
+                // will trigger the close. Otherwise, just remove the overlay.
+                if (modal.Element is Window { IsModal: true } modalWindow)
+                {
+                    modalWindow.DialogResult ??= false;
+                }
+                else
+                {
+                    RemoveOverlay(modal.Element);
+                }
+                
+                Invalidate();
+                return;
+            }
+            
             Exit();
             return;
         }
         
+        // Determine the input root: the topmost modal overlay if one exists,
+        // otherwise the application root control.
+        var inputRoot = GetInputRoot();
+        
         // Tab navigation
-        if (_options.EnableTabNavigation && _rootControl is not null)
+        if (_options.EnableTabNavigation && inputRoot is not null)
         {
             if (keyEvent.Key == ConsoleKey.Tab && keyEvent.Shift)
             {
-                FocusManager.FocusPrevious(_rootControl, Renderer.Viewport);
+                FocusManager.FocusPrevious(inputRoot, Renderer.Viewport);
                 Invalidate();
                 return;
             }
             
             if (keyEvent.Key == ConsoleKey.Tab && !keyEvent.HasModifiers)
             {
-                FocusManager.FocusNext(_rootControl, Renderer.Viewport);
+                FocusManager.FocusNext(inputRoot, Renderer.Viewport);
                 Invalidate();
                 return;
             }
@@ -404,13 +536,25 @@ public sealed class Application : IDisposable
     /// </summary>
     private void HandleMouseEvent(MouseEvent mouseEvent)
     {
-        if (_rootControl is null)
+        var inputRoot = GetInputRoot();
+        if (inputRoot is null)
         {
             return;
         }
 
-        FocusManager.HandleMouseEvent(_rootControl, Renderer.Viewport, mouseEvent);
+        FocusManager.HandleMouseEvent(inputRoot, Renderer.Viewport, mouseEvent);
         Invalidate();
+    }
+    
+    /// <summary>
+    /// Returns the UIElement that should receive input. When a modal overlay
+    /// is active, input is restricted to that overlay. Otherwise, the root
+    /// control is used.
+    /// </summary>
+    private UIElement? GetInputRoot()
+    {
+        var modal = ActiveModal;
+        return modal?.Element ?? _rootControl;
     }
     
     /// <summary>
@@ -453,7 +597,7 @@ public sealed class Application : IDisposable
             FrameworkElement.ApplicationResourceLookup = null;
         }
         
-        _inputReader.Dispose();
-        Renderer.Dispose();
+        _inputReader?.Dispose();
+        Renderer?.Dispose();
     }
 }

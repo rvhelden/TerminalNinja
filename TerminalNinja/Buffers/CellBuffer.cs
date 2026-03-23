@@ -196,6 +196,61 @@ public sealed unsafe class CellBuffer : IDisposable
     }
     
     /// <summary>
+    /// Dims all cells in the specified rectangular region by halving their RGB values.
+    /// This creates a darkened overlay effect suitable for modal dialog backdrops.
+    /// Foreground colors are also dimmed to maintain relative contrast.
+    /// </summary>
+    /// <param name="bounds">The rectangular region to dim.</param>
+    public void DimRect(Rect bounds)
+    {
+        var clipped = bounds.Intersect(new Rect(0, 0, Width, Height));
+        if (clipped.Width <= 0 || clipped.Height <= 0)
+        {
+            return;
+        }
+
+        for (var y = clipped.Y; y < clipped.Bottom; y++)
+        {
+            for (var x = clipped.X; x < clipped.Right; x++)
+            {
+                var index = Index(x, y);
+                var cell = _current[index];
+                var dimmedFg = DimColor(cell.Foreground);
+                var dimmedBg = DimColor(cell.Background);
+                var dimmed = new Cell(cell.Character, dimmedFg, dimmedBg, cell.Decorations);
+                if (_current[index] != dimmed)
+                {
+                    _current[index] = dimmed;
+                    _dirtyRect.Expand(x, y);
+                }
+            }
+        }
+    }
+
+    /// <summary>
+    /// Dims all cells in the entire buffer by halving their RGB values.
+    /// </summary>
+    public void DimAll()
+    {
+        DimRect(new Rect(0, 0, Width, Height));
+    }
+
+    /// <summary>
+    /// Halves the RGB channels of a color to produce a dimmed version.
+    /// Transparent colors are returned unchanged.
+    /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static Color DimColor(Color color)
+    {
+        if (color.IsTransparent)
+        {
+            return color;
+        }
+
+        return new Color((byte)(color.R >> 1), (byte)(color.G >> 1), (byte)(color.B >> 1), color.A);
+    }
+    
+    /// <summary>
     /// Gets a zero-allocation enumerator for changed cells.
     /// </summary>
     public CellDiffEnumerator GetChanges() => new(this);

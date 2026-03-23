@@ -85,21 +85,82 @@
                         Background="{StaticResource ButtonBackground}"
                         Command="{Binding Path=SaveCommand}" />
 
+                <Button x:Name="DialogButton"
+                        StackPanel.SizeMode="Auto"
+                        Text="Dialog"
+                        Width="12"
+                        Height="3"
+                        TabIndex="3"
+                        FocusColor="{StaticResource AccentColor}"
+                        HoverColor="{StaticResource HighlightColor}"
+                        Foreground="White"
+                        Background="{StaticResource ButtonBackground}"
+                        Command="{Binding ShowDialogCommand}" />
+
                 <Border StackPanel.SizeMode="Stretch" Background="{StaticResource ToolbarBackground}" />
             </StackPanel>
         </Border>
 
         <!-- Content area: column 0, row 2 -->
         <Border Grid.Row="2" Grid.Column="0"
-                   Background="{StaticResource ContentBackground}"
+                   Background="#1A1A2E"
                    BorderStyle="Rounded">
-            <TextBlock x:Name="ContentTextBlock"
-                   Text="{Binding Path=ContentText}"
-                   Foreground="White"
-                   HorizontalTextAlignment="Center"
-                   VerticalTextAlignment="Center"
-                   TextWrapping="Wrap"
-                   Padding="4,2,4,2" />
+            <StackPanel Orientation="Vertical">
+                <TextBlock x:Name="ContentTextBlock"
+                       StackPanel.SizeMode="Fixed" StackPanel.FixedSize="5"
+                       Text="{Binding Path=ContentText}"
+                       Foreground="White"
+                       Background="#1A1A2E"
+                       HorizontalTextAlignment="Center"
+                       VerticalTextAlignment="Center"
+                       TextWrapping="Wrap"
+                       Padding="4,1,4,0" />
+
+                <!-- ProgressBar Demos -->
+                <TextBlock StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1"
+                       Text=" Progress Bars"
+                       Foreground="Cyan"
+                       Background="#1A1A2E"
+                       Padding="2,0,0,0" />
+
+                <!-- Bound determinate progress bar with percentage -->
+                <ProgressBar StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1"
+                             Value="{Binding ProgressValue}"
+                             Foreground="Green"
+                             Background="#333333"
+                             ShowPercentage="True" />
+
+                <TextBlock StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1"
+                       Text=""
+                       Background="#1A1A2E" />
+
+                <!-- Indeterminate progress bar -->
+                <ProgressBar StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1"
+                             IsIndeterminate="True"
+                             Foreground="Cyan"
+                             Background="#333333" />
+
+                <TextBlock StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1"
+                       Text=""
+                       Background="#1A1A2E" />
+
+                <!-- Static progress bars at different levels -->
+                <ProgressBar StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1"
+                             Value="25"
+                             Foreground="Yellow"
+                             Background="#333333"
+                             BarCharacter="="
+                             TrackCharacter="-" />
+
+                <ProgressBar StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1"
+                             Value="75"
+                             Foreground="Magenta"
+                             Background="#333333" />
+
+                <TextBlock StackPanel.SizeMode="Stretch"
+                       Text=""
+                       Background="#1A1A2E" />
+            </StackPanel>
         </Border>
 
         <!-- Activity Log: column 1, row 2 -->
@@ -119,15 +180,13 @@
                        Background="#1A1A2E" />
                 <ListBox StackPanel.SizeMode="Stretch"
                          x:Name="MenuListBox"
+                         ItemsSource="{Binding MenuItems}"
+                         SelectedItem="{Binding SelectedMenuItem}"
                          Background="#1A1A2E"
                          Foreground="White"
                          SelectedBackground="#2D5AA0"
                          SelectedForeground="White"
-                         TabIndex="3">                         
-                <ListBoxItem>ListBox Item #1</ListBoxItem>
-                <ListBoxItem>ListBox Item #2</ListBoxItem>
-                <ListBoxItem>ListBox Item #3</ListBoxItem>
-                </ListBox>
+                          TabIndex="4" />
             </StackPanel>
         </Border>
 

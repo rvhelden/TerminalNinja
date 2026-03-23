@@ -24,6 +24,27 @@ public sealed class ApplicationOptions
     public bool EnableTabNavigation { get; init; } = true;
     
     /// <summary>
+    /// Gets or sets whether the application runs in headless mode (no real terminal).
+    /// When true, a no-op input backend and offscreen renderer are used instead of
+    /// platform-specific backends that require a real console handle.
+    /// This is useful for unit testing and CI environments.
+    /// Default is false.
+    /// </summary>
+    public bool Headless { get; init; }
+    
+    /// <summary>
+    /// Gets or sets the viewport width for headless mode.
+    /// Only used when <see cref="Headless"/> is true. Default is 80.
+    /// </summary>
+    public int HeadlessWidth { get; init; } = 80;
+    
+    /// <summary>
+    /// Gets or sets the viewport height for headless mode.
+    /// Only used when <see cref="Headless"/> is true. Default is 24.
+    /// </summary>
+    public int HeadlessHeight { get; init; } = 24;
+    
+    /// <summary>
     /// Gets the frame delay in milliseconds based on target FPS.
     /// </summary>
     public int FrameDelayMs => 1000 / TargetFps;
