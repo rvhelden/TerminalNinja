@@ -1,8 +1,5 @@
 using System.Text;
 using TerminalNinja.Ansi;
-using TerminalNinja.Buffers;
-using TerminalNinja.Controls;
-using TerminalNinja.Primitives;
 
 namespace TerminalNinja.Tests.Helpers;
 

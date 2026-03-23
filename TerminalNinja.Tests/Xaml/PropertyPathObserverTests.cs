@@ -1,3 +1,4 @@
+using System.Windows.Markup;
 using TerminalNinja.Xaml.Binding;
 using TerminalNinja.Xaml.Mvvm;
 
@@ -5,12 +6,12 @@ namespace TerminalNinja.Tests.Xaml;
 
 /// <summary>
 /// Tests for PropertyPathObserver via the public binding API.
-/// PropertyPathObserver is internal, so we exercise it through BindingManager
+/// PropertyPathObserver is internal, so we exercise it through BindingOperations
 /// which creates PropertyPathObserver instances internally for each binding.
 /// </summary>
 public class PropertyPathObserverTests
 {
-    // ─── View models for testing multi-level property paths ─────
+    // --- View models for testing multi-level property paths ---
 
     internal class InnerViewModel : ViewModelBase
     {
@@ -48,7 +49,7 @@ public class PropertyPathObserverTests
         }
     }
 
-    // ─── Tests: Leaf property change ────────────────────────────
+    // --- Tests: Leaf property change ---
 
     [Test]
     public async Task LeafPropertyChange_UpdatesTarget()
@@ -56,10 +57,10 @@ public class PropertyPathObserverTests
         // Arrange — bind TextBlock.Text to "Inner.Name" (two-segment path)
         var vm = new OuterViewModel();
         var textBlock = new TextBlock();
-        var bindingManager = new BindingManager();
+        textBlock.DataContext = vm;
 
-        bindingManager.SetDataContext(textBlock, vm);
-        bindingManager.CreateBinding(textBlock, "Text", "Inner.Name");
+        var binding = new Binding("Inner.Name") { Mode = BindingMode.OneWay };
+        BindingOperations.SetBinding(textBlock, TextBlock.TextProperty, binding);
 
         // Assert — initial value propagated
         await Assert.That(textBlock.Text).IsEqualTo("Initial");
@@ -69,11 +70,9 @@ public class PropertyPathObserverTests
 
         // Assert — target updated
         await Assert.That(textBlock.Text).IsEqualTo("Updated");
-
-        bindingManager.Dispose();
     }
 
-    // ─── Tests: Intermediate property change (resubscribe) ──────
+    // --- Tests: Intermediate property change (resubscribe) ---
 
     [Test]
     public async Task IntermediatePropertyChange_Resubscribes_AndUpdatesTarget()
@@ -81,10 +80,10 @@ public class PropertyPathObserverTests
         // Arrange — bind TextBlock.Text to "Inner.Name"
         var vm = new OuterViewModel();
         var textBlock = new TextBlock();
-        var bindingManager = new BindingManager();
+        textBlock.DataContext = vm;
 
-        bindingManager.SetDataContext(textBlock, vm);
-        bindingManager.CreateBinding(textBlock, "Text", "Inner.Name");
+        var binding = new Binding("Inner.Name") { Mode = BindingMode.OneWay };
+        BindingOperations.SetBinding(textBlock, TextBlock.TextProperty, binding);
 
         await Assert.That(textBlock.Text).IsEqualTo("Initial");
 
@@ -101,11 +100,9 @@ public class PropertyPathObserverTests
 
         // Assert — target updated from the new subscription
         await Assert.That(textBlock.Text).IsEqualTo("AfterResubscribe");
-
-        bindingManager.Dispose();
     }
 
-    // ─── Tests: Unrelated property change is ignored ────────────
+    // --- Tests: Unrelated property change is ignored ---
 
     [Test]
     public async Task UnrelatedPropertyChange_DoesNotUpdateTarget()
@@ -113,10 +110,10 @@ public class PropertyPathObserverTests
         // Arrange — bind TextBlock.Text to "Inner.Name"
         var vm = new OuterViewModel();
         var textBlock = new TextBlock();
-        var bindingManager = new BindingManager();
+        textBlock.DataContext = vm;
 
-        bindingManager.SetDataContext(textBlock, vm);
-        bindingManager.CreateBinding(textBlock, "Text", "Inner.Name");
+        var binding = new Binding("Inner.Name") { Mode = BindingMode.OneWay };
+        BindingOperations.SetBinding(textBlock, TextBlock.TextProperty, binding);
 
         await Assert.That(textBlock.Text).IsEqualTo("Initial");
 
@@ -125,11 +122,9 @@ public class PropertyPathObserverTests
 
         // Assert — target unchanged (binding only watches "Inner" and "Name")
         await Assert.That(textBlock.Text).IsEqualTo("Initial");
-
-        bindingManager.Dispose();
     }
 
-    // ─── Tests: Single-segment path (simple binding) ────────────
+    // --- Tests: Single-segment path (simple binding) ---
 
     [Test]
     public async Task SingleSegmentPath_LeafChange_UpdatesTarget()
@@ -137,10 +132,10 @@ public class PropertyPathObserverTests
         // Arrange — bind TextBlock.Text to "Unrelated" (single-segment path)
         var vm = new OuterViewModel();
         var textBlock = new TextBlock();
-        var bindingManager = new BindingManager();
+        textBlock.DataContext = vm;
 
-        bindingManager.SetDataContext(textBlock, vm);
-        bindingManager.CreateBinding(textBlock, "Text", "Unrelated");
+        var binding = new Binding("Unrelated") { Mode = BindingMode.OneWay };
+        BindingOperations.SetBinding(textBlock, TextBlock.TextProperty, binding);
 
         await Assert.That(textBlock.Text).IsEqualTo("Unrelated");
 
@@ -149,11 +144,9 @@ public class PropertyPathObserverTests
 
         // Assert — target updated
         await Assert.That(textBlock.Text).IsEqualTo("NewValue");
-
-        bindingManager.Dispose();
     }
 
-    // ─── Tests: Old intermediate no longer triggers update ──────
+    // --- Tests: Old intermediate no longer triggers update ---
 
     [Test]
     public async Task OldIntermediateObject_DoesNotTriggerUpdate()
@@ -162,10 +155,10 @@ public class PropertyPathObserverTests
         var vm = new OuterViewModel();
         var oldInner = vm.Inner;
         var textBlock = new TextBlock();
-        var bindingManager = new BindingManager();
+        textBlock.DataContext = vm;
 
-        bindingManager.SetDataContext(textBlock, vm);
-        bindingManager.CreateBinding(textBlock, "Text", "Inner.Name");
+        var binding = new Binding("Inner.Name") { Mode = BindingMode.OneWay };
+        BindingOperations.SetBinding(textBlock, TextBlock.TextProperty, binding);
 
         await Assert.That(textBlock.Text).IsEqualTo("Initial");
 
@@ -177,7 +170,5 @@ public class PropertyPathObserverTests
 
         // Assert — target still shows value from the new inner, not the old one
         await Assert.That(textBlock.Text).IsEqualTo("NewInner");
-
-        bindingManager.Dispose();
     }
 }

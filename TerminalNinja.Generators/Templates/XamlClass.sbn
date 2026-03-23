@@ -7,7 +7,6 @@
 using System.Reflection;
 using TerminalNinja.Controls;
 using TerminalNinja.Xaml;
-using TerminalNinja.Xaml.Binding;
 
 namespace {{ namespace }};
 
@@ -22,6 +21,8 @@ partial class {{ class_name }}
 
     /// <summary>
     /// Loads the XAML for this control from the embedded resource and wires up named elements.
+    /// Uses LoadOntoInstance to apply XAML properties and children directly onto this instance,
+    /// ensuring that RelativeSource FindAncestor bindings resolve against the actual class instance.
     /// </summary>
     private void InitializeComponent()
     {
@@ -33,21 +34,8 @@ partial class {{ class_name }}
                 $"Embedded XAML resource '{resourceName}' not found. " +
                 $"Ensure the XAML file is included as an EmbeddedResource with LogicalName='{resourceName}'.");
 
-        var result = TerminalXaml.LoadFromStreamWithNamedElements<{{ root_type }}>(stream, null);
-
-        // Copy loaded content into this control
-        {{~ if is_content_control ~}}
-        this.Content = result.Control.Content;
-        if (result.Control.Resources.Count > 0)
-        {
-            foreach (var kvp in result.Control.Resources)
-            {
-                this.Resources[kvp.Key] = kvp.Value;
-            }
-        }
-        {{~ else ~}}
-        // Root type is not a ContentControl; assign properties as needed
-        {{~ end ~}}
+        // Load XAML directly onto this instance (no transient template root).
+        var result = TerminalXaml.LoadOntoInstance(stream, this);
 
         // Wire up named elements
         {{~ for field in named_elements ~}}

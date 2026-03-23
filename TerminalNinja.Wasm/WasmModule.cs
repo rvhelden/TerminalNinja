@@ -6,7 +6,6 @@ using System.Text;
 using TerminalNinja.Controls;
 using TerminalNinja.Rendering;
 using TerminalNinja.Xaml;
-using TerminalNinja.Xaml.Binding;
 
 namespace TerminalNinja.Wasm;
 
@@ -29,8 +28,8 @@ public partial class WasmModule
     {
         try
         {
-            var bindingManager = new BindingManager();
-            var window = TerminalXaml.Load<Window>(xaml, dataContext: null, bindingManager);
+            // Bindings are activated automatically via the DP expression system
+            var window = TerminalXaml.Load<Window>(xaml);
 
             using var memoryStream = new MemoryStream();
             using var renderer = Renderer.CreateOffscreen(memoryStream, width, height);
@@ -39,8 +38,6 @@ public partial class WasmModule
             renderer.Draw(window);
             renderer.Present();
             renderer.WriteReset();
-
-            bindingManager.Dispose();
 
             return Encoding.UTF8.GetString(memoryStream.ToArray());
         }

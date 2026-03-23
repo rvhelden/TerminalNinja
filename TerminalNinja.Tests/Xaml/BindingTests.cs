@@ -1,5 +1,3 @@
-using TerminalNinja.Controls;
-using TerminalNinja.Xaml;
 using TerminalNinja.Xaml.Binding;
 using TerminalNinja.Xaml.Mvvm;
 using TerminalNinja.Commands;
@@ -48,10 +46,9 @@ public class BindingTests
             """;
         
         var viewModel = new TestViewModel();
-        var bindingManager = new BindingManager();
         
         // Act
-        var label = TerminalXaml.Load<TextBlock>(xaml, viewModel, bindingManager);
+        var label = TerminalXaml.Load<TextBlock>(xaml, viewModel);
         
         // Assert - initial value
         await Assert.That(label.Text).IsEqualTo("Initial");
@@ -61,8 +58,6 @@ public class BindingTests
         
         // Assert - target updated
         await Assert.That(label.Text).IsEqualTo("Updated");
-        
-        bindingManager.Dispose();
     }
     
     [Test]
@@ -76,10 +71,9 @@ public class BindingTests
             """;
         
         var viewModel = new TestViewModel();
-        var bindingManager = new BindingManager();
         
         // Act
-        var button = TerminalXaml.Load<Button>(xaml, viewModel, bindingManager);
+        var button = TerminalXaml.Load<Button>(xaml, viewModel);
         
         // Assert - initial state
         await Assert.That(viewModel.Count).IsEqualTo(0);
@@ -93,10 +87,35 @@ public class BindingTests
         // Assert - command executed
         await Assert.That(viewModel.Count).IsEqualTo(1);
         await Assert.That(viewModel.Text).IsEqualTo("Clicked 1");
-        
-        bindingManager.Dispose();
     }
     
+    [Test]
+    public async Task Binding_Command_ProgrammaticBinding_ResolvesOnDataContextSet()
+    {
+        // Arrange — programmatic binding (no XAML), verifies DependencyProperty.Find
+        // correctly triggers static constructors for base types (beforefieldinit).
+        var viewModel = new TestViewModel();
+        var button = new Button { Text = "Click Me" };
+        
+        var dp = DependencyProperty.Find(typeof(Button), "Command");
+        await Assert.That(dp).IsNotNull();
+        
+        // Set binding programmatically
+        var binding = new System.Windows.Markup.Binding("TestCommand");
+        BindingOperations.SetBinding(button, dp!, binding);
+        
+        // Verify expression is attached but dormant (no DataContext yet)
+        await Assert.That(BindingOperations.IsDataBound(button, dp!)).IsTrue();
+        await Assert.That(button.Command).IsNull();
+        
+        // Set DataContext — triggers binding resolution
+        button.DataContext = viewModel;
+        
+        // Command should now be resolved
+        await Assert.That(button.Command).IsNotNull();
+        await Assert.That(button.Command!.CanExecute(null)).IsTrue();
+    }
+
     [Test]
     public async Task Binding_MultipleProperties_AllUpdate()
     {
@@ -109,10 +128,9 @@ public class BindingTests
             """;
         
         var viewModel = new TestViewModel();
-        var bindingManager = new BindingManager();
         
         // Act
-        var stackPanel = TerminalXaml.Load<StackPanel>(xaml, viewModel, bindingManager);
+        var stackPanel = TerminalXaml.Load<StackPanel>(xaml, viewModel);
         var label = (TextBlock)stackPanel.Children[0];
         var button = (Button)stackPanel.Children[1];
         
@@ -130,8 +148,6 @@ public class BindingTests
         await Assert.That(viewModel.Count).IsEqualTo(1);
         await Assert.That(viewModel.Text).IsEqualTo("Clicked 1");
         await Assert.That(label.Text).IsEqualTo("Clicked 1");
-        
-        bindingManager.Dispose();
     }
     
     [Test]
@@ -145,20 +161,17 @@ public class BindingTests
         
         var viewModel1 = new TestViewModel { Text = "VM1" };
         var viewModel2 = new TestViewModel { Text = "VM2" };
-        var bindingManager = new BindingManager();
         
         // Act
-        var label = TerminalXaml.Load<TextBlock>(xaml, viewModel1, bindingManager);
+        var label = TerminalXaml.Load<TextBlock>(xaml, viewModel1);
         
         // Assert - bound to first VM
         await Assert.That(label.Text).IsEqualTo("VM1");
         
-        // Change DataContext
-        bindingManager.SetDataContext(label, viewModel2);
+        // Change DataContext — triggers OnDataContextChanged → InvalidateDataContextBindings
+        label.DataContext = viewModel2;
         
         // Assert - bound to second VM
         await Assert.That(label.Text).IsEqualTo("VM2");
-        
-        bindingManager.Dispose();
     }
 }

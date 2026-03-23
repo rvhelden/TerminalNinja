@@ -1,7 +1,6 @@
 using System.Collections.ObjectModel;
 using System.Diagnostics;
 using TerminalNinja.Commands;
-using TerminalNinja.DependencySystem;
 using TerminalNinja.Primitives;
 using TerminalNinja.Xaml.Mvvm;
 

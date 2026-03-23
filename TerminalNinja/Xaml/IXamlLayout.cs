@@ -9,7 +9,7 @@ namespace TerminalNinja.Xaml;
 /// The <see cref="Dependencies"/> property lists other <see cref="IXamlLayout"/> instances
 /// that this layout references (custom controls with <c>x:Class</c> defined in other XAML files,
 /// or merged resource dictionaries). This forms a dependency graph that
-/// <see cref="TerminalXaml.Load{T}(IXamlLayout, object?, Binding.BindingManager?)"/>
+/// <see cref="TerminalXaml.Load{T}(IXamlLayout, object?)"/>
 /// uses to validate and load all required embedded resources.
 /// </summary>
 public interface IXamlLayout

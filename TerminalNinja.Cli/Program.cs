@@ -2,7 +2,6 @@ using System.Text;
 using TerminalNinja.Controls;
 using TerminalNinja.Rendering;
 using TerminalNinja.Xaml;
-using TerminalNinja.Xaml.Binding;
 
 namespace TerminalNinja.Cli;
 
@@ -33,9 +32,8 @@ public static class Program
 
         var xaml = File.ReadAllText(options.XamlFile);
 
-        // Load XAML with optional binding support
-        var bindingManager = new BindingManager();
-        var window = TerminalXaml.Load<Window>(xaml, dataContext: null, bindingManager);
+        // Load XAML — bindings are activated automatically via the DP expression system
+        var window = TerminalXaml.Load<Window>(xaml);
 
         // Create an offscreen renderer that writes to stdout
         var stdout = Console.OpenStandardOutput();
@@ -51,8 +49,6 @@ public static class Program
 
         // Reset terminal attributes at the end
         renderer.WriteReset();
-
-        bindingManager.Dispose();
 
         return 0;
     }

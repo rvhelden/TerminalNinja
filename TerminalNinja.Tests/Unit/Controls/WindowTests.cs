@@ -1,5 +1,3 @@
-using TerminalNinja.Primitives;
-
 namespace TerminalNinja.Tests.Unit.Controls;
 
 /// <summary>

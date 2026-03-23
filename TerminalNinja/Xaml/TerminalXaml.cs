@@ -1,6 +1,4 @@
-using System.Reflection;
 using TerminalNinja.Controls;
-using TerminalNinja.Xaml.Binding;
 
 namespace TerminalNinja.Xaml;
 
@@ -43,7 +41,7 @@ public static class TerminalXaml
     /// <exception cref="InvalidCastException">Thrown when the loaded control is not of type T.</exception>
     public static T Load<T>(string xaml) where T : FrameworkElement
     {
-        return Load<T>(xaml, dataContext: null, bindingManager: null);
+        return Load<T>(xaml, dataContext: null);
     }
     
     /// <summary>
@@ -52,14 +50,13 @@ public static class TerminalXaml
     /// <typeparam name="T">The expected type of the root control.</typeparam>
     /// <param name="xaml">The XAML markup string.</param>
     /// <param name="dataContext">The data context for bindings.</param>
-    /// <param name="bindingManager">Optional binding manager (creates new if null).</param>
     /// <returns>The loaded control with bindings activated.</returns>
-    public static T Load<T>(string xaml, object? dataContext, BindingManager? bindingManager = null) where T : FrameworkElement
+    public static T Load<T>(string xaml, object? dataContext) where T : FrameworkElement
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(xaml);
         
         var loader = new XamlLoader();
-        return loader.Load<T>(xaml, dataContext, bindingManager);
+        return loader.Load<T>(xaml, dataContext);
     }
     
     /// <summary>
@@ -68,14 +65,13 @@ public static class TerminalXaml
     /// <typeparam name="T">The expected type of the root control.</typeparam>
     /// <param name="stream">The stream containing XAML markup.</param>
     /// <param name="dataContext">The data context for bindings.</param>
-    /// <param name="bindingManager">Optional binding manager (creates new if null).</param>
     /// <returns>The loaded control with bindings activated.</returns>
-    public static T LoadFromStream<T>(Stream stream, object? dataContext, BindingManager? bindingManager = null) where T : FrameworkElement
+    public static T LoadFromStream<T>(Stream stream, object? dataContext) where T : FrameworkElement
     {
         ArgumentNullException.ThrowIfNull(stream);
         
         var loader = new XamlLoader();
-        return loader.LoadFromStream<T>(stream, dataContext, bindingManager);
+        return loader.LoadFromStream<T>(stream, dataContext);
     }
 
     /// <summary>
@@ -85,15 +81,35 @@ public static class TerminalXaml
     /// <typeparam name="T">The expected type of the root control.</typeparam>
     /// <param name="stream">The stream containing XAML markup.</param>
     /// <param name="dataContext">The data context for bindings.</param>
-    /// <param name="bindingManager">Optional binding manager (creates new if null).</param>
     /// <returns>A result containing the loaded control and named elements.</returns>
-    public static XamlLoadResult<T> LoadFromStreamWithNamedElements<T>(Stream stream, object? dataContext, BindingManager? bindingManager = null) where T : FrameworkElement
+    public static XamlLoadResult<T> LoadFromStreamWithNamedElements<T>(Stream stream, object? dataContext) where T : FrameworkElement
     {
         ArgumentNullException.ThrowIfNull(stream);
         
         var loader = new XamlLoader();
-        var control = loader.LoadFromStream<T>(stream, dataContext, bindingManager);
+        var control = loader.LoadFromStream<T>(stream, dataContext);
         return new XamlLoadResult<T>(control, loader.NamedElements);
+    }
+
+    /// <summary>
+    /// Loads a UI control from a stream onto an existing root object instance.
+    /// This is used by <c>x:Class</c> code-behind: instead of creating a new root element,
+    /// properties and children from the XAML are loaded directly onto <paramref name="rootObjectInstance"/>.
+    /// This fixes the <c>RelativeSource FindAncestor</c> bug where bindings resolve against
+    /// a transient template root instead of the actual class instance.
+    /// </summary>
+    /// <typeparam name="T">The type of the root element (the <c>x:Class</c> type).</typeparam>
+    /// <param name="stream">The stream containing XAML markup.</param>
+    /// <param name="rootObjectInstance">The existing instance to load XAML onto (i.e., <c>this</c>).</param>
+    /// <returns>A result containing the root object instance and named elements.</returns>
+    public static XamlLoadResult<T> LoadOntoInstance<T>(Stream stream, T rootObjectInstance) where T : FrameworkElement
+    {
+        ArgumentNullException.ThrowIfNull(stream);
+        ArgumentNullException.ThrowIfNull(rootObjectInstance);
+
+        var loader = new XamlLoader();
+        loader.LoadFromStreamOntoInstance(stream, rootObjectInstance);
+        return new XamlLoadResult<T>(rootObjectInstance, loader.NamedElements);
     }
 
     // ────────────────────────────────────────────────────────────────
@@ -109,7 +125,7 @@ public static class TerminalXaml
     /// <returns>The loaded control.</returns>
     public static T Load<T>(IXamlLayout layout) where T : FrameworkElement
     {
-        return Load<T>(layout, dataContext: null, bindingManager: null);
+        return Load<T>(layout, dataContext: null);
     }
 
     /// <summary>
@@ -119,9 +135,8 @@ public static class TerminalXaml
     /// <typeparam name="T">The expected type of the root control.</typeparam>
     /// <param name="layout">The layout descriptor (typically from the generated <c>XamlLayouts</c> class).</param>
     /// <param name="dataContext">The data context for bindings.</param>
-    /// <param name="bindingManager">Optional binding manager (creates new if null).</param>
     /// <returns>The loaded control with bindings activated.</returns>
-    public static T Load<T>(IXamlLayout layout, object? dataContext, BindingManager? bindingManager = null) where T : FrameworkElement
+    public static T Load<T>(IXamlLayout layout, object? dataContext) where T : FrameworkElement
     {
         ArgumentNullException.ThrowIfNull(layout);
 
@@ -135,7 +150,7 @@ public static class TerminalXaml
 
         // Load the root layout from its embedded resource stream
         using var stream = OpenEmbeddedResource(layout);
-        return LoadFromStream<T>(stream, dataContext, bindingManager);
+        return LoadFromStream<T>(stream, dataContext);
     }
 
     /// <summary>

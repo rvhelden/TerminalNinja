@@ -9,10 +9,36 @@ namespace TerminalNinja.Controls;
 /// </summary>
 public abstract class Visual : DependencyObject
 {
+    private Visual? _parent;
+
     /// <summary>
     /// Gets or sets the parent visual in the visual tree.
+    /// Setting this property calls <see cref="OnVisualParentChanged"/> on the child,
+    /// allowing subclasses (e.g., <see cref="FrameworkElement"/>) to react to reparenting
+    /// (for example, to re-evaluate <c>RelativeSource FindAncestor</c> bindings).
     /// </summary>
-    public Visual? Parent { get; set; }
+    public Visual? Parent
+    {
+        get => _parent;
+        set
+        {
+            if (ReferenceEquals(_parent, value))
+            {
+                return;
+            }
+
+            var oldParent = _parent;
+            _parent = value;
+            OnVisualParentChanged(oldParent);
+        }
+    }
+
+    /// <summary>
+    /// Called when this visual's <see cref="Parent"/> changes.
+    /// Override in subclasses to react to reparenting (e.g., re-evaluate ancestor bindings).
+    /// </summary>
+    /// <param name="oldParent">The previous parent, or <c>null</c> if this visual was not previously parented.</param>
+    protected virtual void OnVisualParentChanged(Visual? oldParent) { }
 
     /// <summary>
     /// Enumerates each direct child together with the bounds that should be passed

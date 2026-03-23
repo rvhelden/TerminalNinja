@@ -4,7 +4,7 @@ using TerminalNinja.Xaml.Data;
 // ReSharper disable once CheckNamespace
 namespace System.Windows.Markup;
 
-public sealed class Binding : MarkupExtension
+public sealed class Binding : BindingBase
 {
     public Binding() { }
     public Binding(string path) => Path = path;
@@ -14,11 +14,6 @@ public sealed class Binding : MarkupExtension
     /// </summary>
     [ConstructorArgument("path")]
     public string? Path { get; set; }
-    
-    public object? FallbackValue { get; set; }
-    
-    public string? StringFormat { get; set; }
-    public object? TargetNullValue { get; set; }
 
     public UpdateSourceTrigger UpdateSourceTrigger { get; set; } = UpdateSourceTrigger.Default;
     
@@ -47,6 +42,21 @@ public sealed class Binding : MarkupExtension
     /// <see cref="Xaml.Binding.RelativeSource"/> instead of DataContext.
     /// </summary>
     public RelativeSource? RelativeSource { get; set; }
+
+    /// <summary>
+    /// Gets or sets the name of the element to use as the binding source.
+    /// Mutually exclusive with <see cref="Source"/> and <see cref="RelativeSource"/>.
+    /// </summary>
+    public string? ElementName { get; set; }
+
+    /// <summary>
+    /// Creates a <see cref="BindingExpression"/> for this binding on the specified target.
+    /// </summary>
+    internal override BindingExpressionBase CreateBindingExpression(
+        DependencyObject target, DependencyProperty dp)
+    {
+        return new BindingExpression(this, target, dp);
+    }
 }
 
 public enum UpdateSourceTrigger

@@ -151,18 +151,20 @@ public class DataTemplate
             }
         }
 
-        // Clone pending bindings from the prototype to the clone.
-        // These are bindings stored during XAML loading when DataContext was null
-        // (e.g., inside a UserControl's InitializeComponent). They will be activated
-        // when DataContext is set on the clone (e.g., by ItemsControl.CreateContainerForItem).
-        if (source is FrameworkElement sourceFe && clone is FrameworkElement cloneFe)
+        // Clone bindings from the prototype to the clone.
+        // Iterate all binding expressions on the source, extract the parent Binding description,
+        // and set a fresh binding on the clone's corresponding DependencyProperty.
+        if (source is FrameworkElement && clone is FrameworkElement)
         {
-            var pendingBindings = sourceFe.PendingBindings;
-            if (pendingBindings != null)
+            foreach (var (dp, expression) in source.GetAllExpressions())
             {
-                foreach (var binding in pendingBindings)
+                if (expression is BindingExpressionBase bindingExpr)
                 {
-                    cloneFe.AddPendingBinding(binding);
+                    var parentBinding = bindingExpr.ParentBindingBase;
+                    if (parentBinding != null)
+                    {
+                        BindingOperations.SetBinding(clone, dp, parentBinding);
+                    }
                 }
             }
         }

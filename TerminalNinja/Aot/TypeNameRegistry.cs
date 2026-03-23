@@ -4,7 +4,7 @@ using TerminalNinja.Controls;
 using TerminalNinja.Primitives;
 using TerminalNinja.Styling;
 using TerminalNinja.Xaml.Binding;
-using TerminalNinja.Xaml.Data;
+
 namespace TerminalNinja.Aot;
 
 /// <summary>

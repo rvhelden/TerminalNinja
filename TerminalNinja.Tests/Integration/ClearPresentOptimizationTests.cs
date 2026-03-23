@@ -1,6 +1,4 @@
 using TerminalNinja.Ansi;
-using TerminalNinja.Controls;
-using TerminalNinja.Styling;
 
 namespace TerminalNinja.Tests.Integration;
 

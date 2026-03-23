@@ -1,138 +1,271 @@
 using System.ComponentModel;
 using System.Diagnostics.CodeAnalysis;
-using TerminalNinja.Aot;
-using TerminalNinja.Xaml.Data;
+using System.Windows.Data;
+using TerminalNinja.Controls;
+using BindingDescription = System.Windows.Markup.Binding;
 
 namespace TerminalNinja.Xaml.Binding;
 
 /// <summary>
-/// Represents an active binding between a source property and a target property.
-/// Handles synchronization, type conversion, and change notifications.
+/// Runtime representation of a <see cref="System.Windows.Markup.Binding"/> attached to a
+/// specific <see cref="DependencyObject"/>/<see cref="DependencyProperty"/> pair.
+/// Self-contained: resolves its own source (DataContext, RelativeSource, explicit Source, ElementName)
+/// and manages its own change subscriptions.
+/// Mirrors WPF's <c>System.Windows.Data.BindingExpression</c>.
 /// </summary>
-internal sealed class BindingExpression : IDisposable
+public sealed class BindingExpression : BindingExpressionBase, IDisposable
 {
-    private readonly PropertyAccessor _targetAccessor;
+    private readonly BindingDescription _binding;
     private readonly PropertyPath _sourcePath;
-    private readonly BindingMode _mode;
-    private readonly IValueConverter? _converter;
-    private readonly object? _converterParameter;
 
     private PropertyPathObserver? _observer;
-    private object? _source;
+    private object? _resolvedSource;
+    private object? _cachedValue;
     private bool _isUpdating;
-    
-    public BindingExpression(
-        object target,
-        string targetPropertyName,
-        PropertyAccessor targetAccessor,
-        PropertyPath sourcePath,
-        BindingMode mode,
-        IValueConverter? converter = null,
-        object? converterParameter = null,
-        bool hasRelativeSource = false)
-    {
-        Target = target ?? throw new ArgumentNullException(nameof(target));
-        ArgumentException.ThrowIfNullOrWhiteSpace(targetPropertyName);
-        TargetPropertyName = targetPropertyName;
-        _targetAccessor = targetAccessor;
-        _sourcePath = sourcePath ?? throw new ArgumentNullException(nameof(sourcePath));
-        _mode = mode;
-        _converter = converter;
-        _converterParameter = converterParameter;
-        HasRelativeSource = hasRelativeSource;
-    }
-    
-    /// <summary>
-    /// Gets the target object this binding is attached to.
-    /// </summary>
-    public object Target { get; }
 
     /// <summary>
-    /// Gets the target property name this binding updates.
+    /// Creates a new binding expression from a binding description, target, and target property.
     /// </summary>
-    public string TargetPropertyName { get; }
+    internal BindingExpression(BindingDescription binding, DependencyObject target, DependencyProperty dp)
+        : base(binding)
+    {
+        _binding = binding ?? throw new ArgumentNullException(nameof(binding));
+
+        if (string.IsNullOrWhiteSpace(binding.Path))
+        {
+            throw new InvalidOperationException("Binding.Path must be set.");
+        }
+
+        _sourcePath = new PropertyPath(binding.Path);
+    }
+
+    /// <summary>
+    /// Gets the <see cref="System.Windows.Markup.Binding"/> that created this expression.
+    /// </summary>
+    public BindingDescription ParentBinding => _binding;
+
+    /// <summary>
+    /// Gets the resolved source object (DataContext, RelativeSource result, explicit Source, etc.).
+    /// </summary>
+    public object? ResolvedSource => _resolvedSource;
 
     /// <summary>
     /// Gets whether this binding uses a <see cref="RelativeSource"/> for source resolution
-    /// instead of DataContext. RelativeSource bindings are not re-activated when DataContext changes.
+    /// instead of DataContext. RelativeSource bindings are not re-evaluated when DataContext changes.
     /// </summary>
-    public bool HasRelativeSource { get; }
+    public bool HasRelativeSource => _binding.RelativeSource != null;
 
     /// <summary>
-    /// Activates the binding with the specified source object.
-    /// Safe to call multiple times — disposes any existing observer before creating a new one.
+    /// Gets whether this binding uses an explicit <see cref="Binding.Source"/>.
+    /// Explicit source bindings are not re-evaluated when DataContext changes.
     /// </summary>
-    public void Activate(object? source)
+    public bool HasExplicitSource => _binding.Source != null;
+
+    // ────────────────────────────────────────────────────────────────
+    //  Expression lifecycle (called by DependencyObject)
+    // ────────────────────────────────────────────────────────────────
+
+    /// <summary>
+    /// Called when the expression is attached to a DP on a target object.
+    /// Resolves the source and pushes the initial value.
+    /// </summary>
+    protected override void OnAttach(DependencyObject d, DependencyProperty dp)
     {
-        _source = source;
-        
-        // Dispose existing observer to prevent leaks when re-activating
-        _observer?.Dispose();
-        _observer = null;
-        
-        // For TwoWay mode, unsubscribe from old target changes before resubscribing
-        UnsubscribeFromTargetChanges();
-        
-        // For OneWay and TwoWay modes, subscribe to source changes
-        if (_mode != BindingMode.OneTime)
+        ResolveAndActivate();
+    }
+
+    /// <summary>
+    /// Called when the expression is detached from its target.
+    /// </summary>
+    protected override void OnDetach(DependencyObject d, DependencyProperty dp)
+    {
+        Deactivate();
+    }
+
+    /// <summary>
+    /// Returns the current value produced by this binding.
+    /// </summary>
+    internal override object? GetValue(DependencyObject d, DependencyProperty dp)
+    {
+        return _cachedValue ?? dp.DefaultMetadata.DefaultValue;
+    }
+
+    /// <summary>
+    /// Called when the binding environment changes (DataContext, parent, etc.).
+    /// Re-resolves the source and re-activates.
+    /// </summary>
+    internal override void Invalidate()
+    {
+        ResolveAndActivate();
+    }
+
+    // ────────────────────────────────────────────────────────────────
+    //  Source resolution
+    // ────────────────────────────────────────────────────────────────
+
+    /// <summary>
+    /// Resolves the binding source and activates change tracking.
+    /// </summary>
+    private void ResolveAndActivate()
+    {
+        Deactivate();
+
+        _resolvedSource = ResolveSource();
+
+        if (_resolvedSource != null || _binding.FallbackValue != null)
         {
-            _observer = new PropertyPathObserver(_sourcePath, _source, OnSourceChanged);
+            Activate();
         }
-        
-        // Initial update from source to target
-        UpdateTarget();
-        
-        // For TwoWay mode, also subscribe to target changes
-        if (_mode == BindingMode.TwoWay)
+        else
         {
-            SubscribeToTargetChanges();
+            // Source not available yet — store fallback/default as cached value
+            _cachedValue = _binding.FallbackValue;
         }
     }
-    
+
     /// <summary>
-    /// Updates the target property from the source.
+    /// Determines the source object based on the binding's configuration.
+    /// Priority: explicit Source → RelativeSource → ElementName → DataContext.
+    /// </summary>
+    private object? ResolveSource()
+    {
+        // 1. Explicit Source
+        if (_binding.Source != null)
+        {
+            return _binding.Source;
+        }
+
+        // 2. RelativeSource
+        if (_binding.RelativeSource != null)
+        {
+            return ResolveRelativeSource(_binding.RelativeSource);
+        }
+
+        // 3. ElementName (future: requires name scope)
+        // For now, not implemented — WPF resolves this via INameScope
+
+        // 4. DataContext (walk up the tree)
+        return ResolveDataContext();
+    }
+
+    /// <summary>
+    /// Resolves a <see cref="RelativeSource"/> binding by walking the visual tree.
+    /// </summary>
+    private Visual? ResolveRelativeSource(RelativeSource relativeSource)
+    {
+        if (Target is not Visual targetVisual)
+        {
+            return null;
+        }
+
+        return relativeSource.Mode switch
+        {
+            RelativeSourceMode.Self => targetVisual,
+            RelativeSourceMode.FindAncestor => FindAncestor(relativeSource, targetVisual),
+            RelativeSourceMode.TemplatedParent => null, // Template system not yet implemented
+            _ => null
+        };
+    }
+
+    /// <summary>
+    /// Walks the visual tree upward to find an ancestor matching the specified type.
+    /// </summary>
+    private static Visual? FindAncestor(RelativeSource relativeSource, Visual target)
+    {
+        if (relativeSource.AncestorType == null)
+        {
+            throw new InvalidOperationException(
+                "AncestorType must be set when using RelativeSourceMode.FindAncestor.");
+        }
+
+        var ancestorLevel = relativeSource.AncestorLevel;
+        if (ancestorLevel < 1)
+        {
+            ancestorLevel = 1;
+        }
+
+        var current = target.Parent;
+        var matchCount = 0;
+
+        while (current != null)
+        {
+            if (relativeSource.AncestorType.IsInstanceOfType(current))
+            {
+                matchCount++;
+                if (matchCount >= ancestorLevel)
+                {
+                    return current;
+                }
+            }
+
+            current = current.Parent;
+        }
+
+        return null; // Ancestor not found — WPF returns null silently
+    }
+
+    /// <summary>
+    /// Resolves the effective DataContext by walking up the parent chain.
+    /// </summary>
+    private object? ResolveDataContext()
+    {
+        if (Target is FrameworkElement fe)
+        {
+            return fe.GetEffectiveDataContext();
+        }
+
+        return null;
+    }
+
+    // ────────────────────────────────────────────────────────────────
+    //  Activation / deactivation
+    // ────────────────────────────────────────────────────────────────
+
+    /// <summary>
+    /// Activates change tracking on the resolved source and pushes the initial value.
+    /// </summary>
+    private void Activate()
+    {
+        // For OneWay and TwoWay, subscribe to source changes
+        if (_binding.Mode != BindingMode.OneTime && _resolvedSource != null)
+        {
+            _observer = new PropertyPathObserver(_sourcePath, _resolvedSource, OnSourceChanged);
+        }
+
+        // Initial push from source to target
+        UpdateTarget();
+
+        // For TwoWay, subscribe to target changes
+        if (_binding.Mode == BindingMode.TwoWay && Target is INotifyPropertyChanged inpc)
+        {
+            inpc.PropertyChanged += OnTargetPropertyChanged;
+        }
+    }
+
+    /// <summary>
+    /// Stops change tracking and unsubscribes from events.
+    /// </summary>
+    private void Deactivate()
+    {
+        _observer?.Dispose();
+        _observer = null;
+
+        if (Target is INotifyPropertyChanged inpc)
+        {
+            inpc.PropertyChanged -= OnTargetPropertyChanged;
+        }
+    }
+
+    // ────────────────────────────────────────────────────────────────
+    //  Value transfer
+    // ────────────────────────────────────────────────────────────────
+
+    /// <summary>
+    /// Reads the source value and pushes it to the target via <see cref="DependencyObject.SetValueInternal"/>.
     /// </summary>
     private void UpdateTarget()
     {
-        if (_isUpdating)
-        {
-            return; // Prevent recursion
-        }
-
-        try
-        {
-            _isUpdating = true;
-            
-            var sourceValue = _sourcePath.GetValue(_source);
-            var convertedValue = ConvertValue(sourceValue, _targetAccessor.PropertyType, forward: true);
-            
-            if (_targetAccessor.CanWrite)
-            {
-                _targetAccessor.Setter!(Target, convertedValue);
-            }
-        }
-        catch (Exception ex)
-        {
-            // In production, you might want to log this or handle it differently
-            System.Diagnostics.Debug.WriteLine($"Binding update failed: {ex.Message}");
-        }
-        finally
-        {
-            _isUpdating = false;
-        }
-    }
-    
-    /// <summary>
-    /// Updates the source property from the target (TwoWay only).
-    /// </summary>
-    private void UpdateSource()
-    {
-        if (_isUpdating)
-        {
-            return; // Prevent recursion
-        }
-
-        if (_mode != BindingMode.TwoWay)
+        if (_isUpdating || Target == null || TargetProperty == null)
         {
             return;
         }
@@ -140,11 +273,53 @@ internal sealed class BindingExpression : IDisposable
         try
         {
             _isUpdating = true;
-            
-            var targetValue = _targetAccessor.Getter(Target);
-            var convertedValue = ConvertValue(targetValue, _targetAccessor.PropertyType, forward: false);
-            
-            _sourcePath.SetValue(_source, convertedValue);
+
+            var sourceValue = _sourcePath.GetValue(_resolvedSource);
+            var converted = ConvertValue(sourceValue, TargetProperty.PropertyType, forward: true);
+            _cachedValue = converted;
+
+            // Push the value through the DP system (without clearing this expression)
+            Target.SetValueInternal(TargetProperty, converted);
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"Binding update failed: {ex.Message}");
+
+            // Use fallback value on error
+            if (_binding.FallbackValue != null)
+            {
+                _cachedValue = _binding.FallbackValue;
+                Target.SetValueInternal(TargetProperty, _binding.FallbackValue);
+            }
+        }
+        finally
+        {
+            _isUpdating = false;
+        }
+    }
+
+    /// <summary>
+    /// Reads the target value and pushes it back to the source (TwoWay only).
+    /// </summary>
+    private void UpdateSource()
+    {
+        if (_isUpdating || _binding.Mode != BindingMode.TwoWay)
+        {
+            return;
+        }
+
+        if (Target == null || TargetProperty == null)
+        {
+            return;
+        }
+
+        try
+        {
+            _isUpdating = true;
+
+            var targetValue = Target.GetValue(TargetProperty);
+            var converted = ConvertValue(targetValue, TargetProperty.PropertyType, forward: false);
+            _sourcePath.SetValue(_resolvedSource, converted);
         }
         catch (Exception ex)
         {
@@ -155,24 +330,26 @@ internal sealed class BindingExpression : IDisposable
             _isUpdating = false;
         }
     }
-    
+
+    // ────────────────────────────────────────────────────────────────
+    //  Value conversion
+    // ────────────────────────────────────────────────────────────────
+
     /// <summary>
     /// Converts a value using the converter if available, otherwise uses default conversion.
     /// </summary>
     private object? ConvertValue(object? value, Type targetType, bool forward)
     {
-        // Use converter if provided
-        if (_converter != null)
+        if (_binding.Converter != null)
         {
             return forward
-                ? _converter.Convert(value, targetType, _converterParameter)
-                : _converter.ConvertBack(value, targetType, _converterParameter);
+                ? _binding.Converter.Convert(value, targetType, _binding.ConverterParameter)
+                : _binding.Converter.ConvertBack(value, targetType, _binding.ConverterParameter);
         }
-        
-        // Default conversion
+
         return ConvertValueDefault(value, targetType);
     }
-    
+
     /// <summary>
     /// Default type conversion logic.
     /// </summary>
@@ -184,28 +361,24 @@ internal sealed class BindingExpression : IDisposable
         }
 
         var valueType = value.GetType();
-        
-        // No conversion needed
+
         if (targetType.IsAssignableFrom(valueType))
         {
             return value;
         }
 
-        // Handle nullable types
         var underlyingType = Nullable.GetUnderlyingType(targetType);
         if (underlyingType != null)
         {
             targetType = underlyingType;
         }
 
-        // Try Convert.ChangeType
         try
         {
             return Convert.ChangeType(value, targetType);
         }
         catch
         {
-            // Conversion failed - return default value
             return targetType.IsValueType ? GetDefaultValue(targetType) : null;
         }
     }
@@ -220,92 +393,47 @@ internal sealed class BindingExpression : IDisposable
                          "with parameterless constructors preserved by PropertyAccessorRegistry registrations.")]
     private static object GetDefaultValue(Type valueType)
     {
-        // Common value types — avoid any overhead
-        if (valueType == typeof(int))
-        {
-            return 0;
-        }
+        if (valueType == typeof(int)) return 0;
+        if (valueType == typeof(bool)) return false;
+        if (valueType == typeof(double)) return 0.0;
+        if (valueType == typeof(float)) return 0.0f;
+        if (valueType == typeof(long)) return 0L;
+        if (valueType == typeof(byte)) return (byte)0;
+        if (valueType == typeof(char)) return '\0';
 
-        if (valueType == typeof(bool))
-        {
-            return false;
-        }
-
-        if (valueType == typeof(double))
-        {
-            return 0.0;
-        }
-
-        if (valueType == typeof(float))
-        {
-            return 0.0f;
-        }
-
-        if (valueType == typeof(long))
-        {
-            return 0L;
-        }
-
-        if (valueType == typeof(byte))
-        {
-            return (byte)0;
-        }
-
-        if (valueType == typeof(char))
-        {
-            return '\0';
-        }
-
-        // For struct types in our system (Color, Thickness, Size, GridLength, etc.),
-        // Activator.CreateInstance returns the zero-initialized struct.
-        // These types are preserved by PropertyAccessorRegistry registrations.
         return Activator.CreateInstance(valueType)!;
     }
-    
+
+    // ────────────────────────────────────────────────────────────────
+    //  Event handlers
+    // ────────────────────────────────────────────────────────────────
+
     /// <summary>
-    /// Called when the source property changes.
+    /// Called when a property in the source path changes.
     /// </summary>
     private void OnSourceChanged()
     {
         UpdateTarget();
     }
-    
+
     /// <summary>
-    /// Subscribes to target property changes for TwoWay binding.
-    /// </summary>
-    private void SubscribeToTargetChanges()
-    {
-        if (Target is INotifyPropertyChanged inpc)
-        {
-            inpc.PropertyChanged += OnTargetPropertyChanged;
-        }
-    }
-    
-    /// <summary>
-    /// Unsubscribes from target property changes.
-    /// </summary>
-    private void UnsubscribeFromTargetChanges()
-    {
-        if (Target is INotifyPropertyChanged inpc)
-        {
-            inpc.PropertyChanged -= OnTargetPropertyChanged;
-        }
-    }
-    
-    /// <summary>
-    /// Called when a property on the target object changes.
+    /// Called when a property on the target object changes (TwoWay only).
     /// </summary>
     private void OnTargetPropertyChanged(object? sender, PropertyChangedEventArgs e)
     {
-        if (e.PropertyName == TargetPropertyName || string.IsNullOrEmpty(e.PropertyName))
+        if (TargetProperty != null &&
+            (e.PropertyName == TargetProperty.Name || string.IsNullOrEmpty(e.PropertyName)))
         {
             UpdateSource();
         }
     }
-    
+
+    // ────────────────────────────────────────────────────────────────
+    //  IDisposable
+    // ────────────────────────────────────────────────────────────────
+
     public void Dispose()
     {
-        _observer?.Dispose();
-        UnsubscribeFromTargetChanges();
+        Deactivate();
     }
 }

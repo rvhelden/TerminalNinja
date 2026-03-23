@@ -12,6 +12,7 @@ using System.Windows.Markup;
 [assembly: XmlnsDefinition("http://schemas.terminalninja.dev/xaml", "System.Windows.Markup")]
 [assembly: XmlnsDefinition("http://schemas.terminalninja.dev/xaml", "TerminalNinja.Xaml.Mvvm")]
 [assembly: XmlnsDefinition("http://schemas.terminalninja.dev/xaml", "TerminalNinja.Xaml.Data")]
+[assembly: XmlnsDefinition("http://schemas.terminalninja.dev/xaml", "System")]
 
 // Suggest default prefix when adding namespace
 [assembly: XmlnsPrefix("http://schemas.terminalninja.dev/xaml", "tn")]

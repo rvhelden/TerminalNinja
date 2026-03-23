@@ -1,6 +1,5 @@
-using TerminalNinja.Controls;
-using TerminalNinja.Markup;
-using TerminalNinja.Xaml;
+using System.Windows.Data;
+using System.Windows.Markup;
 using TerminalNinja.Xaml.Binding;
 using TerminalNinja.Xaml.Mvvm;
 
@@ -28,211 +27,92 @@ public class RelativeSourceTests
     // ─── Part 1: RelativeSource class unit tests ─────────────────
 
     [Test]
-    public async Task RelativeSource_Self_ReturnsTargetElement()
-    {
-        var textBlock = new TextBlock { Text = "Hello" };
-        var rs = RelativeSource.Self;
-
-        var source = rs.ResolveSource(textBlock);
-
-        await Assert.That(source).IsEqualTo(textBlock);
-    }
-
-    [Test]
     public async Task RelativeSource_Self_Mode_IsSelf()
     {
-        var rs = RelativeSource.Self;
+        var rs = new RelativeSource(RelativeSourceMode.Self);
 
         await Assert.That(rs.Mode).IsEqualTo(RelativeSourceMode.Self);
     }
 
     [Test]
-    public async Task RelativeSource_TemplatedParent_ReturnsNull()
+    public async Task RelativeSource_TemplatedParent_Mode_IsTemplatedParent()
     {
-        var textBlock = new TextBlock();
-        var rs = RelativeSource.TemplatedParent;
+        var rs = new RelativeSource(RelativeSourceMode.TemplatedParent);
 
-        // TemplatedParent is not yet implemented — should return null
-        var source = rs.ResolveSource(textBlock);
-
-        await Assert.That(source).IsNull();
+        await Assert.That(rs.Mode).IsEqualTo(RelativeSourceMode.TemplatedParent);
     }
 
     [Test]
-    public async Task RelativeSource_FindAncestor_FindsParentByType()
+    public async Task RelativeSource_Constructor_SetsMode()
     {
+        var rs = new RelativeSource(RelativeSourceMode.FindAncestor);
+
+        await Assert.That(rs.Mode).IsEqualTo(RelativeSourceMode.FindAncestor);
+        await Assert.That(rs.AncestorType).IsNull();
+    }
+
+    [Test]
+    public async Task RelativeSource_DefaultConstructor_DefaultsToFindAncestor()
+    {
+        var rs = new RelativeSource();
+
+        await Assert.That(rs.Mode).IsEqualTo(RelativeSourceMode.FindAncestor);
+    }
+
+    [Test]
+    public async Task RelativeSource_ThreeArgConstructor_SetsAllProperties()
+    {
+        var rs = new RelativeSource(RelativeSourceMode.FindAncestor, typeof(Window), 3);
+
+        await Assert.That(rs.Mode).IsEqualTo(RelativeSourceMode.FindAncestor);
+        await Assert.That(rs.AncestorType).IsEqualTo(typeof(Window));
+        await Assert.That(rs.AncestorLevel).IsEqualTo(3);
+    }
+
+    [Test]
+    public async Task RelativeSource_FindAncestor_ThroughBindingSystem()
+    {
+        // Build a visual tree: Window > StackPanel > TextBlock
         var window = new Window { Title = "TestWindow" };
         var stackPanel = new StackPanel();
         var textBlock = new TextBlock();
 
-        // Build visual tree
         stackPanel.Children.Add(textBlock);
         window.Content = stackPanel;
 
-        var rs = new RelativeSource(RelativeSourceMode.FindAncestor) { AncestorType = typeof(Window) };
-        var source = rs.ResolveSource(textBlock);
-
-        await Assert.That(source).IsEqualTo(window);
-    }
-
-    [Test]
-    public async Task RelativeSource_FindAncestor_FindsIntermediateAncestor()
-    {
-        var window = new Window();
-        var stackPanel = new StackPanel();
-        var textBlock = new TextBlock();
-
-        stackPanel.Children.Add(textBlock);
-        window.Content = stackPanel;
-
-        var rs = new RelativeSource(RelativeSourceMode.FindAncestor) { AncestorType = typeof(StackPanel) };
-        var source = rs.ResolveSource(textBlock);
-
-        await Assert.That(source).IsEqualTo(stackPanel);
-    }
-
-    [Test]
-    public async Task RelativeSource_FindAncestor_ReturnsNull_WhenTypeNotInTree()
-    {
-        var stackPanel = new StackPanel();
-        var textBlock = new TextBlock();
-        stackPanel.Children.Add(textBlock);
-
-        var rs = new RelativeSource(RelativeSourceMode.FindAncestor) { AncestorType = typeof(Window) };
-        var source = rs.ResolveSource(textBlock);
-
-        await Assert.That(source).IsNull();
-    }
-
-    [Test]
-    public async Task RelativeSource_FindAncestor_NoAncestorType_Throws()
-    {
-        var textBlock = new TextBlock();
-        var rs = new RelativeSource(RelativeSourceMode.FindAncestor);
-
-        await Assert.That(() => rs.ResolveSource(textBlock))
-            .ThrowsExactly<InvalidOperationException>();
-    }
-
-    [Test]
-    public async Task RelativeSource_FindAncestor_AncestorLevel_SkipsFirstMatch()
-    {
-        // Nested StackPanels: outer > inner > textBlock
-        var outer = new StackPanel();
-        var inner = new StackPanel();
-        var textBlock = new TextBlock();
-
-        inner.Children.Add(textBlock);
-        outer.Children.Add(inner);
-
-        // Level 1 should find inner StackPanel
-        var rs1 = new RelativeSource(RelativeSourceMode.FindAncestor)
+        // Create a binding with RelativeSource FindAncestor targeting Window.Title
+        var binding = new Binding("Title")
         {
-            AncestorType = typeof(StackPanel),
-            AncestorLevel = 1
-        };
-        var source1 = rs1.ResolveSource(textBlock);
-        await Assert.That(source1).IsEqualTo(inner);
-
-        // Level 2 should find outer StackPanel
-        var rs2 = new RelativeSource(RelativeSourceMode.FindAncestor)
-        {
-            AncestorType = typeof(StackPanel),
-            AncestorLevel = 2
-        };
-        var source2 = rs2.ResolveSource(textBlock);
-        await Assert.That(source2).IsEqualTo(outer);
-    }
-
-    [Test]
-    public async Task RelativeSource_FindAncestor_AncestorLevel_TooHigh_ReturnsNull()
-    {
-        var stackPanel = new StackPanel();
-        var textBlock = new TextBlock();
-        stackPanel.Children.Add(textBlock);
-
-        var rs = new RelativeSource(RelativeSourceMode.FindAncestor)
-        {
-            AncestorType = typeof(StackPanel),
-            AncestorLevel = 2 // Only one StackPanel in tree
-        };
-        var source = rs.ResolveSource(textBlock);
-
-        await Assert.That(source).IsNull();
-    }
-
-    [Test]
-    public async Task RelativeSource_FindAncestor_InvalidLevel_Throws()
-    {
-        var textBlock = new TextBlock();
-        var rs = new RelativeSource(RelativeSourceMode.FindAncestor)
-        {
-            AncestorType = typeof(StackPanel),
-            AncestorLevel = 0
+            RelativeSource = new RelativeSource(RelativeSourceMode.FindAncestor)
+            {
+                AncestorType = typeof(Window)
+            }
         };
 
-        await Assert.That(() => rs.ResolveSource(textBlock))
-            .ThrowsExactly<InvalidOperationException>();
+        BindingOperations.SetBinding(textBlock, TextBlock.TextProperty, binding);
+
+        await Assert.That(textBlock.Text).IsEqualTo("TestWindow");
     }
 
-    [Test]
-    public async Task RelativeSource_FindAncestor_MatchesBaseClass()
-    {
-        // Panel is the base class of StackPanel — should match
-        var stackPanel = new StackPanel();
-        var textBlock = new TextBlock();
-        stackPanel.Children.Add(textBlock);
-
-        var rs = new RelativeSource(RelativeSourceMode.FindAncestor) { AncestorType = typeof(Panel) };
-        var source = rs.ResolveSource(textBlock);
-
-        await Assert.That(source).IsEqualTo(stackPanel);
-    }
-
-    // ─── Part 2: BindingManager.CreateBinding with RelativeSource ──
+    // ─── Part 2: BindingOperations.SetBinding with RelativeSource ──
 
     [Test]
-    public async Task CreateBinding_RelativeSourceSelf_BindsToSelf()
-    {
-        var textBlock = new TextBlock { Text = "Original" };
-        var bm = new BindingManager();
-
-        // Bind Foreground property to the Text property of the same element (Self)
-        // This is artificial but tests the mechanism
-        bm.CreateBinding(
-            textBlock,
-            "Foreground",
-            "Text",
-            relativeSource: RelativeSource.Self);
-
-        // The source is the TextBlock itself, so Foreground should get the text value.
-        // Since Text is a string and Foreground is a Color, this will try default conversion
-        // which won't succeed — but the mechanism should not throw.
-        // Let's use a more compatible test: bind Text to Name
-
-        bm.Dispose();
-    }
-
-    [Test]
-    public async Task CreateBinding_RelativeSourceSelf_SourceIsElement()
+    public async Task SetBinding_RelativeSourceSelf_BindsTextToName()
     {
         var textBlock = new TextBlock { Name = "MyTextBlock" };
-        var bm = new BindingManager();
 
-        // Bind Text to the Name property of itself (Self binding)
-        bm.CreateBinding(
-            textBlock,
-            "Text",
-            "Name",
-            relativeSource: RelativeSource.Self);
+        var binding = new Binding("Name")
+        {
+            RelativeSource = new RelativeSource(RelativeSourceMode.Self)
+        };
+
+        BindingOperations.SetBinding(textBlock, TextBlock.TextProperty, binding);
 
         await Assert.That(textBlock.Text).IsEqualTo("MyTextBlock");
-
-        bm.Dispose();
     }
 
     [Test]
-    public async Task CreateBinding_RelativeSourceFindAncestor_BindsToAncestor()
+    public async Task SetBinding_FindAncestor_BindsToWindowTitle()
     {
         var window = new Window { Title = "Ancestor Title" };
         var stackPanel = new StackPanel();
@@ -241,22 +121,21 @@ public class RelativeSourceTests
         stackPanel.Children.Add(textBlock);
         window.Content = stackPanel;
 
-        var bm = new BindingManager();
-        var rs = new RelativeSource(RelativeSourceMode.FindAncestor) { AncestorType = typeof(Window) };
+        var binding = new Binding("Title")
+        {
+            RelativeSource = new RelativeSource(RelativeSourceMode.FindAncestor)
+            {
+                AncestorType = typeof(Window)
+            }
+        };
 
-        bm.CreateBinding(
-            textBlock,
-            "Text",
-            "Title",
-            relativeSource: rs);
+        BindingOperations.SetBinding(textBlock, TextBlock.TextProperty, binding);
 
         await Assert.That(textBlock.Text).IsEqualTo("Ancestor Title");
-
-        bm.Dispose();
     }
 
     [Test]
-    public async Task CreateBinding_RelativeSourceFindAncestor_ReactsToChanges()
+    public async Task SetBinding_FindAncestor_ReactsToSourceChanges()
     {
         var window = new Window { Title = "Before" };
         var stackPanel = new StackPanel();
@@ -265,14 +144,15 @@ public class RelativeSourceTests
         stackPanel.Children.Add(textBlock);
         window.Content = stackPanel;
 
-        var bm = new BindingManager();
-        var rs = new RelativeSource(RelativeSourceMode.FindAncestor) { AncestorType = typeof(Window) };
+        var binding = new Binding("Title")
+        {
+            RelativeSource = new RelativeSource(RelativeSourceMode.FindAncestor)
+            {
+                AncestorType = typeof(Window)
+            }
+        };
 
-        bm.CreateBinding(
-            textBlock,
-            "Text",
-            "Title",
-            relativeSource: rs);
+        BindingOperations.SetBinding(textBlock, TextBlock.TextProperty, binding);
 
         await Assert.That(textBlock.Text).IsEqualTo("Before");
 
@@ -280,51 +160,63 @@ public class RelativeSourceTests
         window.Title = "After";
 
         await Assert.That(textBlock.Text).IsEqualTo("After");
-
-        bm.Dispose();
     }
 
     [Test]
-    public async Task CreateBinding_NoRelativeSource_UsesDataContext()
+    public async Task SetBinding_DataContext_NoRelativeSource()
     {
         var vm = new RelativeSourceViewModel { Title = "DC Title" };
         var textBlock = new TextBlock();
-        var bm = new BindingManager();
+        textBlock.DataContext = vm;
 
-        bm.SetDataContext(textBlock, vm);
-        bm.CreateBinding(textBlock, "Text", "Title");
+        var binding = new Binding("Title");
+
+        BindingOperations.SetBinding(textBlock, TextBlock.TextProperty, binding);
 
         await Assert.That(textBlock.Text).IsEqualTo("DC Title");
+    }
 
-        bm.Dispose();
+    [Test]
+    public async Task SetBinding_FindAncestor_WithAncestorLevel()
+    {
+        // Nested StackPanels: outer > inner > textBlock
+        var outer = new StackPanel { Name = "OuterPanel" };
+        var inner = new StackPanel { Name = "InnerPanel" };
+        var textBlock = new TextBlock();
+
+        inner.Children.Add(textBlock);
+        outer.Children.Add(inner);
+
+        // AncestorLevel=1 should find inner StackPanel
+        var binding1 = new Binding("Name")
+        {
+            RelativeSource = new RelativeSource(RelativeSourceMode.FindAncestor)
+            {
+                AncestorType = typeof(StackPanel),
+                AncestorLevel = 1
+            }
+        };
+
+        BindingOperations.SetBinding(textBlock, TextBlock.TextProperty, binding1);
+        await Assert.That(textBlock.Text).IsEqualTo("InnerPanel");
+
+        // Clear and rebind with AncestorLevel=2 to find outer StackPanel
+        BindingOperations.ClearBinding(textBlock, TextBlock.TextProperty);
+
+        var binding2 = new Binding("Name")
+        {
+            RelativeSource = new RelativeSource(RelativeSourceMode.FindAncestor)
+            {
+                AncestorType = typeof(StackPanel),
+                AncestorLevel = 2
+            }
+        };
+
+        BindingOperations.SetBinding(textBlock, TextBlock.TextProperty, binding2);
+        await Assert.That(textBlock.Text).IsEqualTo("OuterPanel");
     }
 
     // ─── Part 3: XAML parsing of RelativeSource ──────────────────
-
-    [Test]
-    public async Task Xaml_RelativeSourceSelf_ParsesAndBinds()
-    {
-        var xaml = """
-            <Border xmlns="http://schemas.terminalninja.dev/xaml"
-                    Background="Red">
-                <TextBlock Text="{Binding Background, RelativeSource={RelativeSource Self}}" />
-            </Border>
-            """;
-
-        var vm = new RelativeSourceViewModel();
-        var bm = new BindingManager();
-        var border = TerminalXaml.Load<Border>(xaml, vm, bm);
-
-        var textBlock = (TextBlock)border.Child!;
-        // TextBlock binds its Text to its own Background via RelativeSource Self
-        // Background is a Color, Text is string — default conversion applies
-        // The binding source is the TextBlock itself, so Text = TextBlock.Background.ToString()
-        // Since TextBlock has no Background set explicitly, it defaults to Color default
-        // This test verifies parsing didn't throw
-        await Assert.That(textBlock).IsNotNull();
-
-        bm.Dispose();
-    }
 
     [Test]
     public async Task Xaml_RelativeSourceSelf_BindsOwnProperty()
@@ -335,13 +227,9 @@ public class RelativeSourceTests
                        Text="{Binding Name, RelativeSource={RelativeSource Self}}" />
             """;
 
-        var vm = new RelativeSourceViewModel();
-        var bm = new BindingManager();
-        var textBlock = TerminalXaml.Load<TextBlock>(xaml, vm, bm);
+        var textBlock = TerminalXaml.Load<TextBlock>(xaml);
 
         await Assert.That(textBlock.Text).IsEqualTo("TestElement");
-
-        bm.Dispose();
     }
 
     [Test]
@@ -356,41 +244,18 @@ public class RelativeSourceTests
             </Window>
             """;
 
-        var vm = new RelativeSourceViewModel();
-        var bm = new BindingManager();
-        var window = TerminalXaml.Load<Window>(xaml, vm, bm);
+        var window = TerminalXaml.Load<Window>(xaml);
 
-        // Find the TextBlock in the tree
-        // Window.Content is StackPanel (via ContentControl → ContentPresenter)
-        var contentPresenter = window.GetLogicalChildren().First();
-        StackPanel? stackPanel = null;
-        foreach (var child in contentPresenter.GetLogicalChildren())
-        {
-            if (child is StackPanel sp)
-            {
-                stackPanel = sp;
-                break;
-            }
-        }
-
-        // If ContentPresenter wraps things differently, try direct content
-        if (stackPanel == null)
-        {
-            // Navigate through the visual tree
-            stackPanel = FindDescendant<StackPanel>(window);
-        }
-
+        var stackPanel = FindDescendant<StackPanel>(window);
         await Assert.That(stackPanel).IsNotNull();
+
         var textBlock = (TextBlock)stackPanel!.Children[0];
         await Assert.That(textBlock.Text).IsEqualTo("Window Title");
-
-        bm.Dispose();
     }
 
     [Test]
     public async Task Xaml_RelativeSourceFindAncestor_WithAncestorLevel()
     {
-        // Use Name property instead of Background to avoid Color? type conversion issues
         var xaml = """
             <StackPanel xmlns="http://schemas.terminalninja.dev/xaml"
                         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
@@ -401,20 +266,16 @@ public class RelativeSourceTests
             </StackPanel>
             """;
 
-        var vm = new RelativeSourceViewModel();
-        var bm = new BindingManager();
-        var outerPanel = TerminalXaml.Load<StackPanel>(xaml, vm, bm);
+        var outerPanel = TerminalXaml.Load<StackPanel>(xaml);
 
         var innerPanel = (StackPanel)outerPanel.Children[0];
         var textBlock = (TextBlock)innerPanel.Children[0];
 
         // AncestorLevel=2 should skip the inner StackPanel and bind to outer's Name
         await Assert.That(textBlock.Text).IsEqualTo("OuterPanel");
-
-        bm.Dispose();
     }
 
-    // ─── Part 4: RelativeSource with deferred bindings (null DataContext) ──
+    // ─── Part 4: RelativeSource with null DataContext ────────────
 
     [Test]
     public async Task Xaml_RelativeSourceSelf_WorksWithoutDataContext()
@@ -426,13 +287,10 @@ public class RelativeSourceTests
             """;
 
         // Load without DataContext — RelativeSource bindings should still activate
-        var textBlock = TerminalXaml.Load<TextBlock>(xaml, dataContext: null, bindingManager: null);
+        var textBlock = TerminalXaml.Load<TextBlock>(xaml);
 
         // RelativeSource Self doesn't depend on DataContext, so it should work
         await Assert.That(textBlock.Text).IsEqualTo("DeferredElement");
-
-        // No pending bindings should be stored for RelativeSource bindings
-        await Assert.That(textBlock.PendingBindings).IsNull();
     }
 
     [Test]
@@ -445,9 +303,8 @@ public class RelativeSourceTests
             </Window>
             """;
 
-        var window = TerminalXaml.Load<Window>(xaml, dataContext: null, bindingManager: null);
+        var window = TerminalXaml.Load<Window>(xaml);
 
-        // Find TextBlock in the window's content tree
         var textBlock = FindDescendant<TextBlock>(window);
 
         await Assert.That(textBlock).IsNotNull();
@@ -461,19 +318,18 @@ public class RelativeSourceTests
             <Window xmlns="http://schemas.terminalninja.dev/xaml"
                     Title="WindowTitle">
                 <StackPanel>
-                    <TextBlock x:Name="rsLabel" 
-                               xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    <TextBlock xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                               x:Name="rsLabel"
                                Text="{Binding Title, RelativeSource={RelativeSource FindAncestor, AncestorType=Window}}" />
-                    <TextBlock x:Name="dcLabel"
-                               xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    <TextBlock xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                               x:Name="dcLabel"
                                Text="{Binding Title}" />
                 </StackPanel>
             </Window>
             """;
 
         var vm = new RelativeSourceViewModel { Title = "VM Title" };
-        var bm = new BindingManager();
-        var window = TerminalXaml.Load<Window>(xaml, vm, bm);
+        var window = TerminalXaml.Load<Window>(xaml, vm);
 
         var stackPanel = FindDescendant<StackPanel>(window);
         await Assert.That(stackPanel).IsNotNull();
@@ -486,77 +342,34 @@ public class RelativeSourceTests
 
         // DataContext binding should use ViewModel.Title
         await Assert.That(dcLabel.Text).IsEqualTo("VM Title");
-
-        bm.Dispose();
     }
 
     // ─── Part 5: Edge cases ──────────────────────────────────────
 
     [Test]
-    public async Task RelativeSource_ResolveSource_NullTarget_Throws()
+    public async Task FindAncestor_NoMatchingType_TextStaysDefault()
     {
-        var rs = RelativeSource.Self;
+        var stackPanel = new StackPanel();
+        var textBlock = new TextBlock();
+        stackPanel.Children.Add(textBlock);
 
-        await Assert.That(() => rs.ResolveSource(null!))
-            .ThrowsExactly<ArgumentNullException>();
-    }
-
-    [Test]
-    public async Task RelativeSource_Constructor_SetsMode()
-    {
-        var rs = new RelativeSource(RelativeSourceMode.FindAncestor);
-
-        await Assert.That(rs.Mode).IsEqualTo(RelativeSourceMode.FindAncestor);
-        await Assert.That(rs.AncestorLevel).IsEqualTo(1);
-        await Assert.That(rs.AncestorType).IsNull();
-    }
-
-    [Test]
-    public async Task RelativeSource_DefaultConstructor_DefaultMode()
-    {
-        var rs = new RelativeSource();
-
-        await Assert.That(rs.Mode).IsEqualTo(RelativeSourceMode.Self); // Enum default is 0 = Self
-    }
-
-    [Test]
-    public async Task RelativeSourceExtension_ProvideValue_ReturnsRelativeSource()
-    {
-        var ext = new RelativeSourceExtension(RelativeSourceMode.FindAncestor)
+        // Bind to Window.Title but there's no Window in the tree
+        var binding = new Binding("Title")
         {
-            AncestorType = typeof(Window),
-            AncestorLevel = 2
+            RelativeSource = new RelativeSource(RelativeSourceMode.FindAncestor)
+            {
+                AncestorType = typeof(Window)
+            }
         };
 
-        var result = ext.ProvideValue(null!) as RelativeSource;
+        BindingOperations.SetBinding(textBlock, TextBlock.TextProperty, binding);
 
-        await Assert.That(result).IsNotNull();
-        await Assert.That(result!.Mode).IsEqualTo(RelativeSourceMode.FindAncestor);
-        await Assert.That(result.AncestorType).IsEqualTo(typeof(Window));
-        await Assert.That(result.AncestorLevel).IsEqualTo(2);
+        // No Window ancestor found — text should stay at default ("")
+        await Assert.That(textBlock.Text).IsEqualTo("");
     }
 
     [Test]
-    public async Task ElementBinding_WithRelativeSource_StoresIt()
-    {
-        var rs = RelativeSource.Self;
-        var binding = new ElementBinding("Text", "Name", BindingMode.OneWay, null, null, rs);
-
-        await Assert.That(binding.RelativeSource).IsEqualTo(rs);
-    }
-
-    [Test]
-    public async Task ElementBinding_WithoutRelativeSource_DefaultsToNull()
-    {
-        var binding = new ElementBinding("Text", "Name", BindingMode.OneWay, null, null);
-
-        await Assert.That(binding.RelativeSource).IsNull();
-    }
-
-    // ─── Part 6: FindAncestor with Border child ──────────────────
-
-    [Test]
-    public async Task RelativeSource_FindAncestor_ThroughBorder()
+    public async Task FindAncestor_ThroughBorder()
     {
         var window = new Window { Title = "BorderParent" };
         var border = new Border();
@@ -565,10 +378,87 @@ public class RelativeSourceTests
         border.Child = textBlock;
         window.Content = border;
 
-        var rs = new RelativeSource(RelativeSourceMode.FindAncestor) { AncestorType = typeof(Window) };
-        var source = rs.ResolveSource(textBlock);
+        var binding = new Binding("Title")
+        {
+            RelativeSource = new RelativeSource(RelativeSourceMode.FindAncestor)
+            {
+                AncestorType = typeof(Window)
+            }
+        };
 
-        await Assert.That(source).IsEqualTo(window);
+        BindingOperations.SetBinding(textBlock, TextBlock.TextProperty, binding);
+
+        await Assert.That(textBlock.Text).IsEqualTo("BorderParent");
+    }
+
+    [Test]
+    public async Task FindAncestor_AncestorLevel2_SkipsFirstMatch()
+    {
+        // Nested StackPanels: outer > inner > textBlock
+        var outer = new StackPanel { Name = "Outer" };
+        var inner = new StackPanel { Name = "Inner" };
+        var textBlock = new TextBlock();
+
+        inner.Children.Add(textBlock);
+        outer.Children.Add(inner);
+
+        // AncestorLevel=2 should skip inner and return outer
+        var binding = new Binding("Name")
+        {
+            RelativeSource = new RelativeSource(RelativeSourceMode.FindAncestor)
+            {
+                AncestorType = typeof(StackPanel),
+                AncestorLevel = 2
+            }
+        };
+
+        BindingOperations.SetBinding(textBlock, TextBlock.TextProperty, binding);
+
+        await Assert.That(textBlock.Text).IsEqualTo("Outer");
+    }
+
+    [Test]
+    public async Task FindAncestor_AncestorLevel_TooHigh_TextStaysDefault()
+    {
+        var stackPanel = new StackPanel();
+        var textBlock = new TextBlock();
+        stackPanel.Children.Add(textBlock);
+
+        // Only one StackPanel in tree, but requesting level 2
+        var binding = new Binding("Name")
+        {
+            RelativeSource = new RelativeSource(RelativeSourceMode.FindAncestor)
+            {
+                AncestorType = typeof(StackPanel),
+                AncestorLevel = 2
+            }
+        };
+
+        BindingOperations.SetBinding(textBlock, TextBlock.TextProperty, binding);
+
+        // Ancestor not found — text should stay at default
+        await Assert.That(textBlock.Text).IsEqualTo("");
+    }
+
+    [Test]
+    public async Task FindAncestor_MatchesBaseClass()
+    {
+        // Panel is the base class of StackPanel — should match
+        var stackPanel = new StackPanel { Name = "MyPanel" };
+        var textBlock = new TextBlock();
+        stackPanel.Children.Add(textBlock);
+
+        var binding = new Binding("Name")
+        {
+            RelativeSource = new RelativeSource(RelativeSourceMode.FindAncestor)
+            {
+                AncestorType = typeof(Panel)
+            }
+        };
+
+        BindingOperations.SetBinding(textBlock, TextBlock.TextProperty, binding);
+
+        await Assert.That(textBlock.Text).IsEqualTo("MyPanel");
     }
 
     // ─── Helpers ─────────────────────────────────────────────────

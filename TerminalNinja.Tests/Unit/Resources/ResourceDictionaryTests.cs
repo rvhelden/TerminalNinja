@@ -1,5 +1,3 @@
-using TerminalNinja.Resources;
-
 namespace TerminalNinja.Tests.Unit.Resources;
 
 /// <summary>

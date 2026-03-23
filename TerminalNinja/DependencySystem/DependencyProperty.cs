@@ -1,3 +1,6 @@
+using System.Diagnostics.CodeAnalysis;
+using System.Runtime.CompilerServices;
+
 namespace TerminalNinja.DependencySystem;
 
 /// <summary>
@@ -75,5 +78,87 @@ public sealed class DependencyProperty
         }
 
         return dp;
+    }
+
+    /// <summary>
+    /// Looks up a registered dependency property by owner type and name.
+    /// Walks the type hierarchy (owner → base → base … → object) to find inherited registrations.
+    /// Ensures static constructors are run for each type in the hierarchy, so that
+    /// <see cref="Register"/> calls in static field initializers have executed
+    /// (types with <c>beforefieldinit</c> semantics may defer their <c>.cctor</c>
+    /// until a static field is actually accessed).
+    /// Returns <c>null</c> if no matching property is found.
+    /// </summary>
+    /// <param name="ownerType">The type that owns (or inherits) the property.</param>
+    /// <param name="name">The property name.</param>
+    /// <returns>The registered <see cref="DependencyProperty"/>, or <c>null</c>.</returns>
+    public static DependencyProperty? Find(Type ownerType, string name)
+    {
+        ArgumentNullException.ThrowIfNull(ownerType);
+        ArgumentException.ThrowIfNullOrEmpty(name);
+
+        // First pass: ensure all static constructors in the hierarchy have run.
+        // This is necessary because DependencyProperty.Register is typically called
+        // from static field initializers, which are only executed when the runtime
+        // triggers the type's .cctor. Types marked with beforefieldinit (i.e., types
+        // without an explicit static constructor) can defer .cctor execution until a
+        // static field is actually accessed — creating an instance alone is NOT enough.
+        EnsureStaticConstructors(ownerType);
+
+        lock (_registryLock)
+        {
+            var type = ownerType;
+            while (type != null)
+            {
+                if (_registry.TryGetValue((type, name), out var dp))
+                {
+                    return dp;
+                }
+
+                type = type.BaseType;
+            }
+        }
+
+        return null;
+    }
+
+    /// <summary>
+    /// Tracks types whose static constructors have already been triggered,
+    /// avoiding redundant <see cref="RuntimeHelpers.RunClassConstructor"/> calls.
+    /// </summary>
+    private static readonly HashSet<Type> _initializedTypes = new();
+
+    /// <summary>
+    /// Ensures the static constructor (.cctor) has been run for every type in the hierarchy
+    /// from <paramref name="type"/> up to (but not including) <c>object</c>.
+    /// Uses <see cref="RuntimeHelpers.RunClassConstructor"/> which is a no-op if the .cctor
+    /// has already executed.
+    /// </summary>
+    [UnconditionalSuppressMessage("AOT", "IL2059",
+        Justification = "Types passed here are concrete control types from the TerminalNinja hierarchy. " +
+                         "Their static constructors register DependencyProperties and are always preserved.")]
+    private static void EnsureStaticConstructors(Type type)
+    {
+        var current = type;
+        while (current != null && current != typeof(object))
+        {
+            // Fast path: already known to be initialized
+            bool alreadyInitialized;
+            lock (_registryLock)
+            {
+                alreadyInitialized = _initializedTypes.Contains(current);
+            }
+
+            if (!alreadyInitialized)
+            {
+                RuntimeHelpers.RunClassConstructor(current.TypeHandle);
+                lock (_registryLock)
+                {
+                    _initializedTypes.Add(current);
+                }
+            }
+
+            current = current.BaseType;
+        }
     }
 }

@@ -71,22 +71,51 @@ internal sealed class XamlLoader
     /// <summary>
     /// Loads and instantiates a control tree from a XAML string.
     /// </summary>
-    public T Load<T>(string xaml, object? dataContext, BindingManager? bindingManager) where T : FrameworkElement
+    public T Load<T>(string xaml, object? dataContext) where T : FrameworkElement
     {
         var doc = XDocument.Parse(xaml);
-        return LoadFromDocument<T>(doc, dataContext, bindingManager);
+        return LoadFromDocument<T>(doc, dataContext);
     }
 
     /// <summary>
     /// Loads and instantiates a control tree from a stream.
     /// </summary>
-    public T LoadFromStream<T>(Stream stream, object? dataContext, BindingManager? bindingManager) where T : FrameworkElement
+    public T LoadFromStream<T>(Stream stream, object? dataContext) where T : FrameworkElement
     {
         var doc = XDocument.Load(stream);
-        return LoadFromDocument<T>(doc, dataContext, bindingManager);
+        return LoadFromDocument<T>(doc, dataContext);
     }
 
-    private T LoadFromDocument<T>(XDocument doc, object? dataContext, BindingManager? bindingManager) where T : FrameworkElement
+    /// <summary>
+    /// Loads XAML from a stream onto an existing root object instance.
+    /// Used by <c>x:Class</c> code-behind: instead of creating a new root element,
+    /// properties and children from the XAML are loaded directly onto the instance.
+    /// </summary>
+    public void LoadFromStreamOntoInstance<T>(Stream stream, T rootObjectInstance) where T : FrameworkElement
+    {
+        var doc = XDocument.Load(stream);
+        var root = doc.Root ?? throw new InvalidOperationException("XAML document has no root element");
+
+        CollectNamespaces(root);
+
+        // Instead of creating a new element for the root, apply attributes and children
+        // onto the existing instance. This is the key fix for the FindAncestor bug:
+        // bindings on children resolve against this actual instance, not a transient template root.
+        var type = rootObjectInstance.GetType();
+        ProcessAttributes(root, rootObjectInstance, type, rootObjectInstance);
+        ProcessChildElements(root, rootObjectInstance, type, rootObjectInstance);
+
+        // Resolve {StaticResource} lookups
+        ResolveStaticResources(rootObjectInstance);
+
+        // Activate bindings via the new expression-based system
+        ActivateBindings(rootObjectInstance);
+
+        // Set DataContext if provided
+        // (For x:Class, DataContext is typically set later by the consumer.)
+    }
+
+    private T LoadFromDocument<T>(XDocument doc, object? dataContext) where T : FrameworkElement
     {
         var root = doc.Root ?? throw new InvalidOperationException("XAML document has no root element");
 
@@ -106,68 +135,17 @@ internal sealed class XamlLoader
         // Resolve {StaticResource} lookups now that the full tree is built
         ResolveStaticResources(typed as FrameworkElement);
 
-        // Process bindings
+        // Activate bindings via the new expression-based system.
+        // All bindings are created immediately via BindingOperations.SetBinding,
+        // which attaches a BindingExpression to the target DP.
+        // The expression resolves its source (DataContext, RelativeSource, explicit Source)
+        // on attach and re-evaluates when the environment changes.
+        ActivateBindings(typed as FrameworkElement);
+
+        // Set DataContext (this will trigger Invalidate on DataContext-dependent bindings)
         if (dataContext != null)
         {
-            // DataContext available at load time — activate bindings immediately
-            bindingManager ??= new BindingManager();
-
-            foreach (var pb in _pendingBindings)
-            {
-                if (pb.Target is FrameworkElement control)
-                {
-                    bindingManager.CreateBinding(
-                        control,
-                        pb.TargetPropertyName,
-                        pb.Path,
-                        pb.Mode,
-                        pb.Converter,
-                        pb.ConverterParameter,
-                        pb.RelativeSource);
-                }
-            }
-
-            bindingManager.SetDataContextRecursive(typed, dataContext);
-        }
-        else if (_pendingBindings.Count > 0)
-        {
-            // DataContext is null (e.g., inside UserControl's InitializeComponent).
-            // Store bindings on each target element for deferred activation
-            // when DataContext is eventually set.
-            //
-            // Exception: RelativeSource bindings can be activated immediately
-            // because they don't depend on DataContext — they resolve their
-            // source from the visual tree.
-            BindingManager? lazyManager = null;
-
-            foreach (var pb in _pendingBindings)
-            {
-                if (pb.Target is FrameworkElement control)
-                {
-                    if (pb.RelativeSource != null)
-                    {
-                        // RelativeSource bindings are DataContext-independent — activate now
-                        lazyManager ??= new BindingManager();
-                        lazyManager.CreateBinding(
-                            control,
-                            pb.TargetPropertyName,
-                            pb.Path,
-                            pb.Mode,
-                            pb.Converter,
-                            pb.ConverterParameter,
-                            pb.RelativeSource);
-                    }
-                    else
-                    {
-                        control.AddPendingBinding(new ElementBinding(
-                            pb.TargetPropertyName,
-                            pb.Path,
-                            pb.Mode,
-                            pb.Converter,
-                            pb.ConverterParameter));
-                    }
-                }
-            }
+            typed.DataContext = dataContext;
         }
 
         return typed;
@@ -444,8 +422,11 @@ internal sealed class XamlLoader
                 var ownerTypeName = parts[0];
                 var propertyName = parts[1];
 
-                // Check if this is an attached property element or a regular property element
-                if (ownerTypeName == type.Name)
+                // Check if this is an attached property element or a regular property element.
+                // Match against the instance type AND all its base types, because in x:Class
+                // scenarios the XAML declares the base type name (e.g., <UserControl.Resources>)
+                // but the actual instance type is the derived class (e.g., ActivityLogControl).
+                if (IsPropertyElementOwner(type, ownerTypeName))
                 {
                     // Regular property element: <Window.Resources>, <Rectangle.Child>, etc.
                     ProcessPropertyElement(instance, type, propertyName, child, currentFe);
@@ -475,6 +456,26 @@ internal sealed class XamlLoader
                 AddToContentProperty(instance, type, contentPropertyName, childInstance);
             }
         }
+    }
+
+    /// <summary>
+    /// Checks whether <paramref name="ownerTypeName"/> matches the instance type or any
+    /// of its base types. This is needed for property element syntax: in x:Class scenarios,
+    /// the XAML declares the base type name (e.g., <c>&lt;UserControl.Resources&gt;</c>) but
+    /// the actual instance type is the derived class (e.g., <c>ActivityLogControl</c>).
+    /// </summary>
+    private static bool IsPropertyElementOwner(Type instanceType, string ownerTypeName)
+    {
+        var current = instanceType;
+        while (current != null && current != typeof(object))
+        {
+            if (current.Name == ownerTypeName)
+            {
+                return true;
+            }
+            current = current.BaseType;
+        }
+        return false;
     }
 
     /// <summary>
@@ -1389,6 +1390,61 @@ internal sealed class XamlLoader
     /// Gets the named elements dictionary after loading. Used by FindByName.
     /// </summary>
     internal IReadOnlyDictionary<string, object> NamedElements => _namedElements;
+
+    // ────────────────────────────────────────────────────────────────
+    //  Binding activation
+    // ────────────────────────────────────────────────────────────────
+
+    /// <summary>
+    /// Converts all <see cref="PendingBinding"/> records collected during parsing into
+    /// <see cref="BindingExpression"/>s attached to the target's <see cref="DependencyProperty"/>
+    /// via <see cref="BindingOperations.SetBinding"/>.
+    /// </summary>
+    /// <param name="root">The root element (unused for resolution, but available for diagnostics).</param>
+    private void ActivateBindings(FrameworkElement? root)
+    {
+        foreach (var pb in _pendingBindings)
+        {
+            if (pb.Target is not DependencyObject depObj)
+            {
+                // Non-DependencyObject targets cannot participate in the DP expression system.
+                System.Diagnostics.Debug.WriteLine(
+                    $"Binding skipped: target '{pb.Target.GetType().Name}' is not a DependencyObject " +
+                    $"(property '{pb.TargetPropertyName}').");
+                continue;
+            }
+
+            // Look up the DependencyProperty by name, walking the type hierarchy.
+            var dp = DependencyProperty.Find(depObj.GetType(), pb.TargetPropertyName);
+
+            if (dp == null)
+            {
+                // No DP found — the property might be a plain CLR property.
+                // For now, skip it with a diagnostic. In the future, we could support
+                // CLR-only bindings via a wrapper expression, but WPF itself requires DPs.
+                System.Diagnostics.Debug.WriteLine(
+                    $"Binding skipped: no DependencyProperty '{pb.TargetPropertyName}' found on " +
+                    $"'{depObj.GetType().Name}'. Only DP-backed properties support data binding.");
+                continue;
+            }
+
+            // Build a Binding description from the parsed metadata.
+            // Use fully-qualified name to avoid collision with the Binding namespace.
+            var binding = new System.Windows.Markup.Binding(pb.Path)
+            {
+                Mode = pb.Mode,
+                Converter = pb.Converter,
+                ConverterParameter = pb.ConverterParameter,
+                RelativeSource = pb.RelativeSource
+            };
+
+            // Attach the binding expression to the target DP.
+            // This calls Expression.Attach() → OnAttach() → ResolveAndActivate(),
+            // which resolves the source immediately if available (e.g., RelativeSource),
+            // or defers if the source isn't available yet (e.g., DataContext not yet set).
+            BindingOperations.SetBinding(depObj, dp, binding);
+        }
+    }
 
     // ────────────────────────────────────────────────────────────────
     //  Internal record types

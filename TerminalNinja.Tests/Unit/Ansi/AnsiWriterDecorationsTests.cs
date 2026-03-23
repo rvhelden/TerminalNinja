@@ -1,4 +1,3 @@
-using System.Text;
 using TerminalNinja.Ansi;
 
 namespace TerminalNinja.Tests.Unit.Ansi;

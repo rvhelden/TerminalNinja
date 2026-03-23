@@ -1,7 +1,6 @@
 using TerminalNinja.App;
 using TerminalNinja.Controls;
 using TerminalNinja.Xaml;
-using TerminalNinja.Xaml.Binding;
 
 namespace Sample;
 
@@ -22,8 +21,8 @@ public static class Program
         // Load UI from embedded XAML resource using the generated XamlLayouts manifest.
         // This validates all transitive dependencies (e.g., ActivityLogControl.xaml)
         // and loads the root layout from the embedded resource.
-        var bindingManager = new BindingManager();
-        var window = TerminalXaml.Load<Window>(XamlLayouts.DemoLayout, viewModel, bindingManager);
+        // Bindings are activated automatically via the DP expression system.
+        var window = TerminalXaml.Load<Window>(XamlLayouts.DemoLayout, viewModel);
 
         // Use the WPF-style Window.Show() pattern
         // This sets app.RootControl = window internally
@@ -42,8 +41,5 @@ public static class Program
 
         // Run the application
         app.Run();
-
-        // Cleanup
-        bindingManager.Dispose();
     }
 }

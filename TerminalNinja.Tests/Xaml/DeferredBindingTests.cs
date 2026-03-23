@@ -1,16 +1,16 @@
 using System.Collections.ObjectModel;
+using System.Windows.Markup;
 using TerminalNinja.Aot;
-using TerminalNinja.Controls;
-using TerminalNinja.Xaml;
 using TerminalNinja.Xaml.Binding;
 using TerminalNinja.Xaml.Mvvm;
 
 namespace TerminalNinja.Tests.Xaml;
 
 /// <summary>
-/// Tests for deferred binding activation — bindings declared in XAML
-/// that are loaded without a DataContext and activated later when
-/// DataContext is set.
+/// Tests for deferred binding activation — bindings declared in XAML or
+/// programmatically via <see cref="BindingOperations.SetBinding"/> that
+/// are attached as expressions immediately but remain dormant until
+/// DataContext is available, then activate when DataContext is set.
 /// </summary>
 public class DeferredBindingTests
 {
@@ -36,61 +36,68 @@ public class DeferredBindingTests
         public ObservableCollection<string> Items { get; } = ["A", "B", "C"];
     }
 
-    // ─── Part 1: ElementBinding storage on FrameworkElement ──────
+    // ─── Part 1: Programmatic binding via BindingOperations.SetBinding ──
 
     [Test]
-    public async Task AddPendingBinding_StoresBindingOnElement()
+    public async Task SetBinding_StoresExpressionOnDependencyProperty()
     {
         var textBlock = new TextBlock();
-        var binding = new ElementBinding("Text", "Title", BindingMode.OneWay, null, null);
+        var binding = new Binding("Title") { Mode = BindingMode.OneWay };
 
-        textBlock.AddPendingBinding(binding);
+        BindingOperations.SetBinding(textBlock, TextBlock.TextProperty, binding);
 
-        await Assert.That(textBlock.PendingBindings).IsNotNull();
-        await Assert.That(textBlock.PendingBindings!.Count).IsEqualTo(1);
-        await Assert.That(textBlock.PendingBindings[0].TargetPropertyName).IsEqualTo("Text");
-        await Assert.That(textBlock.PendingBindings[0].Path).IsEqualTo("Title");
+        await Assert.That(BindingOperations.IsDataBound(textBlock, TextBlock.TextProperty)).IsTrue();
+        var expression = BindingOperations.GetBindingExpression(textBlock, TextBlock.TextProperty);
+        await Assert.That(expression).IsNotNull();
     }
 
     [Test]
-    public async Task AddPendingBinding_MultiplePendingBindings_AllStored()
+    public async Task SetBinding_MultipleBindings_AllStored()
     {
         var textBlock = new TextBlock();
-        textBlock.AddPendingBinding(new ElementBinding("Text", "Title", BindingMode.OneWay, null, null));
-        textBlock.AddPendingBinding(new ElementBinding("Foreground", "Color", BindingMode.OneWay, null, null));
+        BindingOperations.SetBinding(textBlock, TextBlock.TextProperty,
+            new Binding("Title") { Mode = BindingMode.OneWay });
+        BindingOperations.SetBinding(textBlock, TextBlock.ForegroundProperty,
+            new Binding("Color") { Mode = BindingMode.OneWay });
 
-        await Assert.That(textBlock.PendingBindings!.Count).IsEqualTo(2);
+        await Assert.That(BindingOperations.IsDataBound(textBlock, TextBlock.TextProperty)).IsTrue();
+        await Assert.That(BindingOperations.IsDataBound(textBlock, TextBlock.ForegroundProperty)).IsTrue();
+
+        // Verify both expressions are present via GetAllExpressions
+        var expressions = textBlock.GetAllExpressions().ToList();
+        await Assert.That(expressions.Count).IsEqualTo(2);
     }
 
     [Test]
-    public async Task PendingBindings_NoneAdded_ReturnsNull()
+    public async Task NoBoundProperty_HasNoExpression()
     {
         var textBlock = new TextBlock();
 
-        await Assert.That(textBlock.PendingBindings).IsNull();
+        await Assert.That(BindingOperations.IsDataBound(textBlock, TextBlock.TextProperty)).IsFalse();
+        await Assert.That(BindingOperations.GetBindingExpression(textBlock, TextBlock.TextProperty)).IsNull();
     }
 
-    // ─── Part 2: XAML loading without DataContext stores pending bindings ──
+    // ─── Part 2: XAML loading with null DataContext attaches dormant expressions ──
 
     [Test]
-    public async Task Load_NullDataContext_StoresPendingBindingsOnElement()
+    public async Task Load_NullDataContext_AttachesDormantExpression()
     {
         var xaml = """
             <TextBlock xmlns="http://schemas.terminalninja.dev/xaml"
                    Text="{Binding Title}" />
             """;
 
-        // Load with null DataContext — bindings should be stored, not activated
-        var textBlock = TerminalXaml.Load<TextBlock>(xaml, dataContext: null, bindingManager: null);
+        // Load without DataContext — expression attached but dormant
+        var textBlock = TerminalXaml.Load<TextBlock>(xaml);
 
-        // Text should NOT be set (no DataContext to bind from)
-        await Assert.That(textBlock.PendingBindings).IsNotNull();
-        await Assert.That(textBlock.PendingBindings!.Count).IsEqualTo(1);
-        await Assert.That(textBlock.PendingBindings[0].Path).IsEqualTo("Title");
+        // Expression IS attached
+        await Assert.That(BindingOperations.IsDataBound(textBlock, TextBlock.TextProperty)).IsTrue();
+        // Text should NOT be set (no DataContext to resolve from) — still default
+        await Assert.That(textBlock.Text).IsEqualTo(string.Empty);
     }
 
     [Test]
-    public async Task Load_NullDataContext_MultipleBindings_AllStored()
+    public async Task Load_NullDataContext_MultipleBindings_AllAttached()
     {
         var xaml = """
             <StackPanel xmlns="http://schemas.terminalninja.dev/xaml">
@@ -99,22 +106,21 @@ public class DeferredBindingTests
             </StackPanel>
             """;
 
-        var panel = TerminalXaml.Load<StackPanel>(xaml, dataContext: null, bindingManager: null);
+        var panel = TerminalXaml.Load<StackPanel>(xaml);
 
         var tb1 = (TextBlock)panel.Children[0];
         var tb2 = (TextBlock)panel.Children[1];
 
-        await Assert.That(tb1.PendingBindings).IsNotNull();
-        await Assert.That(tb1.PendingBindings!.Count).IsEqualTo(1);
-        await Assert.That(tb1.PendingBindings[0].Path).IsEqualTo("Title");
+        await Assert.That(BindingOperations.IsDataBound(tb1, TextBlock.TextProperty)).IsTrue();
+        await Assert.That(BindingOperations.IsDataBound(tb2, TextBlock.TextProperty)).IsTrue();
 
-        await Assert.That(tb2.PendingBindings).IsNotNull();
-        await Assert.That(tb2.PendingBindings!.Count).IsEqualTo(1);
-        await Assert.That(tb2.PendingBindings[0].Path).IsEqualTo("Count");
+        // Values should be defaults (dormant)
+        await Assert.That(tb1.Text).IsEqualTo(string.Empty);
+        await Assert.That(tb2.Text).IsEqualTo(string.Empty);
     }
 
     [Test]
-    public async Task Load_WithDataContext_NoPendingBindingsStored()
+    public async Task Load_WithDataContext_BindingsResolveImmediately()
     {
         var xaml = """
             <TextBlock xmlns="http://schemas.terminalninja.dev/xaml"
@@ -122,101 +128,70 @@ public class DeferredBindingTests
             """;
 
         var vm = new DeferredViewModel();
-        var bm = new BindingManager();
-        var textBlock = TerminalXaml.Load<TextBlock>(xaml, vm, bm);
+        var textBlock = TerminalXaml.Load<TextBlock>(xaml, vm);
 
-        // When loaded with DataContext, bindings are activated immediately — no pending
-        await Assert.That(textBlock.PendingBindings).IsNull();
+        // Expression is attached and resolved immediately
+        await Assert.That(BindingOperations.IsDataBound(textBlock, TextBlock.TextProperty)).IsTrue();
         await Assert.That(textBlock.Text).IsEqualTo("Hello");
-
-        bm.Dispose();
     }
 
-    // ─── Part 3: ActivatePendingBindings ────────────────────────
+    // ─── Part 3: Setting DataContext after load activates bindings ──
 
     [Test]
-    public async Task ActivatePendingBindings_SetsPropertyValue()
+    public async Task SetDataContext_AfterLoad_ActivatesBinding()
     {
-        var textBlock = new TextBlock();
-        textBlock.AddPendingBinding(new ElementBinding("Text", "Title", BindingMode.OneWay, null, null));
+        var xaml = """
+            <TextBlock xmlns="http://schemas.terminalninja.dev/xaml"
+                   Text="{Binding Title}" />
+            """;
+
+        var textBlock = TerminalXaml.Load<TextBlock>(xaml);
+        await Assert.That(textBlock.Text).IsEqualTo(string.Empty);
 
         var vm = new DeferredViewModel { Title = "Activated!" };
-        var bm = new BindingManager();
-        textBlock.ActivatePendingBindings(bm, vm);
+        textBlock.DataContext = vm;
 
         await Assert.That(textBlock.Text).IsEqualTo("Activated!");
-        bm.Dispose();
     }
 
     [Test]
-    public async Task ActivatePendingBindings_ClearsPendingList()
+    public async Task SetDataContext_AfterProgrammaticBinding_ActivatesBinding()
     {
         var textBlock = new TextBlock();
-        textBlock.AddPendingBinding(new ElementBinding("Text", "Title", BindingMode.OneWay, null, null));
+        BindingOperations.SetBinding(textBlock, TextBlock.TextProperty,
+            new Binding("Title") { Mode = BindingMode.OneWay });
 
-        var vm = new DeferredViewModel();
-        var bm = new BindingManager();
-        textBlock.ActivatePendingBindings(bm, vm);
+        // Dormant — no DC yet
+        await Assert.That(textBlock.Text).IsEqualTo(string.Empty);
 
-        // Pending bindings should be cleared after activation
-        await Assert.That(textBlock.PendingBindings).IsNull();
-        bm.Dispose();
+        // Set DataContext — should activate
+        var vm = new DeferredViewModel { Title = "Activated!" };
+        textBlock.DataContext = vm;
+
+        await Assert.That(textBlock.Text).IsEqualTo("Activated!");
     }
 
-    [Test]
-    public async Task ActivatePendingBindings_OneWay_ReactsToSourceChanges()
-    {
-        var textBlock = new TextBlock();
-        textBlock.AddPendingBinding(new ElementBinding("Text", "Title", BindingMode.OneWay, null, null));
-
-        var vm = new DeferredViewModel { Title = "Before" };
-        var bm = new BindingManager();
-        textBlock.ActivatePendingBindings(bm, vm);
-
-        await Assert.That(textBlock.Text).IsEqualTo("Before");
-
-        // Change source — target should update
-        vm.Title = "After";
-        await Assert.That(textBlock.Text).IsEqualTo("After");
-
-        bm.Dispose();
-    }
+    // ─── Part 4: DataContext callback triggers activation ──────
 
     [Test]
-    public async Task ActivatePendingBindings_NoPendingBindings_NoOp()
-    {
-        var textBlock = new TextBlock { Text = "Original" };
-        var vm = new DeferredViewModel();
-        var bm = new BindingManager();
-
-        // Should not throw or change anything
-        textBlock.ActivatePendingBindings(bm, vm);
-
-        await Assert.That(textBlock.Text).IsEqualTo("Original");
-        bm.Dispose();
-    }
-
-    // ─── Part 4: DataContext callback triggers activation ───────
-
-    [Test]
-    public async Task DataContextChanged_NullToNonNull_ActivatesPendingBindings()
+    public async Task DataContextChanged_NullToNonNull_ActivatesDormantBindings()
     {
         var xaml = """
             <TextBlock xmlns="http://schemas.terminalninja.dev/xaml"
                    Text="{Binding Title}" />
             """;
 
-        // Load without DataContext — bindings stored as pending
-        var textBlock = TerminalXaml.Load<TextBlock>(xaml, dataContext: null, bindingManager: null);
-        await Assert.That(textBlock.PendingBindings).IsNotNull();
+        var textBlock = TerminalXaml.Load<TextBlock>(xaml);
 
-        // Set DataContext — should trigger deferred binding activation
+        // Expression is attached but dormant
+        await Assert.That(BindingOperations.IsDataBound(textBlock, TextBlock.TextProperty)).IsTrue();
+        await Assert.That(textBlock.Text).IsEqualTo(string.Empty);
+
+        // Set DataContext — triggers OnDataContextChanged → InvalidateDataContextBindings
         var vm = new DeferredViewModel { Title = "Deferred!" };
         textBlock.DataContext = vm;
 
         await Assert.That(textBlock.Text).IsEqualTo("Deferred!");
-        // Pending bindings should be cleared
-        await Assert.That(textBlock.PendingBindings).IsNull();
     }
 
     [Test]
@@ -227,47 +202,49 @@ public class DeferredBindingTests
                    Text="{Binding Title}" />
             """;
 
-        var textBlock = TerminalXaml.Load<TextBlock>(xaml, dataContext: null, bindingManager: null);
+        var textBlock = TerminalXaml.Load<TextBlock>(xaml);
 
         var vm = new DeferredViewModel { Title = "Initial" };
         textBlock.DataContext = vm;
 
         await Assert.That(textBlock.Text).IsEqualTo("Initial");
 
-        // Change the ViewModel property — deferred binding should still react
+        // Change the ViewModel property — binding should react
         vm.Title = "Changed";
         await Assert.That(textBlock.Text).IsEqualTo("Changed");
     }
 
     [Test]
-    public async Task DataContextChanged_NullToNull_DoesNothing()
+    public async Task DataContextChanged_NullToNull_BindingStaysDormant()
     {
-        var textBlock = new TextBlock { Text = "Original" };
-        textBlock.AddPendingBinding(new ElementBinding("Text", "Title", BindingMode.OneWay, null, null));
+        var textBlock = new TextBlock();
+        BindingOperations.SetBinding(textBlock, TextBlock.TextProperty,
+            new Binding("Title") { Mode = BindingMode.OneWay });
 
-        // Setting DataContext to null should NOT activate pending bindings
+        // Setting DataContext to null should NOT activate the binding
         textBlock.DataContext = null;
 
-        await Assert.That(textBlock.Text).IsEqualTo("Original");
-        await Assert.That(textBlock.PendingBindings).IsNotNull();
+        await Assert.That(textBlock.Text).IsEqualTo(string.Empty);
+        // Expression should still be attached (dormant)
+        await Assert.That(BindingOperations.IsDataBound(textBlock, TextBlock.TextProperty)).IsTrue();
     }
 
     [Test]
-    public async Task DataContextChanged_NoPendingBindings_DoesNotThrow()
+    public async Task DataContextChanged_NoBoundProperties_DoesNotThrow()
     {
         var textBlock = new TextBlock { Text = "Original" };
 
-        // No pending bindings — setting DataContext should be a no-op
+        // No bindings — setting DataContext should be a no-op
         var vm = new DeferredViewModel();
         textBlock.DataContext = vm;
 
         await Assert.That(textBlock.Text).IsEqualTo("Original");
     }
 
-    // ─── Part 5: SetDataContextRecursive triggers deferred bindings ──
+    // ─── Part 5: Recursive DataContext propagation ──────────────
 
     [Test]
-    public async Task SetDataContextRecursive_ActivatesDeferredBindingsOnChildren()
+    public async Task SetDataContext_OnParent_PropagatesAndActivatesChildBindings()
     {
         var xaml = """
             <StackPanel xmlns="http://schemas.terminalninja.dev/xaml">
@@ -277,34 +254,28 @@ public class DeferredBindingTests
             """;
 
         // Load without DataContext
-        var panel = TerminalXaml.Load<StackPanel>(xaml, dataContext: null, bindingManager: null);
+        var panel = TerminalXaml.Load<StackPanel>(xaml);
 
         var tb1 = (TextBlock)panel.Children[0];
         var tb2 = (TextBlock)panel.Children[1];
 
-        await Assert.That(tb1.PendingBindings).IsNotNull();
-        await Assert.That(tb2.PendingBindings).IsNotNull();
+        await Assert.That(BindingOperations.IsDataBound(tb1, TextBlock.TextProperty)).IsTrue();
+        await Assert.That(BindingOperations.IsDataBound(tb2, TextBlock.TextProperty)).IsTrue();
+        await Assert.That(tb1.Text).IsEqualTo(string.Empty);
+        await Assert.That(tb2.Text).IsEqualTo(string.Empty);
 
-        // Now propagate DataContext recursively
+        // Set DataContext on parent — should propagate to children via OnDataContextChanged
         var vm = new DeferredViewModel { Title = "Hello", Count = 99 };
-        var bm = new BindingManager();
-        bm.SetDataContextRecursive(panel, vm);
+        panel.DataContext = vm;
 
-        // Both children should have their bindings activated
         await Assert.That(tb1.Text).IsEqualTo("Hello");
         await Assert.That(tb2.Text).IsEqualTo("99");
-
-        // Pending bindings should be cleared
-        await Assert.That(tb1.PendingBindings).IsNull();
-        await Assert.That(tb2.PendingBindings).IsNull();
-
-        bm.Dispose();
     }
 
-    // ─── Part 6: BindingExpression.Activate() observer leak fix ──
+    // ─── Part 6: DataContext switch cleanly reactivates ─────────
 
     [Test]
-    public async Task BindingManager_SetDataContext_ReactivatesCleanly()
+    public async Task DataContext_Switch_ReactivatesCleanly()
     {
         var xaml = """
             <TextBlock xmlns="http://schemas.terminalninja.dev/xaml"
@@ -313,13 +284,12 @@ public class DeferredBindingTests
 
         var vm1 = new DeferredViewModel { Title = "VM1" };
         var vm2 = new DeferredViewModel { Title = "VM2" };
-        var bm = new BindingManager();
 
-        var textBlock = TerminalXaml.Load<TextBlock>(xaml, vm1, bm);
+        var textBlock = TerminalXaml.Load<TextBlock>(xaml, vm1);
         await Assert.That(textBlock.Text).IsEqualTo("VM1");
 
-        // Switch DataContext — should cleanly reactivate (no observer leak)
-        bm.SetDataContext(textBlock, vm2);
+        // Switch DataContext — should cleanly reactivate
+        textBlock.DataContext = vm2;
         await Assert.That(textBlock.Text).IsEqualTo("VM2");
 
         // Old VM should no longer affect the target
@@ -329,11 +299,9 @@ public class DeferredBindingTests
         // New VM should affect the target
         vm2.Title = "Updated VM2";
         await Assert.That(textBlock.Text).IsEqualTo("Updated VM2");
-
-        bm.Dispose();
     }
 
-    // ─── Part 7: End-to-end deferred binding with ItemsSource ───
+    // ─── Part 7: ItemsSource deferred binding ───────────────────
 
     [Test]
     public async Task DeferredBinding_ItemsSource_BindsCollectionWhenDataContextSet()
@@ -344,9 +312,9 @@ public class DeferredBindingTests
             """;
 
         // Load without DataContext
-        var itemsControl = TerminalXaml.Load<ItemsControl>(xaml, dataContext: null, bindingManager: null);
+        var itemsControl = TerminalXaml.Load<ItemsControl>(xaml);
 
-        await Assert.That(itemsControl.PendingBindings).IsNotNull();
+        await Assert.That(BindingOperations.IsDataBound(itemsControl, ItemsControl.ItemsSourceProperty)).IsTrue();
         await Assert.That((object?)itemsControl.ItemsSource).IsNull();
 
         // Set DataContext — should activate the ItemsSource binding
@@ -354,10 +322,9 @@ public class DeferredBindingTests
         itemsControl.DataContext = vm;
 
         await Assert.That((object?)itemsControl.ItemsSource).IsNotNull();
-        await Assert.That(itemsControl.PendingBindings).IsNull();
     }
 
-    // ─── Part 8: Nested structure (Border > StackPanel > TextBlock) ──
+    // ─── Part 8: Nested elements ────────────────────────────────
 
     [Test]
     public async Task DeferredBinding_NestedElements_AllActivateOnDataContext()
@@ -370,72 +337,79 @@ public class DeferredBindingTests
             </Border>
             """;
 
-        var border = TerminalXaml.Load<Border>(xaml, dataContext: null, bindingManager: null);
+        var border = TerminalXaml.Load<Border>(xaml);
 
         // The TextBlock is deeply nested
         var stackPanel = (StackPanel)border.Child!;
         var textBlock = (TextBlock)stackPanel.Children[0];
 
-        await Assert.That(textBlock.PendingBindings).IsNotNull();
+        await Assert.That(BindingOperations.IsDataBound(textBlock, TextBlock.TextProperty)).IsTrue();
+        await Assert.That(textBlock.Text).IsEqualTo(string.Empty);
 
-        // SetDataContextRecursive propagates through the tree
+        // Set DataContext on root — should propagate through the tree
         var vm = new DeferredViewModel { Title = "Nested!" };
-        var bm = new BindingManager();
-        bm.SetDataContextRecursive(border, vm);
+        border.DataContext = vm;
 
         await Assert.That(textBlock.Text).IsEqualTo("Nested!");
-        await Assert.That(textBlock.PendingBindings).IsNull();
-
-        bm.Dispose();
     }
 
-    // ─── Part 9: Binding mode preservation ──────────────────────
+    // ─── Part 9: Binding mode preservation (programmatic) ───────
 
     [Test]
-    public async Task DeferredBinding_PreservesBindingMode()
+    public async Task SetBinding_PreservesBindingMode()
     {
         var textBlock = new TextBlock();
-        textBlock.AddPendingBinding(new ElementBinding("Text", "Title", BindingMode.TwoWay, null, null));
+        var binding = new Binding("Title") { Mode = BindingMode.TwoWay };
 
-        await Assert.That(textBlock.PendingBindings![0].Mode).IsEqualTo(BindingMode.TwoWay);
+        BindingOperations.SetBinding(textBlock, TextBlock.TextProperty, binding);
+
+        var expression = BindingOperations.GetBindingExpression(textBlock, TextBlock.TextProperty)
+            as BindingExpression;
+        await Assert.That(expression).IsNotNull();
+        await Assert.That(expression!.ParentBinding.Mode).IsEqualTo(BindingMode.TwoWay);
     }
 
     [Test]
-    public async Task ElementBinding_RecordEquality_Works()
+    public async Task SetBinding_PreservesOneWayMode()
     {
-        var a = new ElementBinding("Text", "Title", BindingMode.OneWay, null, null);
-        var b = new ElementBinding("Text", "Title", BindingMode.OneWay, null, null);
-        var c = new ElementBinding("Text", "Count", BindingMode.OneWay, null, null);
+        var textBlock = new TextBlock();
+        var binding = new Binding("Title") { Mode = BindingMode.OneWay };
 
-        await Assert.That(a).IsEqualTo(b);
-        await Assert.That(a).IsNotEqualTo(c);
+        BindingOperations.SetBinding(textBlock, TextBlock.TextProperty, binding);
+
+        var expression = BindingOperations.GetBindingExpression(textBlock, TextBlock.TextProperty)
+            as BindingExpression;
+        await Assert.That(expression).IsNotNull();
+        await Assert.That(expression!.ParentBinding.Mode).IsEqualTo(BindingMode.OneWay);
     }
 
-    // ─── Part 10: DataTemplate cloning of pending bindings ──────
+    // ─── Part 10: DataTemplate cloning preserves bindings ───────
 
     [Test]
-    public async Task DataTemplate_CloneControl_ClonesAllPendingBindings()
+    public async Task DataTemplate_CloneControl_ClonesAllBindingExpressions()
     {
-        // Arrange — prototype TextBlock with two pending bindings
+        // Arrange — prototype TextBlock with two bindings
         var prototype = new TextBlock();
-        prototype.AddPendingBinding(new ElementBinding("Text", "Title", BindingMode.OneWay, null, null));
-        prototype.AddPendingBinding(new ElementBinding("Foreground", "Color", BindingMode.OneWay, null, null));
+        BindingOperations.SetBinding(prototype, TextBlock.TextProperty,
+            new Binding("Title") { Mode = BindingMode.OneWay });
+        BindingOperations.SetBinding(prototype, TextBlock.ForegroundProperty,
+            new Binding("Color") { Mode = BindingMode.OneWay });
 
         var template = new DataTemplate { TemplateContent = prototype };
 
         // Act — create a clone
         var clone = template.CreateContent();
 
-        // Assert
+        // Assert — clone should have binding expressions
         await Assert.That(clone).IsNotNull();
         var cloneFe = clone as FrameworkElement;
         await Assert.That(cloneFe).IsNotNull();
-        await Assert.That(cloneFe!.PendingBindings).IsNotNull();
-        await Assert.That(cloneFe.PendingBindings!.Count).IsEqualTo(2);
-        await Assert.That(cloneFe.PendingBindings[0].TargetPropertyName).IsEqualTo("Text");
-        await Assert.That(cloneFe.PendingBindings[0].Path).IsEqualTo("Title");
-        await Assert.That(cloneFe.PendingBindings[1].TargetPropertyName).IsEqualTo("Foreground");
-        await Assert.That(cloneFe.PendingBindings[1].Path).IsEqualTo("Color");
+
+        var expressions = cloneFe!.GetAllExpressions().ToList();
+        await Assert.That(expressions.Count).IsEqualTo(2);
+
+        await Assert.That(BindingOperations.IsDataBound(cloneFe, TextBlock.TextProperty)).IsTrue();
+        await Assert.That(BindingOperations.IsDataBound(cloneFe, TextBlock.ForegroundProperty)).IsTrue();
     }
 
     [Test]
@@ -443,7 +417,8 @@ public class DeferredBindingTests
     {
         // Arrange
         var prototype = new TextBlock { Text = "Proto" };
-        prototype.AddPendingBinding(new ElementBinding("Text", "Title", BindingMode.OneWay, null, null));
+        BindingOperations.SetBinding(prototype, TextBlock.TextProperty,
+            new Binding("Title") { Mode = BindingMode.OneWay });
 
         var template = new DataTemplate { TemplateContent = prototype };
 
@@ -453,17 +428,17 @@ public class DeferredBindingTests
         // Assert — clone is a different instance
         await Assert.That(clone).IsNotEqualTo(prototype);
 
-        // Prototype's pending bindings are preserved (not consumed)
-        await Assert.That(prototype.PendingBindings).IsNotNull();
-        await Assert.That(prototype.PendingBindings!.Count).IsEqualTo(1);
+        // Prototype's expressions are preserved
+        await Assert.That(BindingOperations.IsDataBound(prototype, TextBlock.TextProperty)).IsTrue();
     }
 
     [Test]
-    public async Task DataTemplate_CloneControl_MultipleClonesEachGetOwnBindings()
+    public async Task DataTemplate_CloneControl_MultipleClonesEachGetOwnExpressions()
     {
         // Arrange
         var prototype = new TextBlock();
-        prototype.AddPendingBinding(new ElementBinding("Text", "Title", BindingMode.OneWay, null, null));
+        BindingOperations.SetBinding(prototype, TextBlock.TextProperty,
+            new Binding("Title") { Mode = BindingMode.OneWay });
 
         var template = new DataTemplate { TemplateContent = prototype };
 
@@ -471,11 +446,14 @@ public class DeferredBindingTests
         var clone1 = template.CreateContent() as FrameworkElement;
         var clone2 = template.CreateContent() as FrameworkElement;
 
-        // Assert — each clone has its own pending bindings
-        await Assert.That(clone1!.PendingBindings).IsNotNull();
-        await Assert.That(clone2!.PendingBindings).IsNotNull();
-        await Assert.That(clone1.PendingBindings!.Count).IsEqualTo(1);
-        await Assert.That(clone2.PendingBindings!.Count).IsEqualTo(1);
+        // Assert — each clone has its own expressions
+        await Assert.That(BindingOperations.IsDataBound(clone1!, TextBlock.TextProperty)).IsTrue();
+        await Assert.That(BindingOperations.IsDataBound(clone2!, TextBlock.TextProperty)).IsTrue();
+
+        var exprs1 = clone1!.GetAllExpressions().ToList();
+        var exprs2 = clone2!.GetAllExpressions().ToList();
+        await Assert.That(exprs1.Count).IsEqualTo(1);
+        await Assert.That(exprs2.Count).IsEqualTo(1);
 
         // They should be independent instances
         await Assert.That(clone1).IsNotEqualTo(clone2);
@@ -484,14 +462,15 @@ public class DeferredBindingTests
     [Test]
     public async Task DataTemplate_ClonedBindings_ActivateWhenDataContextSet()
     {
-        // Arrange — prototype with a deferred binding
+        // Arrange — prototype with a binding
         var prototype = new TextBlock();
-        prototype.AddPendingBinding(new ElementBinding("Text", "Title", BindingMode.OneWay, null, null));
+        BindingOperations.SetBinding(prototype, TextBlock.TextProperty,
+            new Binding("Title") { Mode = BindingMode.OneWay });
 
         var template = new DataTemplate { TemplateContent = prototype };
         var clone = template.CreateContent() as TextBlock;
 
-        // Act — set DataContext (triggers OnDataContextChanged → activates pending bindings)
+        // Act — set DataContext (triggers OnDataContextChanged → activates binding)
         var vm = new DeferredViewModel { Title = "Cloned!" };
         clone!.DataContext = vm;
 
@@ -502,9 +481,10 @@ public class DeferredBindingTests
     [Test]
     public async Task DataTemplate_ClonedBindings_ItemsControlIntegration()
     {
-        // Arrange — DataTemplate with pending binding
+        // Arrange — DataTemplate with binding
         var prototype = new TextBlock();
-        prototype.AddPendingBinding(new ElementBinding("Text", "Title", BindingMode.OneWay, null, null));
+        BindingOperations.SetBinding(prototype, TextBlock.TextProperty,
+            new Binding("Title") { Mode = BindingMode.OneWay });
 
         var template = new DataTemplate { TemplateContent = prototype };
 
@@ -538,9 +518,9 @@ public class DeferredBindingTests
     }
 
     [Test]
-    public async Task DataTemplate_NoPendingBindings_CloneStillWorks()
+    public async Task DataTemplate_NoBindings_CloneStillWorks()
     {
-        // Arrange — prototype with no pending bindings
+        // Arrange — prototype with no bindings
         var prototype = new TextBlock { Text = "Static" };
         var template = new DataTemplate { TemplateContent = prototype };
 
@@ -550,10 +530,10 @@ public class DeferredBindingTests
         // Assert
         await Assert.That(clone).IsNotNull();
         await Assert.That(clone!.Text).IsEqualTo("Static");
-        await Assert.That(clone.PendingBindings).IsNull();
+        await Assert.That(BindingOperations.IsDataBound(clone, TextBlock.TextProperty)).IsFalse();
     }
 
-    // ─── Part 7: Plain POCO binding via reflection fallback ─────
+    // ─── Part 11: Plain POCO binding via reflection fallback ────
 
     /// <summary>
     /// A plain data class with no base class, no INotifyPropertyChanged.
@@ -570,9 +550,10 @@ public class DeferredBindingTests
     [Test]
     public async Task PlainPoco_BindingActivates_WhenDataContextSet()
     {
-        // Arrange — TextBlock with pending binding targeting a POCO property
+        // Arrange — TextBlock with binding targeting a POCO property
         var textBlock = new TextBlock();
-        textBlock.AddPendingBinding(new ElementBinding("Text", "Message", BindingMode.OneWay, null, null));
+        BindingOperations.SetBinding(textBlock, TextBlock.TextProperty,
+            new Binding("Message") { Mode = BindingMode.OneWay });
 
         // Act — set DataContext to a plain POCO (no INPC, no ViewModelBase)
         var item = new PlainPocoItem { Message = "Hello from POCO" };
@@ -585,9 +566,10 @@ public class DeferredBindingTests
     [Test]
     public async Task PlainPoco_ItemsControl_RendersAllItems()
     {
-        // Arrange — DataTemplate with pending binding for POCO
+        // Arrange — DataTemplate with binding for POCO
         var prototype = new TextBlock();
-        prototype.AddPendingBinding(new ElementBinding("Text", "Message", BindingMode.OneWay, null, null));
+        BindingOperations.SetBinding(prototype, TextBlock.TextProperty,
+            new Binding("Message") { Mode = BindingMode.OneWay });
         var template = new DataTemplate { TemplateContent = prototype };
 
         var itemsControl = new ItemsControl { ItemTemplate = template };
@@ -621,9 +603,10 @@ public class DeferredBindingTests
     [Test]
     public async Task PlainPoco_ItemsControl_RendersBackground()
     {
-        // Arrange — DataTemplate with background color and pending binding
+        // Arrange — DataTemplate with background color and binding
         var prototype = new TextBlock { Background = Color.FromHex("#141428") };
-        prototype.AddPendingBinding(new ElementBinding("Text", "Message", BindingMode.OneWay, null, null));
+        BindingOperations.SetBinding(prototype, TextBlock.TextProperty,
+            new Binding("Message") { Mode = BindingMode.OneWay });
         var template = new DataTemplate { TemplateContent = prototype };
 
         var itemsControl = new ItemsControl { ItemTemplate = template };
@@ -644,7 +627,8 @@ public class DeferredBindingTests
     {
         // Arrange — DataTemplate with POCO binding
         var prototype = new TextBlock { Foreground = Color.White, Background = Color.Black };
-        prototype.AddPendingBinding(new ElementBinding("Text", "Message", BindingMode.OneWay, null, null));
+        BindingOperations.SetBinding(prototype, TextBlock.TextProperty,
+            new Binding("Message") { Mode = BindingMode.OneWay });
         var template = new DataTemplate { TemplateContent = prototype };
 
         // Act — clone, set DataContext, render

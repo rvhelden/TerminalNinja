@@ -1,6 +1,5 @@
 using System.ComponentModel;
 using System.Globalization;
-using System.Reflection;
 using TerminalNinja.Primitives;
 
 namespace TerminalNinja.Xaml.TypeConverters;

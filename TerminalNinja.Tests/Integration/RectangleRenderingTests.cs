@@ -1,6 +1,5 @@
 using System.Text;
 using TerminalNinja.Ansi;
-using TerminalNinja.Styling;
 using ControlBorder = TerminalNinja.Controls.Border;
 
 namespace TerminalNinja.Tests.Integration;

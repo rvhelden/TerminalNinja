@@ -74,93 +74,102 @@ public abstract class FrameworkElement : UIElement
         set => SetValue(DataContextProperty, value);
     }
 
-    // ─── Deferred Binding Support ─────────────────────────────────
+    // ─── Binding Support ──────────────────────────────────────────────
 
     /// <summary>
-    /// Pending bindings stored when XAML is loaded without a DataContext.
-    /// Activated when DataContext is first set to a non-null value.
+    /// Convenience method: attaches a binding to a dependency property on this element.
+    /// Equivalent to <see cref="BindingOperations.SetBinding"/>.
     /// </summary>
-    private List<ElementBinding>? _pendingBindings;
-
-    /// <summary>
-    /// Adds a pending binding to be activated when DataContext becomes available.
-    /// Called by the XAML loader when dataContext is null at load time.
-    /// </summary>
-    internal void AddPendingBinding(ElementBinding binding)
+    /// <param name="dp">The dependency property to bind.</param>
+    /// <param name="binding">The binding description.</param>
+    /// <returns>The created binding expression.</returns>
+    public BindingExpressionBase SetBinding(DependencyProperty dp, BindingBase binding)
     {
-        ArgumentNullException.ThrowIfNull(binding);
-        _pendingBindings ??= [];
-        _pendingBindings.Add(binding);
+        return BindingOperations.SetBinding(this, dp, binding);
     }
 
     /// <summary>
-    /// Returns the pending bindings for this element (for testing/inspection).
-    /// </summary>
-    internal IReadOnlyList<ElementBinding>? PendingBindings => _pendingBindings;
-
-    /// <summary>
-    /// Activates all pending bindings using the specified BindingManager and DataContext.
-    /// One-shot: clears the pending list after activation.
-    /// </summary>
-    internal void ActivatePendingBindings(BindingManager bindingManager, object dataContext)
-    {
-        if (_pendingBindings == null || _pendingBindings.Count == 0)
-        {
-            return;
-        }
-
-        var bindings = _pendingBindings;
-        _pendingBindings = null; // Clear before activating to prevent re-entrancy
-
-        // Ensure the BindingManager knows about this element's DataContext
-        // so that CreateBinding → GetDataContext returns the correct source.
-        bindingManager.SetDataContext(this, dataContext);
-
-        foreach (var pb in bindings)
-        {
-            bindingManager.CreateBinding(
-                this,
-                pb.TargetPropertyName,
-                pb.Path,
-                pb.Mode,
-                pb.Converter,
-                pb.ConverterParameter,
-                pb.RelativeSource);
-        }
-    }
-
-    /// <summary>
-    /// Called when DataContext changes. Activates any pending bindings on this element,
-    /// then recursively propagates to logical children that inherit DataContext
-    /// (i.e., children without their own explicit DataContext).
-    /// This mirrors WPF's DataContext inheritance down the logical tree.
+    /// Called when <see cref="DataContext"/> changes.
+    /// Invalidates all DataContext-dependent binding expressions on this element,
+    /// then recursively propagates to logical children that inherit DataContext.
     /// </summary>
     private void OnDataContextChanged(object? oldValue, object? newValue)
     {
-        if (newValue != null)
+        InvalidateDataContextBindings();
+
+        // Propagate to logical children that don't have their own explicit DataContext
+        foreach (var child in GetLogicalChildren())
         {
-            ActivatePendingBindingsRecursive(newValue);
+            if (child.DataContext == null)
+            {
+                child.OnInheritedDataContextChanged();
+            }
         }
     }
 
     /// <summary>
-    /// Activates pending bindings on this element and recursively on logical children
-    /// that don't have their own explicit DataContext.
+    /// Called when an ancestor's DataContext changes and this element inherits DataContext
+    /// (i.e., this element has no explicit DataContext set).
+    /// Re-evaluates DataContext-dependent bindings and propagates to children.
     /// </summary>
-    private void ActivatePendingBindingsRecursive(object dataContext)
+    private void OnInheritedDataContextChanged()
     {
-        if (_pendingBindings is { Count: > 0 })
-        {
-            var manager = new BindingManager();
-            ActivatePendingBindings(manager, dataContext);
-        }
+        InvalidateDataContextBindings();
 
         foreach (var child in GetLogicalChildren())
         {
-            // Only propagate to children that inherit DataContext (no explicit DC set)
             if (child.DataContext == null)
             {
-                child.ActivatePendingBindingsRecursive(dataContext);
+                child.OnInheritedDataContextChanged();
+            }
+        }
+    }
+
+    /// <summary>
+    /// Invalidates all binding expressions on this element that depend on DataContext
+    /// (i.e., bindings without an explicit Source or RelativeSource).
+    /// </summary>
+    private void InvalidateDataContextBindings()
+    {
+        foreach (var (_, expr) in GetAllExpressions())
+        {
+            if (expr is BindingExpression be && !be.HasRelativeSource && !be.HasExplicitSource)
+            {
+                be.Invalidate();
+            }
+        }
+    }
+
+    /// <summary>
+    /// Called when this element's visual parent changes.
+    /// Re-evaluates RelativeSource bindings and propagates inherited DataContext.
+    /// </summary>
+    protected override void OnVisualParentChanged(Visual? oldParent)
+    {
+        base.OnVisualParentChanged(oldParent);
+
+        // Re-evaluate RelativeSource bindings (FindAncestor depends on parent chain)
+        InvalidateRelativeSourceBindings();
+
+        // If this element inherits DataContext and the new parent has a different
+        // effective DataContext, re-evaluate DataContext-dependent bindings too.
+        if (DataContext == null)
+        {
+            InvalidateDataContextBindings();
+        }
+    }
+
+    /// <summary>
+    /// Invalidates all binding expressions that use <c>RelativeSource</c> for source resolution.
+    /// Called when the parent chain changes.
+    /// </summary>
+    private void InvalidateRelativeSourceBindings()
+    {
+        foreach (var (_, expr) in GetAllExpressions())
+        {
+            if (expr is BindingExpression { HasRelativeSource: true } be)
+            {
+                be.Invalidate();
             }
         }
     }

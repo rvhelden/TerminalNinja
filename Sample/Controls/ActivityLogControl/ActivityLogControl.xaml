@@ -2,13 +2,14 @@
     xmlns="http://schemas.terminalninja.dev/xaml"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:sample="clr-namespace:Sample;assembly=Sample"
+    xmlns:system="clr-namespace:System;assembly=System.Runtime"
     x:Class="Sample.ActivityLogControl">
 
     <UserControl.Resources>
         <DataTemplate x:Key="LogEntryTemplate" DataType="sample:LogEntry">
             <TextBlock Foreground="White" Background="#141428">
                 <Run Text="{Binding Time}" />
-                <![CDATA[:]]> 
+                <![CDATA[: ]]> 
                 <Run Text="{Binding Message}" />
             </TextBlock>
         </DataTemplate>
@@ -24,7 +25,7 @@
                        StackPanel.FixedSize="1" />
             <ItemsControl x:Name="LogItemsControl"
                           ItemTemplate="{StaticResource LogEntryTemplate}"
-                          ItemsSource="{Binding Path=ItemsSource, RelativeSource={RelativeSource Mode=FindAncestor, AncestorType=UserControl}}"
+                          ItemsSource="{Binding ItemsSource, RelativeSource={RelativeSource Mode=FindAncestor, AncestorType={system:Type sample:ActivityLogControl}}}"
                           StackPanel.SizeMode="Stretch" />
         </StackPanel>
     </Border>
