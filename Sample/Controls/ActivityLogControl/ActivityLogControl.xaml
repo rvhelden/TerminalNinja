@@ -7,7 +7,7 @@
 
     <UserControl.Resources>
         <DataTemplate x:Key="LogEntryTemplate" DataType="sample:LogEntry">
-            <TextBlock Foreground="White" Background="#141428">
+            <TextBlock>
                 <Run Text="{Binding Time}" />
                 <![CDATA[: ]]> 
                 <Run Text="{Binding Message}" />
@@ -15,18 +15,11 @@
         </DataTemplate>
     </UserControl.Resources>
 
-    <Border Background="#141428" Foreground="White" BorderStyle="Rounded">
+    <Border BorderStyle="Rounded">
         <StackPanel Orientation="Vertical">
-            <TextBlock x:Name="TitleText"
-                       Text=" Activity Log"
-                       Foreground="Cyan"
-                       Background="#141428"
-                       StackPanel.SizeMode="Fixed"
-                       StackPanel.FixedSize="1" />
-            <ItemsControl x:Name="LogItemsControl"
-                          ItemTemplate="{StaticResource LogEntryTemplate}"
-                          ItemsSource="{Binding ItemsSource, RelativeSource={RelativeSource Mode=FindAncestor, AncestorType={system:Type sample:ActivityLogControl}}}"
-                          StackPanel.SizeMode="Stretch" />
+            <TextBlock x:Name="TitleText" Text=" Activity Log" StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1" />
+            <ItemsControl x:Name="LogItemsControl" StackPanel.SizeMode="Stretch" ItemTemplate="{StaticResource LogEntryTemplate}"
+                          ItemsSource="{Binding ItemsSource, RelativeSource={RelativeSource Mode=FindAncestor, AncestorType={system:Type sample:ActivityLogControl}}}" />
         </StackPanel>
     </Border>
 </UserControl>
