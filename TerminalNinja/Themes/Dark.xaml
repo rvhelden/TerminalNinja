@@ -34,6 +34,16 @@
     <Color x:Key="ThemeSurfaceColor">#252526</Color>
     <Color x:Key="ThemeMutedForegroundColor">#808080</Color>
 
+    <!-- ProgressBar colors -->
+    <Color x:Key="ThemeProgressForegroundColor">#569cd6</Color>
+    <Color x:Key="ThemeProgressBackgroundColor">Transparent</Color>
+    <Color x:Key="ThemeProgressTrackColor">#3c3c3c</Color>
+
+    <!-- Dialog colors -->
+    <Color x:Key="ThemeDialogBackgroundColor">#252526</Color>
+    <Color x:Key="ThemeDialogForegroundColor">#d4d4d4</Color>
+    <Color x:Key="ThemeDialogBorderColor">#569cd6</Color>
+
     <!-- ═══════════════════════════════════════════════════════════════
          Implicit Styles — applied automatically by control type
          ═══════════════════════════════════════════════════════════════ -->
@@ -65,6 +75,7 @@
         <Setter Property="Foreground" Value="#d4d4d4" />
         <Setter Property="SelectedBackground" Value="#264f78" />
         <Setter Property="SelectedForeground" Value="#ffffff" />
+        <Setter Property="ShowSelectionIndicator" Value="True" />
     </Style>
 
     <Style TargetType="ListBoxItem">
@@ -72,6 +83,13 @@
         <Setter Property="Foreground" Value="#d4d4d4" />
         <Setter Property="SelectedBackground" Value="#264f78" />
         <Setter Property="SelectedForeground" Value="#ffffff" />
+        <Setter Property="ShowSelectionIndicator" Value="True" />
+    </Style>
+
+    <Style TargetType="ProgressBar">
+        <Setter Property="Foreground" Value="#569cd6" />
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="TrackForeground" Value="#3c3c3c" />
     </Style>
 
 </ResourceDictionary>

@@ -163,7 +163,7 @@ public class ProgressBarTests
     }
 
     [Test]
-    public async Task Render_BackgroundColor_AppliedToTrackPortion()
+    public async Task Render_TrackForegroundColor_AppliedToTrackPortion()
     {
         // Arrange
         var pb = new ProgressBar
@@ -173,14 +173,14 @@ public class ProgressBarTests
             Maximum = 100,
             Width = Size.Absolute(10),
             Height = Size.Absolute(1),
-            Background = Color.Red
+            TrackForeground = Color.Red
         };
         var bounds = new Rect(0, 0, BufferWidth, BufferHeight);
 
         // Act
         pb.Render(_buffer, bounds);
 
-        // Assert — track uses Background as its foreground color
+        // Assert — track char uses TrackForeground as its foreground color
         await Assert.That(_buffer.GetCell(0, 0).Foreground).IsEqualTo(Color.Red);
     }
 
@@ -589,6 +589,69 @@ public class ProgressBarTests
     }
 
     [Test]
+    public async Task Render_Indeterminate_ShowsAccentGradient()
+    {
+        // Arrange — 40-wide bar; body = max(1, 40*0.15) = 6, plus 2 accents = 8 total
+        var pb = new ProgressBar
+        {
+            IsIndeterminate = true,
+            Width = Size.Absolute(40),
+            Height = Size.Absolute(1)
+        };
+        var bounds = new Rect(0, 0, BufferWidth, BufferHeight);
+
+        // Act
+        pb.Render(_buffer, bounds);
+
+        // Assert — the rendered row should contain the accent character (▪) as gradient edges
+        var hasAccent = false;
+        for (var x = 0; x < 40; x++)
+        {
+            if (_buffer.GetCell(x, 0).Character == pb.IndeterminateAccentCharacter)
+            {
+                hasAccent = true;
+                break;
+            }
+        }
+        await Assert.That(hasAccent).IsTrue();
+
+        // Cleanup
+        pb.Dispose();
+    }
+
+    [Test]
+    public async Task Render_IndeterminateCustomAccent_UsesCustomChar()
+    {
+        // Arrange
+        var pb = new ProgressBar
+        {
+            IsIndeterminate = true,
+            Width = Size.Absolute(40),
+            Height = Size.Absolute(1),
+            IndeterminateAccentCharacter = '·'
+        };
+        var bounds = new Rect(0, 0, BufferWidth, BufferHeight);
+
+        // Act
+        pb.Render(_buffer, bounds);
+
+        // Assert — should contain the custom accent character
+        var hasAccent = false;
+        for (var x = 0; x < 40; x++)
+        {
+            if (_buffer.GetCell(x, 0).Character == '·')
+            {
+                hasAccent = true;
+                break;
+            }
+        }
+        await Assert.That(hasAccent).IsTrue();
+
+        // Cleanup
+        pb.Dispose();
+    }
+
+    [Test]
     public async Task IsIndeterminate_SetFalse_StopsAnimation()
     {
         // Arrange
@@ -767,6 +830,21 @@ public class ProgressBarTests
     }
 
     [Test]
+    public async Task TrackForeground_Changed_TriggersInvalidation()
+    {
+        // Arrange
+        var pb = new ProgressBar();
+        var invalidationCount = 0;
+        pb.InvalidationCallback = () => invalidationCount++;
+
+        // Act
+        pb.TrackForeground = Color.Blue;
+
+        // Assert
+        await Assert.That(invalidationCount).IsEqualTo(1);
+    }
+
+    [Test]
     public async Task Orientation_Changed_TriggersInvalidation()
     {
         // Arrange
@@ -900,10 +978,12 @@ public class ProgressBarTests
         await Assert.That(pb.Value).IsEqualTo(0.0);
         await Assert.That(pb.IsIndeterminate).IsFalse();
         await Assert.That(pb.Orientation).IsEqualTo(Orientation.Horizontal);
-        await Assert.That(pb.Foreground).IsEqualTo(Color.Green);
-        await Assert.That(pb.Background).IsEqualTo(Color.DarkGray);
-        await Assert.That(pb.BarCharacter).IsEqualTo('\u2588');
-        await Assert.That(pb.TrackCharacter).IsEqualTo('\u2591');
+        await Assert.That(pb.Foreground).IsEqualTo(new Color(86, 156, 214));
+        await Assert.That(pb.Background).IsEqualTo(Color.Transparent);
+        await Assert.That(pb.TrackForeground).IsEqualTo(new Color(60, 60, 60));
+        await Assert.That(pb.BarCharacter).IsEqualTo('\u2501');  // ━
+        await Assert.That(pb.TrackCharacter).IsEqualTo('\u2500'); // ─
+        await Assert.That(pb.IndeterminateAccentCharacter).IsEqualTo('\u2578'); // ╸
         await Assert.That(pb.ShowPercentage).IsFalse();
     }
 

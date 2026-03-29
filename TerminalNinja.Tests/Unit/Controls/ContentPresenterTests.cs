@@ -542,8 +542,14 @@ public class ContentPresenterTests
         using var buffer = new CellBuffer(10, 1);
         lbi.Render(buffer, new Rect(0, 0, 10, 1));
 
-        // The character should be rendered with selected colors
-        var cell = buffer.GetCell(0, 0);
+        // Position 0 has the selection indicator '▌'
+        var indicatorCell = buffer.GetCell(0, 0);
+        await Assert.That(indicatorCell.Character).IsEqualTo('\u258C'); // ▌
+        await Assert.That(indicatorCell.Foreground).IsEqualTo(Color.Green);
+        await Assert.That(indicatorCell.Background).IsEqualTo(Color.Red);
+
+        // The text content starts at position 1 (offset by the indicator)
+        var cell = buffer.GetCell(1, 0);
         await Assert.That(cell.Character).IsEqualTo('X');
         await Assert.That(cell.Foreground).IsEqualTo(Color.Green);
         await Assert.That(cell.Background).IsEqualTo(Color.Red);

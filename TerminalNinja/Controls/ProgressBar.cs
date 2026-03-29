@@ -21,8 +21,8 @@ public sealed class ProgressBar : FrameworkElement, IDisposable
     /// <summary>Animation tick interval for indeterminate mode.</summary>
     private const int AnimationIntervalMs = 100;
 
-    /// <summary>Fraction of the bar width occupied by the indeterminate sliding block.</summary>
-    private const double IndeterminateBlockRatio = 0.2;
+    /// <summary>Fraction of the bar length occupied by the indeterminate sliding block body.</summary>
+    private const double IndeterminateBlockRatio = 0.15;
 
     public ProgressBar()
     {
@@ -57,11 +57,15 @@ public sealed class ProgressBar : FrameworkElement, IDisposable
 
     public static readonly DependencyProperty ForegroundProperty =
         DependencyProperty.Register(nameof(Foreground), typeof(Color), typeof(ProgressBar),
-            new FrameworkPropertyMetadata(Color.Green, affectsRender: true));
+            new FrameworkPropertyMetadata(new Color(86, 156, 214), affectsRender: true));
 
     public static readonly DependencyProperty BackgroundProperty =
         DependencyProperty.Register(nameof(Background), typeof(Color), typeof(ProgressBar),
-            new FrameworkPropertyMetadata(Color.DarkGray, affectsRender: true));
+            new FrameworkPropertyMetadata(Color.Transparent, affectsRender: true));
+
+    public static readonly DependencyProperty TrackForegroundProperty =
+        DependencyProperty.Register(nameof(TrackForeground), typeof(Color), typeof(ProgressBar),
+            new FrameworkPropertyMetadata(new Color(60, 60, 60), affectsRender: true));
 
     public static readonly DependencyProperty WidthProperty =
         DependencyProperty.Register(nameof(Width), typeof(Size), typeof(ProgressBar),
@@ -73,11 +77,15 @@ public sealed class ProgressBar : FrameworkElement, IDisposable
 
     public static readonly DependencyProperty BarCharacterProperty =
         DependencyProperty.Register(nameof(BarCharacter), typeof(char), typeof(ProgressBar),
-            new FrameworkPropertyMetadata('\u2588', affectsRender: true)); // '█'
+            new FrameworkPropertyMetadata('\u2501', affectsRender: true)); // '━' heavy horizontal
 
     public static readonly DependencyProperty TrackCharacterProperty =
         DependencyProperty.Register(nameof(TrackCharacter), typeof(char), typeof(ProgressBar),
-            new FrameworkPropertyMetadata('\u2591', affectsRender: true)); // '░'
+            new FrameworkPropertyMetadata('\u2500', affectsRender: true)); // '─' light horizontal
+
+    public static readonly DependencyProperty IndeterminateAccentCharacterProperty =
+        DependencyProperty.Register(nameof(IndeterminateAccentCharacter), typeof(char), typeof(ProgressBar),
+            new FrameworkPropertyMetadata('\u2578', affectsRender: true)); // '╸' heavy left
 
     public static readonly DependencyProperty ShowPercentageProperty =
         DependencyProperty.Register(nameof(ShowPercentage), typeof(bool), typeof(ProgressBar),
@@ -120,18 +128,25 @@ public sealed class ProgressBar : FrameworkElement, IDisposable
         set => SetValue(OrientationProperty, value);
     }
 
-    /// <summary>Gets or sets the fill (bar) color.</summary>
+    /// <summary>Gets or sets the fill (bar) color. Default is a soft blue (#569CD6).</summary>
     public Color Foreground
     {
         get => (Color)GetValue(ForegroundProperty)!;
         set => SetValue(ForegroundProperty, value);
     }
 
-    /// <summary>Gets or sets the track (unfilled) color.</summary>
+    /// <summary>Gets or sets the panel background behind the entire bar. Default is Transparent.</summary>
     public Color Background
     {
         get => (Color)GetValue(BackgroundProperty)!;
         set => SetValue(BackgroundProperty, value);
+    }
+
+    /// <summary>Gets or sets the color of the track (unfilled) character. Default is Gray.</summary>
+    public Color TrackForeground
+    {
+        get => (Color)GetValue(TrackForegroundProperty)!;
+        set => SetValue(TrackForegroundProperty, value);
     }
 
     /// <summary>Gets or sets the width of the progress bar.</summary>
@@ -148,18 +163,25 @@ public sealed class ProgressBar : FrameworkElement, IDisposable
         set => SetValue(HeightProperty, value);
     }
 
-    /// <summary>Gets or sets the character used for the filled portion. Default is '█'.</summary>
+    /// <summary>Gets or sets the character used for the filled portion. Default is '━' (heavy horizontal).</summary>
     public char BarCharacter
     {
         get => (char)GetValue(BarCharacterProperty)!;
         set => SetValue(BarCharacterProperty, value);
     }
 
-    /// <summary>Gets or sets the character used for the unfilled portion. Default is '░'.</summary>
+    /// <summary>Gets or sets the character used for the unfilled portion. Default is '─'.</summary>
     public char TrackCharacter
     {
         get => (char)GetValue(TrackCharacterProperty)!;
         set => SetValue(TrackCharacterProperty, value);
+    }
+
+    /// <summary>Gets or sets the accent character used for the leading/trailing gradient in indeterminate mode. Default is '╸' (heavy left).</summary>
+    public char IndeterminateAccentCharacter
+    {
+        get => (char)GetValue(IndeterminateAccentCharacterProperty)!;
+        set => SetValue(IndeterminateAccentCharacterProperty, value);
     }
 
     /// <summary>Gets or sets whether to display a percentage text overlay on the bar.</summary>
@@ -354,8 +376,8 @@ public sealed class ProgressBar : FrameworkElement, IDisposable
 
                 var isFilled = x < bounds.X + fillWidth;
                 var barChar = isFilled ? BarCharacter : TrackCharacter;
-                var fg = isFilled ? Foreground : Background;
-                var bg = isFilled ? Background : Foreground;
+                var fg = isFilled ? Foreground : TrackForeground;
+                var bg = isFilled ? Background : Color.Transparent;
 
                 // Overlay percentage text
                 if (percentText != null)
@@ -364,7 +386,7 @@ public sealed class ProgressBar : FrameworkElement, IDisposable
                     if (textIdx >= 0 && textIdx < percentText.Length)
                     {
                         barChar = percentText[textIdx];
-                        // Invert colors for the text so it's visible on both fill and track
+                        // Invert fill/track colors so text is readable on both halves
                         fg = isFilled ? Background : Foreground;
                         bg = isFilled ? Foreground : Background;
                     }
@@ -395,8 +417,8 @@ public sealed class ProgressBar : FrameworkElement, IDisposable
 
                 var isFilled = y >= fillStartY;
                 var barChar = isFilled ? BarCharacter : TrackCharacter;
-                var fg = isFilled ? Foreground : Background;
-                var bg = isFilled ? Background : Foreground;
+                var fg = isFilled ? Foreground : TrackForeground;
+                var bg = isFilled ? Background : Color.Transparent;
 
                 buffer.SetChar(x, y, barChar, fg, bg);
             }
@@ -406,19 +428,20 @@ public sealed class ProgressBar : FrameworkElement, IDisposable
     private void RenderHorizontalIndeterminate(CellBuffer buffer, Rect bounds)
     {
         var trackWidth = bounds.Width;
-        var blockSize = Math.Max(1, (int)(trackWidth * IndeterminateBlockRatio));
-        var maxOffset = Math.Max(0, trackWidth - blockSize);
+        var bodySize = Math.Max(1, (int)(trackWidth * IndeterminateBlockRatio));
+        // Add lead+trail accent chars for a gradient look (▪■■■▪)
+        var hasAccents = bodySize >= 2;
+        var totalBlockSize = hasAccents ? bodySize + 2 : bodySize;
+        var maxOffset = Math.Max(0, trackWidth - totalBlockSize);
 
-        // Clamp animation offset to actual track dimensions
         var offset = Interlocked.CompareExchange(ref _animationOffset, 0, 0);
         offset = Math.Clamp(offset, 0, maxOffset);
 
-        // Correct direction if we've hit the boundary
         if (offset >= maxOffset) _animationForward = false;
         if (offset <= 0) _animationForward = true;
 
         var blockStart = bounds.X + offset;
-        var blockEnd = blockStart + blockSize;
+        var blockEnd = blockStart + totalBlockSize;
 
         for (var y = bounds.Y; y < bounds.Bottom; y++)
         {
@@ -426,10 +449,31 @@ public sealed class ProgressBar : FrameworkElement, IDisposable
             {
                 if (!buffer.IsInBounds(x, y)) continue;
 
-                var isBlock = x >= blockStart && x < blockEnd;
-                var ch = isBlock ? BarCharacter : TrackCharacter;
-                var fg = isBlock ? Foreground : Background;
-                var bg = isBlock ? Background : Foreground;
+                char ch;
+                Color fg, bg;
+
+                if (hasAccents && (x == blockStart || x == blockEnd - 1))
+                {
+                    // Leading/trailing accent — gradient fade
+                    ch = IndeterminateAccentCharacter;
+                    fg = Foreground;
+                    bg = Background;
+                }
+                else if (x > blockStart && x < blockEnd - (hasAccents ? 1 : 0)
+                         || (!hasAccents && x >= blockStart && x < blockEnd))
+                {
+                    // Body
+                    ch = BarCharacter;
+                    fg = Foreground;
+                    bg = Background;
+                }
+                else
+                {
+                    // Track
+                    ch = TrackCharacter;
+                    fg = TrackForeground;
+                    bg = Color.Transparent;
+                }
 
                 buffer.SetChar(x, y, ch, fg, bg);
             }
@@ -439,8 +483,10 @@ public sealed class ProgressBar : FrameworkElement, IDisposable
     private void RenderVerticalIndeterminate(CellBuffer buffer, Rect bounds)
     {
         var trackHeight = bounds.Height;
-        var blockSize = Math.Max(1, (int)(trackHeight * IndeterminateBlockRatio));
-        var maxOffset = Math.Max(0, trackHeight - blockSize);
+        var bodySize = Math.Max(1, (int)(trackHeight * IndeterminateBlockRatio));
+        var hasAccents = bodySize >= 2;
+        var totalBlockSize = hasAccents ? bodySize + 2 : bodySize;
+        var maxOffset = Math.Max(0, trackHeight - totalBlockSize);
 
         var offset = Interlocked.CompareExchange(ref _animationOffset, 0, 0);
         offset = Math.Clamp(offset, 0, maxOffset);
@@ -448,9 +494,8 @@ public sealed class ProgressBar : FrameworkElement, IDisposable
         if (offset >= maxOffset) _animationForward = false;
         if (offset <= 0) _animationForward = true;
 
-        // In vertical mode, animation moves from top to bottom
         var blockStart = bounds.Y + offset;
-        var blockEnd = blockStart + blockSize;
+        var blockEnd = blockStart + totalBlockSize;
 
         for (var y = bounds.Y; y < bounds.Bottom; y++)
         {
@@ -458,10 +503,28 @@ public sealed class ProgressBar : FrameworkElement, IDisposable
             {
                 if (!buffer.IsInBounds(x, y)) continue;
 
-                var isBlock = y >= blockStart && y < blockEnd;
-                var ch = isBlock ? BarCharacter : TrackCharacter;
-                var fg = isBlock ? Foreground : Background;
-                var bg = isBlock ? Background : Foreground;
+                char ch;
+                Color fg, bg;
+
+                if (hasAccents && (y == blockStart || y == blockEnd - 1))
+                {
+                    ch = IndeterminateAccentCharacter;
+                    fg = Foreground;
+                    bg = Background;
+                }
+                else if (y > blockStart && y < blockEnd - (hasAccents ? 1 : 0)
+                         || (!hasAccents && y >= blockStart && y < blockEnd))
+                {
+                    ch = BarCharacter;
+                    fg = Foreground;
+                    bg = Background;
+                }
+                else
+                {
+                    ch = TrackCharacter;
+                    fg = TrackForeground;
+                    bg = Color.Transparent;
+                }
 
                 buffer.SetChar(x, y, ch, fg, bg);
             }

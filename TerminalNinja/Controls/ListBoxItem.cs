@@ -29,6 +29,14 @@ public class ListBoxItem : ContentControl
         DependencyProperty.Register(nameof(SelectedForeground), typeof(Color), typeof(ListBoxItem),
             new FrameworkPropertyMetadata(Color.White, affectsRender: true));
 
+    public static readonly DependencyProperty SelectionIndicatorProperty =
+        DependencyProperty.Register(nameof(SelectionIndicator), typeof(char), typeof(ListBoxItem),
+            new FrameworkPropertyMetadata('\u258C', affectsRender: true)); // '▌' left half block
+
+    public static readonly DependencyProperty ShowSelectionIndicatorProperty =
+        DependencyProperty.Register(nameof(ShowSelectionIndicator), typeof(bool), typeof(ListBoxItem),
+            new FrameworkPropertyMetadata(true, affectsRender: true));
+
     /// <summary>
     /// Initializes a new instance of the <see cref="ListBoxItem"/> class.
     /// ListBoxItems are NOT individually focusable — the parent ListBox handles focus.
@@ -66,6 +74,26 @@ public class ListBoxItem : ContentControl
         set => SetValue(SelectedForegroundProperty, value);
     }
 
+    /// <summary>
+    /// Gets or sets the character used as the selection indicator.
+    /// Default is '▌' (left half block).
+    /// </summary>
+    public char SelectionIndicator
+    {
+        get => (char)GetValue(SelectionIndicatorProperty)!;
+        set => SetValue(SelectionIndicatorProperty, value);
+    }
+
+    /// <summary>
+    /// Gets or sets whether to display a selection indicator character
+    /// at the leading edge of the selected item. Default is true.
+    /// </summary>
+    public bool ShowSelectionIndicator
+    {
+        get => (bool)GetValue(ShowSelectionIndicatorProperty)!;
+        set => SetValue(ShowSelectionIndicatorProperty, value);
+    }
+
     /// <inheritdoc />
     public override Size2D GetPreferredSize(Rect parent)
     {
@@ -97,10 +125,29 @@ public class ListBoxItem : ContentControl
         var bgCell = new Cell(' ', fg, bg);
         buffer.FillRect(clipped, bgCell);
 
+        // Draw the selection indicator at the leading edge when selected
+        var indicatorWidth = 0;
+        if (IsSelected && ShowSelectionIndicator && clipped.Width >= 2)
+        {
+            indicatorWidth = 1;
+            for (var y = clipped.Y; y < clipped.Bottom; y++)
+            {
+                if (buffer.IsInBounds(clipped.X, y))
+                {
+                    buffer.SetChar(clipped.X, y, SelectionIndicator, SelectedForeground, bg);
+                }
+            }
+        }
+
+        // Calculate content bounds — offset by indicator width if present
+        var contentBounds = indicatorWidth > 0
+            ? new Rect(bounds.X + indicatorWidth, bounds.Y, bounds.Width - indicatorWidth, bounds.Height)
+            : bounds;
+
         // Resolve the visual child to render.
         // The ContentPresenter (via base) handles UIElement/string/object content.
         // We need to access the actual visual to override its colors when selected.
-        var visualChild = GetVisualChildForRendering(bounds);
+        var visualChild = GetVisualChildForRendering(contentBounds);
 
         if (visualChild != null)
         {
@@ -111,13 +158,13 @@ public class ListBoxItem : ContentControl
                 var origBg = tb.Background;
                 tb.Foreground = fg;
                 tb.Background = bg;
-                visualChild.Render(buffer, bounds);
+                visualChild.Render(buffer, contentBounds);
                 tb.Foreground = origFg;
                 tb.Background = origBg;
             }
             else
             {
-                visualChild.Render(buffer, bounds);
+                visualChild.Render(buffer, contentBounds);
             }
         }
         else
@@ -125,7 +172,7 @@ public class ListBoxItem : ContentControl
             // Fallback to the default ContentControl rendering path.
             // This guarantees content still renders even when we cannot directly
             // resolve the generated visual child.
-            base.Render(buffer, bounds);
+            base.Render(buffer, contentBounds);
         }
     }
 

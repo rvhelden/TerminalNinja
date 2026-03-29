@@ -293,8 +293,12 @@ public class ListBoxTests
         using var buffer = new CellBuffer(20, 5);
         listBox.Render(buffer, new Rect(0, 0, 20, 5));
 
-        // The first char of "Test" should be 'T'
-        var cell = buffer.GetCell(0, 0);
+        // Position 0 has the selection indicator '▌'
+        var indicator = buffer.GetCell(0, 0);
+        await Assert.That(indicator.Character).IsEqualTo('\u258C');
+
+        // The first char of "Test" should be 'T' at position 1 (offset by indicator)
+        var cell = buffer.GetCell(1, 0);
         await Assert.That(cell.Character).IsEqualTo('T');
     }
 
@@ -599,11 +603,12 @@ public class ListBoxTests
         using var buffer = new CellBuffer(20, 5);
         listBox.Render(buffer, new Rect(0, 0, 20, 5));
 
-        // First item "Hello" should render
-        await Assert.That(buffer.GetCell(0, 0).Character).IsEqualTo('H');
-        await Assert.That(buffer.GetCell(4, 0).Character).IsEqualTo('o');
+        // First item "Hello" — selected, so indicator at 0, text starts at 1
+        await Assert.That(buffer.GetCell(0, 0).Character).IsEqualTo('\u258C'); // ▌ indicator
+        await Assert.That(buffer.GetCell(1, 0).Character).IsEqualTo('H');
+        await Assert.That(buffer.GetCell(5, 0).Character).IsEqualTo('o');
 
-        // Second item "World" should render on the next row
+        // Second item "World" — not selected, no indicator, text at 0
         await Assert.That(buffer.GetCell(0, 1).Character).IsEqualTo('W');
         await Assert.That(buffer.GetCell(4, 1).Character).IsEqualTo('d');
     }

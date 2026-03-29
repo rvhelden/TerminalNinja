@@ -13,7 +13,8 @@
       "Bash(where:*)",
       "Read(//c/Program Files/Microsoft Visual Studio/**)",
       "Read(//c/Program Files \\(x86\\)/Microsoft Visual Studio/**)",
-      "Bash(cmd /c \"call \\\\\"C:\\\\\\\\Program Files\\\\\\\\Microsoft Visual Studio\\\\\\\\18\\\\\\\\Enterprise\\\\\\\\Common7\\\\\\\\Tools\\\\\\\\VsDevCmd.bat\\\\\" -arch=x64 2>&1 && dotnet publish E:\\\\\\\\TerminalNinja\\\\\\\\Sample\\\\\\\\Sample.csproj -c Release 2>&1\")"
+      "Bash(cmd /c \"call \\\\\"C:\\\\\\\\Program Files\\\\\\\\Microsoft Visual Studio\\\\\\\\18\\\\\\\\Enterprise\\\\\\\\Common7\\\\\\\\Tools\\\\\\\\VsDevCmd.bat\\\\\" -arch=x64 2>&1 && dotnet publish E:\\\\\\\\TerminalNinja\\\\\\\\Sample\\\\\\\\Sample.csproj -c Release 2>&1\")",
+      "Bash(dotnet run:*)"
     ]
   }
 }

@@ -115,7 +115,7 @@ public sealed class Application : IDisposable
             if (value != null)
             {
                 _themeDictionary = LoadThemeResourceDictionary(value);
-                // Insert at position 0 so theme resources have lowest priority
+                // Insert at position 0 so theme resources have the lowest priority
                 // (app-level resources and control-level resources override theme)
                 Resources.MergedDictionaries.Insert(0, _themeDictionary);
             }
@@ -134,21 +134,22 @@ public sealed class Application : IDisposable
         var resourceName = $"TerminalNinja.Themes.{themeName}.xaml";
         var assembly = typeof(Application).Assembly;
         using var stream = assembly.GetManifestResourceStream(resourceName);
-        if (stream == null)
+        if (stream != null)
         {
-            var available = assembly.GetManifestResourceNames();
-            throw new InvalidOperationException(
-                $"Theme '{themeName}' not found. Expected embedded resource '{resourceName}'. " +
-                $"Available resources: [{string.Join(", ", available)}]. " +
-                $"Built-in themes: [{string.Join(", ", BuiltInThemes)}]");
+            return TerminalXaml.LoadResourceDictionary(stream);
         }
 
-        return TerminalXaml.LoadResourceDictionary(stream);
+        var available = assembly.GetManifestResourceNames();
+        throw new InvalidOperationException(
+            $"Theme '{themeName}' not found. Expected embedded resource '{resourceName}'. " +
+            $"Available resources: [{string.Join(", ", available)}]. " +
+            $"Built-in themes: [{string.Join(", ", BuiltInThemes)}]");
+
     }
 
     /// <summary>
     /// Invalidates implicit styles on the root control and all its descendants
-    /// so they re-resolve against the new theme dictionary.
+    /// so they re resolve against the new theme dictionary.
     /// </summary>
     private void InvalidateImplicitStyles()
     {
@@ -163,10 +164,7 @@ public sealed class Application : IDisposable
         fe.InvalidateImplicitStyle();
         foreach (var child in fe.GetLogicalChildren())
         {
-            if (child is FrameworkElement childFe)
-            {
-                InvalidateImplicitStylesRecursive(childFe);
-            }
+            InvalidateImplicitStylesRecursive(child);
         }
     }
 
@@ -181,7 +179,7 @@ public sealed class Application : IDisposable
     public int CurrentFps { get; private set; }
 
     /// <summary>
-    /// Gets the time taken to render the first frame, or null if first render hasn't happened yet.
+    /// Gets the time taken to render the first frame, or null if the first render hasn't happened yet.
     /// </summary>
     public TimeSpan? TimeToFirstRender { get; private set; }
 
@@ -365,7 +363,7 @@ public sealed class Application : IDisposable
     
     /// <summary>
     /// Runs the application event loop.
-    /// Blocks until Exit() is called or Escape key is pressed.
+    /// Blocks until Exit() is called or an Escape key is pressed.
     /// </summary>
     public void Run()
     {
@@ -397,10 +395,7 @@ public sealed class Application : IDisposable
                 _invalidated = false;
                 
                 // Capture time to first render
-                if (TimeToFirstRender == null)
-                {
-                    TimeToFirstRender = DateTime.UtcNow - _startTime;
-                }
+                TimeToFirstRender ??= DateTime.UtcNow - _startTime;
                 
                 // Track frame for FPS calculation
                 _frameCount++;
@@ -456,8 +451,8 @@ public sealed class Application : IDisposable
                 HandleMouseEvent(mouseEvent);
                 break;
             
-            case ResizeEvent resizeEvent:
-                HandleResizeEvent(resizeEvent);
+            case ResizeEvent:
+                HandleResizeEvent();
                 break;
         }
     }
@@ -479,7 +474,7 @@ public sealed class Application : IDisposable
         }
         
         // Escape key: close the topmost modal overlay first, then exit the app
-        if (keyEvent.Key == ConsoleKey.Escape && !keyEvent.HasModifiers)
+        if (keyEvent is { Key: ConsoleKey.Escape, HasModifiers: false })
         {
             var modal = ActiveModal;
             if (modal != null)
@@ -511,18 +506,16 @@ public sealed class Application : IDisposable
         // Tab navigation
         if (_options.EnableTabNavigation && inputRoot is not null)
         {
-            if (keyEvent.Key == ConsoleKey.Tab && keyEvent.Shift)
+            switch (keyEvent)
             {
-                FocusManager.FocusPrevious(inputRoot, Renderer.Viewport);
-                Invalidate();
-                return;
-            }
-            
-            if (keyEvent.Key == ConsoleKey.Tab && !keyEvent.HasModifiers)
-            {
-                FocusManager.FocusNext(inputRoot, Renderer.Viewport);
-                Invalidate();
-                return;
+                case { Key: ConsoleKey.Tab, Shift: true }:
+                    FocusManager.FocusPrevious(inputRoot, Renderer.Viewport);
+                    Invalidate();
+                    return;
+                case { Key: ConsoleKey.Tab, HasModifiers: false }:
+                    FocusManager.FocusNext(inputRoot, Renderer.Viewport);
+                    Invalidate();
+                    return;
             }
         }
         
@@ -560,13 +553,13 @@ public sealed class Application : IDisposable
     /// <summary>
     /// Handles terminal resize events.
     /// </summary>
-    private void HandleResizeEvent(ResizeEvent resizeEvent)
+    private void HandleResizeEvent()
     {
         // Use HandleResize() which reads the actual visible window dimensions
         // from System.Console.WindowWidth/WindowHeight via the ITerminal
         // abstraction. The ResizeEvent from WINDOW_BUFFER_SIZE_EVENT reports
         // the screen *buffer* size which can be larger than the visible window
-        // (e.g. with scrollback), causing the renderer to allocate an oversized
+        // (e.g., with scrollback), causing the renderer to allocate an oversized
         // buffer that produces scrollbars and stretches content beyond the
         // visible area.
         Renderer.HandleResize();
@@ -597,7 +590,7 @@ public sealed class Application : IDisposable
             FrameworkElement.ApplicationResourceLookup = null;
         }
         
-        _inputReader?.Dispose();
-        Renderer?.Dispose();
+        _inputReader.Dispose();
+        Renderer.Dispose();
     }
 }

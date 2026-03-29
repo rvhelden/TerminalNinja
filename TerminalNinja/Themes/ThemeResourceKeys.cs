@@ -78,4 +78,30 @@ public static class ThemeResourceKeys
 
     /// <summary>Muted/dimmed text color for secondary information.</summary>
     public const string MutedForegroundColor = "ThemeMutedForegroundColor";
+
+    // ────────────────────────────────────────────────────────────────
+    //  ProgressBar colors
+    // ────────────────────────────────────────────────────────────────
+
+    /// <summary>ProgressBar filled bar foreground color.</summary>
+    public const string ProgressForegroundColor = "ThemeProgressForegroundColor";
+
+    /// <summary>ProgressBar background color (behind the bar).</summary>
+    public const string ProgressBackgroundColor = "ThemeProgressBackgroundColor";
+
+    /// <summary>ProgressBar unfilled track foreground color.</summary>
+    public const string ProgressTrackColor = "ThemeProgressTrackColor";
+
+    // ────────────────────────────────────────────────────────────────
+    //  Dialog colors
+    // ────────────────────────────────────────────────────────────────
+
+    /// <summary>Dialog window background color.</summary>
+    public const string DialogBackgroundColor = "ThemeDialogBackgroundColor";
+
+    /// <summary>Dialog window foreground (text) color.</summary>
+    public const string DialogForegroundColor = "ThemeDialogForegroundColor";
+
+    /// <summary>Dialog border/accent color.</summary>
+    public const string DialogBorderColor = "ThemeDialogBorderColor";
 }

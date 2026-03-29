@@ -30,6 +30,14 @@ public class ListBox : Selector
         DependencyProperty.Register(nameof(SelectedForeground), typeof(Color), typeof(ListBox),
             new FrameworkPropertyMetadata(Color.White, affectsRender: true));
 
+    public static readonly DependencyProperty SelectionIndicatorProperty =
+        DependencyProperty.Register(nameof(SelectionIndicator), typeof(char), typeof(ListBox),
+            new FrameworkPropertyMetadata('\u258C', affectsRender: true)); // '▌' left half block
+
+    public static readonly DependencyProperty ShowSelectionIndicatorProperty =
+        DependencyProperty.Register(nameof(ShowSelectionIndicator), typeof(bool), typeof(ListBox),
+            new FrameworkPropertyMetadata(true, affectsRender: true));
+
     /// <summary>
     /// Gets or sets the background color for selected items.
     /// Applied to <see cref="ListBoxItem.SelectedBackground"/> on generated containers.
@@ -50,6 +58,26 @@ public class ListBox : Selector
         set => SetValue(SelectedForegroundProperty, value);
     }
 
+    /// <summary>
+    /// Gets or sets the character used as the selection indicator on generated items.
+    /// Default is '▌' (left half block). Applied to <see cref="ListBoxItem.SelectionIndicator"/>.
+    /// </summary>
+    public char SelectionIndicator
+    {
+        get => (char)GetValue(SelectionIndicatorProperty)!;
+        set => SetValue(SelectionIndicatorProperty, value);
+    }
+
+    /// <summary>
+    /// Gets or sets whether to show a selection indicator character on selected items.
+    /// Default is true. Applied to <see cref="ListBoxItem.ShowSelectionIndicator"/>.
+    /// </summary>
+    public bool ShowSelectionIndicator
+    {
+        get => (bool)GetValue(ShowSelectionIndicatorProperty)!;
+        set => SetValue(ShowSelectionIndicatorProperty, value);
+    }
+
     // ─── Container generation overrides ──────────────────────────────
 
     /// <inheritdoc />
@@ -63,7 +91,9 @@ public class ListBox : Selector
             Background = Background,
             Foreground = Foreground,
             SelectedBackground = SelectedBackground,
-            SelectedForeground = SelectedForeground
+            SelectedForeground = SelectedForeground,
+            SelectionIndicator = SelectionIndicator,
+            ShowSelectionIndicator = ShowSelectionIndicator
         };
 
         // If there's an ItemTemplate, use it for the content
@@ -92,9 +122,11 @@ public class ListBox : Selector
 
         if (container is ListBoxItem lbi)
         {
-            // Propagate selection colors from ListBox to each item
+            // Propagate selection colors and indicator settings from ListBox to each item
             lbi.SelectedBackground = SelectedBackground;
             lbi.SelectedForeground = SelectedForeground;
+            lbi.SelectionIndicator = SelectionIndicator;
+            lbi.ShowSelectionIndicator = ShowSelectionIndicator;
 
             // Mark as selected if this is the currently selected item
             lbi.IsSelected = SelectedItem == item;

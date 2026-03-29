@@ -4,6 +4,7 @@ using TerminalNinja.Commands;
 using TerminalNinja.Controls;
 using TerminalNinja.Primitives;
 using TerminalNinja.Styling;
+using TerminalNinja.Themes;
 using TerminalNinja.Xaml.Mvvm;
 
 namespace Sample;
@@ -309,15 +310,25 @@ public class DemoViewModel : ViewModelBase
         ClickCount++;
         LogEntries.Add(new LogEntry { Time = DateTime.Now.ToString("HH:mm:ss"), Message = "Opening dialog..." });
 
+        // Resolve theme colors for the dialog, with sensible fallbacks
+        var app = TerminalNinja.App.Application.Current;
+        var dialogBg = ResolveThemeColor(app, ThemeResourceKeys.DialogBackgroundColor, new Color(37, 37, 38));
+        var dialogFg = ResolveThemeColor(app, ThemeResourceKeys.DialogForegroundColor, new Color(212, 212, 212));
+        var dialogBorder = ResolveThemeColor(app, ThemeResourceKeys.DialogBorderColor, new Color(86, 156, 214));
+        var accentColor = ResolveThemeColor(app, ThemeResourceKeys.AccentColor, Color.Cyan);
+        var buttonBg = ResolveThemeColor(app, ThemeResourceKeys.ButtonBackgroundColor, new Color(60, 60, 60));
+        var buttonFg = ResolveThemeColor(app, ThemeResourceKeys.ButtonForegroundColor, new Color(212, 212, 212));
+        var buttonFocus = ResolveThemeColor(app, ThemeResourceKeys.ButtonFocusColor, Color.Cyan);
+
         // Build the dialog content programmatically
         var okButton = new Button
         {
             Text = "OK",
             Width = Size.Absolute(12),
             Height = Size.Absolute(3),
-            Foreground = Color.White,
-            Background = new Color(30, 80, 30),
-            FocusColor = Color.Cyan,
+            Foreground = buttonFg,
+            Background = buttonBg,
+            FocusColor = buttonFocus,
             HoverColor = Color.Green,
             TabIndex = 0
         };
@@ -328,9 +339,9 @@ public class DemoViewModel : ViewModelBase
             Text = "Cancel",
             Width = Size.Absolute(12),
             Height = Size.Absolute(3),
-            Foreground = Color.White,
-            Background = new Color(80, 30, 30),
-            FocusColor = Color.Cyan,
+            Foreground = buttonFg,
+            Background = buttonBg,
+            FocusColor = buttonFocus,
             HoverColor = Color.Red,
             TabIndex = 1
         };
@@ -345,8 +356,8 @@ public class DemoViewModel : ViewModelBase
         var messageText = new TextBlock
         {
             Text = "Are you sure you want to proceed?\n\nThis is a modal dialog demo.\nThe background is dimmed and input\nis restricted to this window.",
-            Foreground = Color.White,
-            Background = new Color(26, 26, 46),
+            Foreground = dialogFg,
+            Background = dialogBg,
             HorizontalTextAlignment = TextAlignment.Center,
             VerticalTextAlignment = TextAlignment.Center,
             TextWrapping = TextWrapping.Wrap,
@@ -357,8 +368,8 @@ public class DemoViewModel : ViewModelBase
         var titleText = new TextBlock
         {
             Text = " Confirm Action",
-            Foreground = Color.Cyan,
-            Background = new Color(26, 26, 46)
+            Foreground = accentColor,
+            Background = dialogBg
         };
         StackPanel.SetSizeMode(titleText, ChildSizeMode.Fixed);
         StackPanel.SetFixedSize(titleText, 1);
@@ -374,9 +385,9 @@ public class DemoViewModel : ViewModelBase
             Height = Size.Absolute(14),
             Content = new Border
             {
-                Background = new Color(26, 26, 46),
-                Foreground = Color.White,
-                BorderStyle = BorderStyle.Rounded(Color.Cyan),
+                Background = dialogBg,
+                Foreground = dialogFg,
+                BorderStyle = BorderStyle.Rounded(dialogBorder),
                 Child = contentPanel
             }
         };
@@ -402,5 +413,18 @@ public class DemoViewModel : ViewModelBase
             Time = DateTime.Now.ToString("HH:mm:ss"),
             Message = $"Dialog closed: {resultText}"
         });
+    }
+
+    /// <summary>
+    /// Resolves a theme color resource from the application's resource dictionary.
+    /// Returns the fallback color if the resource is not found.
+    /// </summary>
+    private static Color ResolveThemeColor(TerminalNinja.App.Application? app, string key, Color fallback)
+    {
+        if (app != null && app.Resources.TryGetValue(key, out var value) && value is Color color)
+        {
+            return color;
+        }
+        return fallback;
     }
 }

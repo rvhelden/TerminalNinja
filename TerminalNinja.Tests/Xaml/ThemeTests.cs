@@ -417,10 +417,10 @@ public class ThemeTests : IDisposable
     }
 
     [Test]
-    public async Task ThemeResourceKeys_Has16Constants()
+    public async Task ThemeResourceKeys_Has22Constants()
     {
         var allKeys = GetAllThemeResourceKeys();
-        await Assert.That(allKeys.Count).IsEqualTo(16);
+        await Assert.That(allKeys.Count).IsEqualTo(22);
     }
 
     /// <summary>

@@ -462,6 +462,22 @@ public abstract class FrameworkElement : UIElement
                 {
                     value = converter.ConvertFrom(value);
                 }
+                else if (value is string stringValue)
+                {
+                    // Fallback: convert primitive types from string
+                    // (mirrors XamlLoader.ConvertValue for direct attributes)
+                    var pt = accessor.PropertyType;
+                    if (pt == typeof(bool))
+                        value = bool.Parse(stringValue);
+                    else if (pt == typeof(int))
+                        value = int.Parse(stringValue);
+                    else if (pt == typeof(double))
+                        value = double.Parse(stringValue);
+                    else if (pt == typeof(float))
+                        value = float.Parse(stringValue);
+                    else if (pt == typeof(char) && stringValue.Length == 1)
+                        value = stringValue[0];
+                }
             }
             
             accessor.Setter!(this, value);

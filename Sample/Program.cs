@@ -15,12 +15,12 @@ public static class Program
             EnableTabNavigation = true
         });
         
-        app.ThemeName = "GruvboxDark"; // Load the "Dark" theme from embedded XAML resources (e.g., Themes/Dark.xaml)
+        app.ThemeName = "Dracula"; // Load the "Dark" theme from embedded XAML resources (e.g., Themes/Dark.xaml)
 
         // Create ViewModel
         var viewModel = new DemoViewModel();
 
-        // Load UI from embedded XAML resource using the generated XamlLayouts manifest.
+        // Load UI from an embedded XAML resource using the generated XamlLayouts manifest.
         // This validates all transitive dependencies (e.g., ActivityLogControl.xaml)
         // and loads the root layout from the embedded resource.
         // Bindings are activated automatically via the DP expression system.
