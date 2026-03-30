@@ -602,4 +602,155 @@ public class ThemeTests : IDisposable
     }
 
     #endregion
+
+    #region StaticResource in Setter Values
+
+    [Test]
+    public async Task SetterValue_StaticResourceColor_ResolvesFromDictionary()
+    {
+        // Arrange — define a Color resource, then reference it from a Setter Value
+        var xaml = """
+            <ResourceDictionary
+                xmlns="http://schemas.terminalninja.dev/xaml"
+                xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+                <Color x:Key="MyBorderColor">#ff00ff</Color>
+                <Style TargetType="Border">
+                    <Setter Property="BorderBrush" Value="{StaticResource MyBorderColor}" />
+                </Style>
+            </ResourceDictionary>
+            """;
+
+        // Act
+        var dict = TerminalXaml.LoadResourceDictionary(xaml);
+        var style = dict[typeof(global::TerminalNinja.Controls.Border)] as Style;
+
+        // Assert — Setter.Value should be the resolved Color, not a string
+        await Assert.That(style).IsNotNull();
+        await Assert.That(style!.Setters.Count).IsGreaterThanOrEqualTo(1);
+        var setter = style.Setters.First(s => s.Property == "BorderBrush");
+        await Assert.That(setter.Value).IsTypeOf<Color>();
+        await Assert.That(setter.Value).IsEqualTo(Color.FromHex("#ff00ff"));
+    }
+
+    [Test]
+    public async Task SetterValue_StaticResourceColor_AppliedToControl()
+    {
+        // Arrange — define colors + style with {StaticResource} in setter values
+        var xaml = """
+            <ResourceDictionary
+                xmlns="http://schemas.terminalninja.dev/xaml"
+                xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+                <Color x:Key="TestFg">#aabbcc</Color>
+                <Style TargetType="TextBlock">
+                    <Setter Property="Foreground" Value="{StaticResource TestFg}" />
+                </Style>
+            </ResourceDictionary>
+            """;
+
+        var dict = TerminalXaml.LoadResourceDictionary(xaml);
+
+        // Act — parent a TextBlock under a window that has these resources
+        var window = new Window();
+        window.Resources.MergedDictionaries.Add(dict);
+        var textBlock = new TextBlock { Text = "Hello" };
+        window.Content = textBlock;
+
+        // Assert — TextBlock should have the resolved color from StaticResource
+        await Assert.That(textBlock.Foreground).IsEqualTo(Color.FromHex("#aabbcc"));
+    }
+
+    [Test]
+    public async Task SetterValue_MultipleStaticResources_AllResolve()
+    {
+        // Arrange — multiple setters with {StaticResource} references
+        var xaml = """
+            <ResourceDictionary
+                xmlns="http://schemas.terminalninja.dev/xaml"
+                xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+                <Color x:Key="Bg">#111111</Color>
+                <Color x:Key="Fg">#eeeeee</Color>
+                <Style TargetType="TextBlock">
+                    <Setter Property="Background" Value="{StaticResource Bg}" />
+                    <Setter Property="Foreground" Value="{StaticResource Fg}" />
+                </Style>
+            </ResourceDictionary>
+            """;
+
+        var dict = TerminalXaml.LoadResourceDictionary(xaml);
+        var style = dict[typeof(TextBlock)] as Style;
+
+        // Assert — both setter values should be resolved Color objects
+        await Assert.That(style).IsNotNull();
+        var bgSetter = style!.Setters.First(s => s.Property == "Background");
+        var fgSetter = style.Setters.First(s => s.Property == "Foreground");
+        await Assert.That(bgSetter.Value).IsTypeOf<Color>();
+        await Assert.That(fgSetter.Value).IsTypeOf<Color>();
+        await Assert.That(bgSetter.Value).IsEqualTo(Color.FromHex("#111111"));
+        await Assert.That(fgSetter.Value).IsEqualTo(Color.FromHex("#eeeeee"));
+    }
+
+    #endregion
+
+    #region Theme Setter Values Are Resolved (Anti-Drift Guard)
+
+    [Test]
+    [Arguments("Dark")]
+    [Arguments("Dracula")]
+    [Arguments("GruvboxDark")]
+    public async Task BuiltInTheme_ColorSetterValues_AreResolvedColors(string themeName)
+    {
+        // This test guards against the drift bug where Setter Values contain
+        // hardcoded hex strings instead of {StaticResource} references.
+        // When {StaticResource} is used, the XAML loader resolves the value to
+        // a Color object at load time. If the value is a raw string like "#808080",
+        // the Setter.Value will be a string (not a Color).
+        // This test ensures ALL color-typed setter values are pre-resolved Color objects.
+
+        var theme = LoadBuiltInTheme(themeName);
+
+        // Collect all styles from the theme
+        var styleTypes = new[]
+        {
+            typeof(TextBlock), typeof(Button), typeof(global::TerminalNinja.Controls.Border),
+            typeof(Window), typeof(ListBox), typeof(ListBoxItem), typeof(ProgressBar)
+        };
+
+        foreach (var controlType in styleTypes)
+        {
+            if (!theme.TryGetValue(controlType, out var styleObj) || styleObj is not Style style)
+                continue;
+
+            foreach (var setter in style.Setters)
+            {
+                // Skip non-color properties (e.g., ShowSelectionIndicator which is "True")
+                if (setter.Value is string strVal && strVal.StartsWith('#'))
+                {
+                    // If a Setter.Value is a hex color string, it means {StaticResource} was NOT used
+                    await Assert.That(setter.Value).IsNotTypeOf<string>()
+                        .Because($"Setter for '{setter.Property}' on {controlType.Name} style in theme '{themeName}' " +
+                                 $"has a raw hex string '{strVal}' instead of a resolved Color from {{StaticResource}}");
+                }
+            }
+        }
+    }
+
+    [Test]
+    [Arguments("Dark")]
+    [Arguments("Dracula")]
+    [Arguments("GruvboxDark")]
+    public async Task BuiltInTheme_BorderStyle_BorderBrushMatchesResource(string themeName)
+    {
+        // Verify the Border style's BorderBrush value matches the ThemeBorderBrushColor resource
+        var theme = LoadBuiltInTheme(themeName);
+        theme.TryGetValue(ThemeResourceKeys.BorderBrushColor, out var resourceColor);
+        theme.TryGetValue(typeof(global::TerminalNinja.Controls.Border), out var styleObj);
+        var style = styleObj as Style;
+
+        await Assert.That(style).IsNotNull();
+        var brushSetter = style!.Setters.FirstOrDefault(s => s.Property == "BorderBrush");
+        await Assert.That(brushSetter).IsNotNull();
+        await Assert.That(brushSetter!.Value).IsEqualTo(resourceColor);
+    }
+
+    #endregion
 }

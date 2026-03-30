@@ -55,47 +55,47 @@
          ═══════════════════════════════════════════════════════════════ -->
 
     <Style TargetType="TextBlock">
-        <Setter Property="Foreground" Value="#f8f8f2" />
-        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="Foreground" Value="{StaticResource ThemeTextForegroundColor}" />
+        <Setter Property="Background" Value="{StaticResource ThemeTextBackgroundColor}" />
     </Style>
 
     <Style TargetType="Button">
-        <Setter Property="Background" Value="#44475a" />
-        <Setter Property="Foreground" Value="#f8f8f2" />
-        <Setter Property="FocusColor" Value="#bd93f9" />
-        <Setter Property="HoverColor" Value="#ff79c6" />
+        <Setter Property="Background" Value="{StaticResource ThemeButtonBackgroundColor}" />
+        <Setter Property="Foreground" Value="{StaticResource ThemeButtonForegroundColor}" />
+        <Setter Property="FocusColor" Value="{StaticResource ThemeButtonFocusColor}" />
+        <Setter Property="HoverColor" Value="{StaticResource ThemeButtonHoverColor}" />
     </Style>
 
     <Style TargetType="Border">
-        <Setter Property="BorderBrush" Value="#6272a4" />
-        <Setter Property="Background" Value="#282a36" />
+        <Setter Property="BorderBrush" Value="{StaticResource ThemeBorderBrushColor}" />
+        <Setter Property="Background" Value="{StaticResource ThemeBorderBackgroundColor}" />
     </Style>
 
     <Style TargetType="Window">
-        <Setter Property="Background" Value="#282a36" />
-        <Setter Property="Foreground" Value="#f8f8f2" />
+        <Setter Property="Background" Value="{StaticResource ThemeBackgroundColor}" />
+        <Setter Property="Foreground" Value="{StaticResource ThemeForegroundColor}" />
     </Style>
 
     <Style TargetType="ListBox">
-        <Setter Property="Background" Value="#282a36" />
-        <Setter Property="Foreground" Value="#f8f8f2" />
-        <Setter Property="SelectedBackground" Value="#44475a" />
-        <Setter Property="SelectedForeground" Value="#f8f8f2" />
+        <Setter Property="Background" Value="{StaticResource ThemeBackgroundColor}" />
+        <Setter Property="Foreground" Value="{StaticResource ThemeForegroundColor}" />
+        <Setter Property="SelectedBackground" Value="{StaticResource ThemeSelectedBackgroundColor}" />
+        <Setter Property="SelectedForeground" Value="{StaticResource ThemeSelectedForegroundColor}" />
         <Setter Property="ShowSelectionIndicator" Value="True" />
     </Style>
 
     <Style TargetType="ListBoxItem">
-        <Setter Property="Background" Value="#282a36" />
-        <Setter Property="Foreground" Value="#f8f8f2" />
-        <Setter Property="SelectedBackground" Value="#44475a" />
-        <Setter Property="SelectedForeground" Value="#f8f8f2" />
+        <Setter Property="Background" Value="{StaticResource ThemeBackgroundColor}" />
+        <Setter Property="Foreground" Value="{StaticResource ThemeForegroundColor}" />
+        <Setter Property="SelectedBackground" Value="{StaticResource ThemeSelectedBackgroundColor}" />
+        <Setter Property="SelectedForeground" Value="{StaticResource ThemeSelectedForegroundColor}" />
         <Setter Property="ShowSelectionIndicator" Value="True" />
     </Style>
 
     <Style TargetType="ProgressBar">
-        <Setter Property="Foreground" Value="#bd93f9" />
-        <Setter Property="Background" Value="Transparent" />
-        <Setter Property="TrackForeground" Value="#44475a" />
+        <Setter Property="Foreground" Value="{StaticResource ThemeProgressForegroundColor}" />
+        <Setter Property="Background" Value="{StaticResource ThemeProgressBackgroundColor}" />
+        <Setter Property="TrackForeground" Value="{StaticResource ThemeProgressTrackColor}" />
     </Style>
 
 </ResourceDictionary>

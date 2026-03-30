@@ -18,7 +18,7 @@
     <Color x:Key="ThemeAccentSecondaryColor">#fe8019</Color>
 
     <!-- Border colors -->
-    <Color x:Key="ThemeBorderBrushColor">#fb4934</Color>
+    <Color x:Key="ThemeBorderBrushColor">#928374</Color>
     <Color x:Key="ThemeBorderBackgroundColor">#282828</Color>
 
     <!-- Button colors -->
@@ -54,46 +54,46 @@
          ═══════════════════════════════════════════════════════════════ -->
 
     <Style TargetType="TextBlock">
-        <Setter Property="Foreground" Value="#ebdbb2" />
-        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="Foreground" Value="{StaticResource ThemeTextForegroundColor}" />
+        <Setter Property="Background" Value="{StaticResource ThemeTextBackgroundColor}" />
     </Style>
 
     <Style TargetType="Button">
-        <Setter Property="Background" Value="#3c3836" />
-        <Setter Property="Foreground" Value="#ebdbb2" />
-        <Setter Property="FocusColor" Value="#fabd2f" />
-        <Setter Property="HoverColor" Value="#fe8019" />
+        <Setter Property="Background" Value="{StaticResource ThemeButtonBackgroundColor}" />
+        <Setter Property="Foreground" Value="{StaticResource ThemeButtonForegroundColor}" />
+        <Setter Property="FocusColor" Value="{StaticResource ThemeButtonFocusColor}" />
+        <Setter Property="HoverColor" Value="{StaticResource ThemeButtonHoverColor}" />
     </Style>
 
     <Style TargetType="Border">
-        <Setter Property="BorderBrush" Value="#928374" />
-        <Setter Property="Background" Value="#282828" />
+        <Setter Property="BorderBrush" Value="{StaticResource ThemeBorderBrushColor}" />
+        <Setter Property="Background" Value="{StaticResource ThemeBorderBackgroundColor}" />
     </Style>
 
     <Style TargetType="Window">
-        <Setter Property="Background" Value="#282828" />
-        <Setter Property="Foreground" Value="#ebdbb2" />
+        <Setter Property="Background" Value="{StaticResource ThemeBackgroundColor}" />
+        <Setter Property="Foreground" Value="{StaticResource ThemeForegroundColor}" />
     </Style>
 
     <Style TargetType="ListBox">
-        <Setter Property="Background" Value="#282828" />
-        <Setter Property="Foreground" Value="#ebdbb2" />
-        <Setter Property="SelectedBackground" Value="#504945" />
-        <Setter Property="SelectedForeground" Value="#fbf1c7" />
+        <Setter Property="Background" Value="{StaticResource ThemeBackgroundColor}" />
+        <Setter Property="Foreground" Value="{StaticResource ThemeForegroundColor}" />
+        <Setter Property="SelectedBackground" Value="{StaticResource ThemeSelectedBackgroundColor}" />
+        <Setter Property="SelectedForeground" Value="{StaticResource ThemeSelectedForegroundColor}" />
         <Setter Property="ShowSelectionIndicator" Value="True" />
     </Style>
 
     <Style TargetType="ProgressBar">
-        <Setter Property="Foreground" Value="#b8bb26" />
-        <Setter Property="Background" Value="Transparent" />
-        <Setter Property="TrackForeground" Value="#504945" />
+        <Setter Property="Foreground" Value="{StaticResource ThemeProgressForegroundColor}" />
+        <Setter Property="Background" Value="{StaticResource ThemeProgressBackgroundColor}" />
+        <Setter Property="TrackForeground" Value="{StaticResource ThemeProgressTrackColor}" />
     </Style>
 
     <Style TargetType="ListBoxItem">
-        <Setter Property="Background" Value="#282828" />
-        <Setter Property="Foreground" Value="#ebdbb2" />
-        <Setter Property="SelectedBackground" Value="#504945" />
-        <Setter Property="SelectedForeground" Value="#fbf1c7" />
+        <Setter Property="Background" Value="{StaticResource ThemeBackgroundColor}" />
+        <Setter Property="Foreground" Value="{StaticResource ThemeForegroundColor}" />
+        <Setter Property="SelectedBackground" Value="{StaticResource ThemeSelectedBackgroundColor}" />
+        <Setter Property="SelectedForeground" Value="{StaticResource ThemeSelectedForegroundColor}" />
         <Setter Property="ShowSelectionIndicator" Value="True" />
     </Style>
 
