@@ -1,6 +1,6 @@
 using TerminalNinja.Primitives;
 
-namespace TerminalNinja.Controls;
+namespace TerminalNinja.Controls.Primitives;
 
 /// <summary>
 /// Abstract base class for controls that maintain a selected item.

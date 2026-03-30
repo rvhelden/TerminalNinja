@@ -2,7 +2,7 @@ using System.Windows.Markup;
 using TerminalNinja.Buffers;
 using TerminalNinja.Primitives;
 
-namespace TerminalNinja.Controls;
+namespace TerminalNinja.Controls.Primitives;
 
 /// <summary>
 /// Displays content in a floating overlay above other controls.

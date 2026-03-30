@@ -1,8 +1,9 @@
 using System.Windows.Markup;
 using TerminalNinja.Buffers;
+using TerminalNinja.Controls;
 using TerminalNinja.Primitives;
 
-namespace TerminalNinja.Controls;
+namespace TerminalNinja.Documents;
 
 /// <summary>
 /// Abstract base class for inline text elements within a <see cref="TextBlock"/>.

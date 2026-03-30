@@ -1,6 +1,6 @@
 using TerminalNinja.Primitives;
 
-namespace TerminalNinja.Controls;
+namespace TerminalNinja.Documents;
 
 /// <summary>
 /// A flattened, renderable text segment with resolved styles.

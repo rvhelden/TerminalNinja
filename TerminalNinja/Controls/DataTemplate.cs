@@ -1,6 +1,7 @@
 using System.ComponentModel;
 using System.Windows.Markup;
 using TerminalNinja.Aot;
+using TerminalNinja.Documents;
 using TerminalNinja.Xaml.Binding;
 
 namespace TerminalNinja.Controls;

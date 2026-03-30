@@ -3,6 +3,7 @@ using System.Xml.Linq;
 using TerminalNinja.Aot;
 using TerminalNinja.Buffers;
 using TerminalNinja.Controls;
+using TerminalNinja.Documents;
 using TerminalNinja.Primitives;
 using TerminalNinja.Resources;
 using TerminalNinja.Styling;
@@ -31,6 +32,8 @@ internal sealed class XamlLoader
     private static readonly string[] DefaultClrNamespaces =
     [
         "TerminalNinja.Controls",
+        "TerminalNinja.Controls.Primitives",
+        "TerminalNinja.Documents",
         "TerminalNinja.Primitives",
         "TerminalNinja.Styling",
         "TerminalNinja.Commands",

@@ -33,12 +33,14 @@ public static class Program
         // Add ESC handler to exit
         app.KeyDown += (keyEvent, args) =>
         {
-            if (keyEvent.Key == ConsoleKey.Escape)
+            if (keyEvent.Key != ConsoleKey.Escape)
             {
-                window.Close();
-                app.Exit();
-                args.Handled = true;
+                return;
             }
+
+            window.Close();
+            app.Exit();
+            args.Handled = true;
         };
 
         // Run the application

@@ -1,7 +1,7 @@
 using TerminalNinja.Buffers;
 using TerminalNinja.Primitives;
 
-namespace TerminalNinja.Controls;
+namespace TerminalNinja.Controls.Primitives;
 
 /// <summary>
 /// Internal root element for a <see cref="Popup"/>. Handles positioning the popup's

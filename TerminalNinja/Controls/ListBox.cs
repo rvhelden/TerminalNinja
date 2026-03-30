@@ -1,5 +1,6 @@
 using System.Windows.Markup;
 using TerminalNinja.Buffers;
+using TerminalNinja.Controls.Primitives;
 using TerminalNinja.Input;
 using TerminalNinja.Primitives;
 

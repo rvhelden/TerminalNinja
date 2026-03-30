@@ -1,5 +1,6 @@
 using System.Windows.Markup;
 using TerminalNinja.Buffers;
+using TerminalNinja.Documents;
 using TerminalNinja.Primitives;
 
 namespace TerminalNinja.Controls;

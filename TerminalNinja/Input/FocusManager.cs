@@ -1,7 +1,7 @@
-using TerminalNinja.Input;
+using TerminalNinja.Controls;
 using TerminalNinja.Primitives;
 
-namespace TerminalNinja.Controls;
+namespace TerminalNinja.Input;
 
 /// <summary>
 /// Manages keyboard focus and mouse hover state for focusable elements in the UI tree.

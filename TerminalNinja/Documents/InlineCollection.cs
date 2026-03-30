@@ -1,6 +1,7 @@
 using System.Collections;
+using TerminalNinja.Controls;
 
-namespace TerminalNinja.Controls;
+namespace TerminalNinja.Documents;
 
 /// <summary>
 /// A collection of <see cref="Inline"/> elements that manages Parent relationships

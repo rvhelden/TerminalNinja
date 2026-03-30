@@ -1,6 +1,6 @@
 using TerminalNinja.Commands;
 
-namespace TerminalNinja.Controls;
+namespace TerminalNinja.Controls.Primitives;
 
 /// <summary>
 /// Abstract base class for button controls that support command binding and click events.

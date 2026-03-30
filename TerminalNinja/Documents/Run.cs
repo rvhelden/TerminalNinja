@@ -1,7 +1,8 @@
 using System.Windows.Markup;
+using TerminalNinja.Controls;
 using TerminalNinja.Primitives;
 
-namespace TerminalNinja.Controls;
+namespace TerminalNinja.Documents;
 
 /// <summary>
 /// An inline element that contains a text string.
