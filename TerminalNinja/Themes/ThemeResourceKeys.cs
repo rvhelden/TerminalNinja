@@ -27,8 +27,8 @@ public static class ThemeResourceKeys
     //  Border colors
     // ────────────────────────────────────────────────────────────────
 
-    /// <summary>Default border foreground color.</summary>
-    public const string BorderForegroundColor = "ThemeBorderForegroundColor";
+    /// <summary>Default border brush (line drawing) color.</summary>
+    public const string BorderBrushColor = "ThemeBorderBrushColor";
 
     /// <summary>Default border background color.</summary>
     public const string BorderBackgroundColor = "ThemeBorderBackgroundColor";

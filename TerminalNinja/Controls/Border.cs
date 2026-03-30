@@ -25,8 +25,8 @@ public sealed class Border : FrameworkElement
         DependencyProperty.Register(nameof(Background), typeof(Color), typeof(Border),
             new FrameworkPropertyMetadata(default(Color), affectsRender: true));
 
-    public static readonly DependencyProperty ForegroundProperty =
-        DependencyProperty.Register(nameof(Foreground), typeof(Color), typeof(Border),
+    public static readonly DependencyProperty BorderBrushProperty =
+        DependencyProperty.Register(nameof(BorderBrush), typeof(Color), typeof(Border),
             new FrameworkPropertyMetadata(Color.White, affectsRender: true));
 
     public static readonly DependencyProperty BorderStyleProperty =
@@ -65,11 +65,11 @@ public sealed class Border : FrameworkElement
         set => SetValue(BackgroundProperty, value);
     }
     
-    /// <summary>Gets or sets the foreground color (used for borders).</summary>
-    public Color Foreground
+    /// <summary>Gets or sets the brush (color) used to draw the border lines.</summary>
+    public Color BorderBrush
     {
-        get => (Color)GetValue(ForegroundProperty)!;
-        set => SetValue(ForegroundProperty, value);
+        get => (Color)GetValue(BorderBrushProperty)!;
+        set => SetValue(BorderBrushProperty, value);
     }
     
     /// <summary>Gets or sets the border style and color.</summary>
@@ -161,7 +161,7 @@ public sealed class Border : FrameworkElement
         }
 
         // Fill background
-        var bgCell = new Cell(' ', Foreground, Background);
+        var bgCell = new Cell(' ', BorderBrush, Background);
         buffer.FillRect(clipped, bgCell);
         
         // Draw border if present
@@ -185,7 +185,7 @@ public sealed class Border : FrameworkElement
     private void RenderBorder(CellBuffer buffer, Rect bounds)
     {
         var chars = BorderStyle.Chars;
-        var color = Foreground;
+        var color = BorderBrush;
         var bg = Background;
         
         // Draw corners

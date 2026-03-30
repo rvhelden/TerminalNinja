@@ -386,7 +386,7 @@ public class DemoViewModel : ViewModelBase
             Content = new Border
             {
                 Background = dialogBg,
-                Foreground = dialogFg,
+                BorderBrush = dialogFg,
                 BorderStyle = BorderStyle.Rounded(dialogBorder),
                 Child = contentPanel
             }

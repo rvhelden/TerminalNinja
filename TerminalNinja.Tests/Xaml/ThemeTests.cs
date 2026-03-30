@@ -506,7 +506,7 @@ public class ThemeTests : IDisposable
             ThemeResourceKeys.ForegroundColor,
             ThemeResourceKeys.AccentColor,
             ThemeResourceKeys.AccentSecondaryColor,
-            ThemeResourceKeys.BorderForegroundColor,
+            ThemeResourceKeys.BorderBrushColor,
             ThemeResourceKeys.BorderBackgroundColor,
             ThemeResourceKeys.ButtonBackgroundColor,
             ThemeResourceKeys.ButtonForegroundColor,

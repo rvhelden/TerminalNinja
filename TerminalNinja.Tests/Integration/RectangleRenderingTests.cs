@@ -45,7 +45,7 @@ public class BorderRenderingTests
             Width = Size.Absolute(5),
             Height = Size.Absolute(3),
             Background = Color.Blue,
-            Foreground = Color.White,
+            BorderBrush = Color.White,
             BorderStyle = global::TerminalNinja.Styling.BorderStyle.Single(Color.White)
         };
         
@@ -105,7 +105,7 @@ public class BorderRenderingTests
             Width = Size.Absolute(4),
             Height = Size.Absolute(3),
             Background = Color.Black,
-            Foreground = Color.Cyan,
+            BorderBrush = Color.Cyan,
             BorderStyle = global::TerminalNinja.Styling.BorderStyle.Double(Color.Cyan)
         };
         
@@ -129,7 +129,7 @@ public class BorderRenderingTests
             Width = Size.Absolute(4),
             Height = Size.Absolute(3),
             Background = Color.Black,
-            Foreground = Color.Green,
+            BorderBrush = Color.Green,
             BorderStyle = global::TerminalNinja.Styling.BorderStyle.Rounded(Color.Green)
         };
         
@@ -157,7 +157,7 @@ public class BorderRenderingTests
             Width = Size.Absolute(5),
             Height = Size.Absolute(3),
             Background = Color.Yellow,
-            Foreground = Color.Black,
+            BorderBrush = Color.Black,
             BorderStyle = global::TerminalNinja.Styling.BorderStyle.None
         };
         
@@ -178,7 +178,7 @@ public class BorderRenderingTests
             Width = Size.Absolute(5),
             Height = Size.Absolute(4),
             Background = new Color(50, 50, 50),
-            Foreground = Color.White,
+            BorderBrush = Color.White,
             BorderStyle = global::TerminalNinja.Styling.BorderStyle.Single(Color.White)
         };
         
@@ -246,7 +246,7 @@ public class BorderRenderingTests
             Width = Size.Absolute(5),
             Height = Size.Absolute(5),
             Background = new Color(30, 30, 80),
-            Foreground = Color.Cyan,
+            BorderBrush = Color.Cyan,
             BorderStyle = global::TerminalNinja.Styling.BorderStyle.Single(Color.Cyan)
         };
         

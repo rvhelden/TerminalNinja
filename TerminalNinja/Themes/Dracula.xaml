@@ -19,7 +19,7 @@
     <Color x:Key="ThemeAccentSecondaryColor">#ff79c6</Color>
 
     <!-- Border colors -->
-    <Color x:Key="ThemeBorderForegroundColor">#6272a4</Color>
+    <Color x:Key="ThemeBorderBrushColor">#6272a4</Color>
     <Color x:Key="ThemeBorderBackgroundColor">#282a36</Color>
 
     <!-- Button colors -->
@@ -67,7 +67,7 @@
     </Style>
 
     <Style TargetType="Border">
-        <Setter Property="Foreground" Value="#6272a4" />
+        <Setter Property="BorderBrush" Value="#6272a4" />
         <Setter Property="Background" Value="#282a36" />
     </Style>
 
