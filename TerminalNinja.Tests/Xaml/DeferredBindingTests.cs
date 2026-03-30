@@ -642,4 +642,196 @@ public class DeferredBindingTests
         await Assert.That(buffer.GetCell(0, 0).Character).IsEqualTo('R');
         await Assert.That(buffer.GetCell(1, 0).Character).IsEqualTo('e');
     }
+
+    // ─── Part 14: XAML-loaded DataTemplate with bindings in Resources ────
+
+    [Test]
+    public async Task XamlDataTemplate_InResources_PrototypeHasBindingExpressions()
+    {
+        // Arrange — XAML with DataTemplate in Window.Resources containing {Binding Title}
+        var xaml = """
+            <Window xmlns="http://schemas.terminalninja.dev/xaml"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+                <Window.Resources>
+                    <DataTemplate x:Key="ItemTemplate">
+                        <TextBlock Text="{Binding Title}" />
+                    </DataTemplate>
+                </Window.Resources>
+                <TextBlock Text="placeholder" />
+            </Window>
+            """;
+
+        var window = TerminalXaml.Load<Window>(xaml);
+
+        // Act — retrieve the DataTemplate from resources
+        var template = window.TryFindResource("ItemTemplate") as DataTemplate;
+
+        // Assert — template exists and its prototype has a binding expression
+        await Assert.That(template).IsNotNull();
+        await Assert.That(template!.TemplateContent).IsNotNull();
+
+        var prototype = template.TemplateContent as TextBlock;
+        await Assert.That(prototype).IsNotNull();
+        await Assert.That(BindingOperations.IsDataBound(prototype!, TextBlock.TextProperty)).IsTrue();
+    }
+
+    [Test]
+    public async Task XamlDataTemplate_InResources_ClonedItemsGetBindingsActivated()
+    {
+        // Arrange — XAML with DataTemplate in Resources and ItemsControl that references it
+        var xaml = """
+            <Window xmlns="http://schemas.terminalninja.dev/xaml"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+                <Window.Resources>
+                    <DataTemplate x:Key="ItemTemplate">
+                        <TextBlock Text="{Binding Title}" />
+                    </DataTemplate>
+                </Window.Resources>
+                <ItemsControl ItemTemplate="{StaticResource ItemTemplate}" />
+            </Window>
+            """;
+
+        var window = TerminalXaml.Load<Window>(xaml);
+
+        // Navigate to ItemsControl
+        var itemsControl = window.Content as ItemsControl;
+        await Assert.That(itemsControl).IsNotNull();
+
+        // Act — set ItemsSource with view model items
+        var items = new List<DeferredViewModel>
+        {
+            new() { Title = "Alpha" },
+            new() { Title = "Beta" },
+            new() { Title = "Gamma" }
+        };
+        itemsControl!.ItemsSource = items;
+
+        // Assert — each cloned TextBlock should have its binding activated
+        var children = itemsControl.ItemsPanel.Children;
+        await Assert.That(children.Count).IsEqualTo(3);
+
+        var tb0 = children[0] as TextBlock;
+        var tb1 = children[1] as TextBlock;
+        var tb2 = children[2] as TextBlock;
+
+        await Assert.That(tb0).IsNotNull();
+        await Assert.That(tb1).IsNotNull();
+        await Assert.That(tb2).IsNotNull();
+
+        await Assert.That(tb0!.Text).IsEqualTo("Alpha");
+        await Assert.That(tb1!.Text).IsEqualTo("Beta");
+        await Assert.That(tb2!.Text).IsEqualTo("Gamma");
+    }
+
+    [Test]
+    public async Task XamlDataTemplate_InResources_RunBindings_ActivateOnClone()
+    {
+        // Arrange — DataTemplate with Run bindings inside TextBlock
+        // This mirrors the ActivityLogControl scenario
+        var xaml = """
+            <Window xmlns="http://schemas.terminalninja.dev/xaml"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+                <Window.Resources>
+                    <DataTemplate x:Key="LogTemplate">
+                        <TextBlock>
+                            <Run Text="{Binding Title}" />
+                        </TextBlock>
+                    </DataTemplate>
+                </Window.Resources>
+                <ItemsControl ItemTemplate="{StaticResource LogTemplate}" />
+            </Window>
+            """;
+
+        var window = TerminalXaml.Load<Window>(xaml);
+        var itemsControl = window.Content as ItemsControl;
+        await Assert.That(itemsControl).IsNotNull();
+
+        // Act — set items
+        var items = new List<DeferredViewModel>
+        {
+            new() { Title = "Entry1" },
+            new() { Title = "Entry2" }
+        };
+        itemsControl!.ItemsSource = items;
+
+        // Assert — each cloned TextBlock should have a Run with bound text
+        var children = itemsControl.ItemsPanel.Children;
+        await Assert.That(children.Count).IsEqualTo(2);
+
+        for (var i = 0; i < 2; i++)
+        {
+            var tb = children[i] as TextBlock;
+            await Assert.That(tb).IsNotNull();
+            await Assert.That(tb!.Inlines.Count).IsGreaterThanOrEqualTo(1);
+
+            var run = tb.Inlines[0] as TerminalNinja.Documents.Run;
+            await Assert.That(run).IsNotNull();
+            await Assert.That(run!.Text).IsEqualTo(items[i].Title);
+        }
+    }
+
+    [Test]
+    public async Task XamlDataTemplate_GridWithMultipleChildren_ClonedBindingsActivate()
+    {
+        // Arrange — DataTemplate matching the ActivityLogControl structure:
+        // Grid with FontIcon + TextBlock containing two Runs with bindings
+        var xaml = """
+            <Window xmlns="http://schemas.terminalninja.dev/xaml"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+                <Window.Resources>
+                    <DataTemplate x:Key="LogTemplate">
+                        <Grid Columns="Auto *">
+                            <FontIcon Symbol="Check" Foreground="Green" />
+                            <TextBlock Grid.Column="1">
+                                <Run Text="{Binding Title}" />
+                                <Run Text="{Binding Count}" />
+                            </TextBlock>
+                        </Grid>
+                    </DataTemplate>
+                </Window.Resources>
+                <ItemsControl ItemTemplate="{StaticResource LogTemplate}" />
+            </Window>
+            """;
+
+        var window = TerminalXaml.Load<Window>(xaml);
+        var itemsControl = window.Content as ItemsControl;
+        await Assert.That(itemsControl).IsNotNull();
+
+        // Act — set items
+        var items = new List<DeferredViewModel>
+        {
+            new() { Title = "First", Count = 1 },
+            new() { Title = "Second", Count = 2 }
+        };
+        itemsControl!.ItemsSource = items;
+
+        // Assert — each cloned Grid should contain a TextBlock with bound Runs
+        var children = itemsControl.ItemsPanel.Children;
+        await Assert.That(children.Count).IsEqualTo(2);
+
+        for (var i = 0; i < 2; i++)
+        {
+            var grid = children[i] as Grid;
+            await Assert.That(grid).IsNotNull().Because($"Child {i} should be a Grid");
+
+            // Grid should have 2 children: FontIcon + TextBlock
+            await Assert.That(grid!.Children.Count).IsEqualTo(2).Because($"Grid {i} should have 2 children");
+
+            var textBlock = grid.Children[1] as TextBlock;
+            await Assert.That(textBlock).IsNotNull().Because($"Second child of Grid {i} should be TextBlock");
+
+            // TextBlock should have 2 Runs with bindings
+            await Assert.That(textBlock!.Inlines.Count).IsEqualTo(2).Because($"TextBlock {i} should have 2 Runs");
+
+            var run0 = textBlock.Inlines[0] as TerminalNinja.Documents.Run;
+            var run1 = textBlock.Inlines[1] as TerminalNinja.Documents.Run;
+            await Assert.That(run0).IsNotNull();
+            await Assert.That(run1).IsNotNull();
+
+            await Assert.That(run0!.Text).IsEqualTo(items[i].Title)
+                .Because($"Run 0 of item {i} should show Title");
+            await Assert.That(run1!.Text).IsEqualTo(items[i].Count.ToString())
+                .Because($"Run 1 of item {i} should show Count");
+        }
+    }
 }

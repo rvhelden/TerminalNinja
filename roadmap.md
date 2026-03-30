@@ -1,16 +1,16 @@
 ﻿# Features to create
 - [x] Add support for modal dialogs
 - [x] Add support for popups
-- [ ] Add support for Theme resources
-  - [ ] Add support for Dark theme
-  - [ ] Add support for Dracula theme
-  - [ ] Add support for Gruvbox dark theme
+- [x] Add support for Theme resources
+  - [x] Add support for Dark theme
+  - [x] Add support for Dracula theme
+  - [x] Add support for Gruvbox dark theme
 - [ ] Add support for custom themes
-- [ ] Add support for Brushes
 - [ ] Add support for Margin DependencyProperty
+- [ ] Add support for Padding DependencyProperty
 
 # Controls
-- [ ] FontIcon control with Nerdfont icons support
+- [x] FontIcon control with Nerdfont icons support
 - [x] Add ProgressBar control
 - [ ] Add ScrollViewer control
 - [ ] Add TabControl control

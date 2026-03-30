@@ -7,11 +7,14 @@
 
     <UserControl.Resources>
         <DataTemplate x:Key="LogEntryTemplate" DataType="sample:LogEntry">
-            <TextBlock>
-                <Run Text="{Binding Time}" />
-                <![CDATA[: ]]> 
-                <Run Text="{Binding Message}" />
-            </TextBlock>
+            <StackPanel Orientation="Horizontal">
+                <FontIcon StackPanel.SizeMode="Auto" Symbol="Check" Foreground="Green" />
+                <TextBlock StackPanel.SizeMode="Stretch" TextWrapping="Wrap">
+                    <Run Text="{Binding Time}" />
+                    <![CDATA[: ]]>
+                    <Run Text="{Binding Message}" />
+                </TextBlock>
+            </StackPanel>
         </DataTemplate>
     </UserControl.Resources>
 

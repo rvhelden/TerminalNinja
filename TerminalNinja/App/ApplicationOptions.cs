@@ -48,4 +48,11 @@ public sealed class ApplicationOptions
     /// Gets the frame delay in milliseconds based on target FPS.
     /// </summary>
     public int FrameDelayMs => 1000 / TargetFps;
+    
+    /// <summary>
+    /// Optional custom input backend for testing. When set with <see cref="Headless"/> = true,
+    /// this backend is used instead of the default NullInputBackend.
+    /// Internal — only accessible from the test project via InternalsVisibleTo.
+    /// </summary>
+    internal TerminalNinja.Input.IInputBackend? TestInputBackend { get; init; }
 }

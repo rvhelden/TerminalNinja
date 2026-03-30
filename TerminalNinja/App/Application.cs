@@ -306,7 +306,7 @@ public sealed class Application : IDisposable
             // Headless mode: no-op input backend and offscreen renderer.
             // Used for unit testing and CI environments without a real console.
             Renderer = Renderer.CreateOffscreen(Stream.Null, options.HeadlessWidth, options.HeadlessHeight);
-            _inputReader = new InputReader(new NullInputBackend());
+            _inputReader = new InputReader(options.TestInputBackend ?? new NullInputBackend());
         }
         else
         {
@@ -315,6 +315,11 @@ public sealed class Application : IDisposable
             System.Console.InputEncoding = Encoding.UTF8;
             Renderer = new Renderer();
             _inputReader = new InputReader();
+            
+            // Safety net: if Ctrl+C somehow gets delivered as a POSIX signal
+            // (e.g. TreatControlCAsInput wasn't effective), cancel the default
+            // process termination and request a graceful exit instead.
+            System.Console.CancelKeyPress += OnCancelKeyPress;
         }
         
         FocusManager = new FocusManager();
@@ -359,6 +364,16 @@ public sealed class Application : IDisposable
     public void Exit()
     {
         _running = false;
+    }
+    
+    /// <summary>
+    /// Safety-net handler for Console.CancelKeyPress (Ctrl+C delivered as a signal).
+    /// Cancels the default process termination and triggers a graceful exit.
+    /// </summary>
+    private void OnCancelKeyPress(object? sender, ConsoleCancelEventArgs e)
+    {
+        e.Cancel = true;
+        Exit();
     }
     
     /// <summary>
@@ -471,6 +486,13 @@ public sealed class Application : IDisposable
             {
                 return;
             }
+        }
+        
+        // Ctrl+C: exit the application immediately
+        if (keyEvent is { Key: ConsoleKey.C, Ctrl: true, Shift: false, Alt: false })
+        {
+            Exit();
+            return;
         }
         
         // Escape key: close the topmost modal overlay first, then exit the app
@@ -589,6 +611,10 @@ public sealed class Application : IDisposable
             Current = null;
             FrameworkElement.ApplicationResourceLookup = null;
         }
+        
+        // Unsubscribe from CancelKeyPress to avoid leaking event handlers.
+        // Safe to call even if we never subscribed (headless mode).
+        System.Console.CancelKeyPress -= OnCancelKeyPress;
         
         _inputReader.Dispose();
         Renderer.Dispose();

@@ -96,8 +96,8 @@ public class DataTemplate
                 continue;
             }
 
-            // Skip read-only properties — except InlineCollection which must be
-            // cloned into the target (TextBlock.Inlines, Span.Inlines are read-only).
+            // Skip read-only properties — except collections that must be
+            // cloned into the target (InlineCollection, IList<UIElement> for Panel.Children).
             if (!accessor.CanWrite)
             {
                 if (accessor.Getter(source) is InlineCollection { Count: > 0 } sourceInlines
@@ -109,6 +109,18 @@ public class DataTemplate
                         if (clonedInline is Inline clonedInlineTyped)
                         {
                             cloneInlines.Add(clonedInlineTyped);
+                        }
+                    }
+                }
+                else if (accessor.Getter(source) is IList<UIElement> { Count: > 0 } sourceChildren
+                         && accessor.Getter(clone) is IList<UIElement> cloneChildren)
+                {
+                    foreach (var child in sourceChildren)
+                    {
+                        var clonedChild = CloneControl(child);
+                        if (clonedChild != null)
+                        {
+                            cloneChildren.Add(clonedChild);
                         }
                     }
                 }
