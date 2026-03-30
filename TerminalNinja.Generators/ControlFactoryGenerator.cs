@@ -47,19 +47,16 @@ public sealed class ControlFactoryGenerator : IIncrementalGenerator
         // Pipeline 1: Collect class declarations for factory types
         var classDeclarations = context.SyntaxProvider
             .CreateSyntaxProvider(
-                predicate: static (node, _) => node is ClassDeclarationSyntax,
-                transform: static (ctx, _) => GetFactoryType(ctx))
+                static (node, _) => node is ClassDeclarationSyntax,
+                static (ctx, _) => GetFactoryType(ctx))
             .Where(static t => t is not null)
             .Select(static (t, _) => t!);
 
         // Pipeline 2: Collect ALL type declarations (class, struct, enum) for [TypeConverter] discovery
         var typeConverterDeclarations = context.SyntaxProvider
             .CreateSyntaxProvider(
-                predicate: static (node, _) => node is ClassDeclarationSyntax
-                                             || node is StructDeclarationSyntax
-                                             || node is EnumDeclarationSyntax
-                                             || node is RecordDeclarationSyntax,
-                transform: static (ctx, _) => GetTypeConverterInfo(ctx))
+                static (node, _) => node is ClassDeclarationSyntax or StructDeclarationSyntax or EnumDeclarationSyntax or RecordDeclarationSyntax,
+                static (ctx, _) => GetTypeConverterInfo(ctx))
             .Where(static t => t is not null)
             .Select(static (t, _) => t!);
 
@@ -97,18 +94,7 @@ public sealed class ControlFactoryGenerator : IIncrementalGenerator
         }
 
         // Check if it implements one of the additional factory interfaces (e.g., IValueConverter)
-        foreach (var iface in symbol.AllInterfaces)
-        {
-            foreach (var name in AdditionalFactoryInterfaces)
-            {
-                if (iface.Name == name)
-                {
-                    return symbol;
-                }
-            }
-        }
-
-        return null;
+        return Enumerable.Any(symbol.AllInterfaces, iface => AdditionalFactoryInterfaces.Any(name => iface.Name == name)) ? symbol : null;
     }
 
     /// <summary>
@@ -116,17 +102,12 @@ public sealed class ControlFactoryGenerator : IIncrementalGenerator
     /// </summary>
     private static TypeConverterModel? GetTypeConverterInfo(GeneratorSyntaxContext context)
     {
-        INamedTypeSymbol? symbol = null;
-
-        switch (context.Node)
+        var symbol = context.Node switch
         {
-            case ClassDeclarationSyntax:
-            case StructDeclarationSyntax:
-            case RecordDeclarationSyntax:
-            case EnumDeclarationSyntax:
-                symbol = context.SemanticModel.GetDeclaredSymbol(context.Node) as INamedTypeSymbol;
-                break;
-        }
+            ClassDeclarationSyntax or StructDeclarationSyntax or RecordDeclarationSyntax or EnumDeclarationSyntax =>
+                context.SemanticModel.GetDeclaredSymbol(context.Node) as INamedTypeSymbol,
+            _ => null
+        };
 
         if (symbol == null)
         {
@@ -141,37 +122,26 @@ public sealed class ControlFactoryGenerator : IIncrementalGenerator
         }
 
         // Look for [TypeConverter(typeof(SomeConverter))] attribute
-        foreach (var attr in symbol.GetAttributes())
+        foreach (var attr in symbol.GetAttributes().Where(attr => attr.AttributeClass?.Name == "TypeConverterAttribute"))
         {
-            if (attr.AttributeClass?.Name != "TypeConverterAttribute")
+            // Get the converter type from the constructor argument
+            if (attr.ConstructorArguments is not [{ Value: INamedTypeSymbol converterType } _])
             {
                 continue;
             }
 
-            // Get the converter type from the constructor argument
-            if (attr.ConstructorArguments.Length == 1 &&
-                attr.ConstructorArguments[0].Value is INamedTypeSymbol converterType)
-            {
-                var targetFullName = GeneratorHelper.GetFullyQualifiedTypeName(symbol);
-                var converterFullName = GeneratorHelper.GetFullyQualifiedTypeName(converterType);
+            var targetFullName = GeneratorHelper.GetFullyQualifiedTypeName(symbol);
+            var converterFullName = GeneratorHelper.GetFullyQualifiedTypeName(converterType);
 
-                // Skip EnumConverter — those are handled automatically at runtime
-                if (converterType.Name == "EnumConverter")
-                {
-                    return null;
-                }
-
-                return new TypeConverterModel(targetFullName, converterFullName);
-            }
+            // Skip EnumConverter — those are handled automatically at runtime
+            return converterType.Name == "EnumConverter" ? null : new TypeConverterModel(targetFullName, converterFullName);
         }
 
         return null;
     }
 
-    private static void Execute(
-        SourceProductionContext context,
-        ((Compilation Compilation, ImmutableArray<INamedTypeSymbol> Types) Left,
-         ImmutableArray<TypeConverterModel> TypeConverters) input)
+    private static void Execute(SourceProductionContext context,
+        ((Compilation Compilation, ImmutableArray<INamedTypeSymbol> Types) Left, ImmutableArray<TypeConverterModel> TypeConverters) input)
     {
         var compilation = input.Left.Compilation;
         var types = input.Left.Types;
@@ -333,7 +303,7 @@ public sealed class ControlFactoryGenerator : IIncrementalGenerator
                     "Failed to generate control factories: {0}",
                     "TerminalNinja.Generators",
                     DiagnosticSeverity.Error,
-                    isEnabledByDefault: true),
+                    true),
                 Location.None,
                 ex.Message));
         }
@@ -353,12 +323,12 @@ public sealed class ControlFactoryGenerator : IIncrementalGenerator
                 continue;
             }
 
-            if (attr.ConstructorArguments.Length == 1 &&
-                attr.ConstructorArguments[0].Value is string propertyName)
+            if (attr.ConstructorArguments is [{ Value: string propertyName } _])
             {
                 return propertyName;
             }
         }
+
         return null;
     }
 
@@ -377,6 +347,7 @@ public sealed class ControlFactoryGenerator : IIncrementalGenerator
 
             current = current.BaseType;
         }
+
         return false;
     }
 
@@ -433,6 +404,13 @@ internal sealed class TypeConverterModel : IEquatable<TypeConverterModel>
         return TargetFullName == other.TargetFullName && ConverterFullName == other.ConverterFullName;
     }
 
-    public override bool Equals(object? obj) => Equals(obj as TypeConverterModel);
-    public override int GetHashCode() => TargetFullName.GetHashCode() ^ ConverterFullName.GetHashCode();
+    public override bool Equals(object? obj)
+    {
+        return Equals(obj as TypeConverterModel);
+    }
+
+    public override int GetHashCode()
+    {
+        return TargetFullName.GetHashCode() ^ ConverterFullName.GetHashCode();
+    }
 }

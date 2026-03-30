@@ -215,7 +215,7 @@ public class ItemsControl : Control
                 break;
 
             case NotifyCollectionChangedAction.Replace:
-                if (e.OldItems != null && e.NewItems != null)
+                if (e is { OldItems: not null, NewItems: not null })
                 {
                     for (var i = 0; i < e.OldItems.Count; i++)
                     {

@@ -844,7 +844,7 @@ internal sealed class XamlLoader
             // If no x:Key, allow implicit Style keying by TargetType
             if (keyAttr == null)
             {
-                if (childType == typeof(Styling.Style) || childType.IsSubclassOf(typeof(Styling.Style)))
+                if (childType == typeof(Style) || childType.IsSubclassOf(typeof(Style)))
                 {
                     // Create the Style, process attributes/children, then derive key from TargetType
                     if (ControlFactoryRegistry.TryCreate(childType, out var styleInstance))
@@ -855,7 +855,7 @@ internal sealed class XamlLoader
                             ProcessChildElements(child, styleInstance, childType, fe);
                         }
 
-                        var style = (Styling.Style)styleInstance;
+                        var style = (Style)styleInstance;
                         if (style.TargetType != null)
                         {
                             fe.Resources[style.TargetType] = style;

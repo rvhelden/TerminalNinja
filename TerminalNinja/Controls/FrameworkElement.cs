@@ -163,7 +163,7 @@ public abstract class FrameworkElement : UIElement
     {
         foreach (var (_, expr) in GetAllExpressions())
         {
-            if (expr is BindingExpression be && !be.HasRelativeSource && !be.HasExplicitSource)
+            if (expr is BindingExpression { HasRelativeSource: false, HasExplicitSource: false } be)
             {
                 be.Invalidate();
             }
@@ -238,7 +238,7 @@ public abstract class FrameworkElement : UIElement
     /// <summary>
     /// Gets or sets whether this element has any resources defined.
     /// </summary>
-    internal bool HasResources => _resources != null && _resources.Count > 0;
+    internal bool HasResources => _resources is { Count: > 0 };
     
     /// <summary>
     /// Gets or sets the style applied to this element.

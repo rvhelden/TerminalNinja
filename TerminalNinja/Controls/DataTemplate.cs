@@ -100,7 +100,7 @@ public class DataTemplate
             // cloned into the target (TextBlock.Inlines, Span.Inlines are read-only).
             if (!accessor.CanWrite)
             {
-                if (accessor.Getter(source) is InlineCollection sourceInlines && sourceInlines.Count > 0
+                if (accessor.Getter(source) is InlineCollection { Count: > 0 } sourceInlines
                     && accessor.Getter(clone) is InlineCollection cloneInlines)
                 {
                     foreach (var inline in sourceInlines)

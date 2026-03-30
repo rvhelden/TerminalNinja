@@ -323,6 +323,7 @@ public class BorderTests
             Width = Size.Absolute(10),
             Height = Size.Absolute(5),
             BorderStyle = global::TerminalNinja.Styling.BorderStyle.Single(Color.Cyan),
+            Foreground = Color.Cyan,
             Background = Color.Black
         };
 
@@ -331,6 +332,38 @@ public class BorderTests
         var cornerCell = _buffer.GetCell(0, 0);
         await Assert.That(cornerCell.Foreground).IsEqualTo(Color.Cyan);
         await Assert.That(cornerCell.Background).IsEqualTo(Color.Black);
+    }
+
+    [Test]
+    public async Task Render_Border_UsesForegroundPropertyNotBorderStyleColor()
+    {
+        // Arrange: BorderStyle has Color.White (default from converter), but Foreground DP
+        // is set to Magenta (as a theme would do). Border rendering should use Foreground.
+        var rect = new global::TerminalNinja.Controls.Border
+        {
+            Width = Size.Absolute(10),
+            Height = Size.Absolute(5),
+            BorderStyle = global::TerminalNinja.Styling.BorderStyle.Single(Color.White),
+            Foreground = Color.Magenta,
+            Background = Color.Black
+        };
+
+        rect.Render(_buffer, new Rect(0, 0, BufferWidth, BufferHeight));
+
+        // Border characters should use Foreground (Magenta), not BorderStyle.Color (White)
+        var cornerCell = _buffer.GetCell(0, 0);
+        await Assert.That(cornerCell.Character).IsEqualTo('┌');
+        await Assert.That(cornerCell.Foreground).IsEqualTo(Color.Magenta);
+
+        // Horizontal edge
+        var edgeCell = _buffer.GetCell(1, 0);
+        await Assert.That(edgeCell.Character).IsEqualTo('─');
+        await Assert.That(edgeCell.Foreground).IsEqualTo(Color.Magenta);
+
+        // Vertical edge
+        var vertCell = _buffer.GetCell(0, 1);
+        await Assert.That(vertCell.Character).IsEqualTo('│');
+        await Assert.That(vertCell.Foreground).IsEqualTo(Color.Magenta);
     }
 
     #endregion
@@ -835,18 +868,21 @@ public class BorderTests
         var leftRect = new global::TerminalNinja.Controls.Border
         {
             Background = Color.Red,
+            Foreground = Color.Red,
             BorderStyle = global::TerminalNinja.Styling.BorderStyle.Single(Color.Red)
         };
 
         var centerRect = new global::TerminalNinja.Controls.Border
         {
             Background = Color.Green,
+            Foreground = Color.Green,
             BorderStyle = global::TerminalNinja.Styling.BorderStyle.Single(Color.Green)
         };
 
         var rightRect = new global::TerminalNinja.Controls.Border
         {
             Background = Color.Blue,
+            Foreground = Color.Blue,
             BorderStyle = global::TerminalNinja.Styling.BorderStyle.Single(Color.Blue)
         };
 

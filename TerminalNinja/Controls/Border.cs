@@ -108,7 +108,7 @@ public sealed class Border : FrameworkElement
             yield break;
         }
 
-        var innerBounds = BorderStyle.HasBorder && myBounds.Width >= 2 && myBounds.Height >= 2
+        var innerBounds = BorderStyle.HasBorder && myBounds is { Width: >= 2, Height: >= 2 }
             ? new Rect(myBounds.X + 1, myBounds.Y + 1, myBounds.Width - 2, myBounds.Height - 2)
             : myBounds;
         yield return (Child, innerBounds);
@@ -165,7 +165,7 @@ public sealed class Border : FrameworkElement
         buffer.FillRect(clipped, bgCell);
         
         // Draw border if present
-        if (BorderStyle.HasBorder && bounds.Width >= 2 && bounds.Height >= 2)
+        if (BorderStyle.HasBorder && bounds is { Width: >= 2, Height: >= 2 })
         {
             RenderBorder(buffer, bounds);
         }
@@ -174,7 +174,7 @@ public sealed class Border : FrameworkElement
         if (Child != null)
         {
             // Calculate inner bounds (subtract border if present)
-            var childBounds = BorderStyle.HasBorder && bounds.Width >= 2 && bounds.Height >= 2
+            var childBounds = BorderStyle.HasBorder && bounds is { Width: >= 2, Height: >= 2 }
                 ? new Rect(bounds.X + 1, bounds.Y + 1, bounds.Width - 2, bounds.Height - 2)
                 : bounds;
             
@@ -185,7 +185,7 @@ public sealed class Border : FrameworkElement
     private void RenderBorder(CellBuffer buffer, Rect bounds)
     {
         var chars = BorderStyle.Chars;
-        var color = BorderStyle.Color;
+        var color = Foreground;
         var bg = Background;
         
         // Draw corners

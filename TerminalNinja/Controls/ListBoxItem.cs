@@ -208,7 +208,7 @@ public class ListBoxItem : ContentControl
     /// <inheritdoc />
     public override void OnMouseEvent(MouseEvent e)
     {
-        if (e.Action == MouseAction.Press && e.Button == MouseButton.Left)
+        if (e is { Action: MouseAction.Press, Button: MouseButton.Left })
         {
             // Walk up the parent tree to find the parent Selector
             var parentSelector = FindParentSelector();

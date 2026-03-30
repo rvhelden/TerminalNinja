@@ -214,7 +214,7 @@ public sealed class WindowsInputBackend : Input.IInputBackend
         }
 
         // Skip if no character and no special key
-        if (keyRecord.UnicodeChar == '\0' && keyRecord.wVirtualKeyCode == 0)
+        if (keyRecord is { UnicodeChar: '\0', wVirtualKeyCode: 0 })
         {
             return null;
         }

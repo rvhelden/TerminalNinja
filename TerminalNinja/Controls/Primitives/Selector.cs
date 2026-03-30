@@ -58,7 +58,7 @@ public abstract class Selector : ItemsControl
             }
 
             selector.OnSelectionChanged(
-                e.OldValue is int oldIdx && oldIdx >= 0 && oldIdx < items.Count
+                e.OldValue is int oldIdx and >= 0 && oldIdx < items.Count
                     ? [items[oldIdx]]
                     : [],
                 newIndex >= 0 && newIndex < items.Count

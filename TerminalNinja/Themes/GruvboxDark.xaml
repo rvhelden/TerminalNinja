@@ -18,7 +18,7 @@
     <Color x:Key="ThemeAccentSecondaryColor">#fe8019</Color>
 
     <!-- Border colors -->
-    <Color x:Key="ThemeBorderForegroundColor">#928374</Color>
+    <Color x:Key="ThemeBorderForegroundColor">#fb4934</Color>
     <Color x:Key="ThemeBorderBackgroundColor">#282828</Color>
 
     <!-- Button colors -->

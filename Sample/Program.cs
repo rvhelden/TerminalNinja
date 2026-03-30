@@ -15,7 +15,7 @@ public static class Program
             EnableTabNavigation = true
         });
         
-        app.ThemeName = "Dracula"; // Load the "Dark" theme from embedded XAML resources (e.g., Themes/Dark.xaml)
+        app.ThemeName = "GruvboxDark"; // Load the "Dark" theme from embedded XAML resources (e.g., Themes/Dark.xaml)
 
         // Create ViewModel
         var viewModel = new DemoViewModel();
@@ -24,7 +24,7 @@ public static class Program
         // This validates all transitive dependencies (e.g., ActivityLogControl.xaml)
         // and loads the root layout from the embedded resource.
         // Bindings are activated automatically via the DP expression system.
-        var window = TerminalXaml.Load<Window>(XamlLayouts.DemoLayout, viewModel);
+        var window = TerminalXaml.Load<Window>(XamlLayouts.HelloWorld);
 
         // Use the WPF-style Window.Show() pattern
         // This sets app.RootControl = window internally

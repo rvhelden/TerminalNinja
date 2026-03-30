@@ -105,6 +105,7 @@ public class BorderRenderingTests
             Width = Size.Absolute(4),
             Height = Size.Absolute(3),
             Background = Color.Black,
+            Foreground = Color.Cyan,
             BorderStyle = global::TerminalNinja.Styling.BorderStyle.Double(Color.Cyan)
         };
         
@@ -128,6 +129,7 @@ public class BorderRenderingTests
             Width = Size.Absolute(4),
             Height = Size.Absolute(3),
             Background = Color.Black,
+            Foreground = Color.Green,
             BorderStyle = global::TerminalNinja.Styling.BorderStyle.Rounded(Color.Green)
         };
         

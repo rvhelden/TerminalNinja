@@ -34,7 +34,7 @@ public class ContentPresenter : FrameworkElement
         var cp = (ContentPresenter)d;
 
         // Detach old visual child (only if we own its parentage)
-        if (cp._visualChild != null && cp._ownsVisualChildParent)
+        if (cp is { _visualChild: not null, _ownsVisualChildParent: true })
         {
             cp._visualChild.Parent = null;
         }

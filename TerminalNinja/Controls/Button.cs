@@ -121,7 +121,7 @@ public sealed class Button : ButtonBase
         }
 
         // Create rounded border with appropriate color
-        var border = Styling.BorderStyle.Rounded(borderColor);
+        var border = BorderStyle.Rounded(borderColor);
         
         // Fill background
         var bgCell = new Cell(' ', Foreground, Background);
@@ -131,24 +131,26 @@ public sealed class Button : ButtonBase
         DrawBorder(buffer, bounds, border.Chars, borderColor);
         
         // Draw text centered in the button
-        if (!string.IsNullOrEmpty(Text))
+        if (string.IsNullOrEmpty(Text))
         {
-            var textColor = IsEnabled ? Foreground : new Color((byte)(Foreground.R / 2), (byte)(Foreground.G / 2), (byte)(Foreground.B / 2));
-            var textX = bounds.X + (bounds.Width - Text.Length) / 2;
-            var textY = bounds.Y + bounds.Height / 2;
-            
-            for (var i = 0; i < Text.Length && textX + i < bounds.X + bounds.Width; i++)
-            {
-                var charX = textX + i;
-                
-                // Skip characters outside buffer
-                if (charX < 0 || charX >= buffer.Width || textY < 0 || textY >= buffer.Height)
-                {
-                    continue;
-                }
+            return;
+        }
 
-                buffer.SetChar(charX, textY, Text[i], textColor, Background);
+        var textColor = IsEnabled ? Foreground : new Color((byte)(Foreground.R / 2), (byte)(Foreground.G / 2), (byte)(Foreground.B / 2));
+        var textX = bounds.X + (bounds.Width - Text.Length) / 2;
+        var textY = bounds.Y + bounds.Height / 2;
+            
+        for (var i = 0; i < Text.Length && textX + i < bounds.X + bounds.Width; i++)
+        {
+            var charX = textX + i;
+                
+            // Skip characters outside buffer
+            if (charX < 0 || charX >= buffer.Width || textY < 0 || textY >= buffer.Height)
+            {
+                continue;
             }
+
+            buffer.SetChar(charX, textY, Text[i], textColor, Background);
         }
     }
     
@@ -165,34 +167,38 @@ public sealed class Button : ButtonBase
         // Top and bottom edges
         for (var x = bounds.X + 1; x < bounds.X + bounds.Width - 1; x++)
         {
-            if (x >= 0 && x < buffer.Width)
+            if (x < 0 || x >= buffer.Width)
             {
-                if (bounds.Y >= 0 && bounds.Y < buffer.Height)
-                {
-                    buffer.SetChar(x, bounds.Y, chars.Horizontal, color, Background);
-                }
+                continue;
+            }
 
-                if (bounds.Y + bounds.Height - 1 >= 0 && bounds.Y + bounds.Height - 1 < buffer.Height)
-                {
-                    buffer.SetChar(x, bounds.Y + bounds.Height - 1, chars.Horizontal, color, Background);
-                }
+            if (bounds.Y >= 0 && bounds.Y < buffer.Height)
+            {
+                buffer.SetChar(x, bounds.Y, chars.Horizontal, color, Background);
+            }
+
+            if (bounds.Y + bounds.Height - 1 >= 0 && bounds.Y + bounds.Height - 1 < buffer.Height)
+            {
+                buffer.SetChar(x, bounds.Y + bounds.Height - 1, chars.Horizontal, color, Background);
             }
         }
         
         // Left and right edges
         for (var y = bounds.Y + 1; y < bounds.Y + bounds.Height - 1; y++)
         {
-            if (y >= 0 && y < buffer.Height)
+            if (y < 0 || y >= buffer.Height)
             {
-                if (bounds.X >= 0 && bounds.X < buffer.Width)
-                {
-                    buffer.SetChar(bounds.X, y, chars.Vertical, color, Background);
-                }
+                continue;
+            }
 
-                if (bounds.X + bounds.Width - 1 >= 0 && bounds.X + bounds.Width - 1 < buffer.Width)
-                {
-                    buffer.SetChar(bounds.X + bounds.Width - 1, y, chars.Vertical, color, Background);
-                }
+            if (bounds.X >= 0 && bounds.X < buffer.Width)
+            {
+                buffer.SetChar(bounds.X, y, chars.Vertical, color, Background);
+            }
+
+            if (bounds.X + bounds.Width - 1 >= 0 && bounds.X + bounds.Width - 1 < buffer.Width)
+            {
+                buffer.SetChar(bounds.X + bounds.Width - 1, y, chars.Vertical, color, Background);
             }
         }
         
@@ -227,7 +233,7 @@ public sealed class Button : ButtonBase
     public override void OnKeyEvent(KeyEvent e)
     {
         // Trigger click on Enter or Space
-        if (e.Key == ConsoleKey.Enter || e.Key == ConsoleKey.Spacebar)
+        if (e.Key is ConsoleKey.Enter or ConsoleKey.Spacebar)
         {
             RaiseClick();
         }
@@ -239,7 +245,7 @@ public sealed class Button : ButtonBase
     public override void OnMouseEvent(MouseEvent e)
     {
         // Trigger click on left mouse button press
-        if (e.Action == MouseAction.Press && e.Button == MouseButton.Left)
+        if (e is { Action: MouseAction.Press, Button: MouseButton.Left })
         {
             RaiseClick();
         }

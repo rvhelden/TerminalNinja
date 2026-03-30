@@ -154,7 +154,7 @@ public sealed class TextBlock : FrameworkElement
     /// <summary>
     /// Gets whether this text block has inline elements.
     /// </summary>
-    internal bool HasInlines => _inlines != null && _inlines.Count > 0;
+    internal bool HasInlines => _inlines is { Count: > 0 };
 
     /// <summary>
     /// Returns the preferred size of this text block based on text length and padding.

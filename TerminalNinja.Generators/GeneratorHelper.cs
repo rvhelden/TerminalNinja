@@ -211,8 +211,7 @@ internal static class GeneratorHelper
                            property.GetMethod.DeclaredAccessibility == Accessibility.Internal);
 
             // Determine if writable (init-only setters are NOT writable at runtime)
-            var canWrite = property.SetMethod != null &&
-                           !property.SetMethod.IsInitOnly &&
+            var canWrite = property.SetMethod is { IsInitOnly: false } &&
                            (property.SetMethod.DeclaredAccessibility == Accessibility.Public ||
                             property.SetMethod.DeclaredAccessibility == Accessibility.Internal);
 

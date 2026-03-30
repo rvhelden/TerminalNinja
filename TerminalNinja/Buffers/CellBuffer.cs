@@ -349,7 +349,7 @@ public sealed unsafe class CellBuffer : IDisposable
                 var ch = cell.Character;
                 
                 // Make certain control characters visible
-                if (ch == '\0' || ch < ' ')
+                if (ch is '\0' or < ' ')
                 {
                     ch = '\u00B7'; // Middle dot for empty/control chars
                 }

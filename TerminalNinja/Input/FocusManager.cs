@@ -40,11 +40,13 @@ public sealed class FocusManager
         FocusedElement = element;
         
         // Focus new element
-        if (FocusedElement is not null)
+        if (FocusedElement is null)
         {
-            FocusedElement.IsFocused = true;
-            FocusedElement.OnGotFocus();
+            return;
         }
+
+        FocusedElement.IsFocused = true;
+        FocusedElement.OnGotFocus();
     }
     
     /// <summary>
@@ -149,12 +151,14 @@ public sealed class FocusManager
         HoveredElement = hitElement;
         
         // Enter new element
-        if (HoveredElement is not null)
+        if (HoveredElement is null)
         {
-            HoveredElement.IsMouseOver = true;
-            HoveredElement.OnMouseEnter();
+            return hitElement;
         }
-        
+
+        HoveredElement.IsMouseOver = true;
+        HoveredElement.OnMouseEnter();
+
         return hitElement;
     }
     
@@ -193,7 +197,7 @@ public sealed class FocusManager
         var targetElement = HitTestDeep(rootControl, rootBounds, mouseEvent.X, mouseEvent.Y);
         
         // Focus the nearest focusable ancestor on left mouse button press
-        if (mouseEvent.Action == MouseAction.Press && mouseEvent.Button == MouseButton.Left)
+        if (mouseEvent is { Action: MouseAction.Press, Button: MouseButton.Left })
         {
             var focusTarget = FindFocusableAncestorOrSelf(targetElement);
             SetFocus(focusTarget);
@@ -356,7 +360,7 @@ public sealed class FocusManager
         var current = element as Visual;
         while (current != null)
         {
-            if (current is UIElement uie && uie.Focusable)
+            if (current is UIElement { Focusable: true } uie)
             {
                 return uie;
             }

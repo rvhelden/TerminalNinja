@@ -171,7 +171,7 @@ public class CellBufferTests
         var changeCount = 0;
         foreach (var change in changes)
         {
-            if (change.X == 5 && change.Y == 5)
+            if (change is { X: 5, Y: 5 })
             {
                 changeCount++;
             }
@@ -797,7 +797,7 @@ public class CellBufferTests
         }
 
         // The 'X' cell at (3,2) should appear in the diff because _previous is empty
-        var xChange = changesAfter.FirstOrDefault(ch => ch.X == 3 && ch.Y == 2);
+        var xChange = changesAfter.FirstOrDefault(ch => ch is { X: 3, Y: 2 });
         await Assert.That(xChange.Cell).IsEqualTo(testCell);
         
         buffer.Dispose();
