@@ -272,6 +272,126 @@ pre code {
   }
 }
 
+/* ── sample grid ───────────────────────────────────────── */
+
+.sample-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.sample-card {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  text-decoration: none;
+  color: var(--text);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: rgba(9, 15, 24, 0.72);
+  padding: 16px;
+  transition: border-color 180ms ease, transform 180ms ease;
+}
+
+.sample-card:hover {
+  border-color: var(--accent-2);
+  transform: translateY(-2px);
+}
+
+.sample-card h3 {
+  margin: 0;
+  font-size: 1rem;
+}
+
+.sample-card p {
+  color: var(--muted);
+  line-height: 1.55;
+  font-size: 0.9rem;
+  flex: 1;
+}
+
+.sample-card-link {
+  font-family: "JetBrains Mono", monospace;
+  font-size: 0.78rem;
+  color: var(--accent);
+}
+
+/* ── preview tabs ─────────────────────────────────────── */
+
+.preview-tabs {
+  display: flex;
+  gap: 0;
+  border-bottom: 1px solid var(--line);
+  margin-bottom: 0;
+}
+
+.preview-tab {
+  padding: 8px 16px;
+  font-family: "JetBrains Mono", monospace;
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--muted);
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid transparent;
+  cursor: pointer;
+  transition: color 150ms ease, border-color 150ms ease;
+}
+
+.preview-tab:hover {
+  color: var(--text);
+}
+
+.preview-tab.active {
+  color: var(--accent);
+  border-bottom-color: var(--accent);
+}
+
+.preview-tab-content {
+  display: none;
+}
+
+.preview-tab-content.active {
+  display: block;
+}
+
+.preview-terminal {
+  background: #0a0e17;
+  border-radius: 0 0 12px 12px;
+  padding: 8px;
+  min-height: 340px;
+}
+
+.preview-terminal .xterm {
+  height: 100%;
+}
+
+.preview-source {
+  margin: 0;
+}
+
+.preview-source pre {
+  margin: 0;
+  border-radius: 0 0 12px 12px;
+}
+
+/* ── breadcrumb ───────────────────────────────────────── */
+
+.breadcrumb {
+  font-size: 0.88rem;
+  color: var(--muted);
+}
+
+.breadcrumb a {
+  color: var(--accent);
+  text-decoration: none;
+}
+
+.breadcrumb a:hover {
+  text-decoration: underline;
+}
+
 @media (max-width: 640px) {
   body {
     padding-top: 18px;
@@ -285,5 +405,15 @@ pre code {
   .concept-grid,
   .control-grid {
     grid-template-columns: 1fr;
+  }
+
+  .sample-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (min-width: 641px) and (max-width: 900px) {
+  .sample-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }

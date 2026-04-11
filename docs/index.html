@@ -22,54 +22,71 @@
       <h1>WPF-inspired TUI for .NET, built native AOT-first.</h1>
       <p class="lede">
         Build rich terminal interfaces with a familiar dependency property system, XAML markup,
-        and modern rendering architecture designed for performance and deployment simplicity.
+        data binding, theming, and modern rendering — designed for performance and deployment simplicity.
       </p>
       <div class="hero-actions">
-        <a class="btn btn-primary" href="https://github.com" target="_blank" rel="noreferrer">View on GitHub</a>
-        <a class="btn btn-ghost" href="./playground.html">Try the Playground</a>
-        <a class="btn btn-ghost" href="#getting-started">Start Reading</a>
+        <a class="btn btn-primary" href="./playground.html">Try the Playground</a>
+        <a class="btn btn-ghost" href="#samples">Browse Samples</a>
+        <a class="btn btn-ghost" href="#getting-started">Getting Started</a>
       </div>
     </header>
 
     <section class="panel intro" aria-label="Intro">
       <h2>Why TerminalNinja</h2>
       <ul>
-        <li>WPF-inspired control hierarchy and dependency property model</li>
+        <li>WPF-inspired control hierarchy and dependency property system</li>
         <li>XAML-first authoring with bindings, templates, and static resources</li>
-        <li>Native AOT-oriented architecture with source generators and registries</li>
-        <li>Efficient terminal rendering focused on low overhead updates</li>
+        <li>Built-in themes (Dark, Dracula, Gruvbox Dark) with implicit styles</li>
+        <li>Native AOT-oriented architecture with source generators</li>
+        <li>Efficient terminal rendering with cell-level diffing</li>
+        <li>Modal dialogs, keyboard/mouse input, and focus management</li>
       </ul>
     </section>
 
     <nav class="panel docs-nav" aria-label="Documentation sections">
-      <a href="#getting-started">01 Getting Started</a>
-      <a href="#wpf-concepts">02 WPF Concepts</a>
-      <a href="#controls">03 Controls Showcase</a>
+      <a href="#getting-started">Getting Started</a>
+      <a href="#wpf-concepts">WPF Concepts</a>
+      <a href="#samples">Samples</a>
+      <a href="#theming">Theming</a>
     </nav>
 
+    <!-- ─── Getting Started ─────────────────────────────────────────── -->
     <section class="panel doc-section" id="getting-started" aria-label="Getting Started">
-      <h2>01 - Getting Started</h2>
-      <p class="section-copy">Create your first app in a few minutes.</p>
+      <h2>Getting Started</h2>
+      <p class="section-copy">Create your first TerminalNinja app in a few minutes.</p>
       <ol>
-        <li>Create a console app targeting <code>net10.0-windows</code>.</li>
+        <li>Create a console app targeting <code>net10.0</code>.</li>
         <li>Add a project reference to <code>TerminalNinja</code>.</li>
-        <li>Define your UI in XAML.</li>
+        <li>Define your UI in XAML and load it with <code>TerminalXaml.Load</code>.</li>
       </ol>
-      <pre><code class="language-bash">dotnet new console -n NinjaApp
-dotnet add NinjaApp/NinjaApp.csproj reference TerminalNinja/TerminalNinja.csproj
-dotnet run --project NinjaApp/NinjaApp.csproj</code></pre>
+      <pre><code class="language-csharp">using TerminalNinja.App;
+using TerminalNinja.Controls;
+using TerminalNinja.Xaml;
+
+using var app = new Application(new ApplicationOptions
+{
+    TargetFps = 60,
+    EnableMouseTracking = true,
+    EnableTabNavigation = true
+});
+
+app.ThemeName = "GruvboxDark";
+
+var window = TerminalXaml.Load&lt;Window&gt;(XamlLayouts.MainLayout, viewModel);
+window.Show();
+app.Run();</code></pre>
       <pre><code class="language-xml">&lt;Window xmlns='http://schemas.terminalninja.dev/xaml'
-        Title='Getting Started'
-        Width='80' Height='24'&gt;
+        Title='My App' Width='80' Height='24'&gt;
   &lt;StackPanel Orientation='Vertical'&gt;
     &lt;TextBlock Text='Welcome to TerminalNinja' /&gt;
-    &lt;Button Text='Run' /&gt;
+    &lt;Button Text='Click Me' Command='{Binding ClickCommand}' /&gt;
   &lt;/StackPanel&gt;
 &lt;/Window&gt;</code></pre>
     </section>
 
+    <!-- ─── WPF Concepts ────────────────────────────────────────────── -->
     <section class="panel doc-section" id="wpf-concepts" aria-label="WPF concepts">
-      <h2>02 - WPF Concepts in the Terminal</h2>
+      <h2>WPF Concepts in the Terminal</h2>
       <p class="section-copy">TerminalNinja keeps WPF mental models so desktop developers can move fast.</p>
       <div class="concept-grid">
         <article>
@@ -82,61 +99,86 @@ dotnet run --project NinjaApp/NinjaApp.csproj</code></pre>
         </article>
         <article>
           <h3>Binding + DataContext</h3>
-          <p>Use <code>{Binding}</code>, <code>RelativeSource</code>, converters, and view-model patterns.</p>
+          <p>Use <code>{Binding}</code>, <code>RelativeSource</code>, converters, and MVVM patterns.</p>
         </article>
         <article>
           <h3>Resources + Styles</h3>
           <p>Share values with <code>StaticResource</code> and apply consistent look with <code>Style</code>/<code>Setter</code>.</p>
         </article>
       </div>
-      <pre><code class="language-xml">&lt;Window xmlns='http://schemas.terminalninja.dev/xaml'
-        Title='Concept Demo' Width='80' Height='24'&gt;
-  &lt;StackPanel Orientation='Vertical'&gt;
-    &lt;TextBlock Text='{Binding AppTitle}' /&gt;
-    &lt;Button Text='Run Command' /&gt;
-  &lt;/StackPanel&gt;
-&lt;/Window&gt;</code></pre>
     </section>
 
-    <section class="panel doc-section" id="controls" aria-label="Controls showcase">
-      <h2>03 - Controls Showcase</h2>
-      <p class="section-copy">A compact tour of the core controls available today.</p>
-      <div class="control-grid">
-        <article>
-          <h3>Layout</h3>
-          <p><code>StackPanel</code>, <code>Grid</code>, <code>Panel</code></p>
-        </article>
-        <article>
-          <h3>Content</h3>
-          <p><code>Window</code>, <code>UserControl</code>, <code>Border</code>, <code>TextBlock</code></p>
-        </article>
-        <article>
-          <h3>Items + Selection</h3>
-          <p><code>ItemsControl</code>, <code>ListBox</code>, <code>ListBoxItem</code>, <code>Selector</code></p>
-        </article>
-        <article>
-          <h3>Interaction</h3>
-          <p><code>ButtonBase</code>, <code>Button</code>, commands, keyboard and mouse input</p>
-        </article>
+    <!-- ─── Samples ─────────────────────────────────────────────────── -->
+    <section class="panel doc-section" id="samples" aria-label="Samples">
+      <h2>Samples</h2>
+      <p class="section-copy">Explore working examples that demonstrate every major feature.</p>
+      <div class="sample-grid">
+
+        <a class="sample-card" href="./samples/progress-bars.html">
+          <h3>Progress Bars</h3>
+          <p>Determinate, indeterminate, and custom-character progress indicators.</p>
+          <span class="sample-card-link">View docs &rarr;</span>
+        </a>
+
+        <a class="sample-card" href="./samples/buttons.html">
+          <h3>Buttons</h3>
+          <p>ICommand binding, RelayCommand, hover/focus colors, and tab navigation.</p>
+          <span class="sample-card-link">View docs &rarr;</span>
+        </a>
+
+        <a class="sample-card" href="./samples/data-binding.html">
+          <h3>Data Binding</h3>
+          <p>One-way and two-way binding, value converters, and animated colors.</p>
+          <span class="sample-card-link">View docs &rarr;</span>
+        </a>
+
+        <a class="sample-card" href="./samples/dialogs.html">
+          <h3>Dialogs</h3>
+          <p>Modal dialogs with OK/Cancel, dimmed background, and async results.</p>
+          <span class="sample-card-link">View docs &rarr;</span>
+        </a>
+
+        <a class="sample-card" href="./samples/lists.html">
+          <h3>Lists</h3>
+          <p>ListBox with selection, ObservableCollection, and custom UserControls.</p>
+          <span class="sample-card-link">View docs &rarr;</span>
+        </a>
+
+        <a class="sample-card" href="./samples/grid-layout.html">
+          <h3>Grid Layout</h3>
+          <p>Rows, columns, star/fixed sizing, and row/column spans.</p>
+          <span class="sample-card-link">View docs &rarr;</span>
+        </a>
+
+        <a class="sample-card" href="./samples/stack-layout.html">
+          <h3>StackPanel Layout</h3>
+          <p>Vertical/horizontal stacking with Auto, Fixed, and Stretch sizing.</p>
+          <span class="sample-card-link">View docs &rarr;</span>
+        </a>
+
       </div>
-      <pre><code class="language-xml">&lt;Window xmlns='http://schemas.terminalninja.dev/xaml'
-        Title='TerminalNinja Demo'
-        Width='80' Height='24'&gt;
-  &lt;Grid&gt;
-    &lt;Border Grid.Row='0' BorderStyle='Rounded'&gt;
-      &lt;TextBlock Text='TerminalNinja Controls' /&gt;
-    &lt;/Border&gt;
-    &lt;ListBox Grid.Row='1'&gt;
-      &lt;TextBlock Text='TextBlock' /&gt;
-      &lt;TextBlock Text='Button' /&gt;
-      &lt;TextBlock Text='Border' /&gt;
-      &lt;/ListBox&gt;
-  &lt;/Grid&gt;
-&lt;/Window&gt;</code></pre>
+    </section>
+
+    <!-- ─── Theming ─────────────────────────────────────────────────── -->
+    <section class="panel doc-section" id="theming" aria-label="Theming">
+      <h2>Theming</h2>
+      <p class="section-copy">
+        TerminalNinja ships with three built-in themes that apply implicit styles and color resources
+        across all controls. Set the theme on the <code>Application</code> instance:
+      </p>
+      <pre><code class="language-csharp">app.ThemeName = "Dark";      // VS Code-inspired dark
+app.ThemeName = "Dracula";   // Dracula color scheme
+app.ThemeName = "GruvboxDark"; // Gruvbox dark palette</code></pre>
+      <p class="section-copy" style="margin-top:12px">
+        Themes define 24 color resource keys (background, foreground, accent, button, selection, progress, dialog)
+        and implicit styles for <code>TextBlock</code>, <code>Button</code>, <code>Border</code>,
+        <code>Window</code>, <code>ListBox</code>, <code>ListBoxItem</code>, and <code>ProgressBar</code>.
+        Try switching themes in the <a href="./playground.html">playground</a>.
+      </p>
     </section>
 
     <footer class="footer">
-      <p>More docs and API references coming soon.</p>
+      <p>TerminalNinja &mdash; .NET 10 &middot; C# 13 &middot; Native AOT</p>
     </footer>
   </main>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/highlight.min.js"></script>

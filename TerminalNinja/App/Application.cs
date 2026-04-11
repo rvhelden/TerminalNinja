@@ -305,8 +305,8 @@ public sealed class Application : IDisposable
         {
             // Headless mode: no-op input backend and offscreen renderer.
             // Used for unit testing and CI environments without a real console.
-            Renderer = Renderer.CreateOffscreen(Stream.Null, options.HeadlessWidth, options.HeadlessHeight);
-            _inputReader = new InputReader(options.TestInputBackend ?? new NullInputBackend());
+            Renderer = Renderer.CreateOffscreen(options.HeadlessOutputStream ?? Stream.Null, options.HeadlessWidth, options.HeadlessHeight);
+            _inputReader = new InputReader(options.InputBackend ?? new NullInputBackend());
         }
         else
         {
@@ -338,6 +338,43 @@ public sealed class Application : IDisposable
         _invalidated = true;
     }
     
+    /// <summary>
+    /// Performs a single iteration of the event loop: processes all pending input events
+    /// and re-renders if the UI has been invalidated. Returns true if a new frame was rendered.
+    /// Use this in environments where you control the tick rate externally (e.g. WASM with
+    /// requestAnimationFrame) instead of calling <see cref="Run()"/>.
+    /// </summary>
+    public bool ProcessTick()
+    {
+        ProcessInput();
+
+        if (!_invalidated || _rootControl is null)
+        {
+            return false;
+        }
+
+        Renderer.Clear();
+        Renderer.Draw(_rootControl);
+
+        foreach (var overlay in _overlayStack)
+        {
+            if (overlay.DimBackground)
+            {
+                Renderer.DimBackground();
+            }
+
+            Renderer.DrawOverlay(overlay.Element);
+        }
+
+        Renderer.Present();
+        _invalidated = false;
+
+        TimeToFirstRender ??= DateTime.UtcNow - _startTime;
+        _frameCount++;
+
+        return true;
+    }
+
     /// <summary>
     /// Recursively wires invalidation callbacks for all elements in the visual tree
     /// using the Visual.GetChildrenWithBounds traversal.

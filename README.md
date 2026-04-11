@@ -1,196 +1,97 @@
 # TerminalNinja
 
-A high-performance TUI (Terminal User Interface) framework for .NET 10 with zero-allocation rendering and cell-level diffing.
+A WPF-inspired terminal UI framework for .NET 10, built native AOT-first.
 
 ## Features
 
-- **Zero-allocation rendering** - No GC pressure during render loops
-- **Cell-level diffing** - Only changed cells are transmitted to terminal
-- **24-bit true color** - Full RGB color support
-- **C# 13 escape sequences** - Uses modern `\e` escape character
-- **Memory-optimized** - Packed 8-byte cell structure with dirty tracking
-- **ANSI escape sequences** - Direct ANSI output with optimized cursor movement
-- **Cross-platform** - Windows (VT100) and Unix terminal support
-- **Flexible sizing** - Absolute, relative (percentage), and stretch sizing modes
-- **Multiple border styles** - Single, double, rounded, and ASCII borders
-- **Alignment support** - Start, center, and end alignment on both axes
+- **XAML-first UI** — declarative layouts with the TerminalNinja XML namespace
+- **Dependency property system** — WPF-aligned DPs with metadata, callbacks, and binding support
+- **Data binding** — `{Binding}`, `RelativeSource`, `IValueConverter`, OneWay/TwoWay/OneTime modes
+- **MVVM pattern** — `ViewModelBase`, `RelayCommand`, `INotifyPropertyChanged`
+- **Theming** — 3 built-in themes (Dark, Dracula, Gruvbox Dark) with implicit styles
+- **Rich controls** — Grid, StackPanel, ListBox, Button, ProgressBar, Border, TextBlock, Window
+- **Modal dialogs** — `ShowDialogAsync()` with overlay stack and dimmed background
+- **Keyboard and mouse input** — focus management, tab navigation, hit testing
+- **Native AOT** — source generators for property accessors, control factories, and XAML code-behind
+- **Zero-allocation rendering** — cell-level diffing with packed 8-byte cell structures
+- **Cross-platform** — Windows (VT100) and Unix terminal support
+- **WASM playground** — try XAML in the browser at the docs site
 
-## Architecture
+## Project Structure
 
 ```
-TerminalNinja.Core/
-├── Primitives/           # Basic types (Color, Cell, Rect, Size, Alignment)
-├── Styling/              # Border styles and characters
-├── Buffers/              # Double-buffered cell buffer with dirty tracking
-├── Ansi/                 # ANSI escape sequence generation
-├── Console/              # Terminal setup and state management
-├── Elements/             # UI elements (Rectangle)
-└── Rendering/            # Main renderer orchestrator
+TerminalNinja/              Core framework library
+TerminalNinja.Generators/   Source generators (PropertyAccessor, ControlFactory, XamlClass)
+TerminalNinja.Wasm/         Browser WASM module for the playground
+TerminalNinja.Cli/          CLI snapshot tool
+TerminalNinja.Tests/        Test suite (1033 tests)
+Sample/                     Sample app with 7 navigable demo screens
+docs/                       GitHub Pages site + XAML playground
 ```
 
 ## Quick Start
 
-### Installation
-
 ```bash
-dotnet add reference ../TerminalNinja.Core/TerminalNinja.Core.csproj
+dotnet new console -n MyApp
+cd MyApp
+dotnet add reference ../TerminalNinja/TerminalNinja.csproj
 ```
-
-### Basic Usage
 
 ```csharp
-using TerminalNinja.Core.Elements;
-using TerminalNinja.Core.Primitives;
-using TerminalNinja.Core.Rendering;
-using TerminalNinja.Core.Styling;
+using TerminalNinja.App;
+using TerminalNinja.Controls;
+using TerminalNinja.Xaml;
 
-using var renderer = new Renderer();
-
-var box = new Rectangle
+using var app = new Application(new ApplicationOptions
 {
-    X = Size.Percent(10),
-    Y = Size.Absolute(5),
-    Width = Size.Percent(80),
-    Height = Size.Absolute(10),
-    HorizontalAlignment = Alignment.Start,
-    VerticalAlignment = Alignment.Start,
-    Border = Border.Single(Color.Cyan),
-    BackgroundColor = new Color(20, 20, 40),
-    ForegroundColor = Color.Cyan
-};
+    TargetFps = 60,
+    EnableMouseTracking = true,
+    EnableTabNavigation = true
+});
 
-renderer.Clear();
-renderer.Draw(box);
-renderer.Present();  // Zero-allocation render!
+app.ThemeName = "GruvboxDark";
+
+var window = TerminalXaml.Load<Window>("<Window xmlns='http://schemas.terminalninja.dev/xaml' Title='Hello'><TextBlock Text='Hello, TerminalNinja!' /></Window>");
+window.Show();
+app.Run();
 ```
 
-## Performance Characteristics
+## Samples
 
-### Memory Usage (200×50 terminal)
+The `Sample/` project includes 7 demo screens accessible from a main menu:
 
-| Component | Size | Notes |
-|-----------|------|-------|
-| Cell Buffer (current) | 80 KB | 10K cells × 8 bytes |
-| Cell Buffer (previous) | 80 KB | For diffing |
-| ANSI Writer buffer | 64 KB | Pre-allocated output |
-| **Per-frame allocations** | **0 bytes** | ✅ Zero allocations! |
+| Sample | Description |
+|--------|-------------|
+| **Progress Bars** | Determinate, indeterminate, and custom-character progress indicators |
+| **Buttons** | ICommand binding with RelayCommand, hover/focus styling |
+| **Data Binding** | One-way, two-way, converters, and animated OKLCH color binding |
+| **Dialogs** | Modal dialogs with ShowDialogAsync, theme color resolution |
+| **Lists** | ListBox with ObservableCollection, add/remove, custom UserControl |
+| **Grid Layout** | Rows, columns, star/fixed sizing, row/column spans |
+| **StackPanel Layout** | Vertical/horizontal stacking, Auto/Fixed/Stretch modes |
 
-### Key Optimizations
+```bash
+dotnet run --project Sample/Sample.csproj
+```
 
-1. **Struct enumerators** - `ref struct` for zero-allocation iteration
-2. **Dirty rectangle tracking** - Only diff changed regions
-3. **ANSI style tracking** - Skip redundant color escape sequences
-4. **Direct stream writing** - Bypass `Console.Write` overhead
-5. **Packed cell format** - 8 bytes per cell with `[StructLayout(Pack = 1)]`
-6. **Cursor movement optimization** - Skip movement for sequential cells
-7. **Fast integer formatting** - Optimized for RGB values and coordinates
+## Theming
 
-## Components
+Three built-in themes with 24 color resource keys and implicit styles:
 
-### Primitives
-
-- **`Color`** - 24-bit RGB color (3 bytes)
-- **`Cell`** - Terminal cell with char + colors (8 bytes)
-- **`Rect`** - Rectangle bounds (16 bytes)
-- **`Size`** - Sizing with mode (absolute/relative/stretch)
-- **`Alignment`** - Start/Center/End positioning
-
-### Buffers
-
-- **`CellBuffer`** - Double-buffered with dirty tracking
-- **`DirtyRect`** - Tracks modified screen region
-- **`CellDiffEnumerator`** - Zero-allocation struct enumerator
-
-### ANSI Output
-
-- **`AnsiWriter`** - Direct stream writing with zero allocations
-- **`AnsiCodes`** - Pre-computed escape sequences using C# 13 `\e`
-- **`AnsiStyle`** - Tracks current style to minimize sequences
-
-### Elements
-
-- **`Rectangle`** - Box with borders, colors, and flexible sizing
-  - Absolute positioning: `X = Size.Absolute(10)`
-  - Relative positioning: `X = Size.Percent(50)`
-  - Stretch to fill: `Width = Size.Stretch`
-  - Alignment: `HorizontalAlignment = Alignment.Center`
+```csharp
+app.ThemeName = "Dark";        // VS Code-inspired
+app.ThemeName = "Dracula";     // Dracula color scheme
+app.ThemeName = "GruvboxDark"; // Gruvbox dark palette
+```
 
 ## Building
 
 ```bash
-# Build all projects
-dotnet build
-
-# Build in release mode
-dotnet build -c Release
-
-# Run tests
-dotnet build TerminalNinja.Core.Tests/TerminalNinja.Core.Tests.csproj
-dotnet exec TerminalNinja.Core.Tests/bin/Debug/net10.0/TerminalNinja.Core.Tests.dll
-
-# Run sample
-dotnet run --project Sample/Sample.csproj
+dotnet build                                          # Build all projects
+dotnet run --project Sample/Sample.csproj             # Run the sample app
+dotnet run --project TerminalNinja.Tests              # Run all 1033 tests
+dotnet build TerminalNinja.Wasm/TerminalNinja.Wasm.csproj  # Build WASM module
 ```
-
-## Testing
-
-The project uses TUnit v1.12.93 for testing:
-
-```bash
-dotnet build TerminalNinja.Core.Tests/TerminalNinja.Core.Tests.csproj
-dotnet exec TerminalNinja.Core.Tests/bin/Debug/net10.0/TerminalNinja.Core.Tests.dll
-```
-
-## Implementation Details
-
-### Cell Structure (8 bytes)
-
-```csharp
-[StructLayout(LayoutKind.Sequential, Pack = 1)]
-public readonly record struct Cell
-{
-    public readonly char Character;    // 2 bytes
-    public readonly Color Foreground;  // 3 bytes  
-    public readonly Color Background;  // 3 bytes
-}
-```
-
-### Zero-Allocation Diffing
-
-```csharp
-// Struct enumerator - allocated on stack
-public ref struct CellDiffEnumerator
-{
-    public bool MoveNext() { /* ... */ }
-    public CellChange Current => _currentChange;
-}
-
-// Usage - no heap allocations!
-foreach (var change in buffer.GetChanges())
-{
-    writer.WriteCell(change.X, change.Y, change.Cell);
-}
-```
-
-### ANSI Escape Sequences (C# 13)
-
-```csharp
-// Using modern \e escape character
-public static ReadOnlySpan<byte> Reset => "\e[0m"u8;
-public static ReadOnlySpan<byte> HideCursor => "\e[?25l"u8;
-public static ReadOnlySpan<byte> ForegroundPrefix => "\e[38;2;"u8;
-```
-
-## Roadmap
-
-Future enhancements:
-- [ ] Text rendering inside rectangles
-- [ ] Nested elements (hierarchy)
-- [ ] More UI primitives (text box, button, etc.)
-- [ ] Input handling (keyboard, mouse)
-- [ ] Layout containers (stack, grid)
-- [ ] Double-buffered animations
-- [ ] Performance benchmarks
 
 ## Requirements
 
@@ -201,14 +102,3 @@ Future enhancements:
 ## License
 
 See LICENSE file for details.
-
-## Statistics
-
-- **Lines of code**: ~1,300
-- **Files**: 17 implementation files
-- **Memory per frame**: 0 bytes allocated
-- **Terminal overhead**: ~160 KB for 200×50 terminal
-
----
-
-Built with performance in mind. Enjoy building fast, beautiful terminal UIs!

@@ -45,14 +45,21 @@ public sealed class ApplicationOptions
     public int HeadlessHeight { get; init; } = 24;
     
     /// <summary>
+    /// Gets or sets the output stream for headless mode rendering.
+    /// Only used when <see cref="Headless"/> is true. Default is <see cref="Stream.Null"/>.
+    /// Set this to a <see cref="MemoryStream"/> to capture ANSI output (e.g. for WASM).
+    /// </summary>
+    public Stream? HeadlessOutputStream { get; init; }
+
+    /// <summary>
     /// Gets the frame delay in milliseconds based on target FPS.
     /// </summary>
     public int FrameDelayMs => 1000 / TargetFps;
     
     /// <summary>
-    /// Optional custom input backend for testing. When set with <see cref="Headless"/> = true,
+    /// Optional custom input backend. When set with <see cref="Headless"/> = true,
     /// this backend is used instead of the default NullInputBackend.
-    /// Internal — only accessible from the test project via InternalsVisibleTo.
+    /// Use this for testing or WASM scenarios where events are injected externally.
     /// </summary>
-    internal TerminalNinja.Input.IInputBackend? TestInputBackend { get; init; }
+    public TerminalNinja.Input.IInputBackend? InputBackend { get; init; }
 }

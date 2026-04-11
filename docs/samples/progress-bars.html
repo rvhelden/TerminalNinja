@@ -1,0 +1,127 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Progress Bars - TerminalNinja</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/styles/github-dark-dimmed.min.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@xterm/xterm@5.5.0/css/xterm.css">
+  <link rel="stylesheet" href="../styles.css">
+</head>
+<body>
+  <div class="bg-grid" aria-hidden="true"></div>
+  <div class="bg-glow bg-glow-a" aria-hidden="true"></div>
+  <div class="bg-glow bg-glow-b" aria-hidden="true"></div>
+
+  <main class="shell">
+    <nav class="breadcrumb"><a href="../index.html">Docs</a> / <span>Progress Bars</span></nav>
+
+    <header class="panel">
+      <h1>Progress Bars</h1>
+      <p class="section-copy">Determinate, indeterminate, and custom-character progress indicators.</p>
+      <div class="hero-actions" style="margin-top:14px">
+        <a class="btn btn-primary" href="../playground.html?sample=progress-bars">Try in Playground</a>
+      </div>
+    </header>
+
+    <section class="panel doc-section">
+      <h2>Overview</h2>
+      <p class="section-copy">
+        The <code>ProgressBar</code> control displays a horizontal bar indicating progress.
+        It supports three modes: <strong>determinate</strong> (bound to a value 0-100),
+        <strong>indeterminate</strong> (animated marquee), and <strong>static</strong> with
+        customizable bar and track characters.
+      </p>
+    </section>
+
+    <section class="panel doc-section" style="padding:0;overflow:hidden">
+      <div class="preview-tabs">
+        <button class="preview-tab active" data-tab="preview">Preview</button>
+        <button class="preview-tab" data-tab="source">XAML Source</button>
+      </div>
+      <div class="preview-tab-content active" data-tab="preview">
+        <div class="preview-terminal" id="preview-terminal"></div>
+      </div>
+      <div class="preview-tab-content" data-tab="source">
+        <div class="preview-source">
+          <pre><code class="language-xml">&lt;!-- Determinate with percentage display --&gt;
+&lt;ProgressBar Value="{Binding ProgressValue}" ShowPercentage="True" /&gt;
+
+&lt;!-- Indeterminate (animated marquee) --&gt;
+&lt;ProgressBar IsIndeterminate="True" /&gt;
+
+&lt;!-- Custom characters --&gt;
+&lt;ProgressBar Value="25" BarCharacter="=" TrackCharacter="-" /&gt;
+
+&lt;!-- Default characters at 75% --&gt;
+&lt;ProgressBar Value="75" /&gt;</code></pre>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel doc-section">
+      <h2>ViewModel (C#)</h2>
+      <p class="section-copy">
+        The <code>ProgressValue</code> property cycles from 0 to 100 using a timer,
+        demonstrating real-time data binding to the progress bar.
+      </p>
+      <pre><code class="language-csharp">public class ProgressBarsViewModel : ViewModelBase, IDisposable
+{
+    public double ProgressValue
+    {
+        get;
+        set => SetProperty(ref field, value);
+    }
+
+    private readonly Timer _timer;
+
+    public ProgressBarsViewModel()
+    {
+        _timer = new Timer(_ =>
+        {
+            ProgressValue = (ProgressValue + 2) % 102;
+            if (ProgressValue > 100) ProgressValue = 0;
+        }, null, TimeSpan.Zero, TimeSpan.FromMilliseconds(500));
+    }
+
+    public void Dispose() => _timer.Dispose();
+}</code></pre>
+    </section>
+
+    <section class="panel doc-section">
+      <h2>Key Concepts</h2>
+      <ul>
+        <li><code>Value</code> property (0-100) for determinate progress</li>
+        <li><code>IsIndeterminate="True"</code> for animated marquee mode</li>
+        <li><code>ShowPercentage="True"</code> to display the percentage text</li>
+        <li><code>BarCharacter</code> and <code>TrackCharacter</code> for custom rendering</li>
+        <li>Timer-based animation with <code>ViewModelBase.SetProperty</code></li>
+        <li><code>IDisposable</code> pattern for timer cleanup on navigation</li>
+      </ul>
+    </section>
+
+    <footer class="footer"><a href="../index.html">&larr; Back to Docs</a></footer>
+  </main>
+  <script src="https://cdn.jsdelivr.net/npm/@xterm/xterm@5.5.0/lib/xterm.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@xterm/addon-fit@0.10.0/lib/addon-fit.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/highlight.min.js"></script>
+  <script>hljs.highlightAll();</script>
+  <script type="module">
+    import { renderPreview } from '../sample-preview.js';
+    renderPreview('progress-bars', 'preview-terminal');
+
+    document.querySelectorAll('.preview-tab').forEach(tab => {
+      tab.addEventListener('click', () => {
+        const panel = tab.closest('.doc-section');
+        panel.querySelectorAll('.preview-tab').forEach(t => t.classList.remove('active'));
+        panel.querySelectorAll('.preview-tab-content').forEach(c => c.classList.remove('active'));
+        tab.classList.add('active');
+        panel.querySelector(`.preview-tab-content[data-tab="${tab.dataset.tab}"]`).classList.add('active');
+      });
+    });
+  </script>
+</body>
+</html>

@@ -23,7 +23,7 @@ public class ApplicationCtrlCTests
         using var app = new Application(new ApplicationOptions
         {
             Headless = true,
-            TestInputBackend = backend,
+            InputBackend = backend,
         });
         app.RootControl = new TextBlock { Text = "Test" };
 
@@ -48,7 +48,7 @@ public class ApplicationCtrlCTests
         using var app = new Application(new ApplicationOptions
         {
             Headless = true,
-            TestInputBackend = backend,
+            InputBackend = backend,
         });
         app.RootControl = new TextBlock { Text = "Test" };
         app.KeyDown += (_, _) => keyDownCount++;
@@ -77,7 +77,7 @@ public class ApplicationCtrlCTests
         using var app = new Application(new ApplicationOptions
         {
             Headless = true,
-            TestInputBackend = backend,
+            InputBackend = backend,
         });
         app.RootControl = new TextBlock { Text = "Test" };
         app.KeyDown += (_, _) => keyDownFired = true;
@@ -102,7 +102,7 @@ public class ApplicationCtrlCTests
         using var app = new Application(new ApplicationOptions
         {
             Headless = true,
-            TestInputBackend = backend,
+            InputBackend = backend,
         });
         app.RootControl = new TextBlock { Text = "Test" };
         app.KeyDown += (keyEvent, args) =>
@@ -136,7 +136,7 @@ public class ApplicationCtrlCTests
         using var app = new Application(new ApplicationOptions
         {
             Headless = true,
-            TestInputBackend = backend,
+            InputBackend = backend,
         });
         app.RootControl = new TextBlock { Text = "Test" };
         app.KeyDown += (keyEvent, _) =>
@@ -166,7 +166,7 @@ public class ApplicationCtrlCTests
         using var app = new Application(new ApplicationOptions
         {
             Headless = true,
-            TestInputBackend = backend,
+            InputBackend = backend,
         });
         app.RootControl = new TextBlock { Text = "Test" };
         app.KeyDown += (keyEvent, _) =>
@@ -196,7 +196,7 @@ public class ApplicationCtrlCTests
         using var app = new Application(new ApplicationOptions
         {
             Headless = true,
-            TestInputBackend = backend,
+            InputBackend = backend,
         });
         app.RootControl = new TextBlock { Text = "Test" };
 
