@@ -155,11 +155,15 @@ public class StackPanel : Panel
         // Render each child at its calculated position
         var position = Orientation == Orientation.Horizontal ? bounds.X : bounds.Y;
         
-        for (var i = 0; i < Children.Count; i++)
+        // Use childSizes.Length (not Children.Count) as the loop bound.
+        // Children.Count can change if a child's Render triggers collection
+        // modifications (e.g., ItemsControl regenerating containers).
+        var count = Math.Min(childSizes.Length, Children.Count);
+        for (var i = 0; i < count; i++)
         {
             var child = Children[i];
             var size = childSizes[i];
-            
+
             if (size <= 0)
             {
                 continue; // Skip zero-size children
@@ -167,7 +171,7 @@ public class StackPanel : Panel
 
             var childBounds = CreateChildBounds(bounds, position, size);
             child.Render(buffer, childBounds);
-            
+
             position += size;
         }
     }
@@ -178,7 +182,8 @@ public class StackPanel : Panel
         var childSizes = CalculateChildSizes(myBounds);
         var position = Orientation == Orientation.Horizontal ? myBounds.X : myBounds.Y;
 
-        for (var i = 0; i < Children.Count; i++)
+        var count = Math.Min(childSizes.Length, Children.Count);
+        for (var i = 0; i < count; i++)
         {
             var size = childSizes[i];
             if (size <= 0)
