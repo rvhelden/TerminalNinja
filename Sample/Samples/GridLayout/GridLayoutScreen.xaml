@@ -1,0 +1,44 @@
+<Border xmlns="http://schemas.terminalninja.dev/xaml"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        BorderStyle="Rounded">
+    <StackPanel Orientation="Vertical">
+        <TextBlock StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1"
+                   Text=" Grid Layout" Padding="2,0,0,0" />
+
+        <TextBlock StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1"
+                   Text="  Rows and columns with star, fixed, and auto sizing. Cells can span multiple rows/columns."
+                   Padding="2,0,0,0" />
+
+        <TextBlock StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1" Text="" />
+
+        <!-- Grid demo: 3 rows x 3 columns with various spans -->
+        <Border StackPanel.SizeMode="Stretch" BorderStyle="Single">
+            <Grid Rows="3 * *" Columns="20 * *">
+                <!-- Row 0: header spanning all columns -->
+                <Border Grid.Row="0" Grid.ColumnSpan="3" BorderStyle="Single">
+                    <TextBlock Text="Row=0 ColSpan=3 (Fixed 3)" HorizontalTextAlignment="Center" VerticalTextAlignment="Center" />
+                </Border>
+
+                <!-- Row 1, Col 0: fixed width -->
+                <Border Grid.Row="1" Grid.Column="0" BorderStyle="Rounded">
+                    <TextBlock Text="R1 C0 (20w)" HorizontalTextAlignment="Center" VerticalTextAlignment="Center" />
+                </Border>
+
+                <!-- Row 1, Col 1: star -->
+                <Border Grid.Row="1" Grid.Column="1" BorderStyle="Rounded">
+                    <TextBlock Text="R1 C1 (*)" HorizontalTextAlignment="Center" VerticalTextAlignment="Center" />
+                </Border>
+
+                <!-- Row 1, Col 2: star, spanning 2 rows -->
+                <Border Grid.Row="1" Grid.Column="2" Grid.RowSpan="2" BorderStyle="Rounded" Background="#00005F">
+                    <TextBlock Text="R1 C2\nRowSpan=2\n(*)" HorizontalTextAlignment="Center" VerticalTextAlignment="Center" />
+                </Border>
+
+                <!-- Row 2, Col 0-1: spanning 2 columns -->
+                <Border Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="2" BorderStyle="Rounded" Background="#005F00">
+                    <TextBlock Text="R2 C0 ColSpan=2" HorizontalTextAlignment="Center" VerticalTextAlignment="Center" />
+                </Border>
+            </Grid>
+        </Border>
+    </StackPanel>
+</Border>

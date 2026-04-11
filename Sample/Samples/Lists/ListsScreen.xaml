@@ -1,0 +1,41 @@
+<Border xmlns="http://schemas.terminalninja.dev/xaml"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:sample="clr-namespace:Sample"
+        BorderStyle="Rounded">
+    <Grid Rows="1 2 3 1 *" Columns="* 35">
+        <!-- Title -->
+        <TextBlock Grid.Row="0" Grid.ColumnSpan="2"
+                   Text=" Lists and Collections" Padding="2,0,0,0" />
+
+        <!-- Description -->
+        <TextBlock Grid.Row="1" Grid.ColumnSpan="2"
+                   Text="  ListBox with two-way selection, ObservableCollection add/remove, and ActivityLogControl."
+                   Padding="2,0,0,0" VerticalTextAlignment="Center" />
+
+        <!-- Buttons -->
+        <StackPanel Grid.Row="2" Grid.ColumnSpan="2" Orientation="Horizontal">
+            <Button StackPanel.SizeMode="Auto" Text="Add Item" Width="16" Height="3"
+                    TabIndex="0" Command="{Binding AddItemCommand}" />
+            <Button StackPanel.SizeMode="Auto" Text="Remove" Width="16" Height="3"
+                    TabIndex="1" Command="{Binding RemoveItemCommand}" />
+            <TextBlock StackPanel.SizeMode="Stretch"
+                       Text="{Binding SelectionText}"
+                       VerticalTextAlignment="Center" Padding="2,0,0,0" />
+        </StackPanel>
+
+        <!-- Selection info -->
+        <TextBlock Grid.Row="3" Grid.Column="0"
+                   Text="{Binding SelectionText}" Padding="2,0,0,0" />
+
+        <!-- ListBox -->
+        <Border Grid.Row="4" Grid.Column="0" BorderStyle="Rounded">
+            <ListBox ItemsSource="{Binding MenuItems}"
+                     SelectedItem="{Binding SelectedMenuItem}"
+                     TabIndex="2" />
+        </Border>
+
+        <!-- Activity Log -->
+        <sample:ActivityLogControl Grid.Row="3" Grid.Column="1" Grid.RowSpan="2"
+                                   ItemsSource="{Binding LogEntries}" />
+    </Grid>
+</Border>

@@ -47,13 +47,13 @@ public abstract class Selector : ItemsControl
             var items = selector.GetEffectiveItems();
             if (newIndex < 0 || newIndex >= items.Count)
             {
-                selector.SetValue(SelectedItemProperty, null);
+                selector.SetValueInternal(SelectedItemProperty, null);
                 selector.UpdateContainerSelection(null);
             }
             else
             {
                 var item = items[newIndex];
-                selector.SetValue(SelectedItemProperty, item);
+                selector.SetValueInternal(SelectedItemProperty, item);
                 selector.UpdateContainerSelection(item);
             }
 
@@ -85,7 +85,7 @@ public abstract class Selector : ItemsControl
             var items = selector.GetEffectiveItems();
             var newItem = e.NewValue;
             var newIndex = newItem != null ? items.IndexOf(newItem) : -1;
-            selector.SetValue(SelectedIndexProperty, newIndex);
+            selector.SetValueInternal(SelectedIndexProperty, newIndex);
             selector.UpdateContainerSelection(newItem);
 
             var removed = e.OldValue != null ? [e.OldValue] : Array.Empty<object>();
@@ -199,7 +199,7 @@ public abstract class Selector : ItemsControl
                 _updatingSelection = true;
                 try
                 {
-                    SetValue(SelectedIndexProperty, idx);
+                    SetValueInternal(SelectedIndexProperty, idx);
                     UpdateContainerSelection(selectedItem);
                 }
                 finally
@@ -213,8 +213,8 @@ public abstract class Selector : ItemsControl
                 _updatingSelection = true;
                 try
                 {
-                    SetValue(SelectedIndexProperty, -1);
-                    SetValue(SelectedItemProperty, null);
+                    SetValueInternal(SelectedIndexProperty, -1);
+                    SetValueInternal(SelectedItemProperty, null);
                     UpdateContainerSelection(null);
                 }
                 finally

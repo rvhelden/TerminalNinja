@@ -1,0 +1,53 @@
+<Border xmlns="http://schemas.terminalninja.dev/xaml"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        BorderStyle="Rounded">
+    <Grid Rows="1 2 3 1 * 1 *" Columns="* *">
+        <!-- Title -->
+        <TextBlock Grid.Row="0" Grid.ColumnSpan="2"
+                   Text=" Data Binding" Padding="2,0,0,0" />
+
+        <!-- Description -->
+        <TextBlock Grid.Row="1" Grid.ColumnSpan="2"
+                   Text="  Demonstrates one-way binding, two-way binding, and animated color binding."
+                   Padding="2,0,0,0" VerticalTextAlignment="Center" />
+
+        <!-- Buttons -->
+        <StackPanel Grid.Row="2" Grid.ColumnSpan="2" Orientation="Horizontal">
+            <Button StackPanel.SizeMode="Auto" Text="Update Header" Width="20" Height="3"
+                    TabIndex="0" Command="{Binding UpdateHeaderCommand}" />
+            <Button StackPanel.SizeMode="Auto" Text="Update Content" Width="20" Height="3"
+                    TabIndex="1" Command="{Binding UpdateContentCommand}" />
+        </StackPanel>
+
+        <!-- One-way binding results -->
+        <Border Grid.Row="3" Grid.ColumnSpan="2" BorderStyle="Single">
+            <TextBlock Text="{Binding HeaderText}" HorizontalTextAlignment="Center" VerticalTextAlignment="Center" />
+        </Border>
+
+        <Border Grid.Row="4" Grid.Column="0" BorderStyle="Rounded">
+            <StackPanel Orientation="Vertical">
+                <TextBlock StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1"
+                           Text=" Bound Content" Padding="1,0,0,0" />
+                <TextBlock StackPanel.SizeMode="Stretch"
+                           Text="{Binding ContentText}" Padding="2,0,2,0"
+                           TextWrapping="Wrap" Background="{Binding BackgroundColor}" />
+            </StackPanel>
+        </Border>
+
+        <!-- Two-way binding: ListBox selection -->
+        <TextBlock Grid.Row="5" Grid.Column="1" Text=" Two-Way Selection" Padding="1,0,0,0" />
+
+        <Border Grid.Row="4" Grid.Column="1" Grid.RowSpan="2" BorderStyle="Rounded">
+            <StackPanel Orientation="Vertical">
+                <TextBlock StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1"
+                           Text="{Binding SelectionText}" Padding="2,0,0,0" />
+                <ListBox StackPanel.SizeMode="Stretch"
+                         ItemsSource="{Binding Items}"
+                         SelectedItem="{Binding SelectedItem}"
+                         TabIndex="2" />
+            </StackPanel>
+        </Border>
+
+        <TextBlock Grid.Row="6" Grid.ColumnSpan="2" Text="" />
+    </Grid>
+</Border>

@@ -1,0 +1,73 @@
+<Window xmlns="http://schemas.terminalninja.dev/xaml"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:sample="clr-namespace:Sample"
+        xmlns:data="clr-namespace:TerminalNinja.Xaml.Data;assembly=TerminalNinja"
+        Title="TerminalNinja Samples">
+
+    <Window.Resources>
+        <data:DateTimeToStringConverter x:Key="DateTimeToStringConverter" />
+        <sample:PerformanceConverter x:Key="PerformanceConverter" />
+    </Window.Resources>
+
+    <Grid Rows="* 3">
+        <!-- Content area — swapped via binding -->
+        <ContentControl Grid.Row="0" Content="{Binding CurrentScreen}" />
+
+        <!-- Status Bar -->
+        <Border Grid.Row="1" BorderStyle="Single">
+            <StackPanel Orientation="Horizontal">
+
+                <TextBlock StackPanel.SizeMode="Stretch" x:Name="StatusTextBlock"
+                           Text="{Binding StatusText}"
+                           HorizontalTextAlignment="Center"
+                           VerticalTextAlignment="Center" />
+
+                <TextBlock StackPanel.SizeMode="Auto" x:Name="MemoryTextBlock"
+                           Text="{Binding MemoryUsageMB, Converter={StaticResource PerformanceConverter}, ConverterParameter=Memory}"
+                           HorizontalTextAlignment="Center"
+                           VerticalTextAlignment="Center"
+                           Padding="2,0,2,0" />
+
+                <TextBlock StackPanel.SizeMode="Auto" x:Name="CpuTextBlock"
+                           Text="{Binding CpuUsagePercent, Converter={StaticResource PerformanceConverter}, ConverterParameter=Cpu}"
+                           HorizontalTextAlignment="Center"
+                           VerticalTextAlignment="Center"
+                           Padding="2,0,2,0" />
+
+                <TextBlock StackPanel.SizeMode="Auto" x:Name="FpsLabelTextBlock"
+                           Text="FPS:"
+                           HorizontalTextAlignment="Center"
+                           VerticalTextAlignment="Center"
+                           Padding="2,0,0,0" />
+
+                <TextBlock StackPanel.SizeMode="Auto" x:Name="CurrentFpsTextBlock"
+                           Text="{Binding CurrentFps, Converter={StaticResource PerformanceConverter}, ConverterParameter=CurrentFps}"
+                           HorizontalTextAlignment="Center"
+                           VerticalTextAlignment="Center" />
+
+                <TextBlock StackPanel.SizeMode="Auto"
+                           Text="/"
+                           HorizontalTextAlignment="Center"
+                           VerticalTextAlignment="Center" />
+
+                <TextBlock StackPanel.SizeMode="Auto" x:Name="TargetFpsTextBlock"
+                           Text="{Binding TargetFps, Converter={StaticResource PerformanceConverter}, ConverterParameter=TargetFps}"
+                           HorizontalTextAlignment="Center"
+                           VerticalTextAlignment="Center"
+                           Padding="0,0,2,0" />
+
+                <TextBlock StackPanel.SizeMode="Auto" x:Name="TtfrTextBlock"
+                           Text="{Binding TimeToFirstRenderMs, Converter={StaticResource PerformanceConverter}, ConverterParameter=TTFR}"
+                           HorizontalTextAlignment="Center"
+                           VerticalTextAlignment="Center"
+                           Padding="2,0,2,0" />
+
+                <TextBlock StackPanel.SizeMode="Auto" x:Name="TimeTextBlock"
+                           Text="{Binding CurrentTime, Converter={StaticResource DateTimeToStringConverter}, ConverterParameter=HH:mm:ss}"
+                           HorizontalTextAlignment="Center"
+                           VerticalTextAlignment="Center"
+                           Padding="2,0,0,0" />
+            </StackPanel>
+        </Border>
+    </Grid>
+</Window>

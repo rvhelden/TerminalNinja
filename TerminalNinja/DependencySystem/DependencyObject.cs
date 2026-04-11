@@ -116,6 +116,21 @@ public class DependencyObject : INotifyPropertyChanged
     }
 
     /// <summary>
+    /// Returns the locally stored value for a dependency property, bypassing any active
+    /// expression. Used by TwoWay binding to read the value a control set via
+    /// <see cref="SetValueInternal"/> without getting the expression's stale cached value.
+    /// </summary>
+    internal object? GetLocalOrDefaultValue(DependencyProperty dp)
+    {
+        if (_localValues?.TryGetValue(dp, out var local) == true)
+        {
+            return local;
+        }
+
+        return dp.DefaultMetadata.DefaultValue;
+    }
+
+    /// <summary>
     /// Clears the locally set value of a dependency property,
     /// reverting it to the registered default.
     /// Also detaches any active expression on this property.

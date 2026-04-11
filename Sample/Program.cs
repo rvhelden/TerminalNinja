@@ -14,36 +14,43 @@ public static class Program
             EnableMouseTracking = true,
             EnableTabNavigation = true
         });
-        
-        app.ThemeName = "GruvboxDark"; // Load the "Dark" theme from embedded XAML resources (e.g., Themes/Dark.xaml)
 
-        // Create ViewModel
-        var viewModel = new DemoViewModel();
+        app.ThemeName = "GruvboxDark";
 
-        // Load UI from an embedded XAML resource using the generated XamlLayouts manifest.
-        // This validates all transitive dependencies (e.g., ActivityLogControl.xaml)
-        // and loads the root layout from the embedded resource.
-        // Bindings are activated automatically via the DP expression system.
-        var window = TerminalXaml.Load<Window>(XamlLayouts.DemoLayout, viewModel);
+        using var shellViewModel = new ShellViewModel();
+        shellViewModel.NavigateToMainMenu();
 
-        // Use the WPF-style Window.Show() pattern
-        // This sets app.RootControl = window internally
+        var window = TerminalXaml.Load<Window>(XamlLayouts.ShellLayout, shellViewModel);
         window.Show();
 
-        // Add ESC handler to exit
         app.KeyDown += (keyEvent, args) =>
         {
-            if (keyEvent.Key != ConsoleKey.Escape)
+            // Let the Application handle modal dismissal
+            if (app.IsModal)
             {
                 return;
             }
 
-            window.Close();
-            app.Exit();
-            args.Handled = true;
+            switch (keyEvent.Key)
+            {
+                case ConsoleKey.Enter when shellViewModel.IsOnMainMenu:
+                    shellViewModel.NavigateToSelectedSample();
+                    args.Handled = true;
+                    break;
+
+                case ConsoleKey.Escape when !shellViewModel.IsOnMainMenu:
+                    shellViewModel.NavigateToMainMenu();
+                    args.Handled = true;
+                    break;
+
+                case ConsoleKey.Escape:
+                    window.Close();
+                    app.Exit();
+                    args.Handled = true;
+                    break;
+            }
         };
 
-        // Run the application
         app.Run();
     }
 }

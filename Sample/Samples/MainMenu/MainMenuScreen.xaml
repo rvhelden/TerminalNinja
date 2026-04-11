@@ -1,0 +1,21 @@
+<Border xmlns="http://schemas.terminalninja.dev/xaml"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        BorderStyle="Rounded">
+    <Grid Rows="3 *">
+        <Border Grid.Row="0" BorderStyle="Double">
+            <TextBlock Text="TerminalNinja Samples"
+                       HorizontalTextAlignment="Center"
+                       VerticalTextAlignment="Center" />
+        </Border>
+        <StackPanel Grid.Row="1" Orientation="Vertical">
+            <TextBlock StackPanel.SizeMode="Fixed" StackPanel.FixedSize="2"
+                       Text="  Use arrows to browse, Enter to open, ESC to exit"
+                       VerticalTextAlignment="Center"
+                       Padding="2,0,0,0" />
+            <ListBox StackPanel.SizeMode="Stretch"
+                     ItemsSource="{Binding Samples}"
+                     SelectedItem="{Binding SelectedSample, Mode=TwoWay}"
+                     TabIndex="0" />
+        </StackPanel>
+    </Grid>
+</Border>

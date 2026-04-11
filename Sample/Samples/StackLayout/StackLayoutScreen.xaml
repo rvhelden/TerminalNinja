@@ -1,0 +1,77 @@
+<Border xmlns="http://schemas.terminalninja.dev/xaml"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        BorderStyle="Rounded">
+    <StackPanel Orientation="Vertical">
+        <TextBlock StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1"
+                   Text=" StackPanel Layout" Padding="2,0,0,0" />
+
+        <TextBlock StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1"
+                   Text="  Vertical and horizontal stacking with Auto, Fixed, and Stretch sizing."
+                   Padding="2,0,0,0" />
+
+        <TextBlock StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1" Text="" />
+
+        <!-- Vertical stacking demo -->
+        <TextBlock StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1"
+                   Text="  Vertical StackPanel:" Padding="2,0,0,0" />
+
+        <Border StackPanel.SizeMode="Fixed" StackPanel.FixedSize="6" BorderStyle="Single">
+            <StackPanel Orientation="Vertical">
+                <TextBlock StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1"
+                           Text="  Fixed (1 row)" Background="#5F0000" />
+                <TextBlock StackPanel.SizeMode="Fixed" StackPanel.FixedSize="2"
+                           Text="  Fixed (2 rows)" Background="#00005F" VerticalTextAlignment="Center" />
+                <TextBlock StackPanel.SizeMode="Stretch"
+                           Text="  Stretch (fills remaining)" Background="#005F00" VerticalTextAlignment="Center" />
+            </StackPanel>
+        </Border>
+
+        <TextBlock StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1" Text="" />
+
+        <!-- Horizontal stacking demo -->
+        <TextBlock StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1"
+                   Text="  Horizontal StackPanel:" Padding="2,0,0,0" />
+
+        <Border StackPanel.SizeMode="Fixed" StackPanel.FixedSize="3" BorderStyle="Single">
+            <StackPanel Orientation="Horizontal">
+                <TextBlock StackPanel.SizeMode="Fixed" StackPanel.FixedSize="15"
+                           Text=" Fixed (15)" Background="#5F0000" VerticalTextAlignment="Center" />
+                <TextBlock StackPanel.SizeMode="Auto"
+                           Text=" Auto " Background="#00005F" VerticalTextAlignment="Center" />
+                <TextBlock StackPanel.SizeMode="Stretch"
+                           Text=" Stretch" Background="#005F00" VerticalTextAlignment="Center" />
+                <TextBlock StackPanel.SizeMode="Stretch"
+                           Text=" Stretch" Background="#5F005F" VerticalTextAlignment="Center" />
+            </StackPanel>
+        </Border>
+
+        <TextBlock StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1" Text="" />
+
+        <!-- Nested stacking demo -->
+        <TextBlock StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1"
+                   Text="  Nested StackPanels:" Padding="2,0,0,0" />
+
+        <Border StackPanel.SizeMode="Stretch" BorderStyle="Single">
+            <StackPanel Orientation="Horizontal">
+                <Border StackPanel.SizeMode="Stretch" BorderStyle="Rounded">
+                    <StackPanel Orientation="Vertical">
+                        <TextBlock StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1"
+                                   Text=" Left Column" />
+                        <TextBlock StackPanel.SizeMode="Stretch"
+                                   Text=" Nested vertical" Background="#005F5F" VerticalTextAlignment="Center" />
+                    </StackPanel>
+                </Border>
+                <Border StackPanel.SizeMode="Stretch" BorderStyle="Rounded">
+                    <StackPanel Orientation="Vertical">
+                        <TextBlock StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1"
+                                   Text=" Right Column" />
+                        <TextBlock StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1"
+                                   Text=" Row A" Background="#5F5F00" />
+                        <TextBlock StackPanel.SizeMode="Stretch"
+                                   Text=" Row B (stretch)" Background="#5F0000" VerticalTextAlignment="Center" />
+                    </StackPanel>
+                </Border>
+            </StackPanel>
+        </Border>
+    </StackPanel>
+</Border>

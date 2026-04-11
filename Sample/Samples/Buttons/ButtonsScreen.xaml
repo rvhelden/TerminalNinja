@@ -1,0 +1,32 @@
+<Border xmlns="http://schemas.terminalninja.dev/xaml"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        BorderStyle="Rounded">
+    <StackPanel Orientation="Vertical">
+        <TextBlock StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1"
+                   Text=" Buttons and Commands" Padding="2,0,0,0" />
+
+        <TextBlock StackPanel.SizeMode="Fixed" StackPanel.FixedSize="2"
+                   Text="  Buttons bound to ICommand via {Binding}. Click to see command execution."
+                   Padding="2,0,0,0" VerticalTextAlignment="Center" />
+
+        <StackPanel StackPanel.SizeMode="Fixed" StackPanel.FixedSize="3" Orientation="Horizontal">
+            <Button StackPanel.SizeMode="Auto" Text="New" Width="12" Height="3" TabIndex="0"
+                    Command="{Binding NewCommand}" />
+            <Button StackPanel.SizeMode="Auto" Text="Open" Width="12" Height="3" TabIndex="1"
+                    Command="{Binding OpenCommand}" />
+            <Button StackPanel.SizeMode="Auto" Text="Save" Width="12" Height="3" TabIndex="2"
+                    Command="{Binding SaveCommand}" />
+            <Button StackPanel.SizeMode="Auto" Text="Delete" Width="12" Height="3" TabIndex="3"
+                    Command="{Binding DeleteCommand}" HoverColor="Red" />
+            <Button StackPanel.SizeMode="Auto" Text="GC Collect" Width="16" Height="3" TabIndex="4"
+                    Command="{Binding GcCollectCommand}" />
+        </StackPanel>
+
+        <TextBlock StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1" Text="" />
+
+        <TextBlock StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1"
+                   Text="{Binding LastAction}" Padding="2,0,0,0" />
+
+        <TextBlock StackPanel.SizeMode="Stretch" Text="" />
+    </StackPanel>
+</Border>

@@ -342,7 +342,7 @@ public sealed class Application : IDisposable
     /// Recursively wires invalidation callbacks for all elements in the visual tree
     /// using the Visual.GetChildrenWithBounds traversal.
     /// </summary>
-    private void WireInvalidation(UIElement control)
+    public void WireInvalidation(UIElement control)
     {
         control.InvalidationCallback = Invalidate;
 

@@ -1,0 +1,42 @@
+<Border xmlns="http://schemas.terminalninja.dev/xaml"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        BorderStyle="Rounded">
+    <StackPanel Orientation="Vertical">
+        <TextBlock StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1"
+                   Text=" Progress Bars" Padding="2,0,0,0" />
+
+        <TextBlock StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1"
+                   Text="" />
+
+        <!-- Bound determinate progress bar with percentage -->
+        <TextBlock StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1"
+                   Text="  Determinate (bound, with percentage):" Padding="2,0,0,0" />
+        <ProgressBar StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1"
+                     Value="{Binding ProgressValue}" ShowPercentage="True" />
+
+        <TextBlock StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1" Text="" />
+
+        <!-- Indeterminate progress bar -->
+        <TextBlock StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1"
+                   Text="  Indeterminate:" Padding="2,0,0,0" />
+        <ProgressBar StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1"
+                     IsIndeterminate="True" />
+
+        <TextBlock StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1" Text="" />
+
+        <!-- Static progress bars at fixed levels -->
+        <TextBlock StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1"
+                   Text="  Static (25%, custom chars):" Padding="2,0,0,0" />
+        <ProgressBar StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1"
+                     Value="25" BarCharacter="=" TrackCharacter="-" />
+
+        <TextBlock StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1" Text="" />
+
+        <TextBlock StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1"
+                   Text="  Static (75%, default chars):" Padding="2,0,0,0" />
+        <ProgressBar StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1"
+                     Value="75" />
+
+        <TextBlock StackPanel.SizeMode="Stretch" Text="" />
+    </StackPanel>
+</Border>

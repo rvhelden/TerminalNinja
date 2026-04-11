@@ -317,7 +317,10 @@ public sealed class BindingExpression : BindingExpressionBase, IDisposable
         {
             _isUpdating = true;
 
-            var targetValue = Target.GetValue(TargetProperty);
+            // Use the locally stored value rather than GetValue(), which would return the
+            // expression's stale cached value when the control updated the property via
+            // SetValueInternal (e.g. Selector syncing SelectedIndex ↔ SelectedItem).
+            var targetValue = Target.GetLocalOrDefaultValue(TargetProperty);
             var converted = ConvertValue(targetValue, TargetProperty.PropertyType, forward: false);
             _sourcePath.SetValue(_resolvedSource, converted);
         }

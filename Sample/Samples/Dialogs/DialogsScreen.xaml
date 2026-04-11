@@ -1,0 +1,27 @@
+<Border xmlns="http://schemas.terminalninja.dev/xaml"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        BorderStyle="Rounded">
+    <StackPanel Orientation="Vertical">
+        <TextBlock StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1"
+                   Text=" Dialogs" Padding="2,0,0,0" />
+
+        <TextBlock StackPanel.SizeMode="Fixed" StackPanel.FixedSize="2"
+                   Text="  Modal dialogs with OK/Cancel buttons and dimmed background."
+                   Padding="2,0,0,0" VerticalTextAlignment="Center" />
+
+        <StackPanel StackPanel.SizeMode="Fixed" StackPanel.FixedSize="3" Orientation="Horizontal">
+            <Button StackPanel.SizeMode="Auto" Text="Show Dialog" Width="20" Height="3"
+                    TabIndex="0" Command="{Binding ShowDialogCommand}" />
+        </StackPanel>
+
+        <TextBlock StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1" Text="" />
+
+        <TextBlock StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1"
+                   Text="{Binding LastResult}" Padding="2,0,0,0" />
+
+        <TextBlock StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1"
+                   Text="{Binding DialogCount}" Padding="2,0,0,0" />
+
+        <TextBlock StackPanel.SizeMode="Stretch" Text="" />
+    </StackPanel>
+</Border>
