@@ -124,6 +124,12 @@ public sealed class TabControl : Selector
             return;
         }
 
+        // Auto-select first tab if none selected
+        if (SelectedIndex < 0)
+        {
+            SelectedIndex = 0;
+        }
+
         var borderColor = Foreground;
         var mutedFg = DimColor(Foreground);
 

@@ -134,10 +134,15 @@ public class ComboBoxItem : ContentControl, ISelectableContainer
             var current = Parent;
             while (current != null)
             {
+                if (current is ComboBox comboBox)
+                {
+                    comboBox.NotifyItemClickedAndClose(this);
+                    return;
+                }
                 if (current is Selector selector)
                 {
                     selector.NotifyContainerClicked(this);
-                    break;
+                    return;
                 }
                 current = current.Parent;
             }

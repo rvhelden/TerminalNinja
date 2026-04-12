@@ -167,16 +167,14 @@ public sealed class ComboBox : Selector
 
     // ─── Selection Override ──────────────────────────────────────────
 
-    /// <inheritdoc />
-    protected override void OnSelectionChanged(IList<object> removed, IList<object> added)
+    /// <summary>
+    /// Notifies the ComboBox that a container was clicked (from ComboBoxItem mouse handler).
+    /// Selects the item and closes the dropdown.
+    /// </summary>
+    internal void NotifyItemClickedAndClose(UIElement container)
     {
-        base.OnSelectionChanged(removed, added);
-
-        // Close dropdown when an item is selected via click
-        if (IsDropDownOpen && added.Count > 0)
-        {
-            IsDropDownOpen = false;
-        }
+        NotifyContainerClicked(container);
+        IsDropDownOpen = false;
     }
 
     // ─── Dropdown ────────────────────────────────────────────────────
@@ -237,7 +235,7 @@ public sealed class ComboBox : Selector
         var textY = bounds.Y + bounds.Height / 2;
         var textX = bounds.X + 1;
         var maxTextWidth = Math.Max(0, bounds.Width - 4); // -2 border -2 for arrow
-        var text = SelectedItem?.ToString() ?? "";
+        var text = GetDisplayText(SelectedItem);
         var fg = IsEnabled ? Foreground : DimColor(Foreground);
 
         for (var i = 0; i < Math.Min(text.Length, maxTextWidth); i++)
@@ -334,6 +332,15 @@ public sealed class ComboBox : Selector
     {
         base.OnLostFocus();
         IsDropDownOpen = false;
+    }
+
+    // ─── Display Text ─────────────────────────────────────────────────
+
+    private static string GetDisplayText(object? item)
+    {
+        if (item == null) return "";
+        if (item is ComboBoxItem cbi) return cbi.Content?.ToString() ?? "";
+        return item.ToString() ?? "";
     }
 
     // ─── Selection Helpers ───────────────────────────────────────────
