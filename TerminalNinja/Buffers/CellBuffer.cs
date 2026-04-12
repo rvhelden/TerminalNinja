@@ -251,6 +251,49 @@ public sealed unsafe class CellBuffer : IDisposable
     }
     
     /// <summary>
+    /// Copies a rectangular region from this buffer to a target buffer.
+    /// Both source and target regions are independently clipped to their respective buffer bounds.
+    /// </summary>
+    /// <param name="target">The destination buffer.</param>
+    /// <param name="sourceRect">The region to copy from this buffer.</param>
+    /// <param name="targetX">The X position in the target buffer to copy to.</param>
+    /// <param name="targetY">The Y position in the target buffer to copy to.</param>
+    public void CopyRegionTo(CellBuffer target, Rect sourceRect, int targetX, int targetY)
+    {
+        // Clip source rect to this buffer's bounds
+        var clippedSource = sourceRect.Intersect(new Rect(0, 0, Width, Height));
+        if (clippedSource.Width <= 0 || clippedSource.Height <= 0)
+        {
+            return;
+        }
+
+        // Calculate the target region
+        var targetRect = new Rect(targetX, targetY, clippedSource.Width, clippedSource.Height);
+        var clippedTarget = targetRect.Intersect(new Rect(0, 0, target.Width, target.Height));
+        if (clippedTarget.Width <= 0 || clippedTarget.Height <= 0)
+        {
+            return;
+        }
+
+        // Adjust source start if the target was clipped on the left or top
+        var srcStartX = clippedSource.X + (clippedTarget.X - targetX);
+        var srcStartY = clippedSource.Y + (clippedTarget.Y - targetY);
+        var copyWidth = clippedTarget.Width;
+        var copyHeight = clippedTarget.Height;
+
+        for (var row = 0; row < copyHeight; row++)
+        {
+            var srcRow = new ReadOnlySpan<Cell>(_current + (srcStartY + row) * Width + srcStartX, copyWidth);
+            var dstRow = new Span<Cell>(target._current + (clippedTarget.Y + row) * target.Width + clippedTarget.X, copyWidth);
+            srcRow.CopyTo(dstRow);
+        }
+
+        // Expand the target's dirty rect
+        target._dirtyRect.Expand(clippedTarget.X, clippedTarget.Y);
+        target._dirtyRect.Expand(clippedTarget.Right - 1, clippedTarget.Bottom - 1);
+    }
+
+    /// <summary>
     /// Gets a zero-allocation enumerator for changed cells.
     /// </summary>
     public CellDiffEnumerator GetChanges() => new(this);

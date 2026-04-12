@@ -12,7 +12,7 @@
 # Controls
 - [x] FontIcon control with Nerdfont icons support
 - [x] Add ProgressBar control
-- [ ] Add ScrollViewer control
+- [x] Add ScrollViewer control
 - [ ] Add TabControl control
 - [ ] Add TreeView control
 - [ ] Add ListView control
@@ -30,4 +30,4 @@
 - [ ] Add RadioButton control
 - [ ] Add Label control
 - [ ] Add TextBlock control
-- [ ] Add TextBox control
+- [x] Add TextBox control

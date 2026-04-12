@@ -13,7 +13,9 @@ public class MainMenuViewModel : ViewModelBase
         "Data Binding",
         "Lists",
         "Grid Layout",
-        "StackPanel Layout"
+        "StackPanel Layout",
+        "ScrollViewer",
+        "Text Input"
     ];
 
     public string? SelectedSample

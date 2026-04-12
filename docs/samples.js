@@ -347,5 +347,81 @@ export const SAMPLES = [
         </StackPanel>
     </Border>
 </Window>`
+  },
+
+  {
+    id: "scroll-viewer",
+    title: "ScrollViewer",
+    description: "Scrollable viewport with keyboard and mouse wheel navigation.",
+    docPage: "./samples/scroll-viewer.html",
+    xaml: `<Window xmlns="http://schemas.terminalninja.dev/xaml"
+        Title="ScrollViewer" Width="80" Height="24">
+    <Border BorderStyle="Rounded">
+        <StackPanel Orientation="Vertical">
+            <TextBlock StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1"
+                       Text=" ScrollViewer" Padding="2,0,0,0" />
+            <TextBlock StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1"
+                       Text="  Scrollable viewport with keyboard and mouse wheel."
+                       Padding="2,0,0,0" />
+            <TextBlock StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1" Text="" />
+            <ScrollViewer StackPanel.SizeMode="Stretch" VerticalScrollBarVisibility="Auto">
+                <StackPanel Orientation="Vertical">
+                    <TextBlock StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1" Text="   1. Welcome to ScrollViewer!" />
+                    <TextBlock StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1" Text="   2. This content exceeds the viewport." />
+                    <TextBlock StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1" Text="   3. Use arrow keys to scroll." />
+                    <TextBlock StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1" Text="   4. Page Up/Down scroll by page." />
+                    <TextBlock StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1" Text="   5. Home/End jump to top/bottom." />
+                    <TextBlock StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1" Text="   6. The indicator shows position." />
+                    <TextBlock StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1" Text="" />
+                    <TextBlock StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1" Text="   7. Features:" />
+                    <TextBlock StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1" Text="   8. - Vertical/horizontal scrolling" />
+                    <TextBlock StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1" Text="   9. - Auto/Visible/Hidden/Disabled" />
+                    <TextBlock StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1" Text="  10. - Mouse wheel (3 lines/tick)" />
+                    <TextBlock StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1" Text="  11. - ScrollIntoView API" />
+                    <TextBlock StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1" Text="" />
+                    <TextBlock StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1" Text="  12. End of content." />
+                </StackPanel>
+            </ScrollViewer>
+        </StackPanel>
+    </Border>
+</Window>`
+  },
+
+  {
+    id: "text-box",
+    title: "TextBox",
+    description: "Editable text input with caret, selection, and placeholder.",
+    docPage: "./samples/text-box.html",
+    xaml: `<Window xmlns="http://schemas.terminalninja.dev/xaml"
+        Title="TextBox" Width="80" Height="24">
+    <Border BorderStyle="Rounded">
+        <StackPanel Orientation="Vertical">
+            <TextBlock StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1"
+                       Text=" Text Input" Padding="2,0,0,0" />
+            <TextBlock StackPanel.SizeMode="Fixed" StackPanel.FixedSize="2"
+                       Text="  TextBox controls with editing, selection, and placeholder."
+                       Padding="2,0,0,0" VerticalTextAlignment="Center" />
+
+            <TextBlock StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1"
+                       Text="  Single-line input:" Padding="2,0,0,0" />
+            <TextBox StackPanel.SizeMode="Fixed" StackPanel.FixedSize="3"
+                     PlaceholderText="Type something here..." TabIndex="0" />
+
+            <TextBlock StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1" Text="" />
+
+            <TextBlock StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1"
+                       Text="  Read-only:" Padding="2,0,0,0" />
+            <TextBox StackPanel.SizeMode="Fixed" StackPanel.FixedSize="3"
+                     Text="This text cannot be edited" IsReadOnly="True" TabIndex="1" />
+
+            <TextBlock StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1" Text="" />
+
+            <TextBlock StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1"
+                       Text="  Multi-line (Enter for new line):" Padding="2,0,0,0" />
+            <TextBox StackPanel.SizeMode="Stretch" AcceptsReturn="True"
+                     PlaceholderText="Enter notes here..." TabIndex="2" />
+        </StackPanel>
+    </Border>
+</Window>`
   }
 ];

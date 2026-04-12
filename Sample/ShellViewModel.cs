@@ -8,6 +8,7 @@ using Sample.Samples.Dialogs;
 using Sample.Samples.Buttons;
 using Sample.Samples.DataBinding;
 using Sample.Samples.Lists;
+using Sample.Samples.TextInput;
 
 namespace Sample;
 
@@ -59,6 +60,8 @@ public class ShellViewModel : ViewModelBase, IDisposable
             "Lists" => TerminalXaml.Load<Border>(XamlLayouts.ListsScreen, new ListsViewModel()),
             "Grid Layout" => TerminalXaml.Load<Border>(XamlLayouts.GridLayoutScreen),
             "StackPanel Layout" => TerminalXaml.Load<Border>(XamlLayouts.StackLayoutScreen),
+            "ScrollViewer" => TerminalXaml.Load<Border>(XamlLayouts.ScrollViewerScreen),
+            "Text Input" => TerminalXaml.Load<Border>(XamlLayouts.TextInputScreen, new TextInputViewModel()),
             _ => throw new ArgumentException($"Unknown sample: {sampleName}")
         };
 

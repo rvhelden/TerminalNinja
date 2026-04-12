@@ -90,6 +90,12 @@ public class DependencyObject : INotifyPropertyChanged
         _localValues ??= new Dictionary<DependencyProperty, object?>();
         _localValues[dp] = value;
 
+        // Keep the expression's cached value in sync so GetValue() returns the latest value
+        if (_expressions?.TryGetValue(dp, out var activeExpr) == true)
+        {
+            activeExpr.OnLocalValueWritten(value);
+        }
+
         var args = new DependencyPropertyChangedEventArgs(dp, oldValue, value);
 
         metadata.PropertyChangedCallback?.Invoke(this, args);

@@ -90,6 +90,12 @@ public sealed class BindingExpression : BindingExpressionBase, IDisposable
         return _cachedValue ?? dp.DefaultMetadata.DefaultValue;
     }
 
+    /// <inheritdoc />
+    internal override void OnLocalValueWritten(object? value)
+    {
+        _cachedValue = value;
+    }
+
     /// <summary>
     /// Called when the binding environment changes (DataContext, parent, etc.).
     /// Re-resolves the source and re-activates.

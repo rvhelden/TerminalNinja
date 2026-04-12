@@ -525,11 +525,14 @@ public sealed class Application : IDisposable
             }
         }
         
-        // Ctrl+C: exit the application immediately
+        // Ctrl+C: exit the application unless a TextBox has focus (Ctrl+C = copy there)
         if (keyEvent is { Key: ConsoleKey.C, Ctrl: true, Shift: false, Alt: false })
         {
-            Exit();
-            return;
+            if (FocusManager.FocusedElement is not Controls.TextBox)
+            {
+                Exit();
+                return;
+            }
         }
         
         // Escape key: close the topmost modal overlay first, then exit the app

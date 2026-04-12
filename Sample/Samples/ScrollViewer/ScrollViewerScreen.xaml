@@ -1,0 +1,42 @@
+<Border xmlns="http://schemas.terminalninja.dev/xaml"
+        BorderStyle="Rounded">
+    <StackPanel Orientation="Vertical">
+        <!-- Title -->
+        <TextBlock StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1"
+                   Text=" ScrollViewer" Padding="2,0,0,0" />
+
+        <!-- Description -->
+        <TextBlock StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1"
+                   Text="  Scrollable viewport with keyboard (arrows, PgUp/PgDn, Home/End) and mouse wheel."
+                   Padding="2,0,0,0" />
+
+        <TextBlock StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1" Text="" />
+
+        <!-- ScrollViewer with tall content -->
+        <ScrollViewer StackPanel.SizeMode="Stretch" VerticalScrollBarVisibility="Auto">
+            <StackPanel Orientation="Vertical">
+                <TextBlock StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1" Text="   1. Welcome to TerminalNinja ScrollViewer!" />
+                <TextBlock StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1" Text="   2. This content is taller than the viewport." />
+                <TextBlock StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1" Text="   3. Use arrow keys or mouse wheel to scroll." />
+                <TextBlock StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1" Text="   4. Page Up / Page Down scroll by viewport height." />
+                <TextBlock StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1" Text="   5. Home / End jump to the top / bottom." />
+                <TextBlock StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1" Text="   6. The scroll indicator on the right shows position." />
+                <TextBlock StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1" Text="" />
+                <TextBlock StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1" Text="   7. ── Features ──" />
+                <TextBlock StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1" Text="   8. Vertical and horizontal scrolling" />
+                <TextBlock StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1" Text="   9. Auto/Visible/Hidden/Disabled indicator modes" />
+                <TextBlock StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1" Text="  10. Intermediate buffer for viewport clipping" />
+                <TextBlock StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1" Text="  11. Mouse wheel support (3 lines per tick)" />
+                <TextBlock StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1" Text="  12. ScrollIntoView for programmatic scrolling" />
+                <TextBlock StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1" Text="" />
+                <TextBlock StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1" Text="  13. ── Usage ──" />
+                <TextBlock StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1" Text="  14. Wrap any content in a ScrollViewer:" />
+                <TextBlock StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1" Text="  15.   &lt;ScrollViewer VerticalScrollBarVisibility=&quot;Auto&quot;&gt;" />
+                <TextBlock StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1" Text="  16.     &lt;StackPanel&gt;...&lt;/StackPanel&gt;" />
+                <TextBlock StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1" Text="  17.   &lt;/ScrollViewer&gt;" />
+                <TextBlock StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1" Text="" />
+                <TextBlock StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1" Text="  18. You've reached the end of the scrollable content!" />
+            </StackPanel>
+        </ScrollViewer>
+    </StackPanel>
+</Border>

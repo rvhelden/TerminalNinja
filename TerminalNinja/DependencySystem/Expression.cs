@@ -65,6 +65,14 @@ public abstract class Expression
     internal abstract object? GetValue(DependencyObject d, DependencyProperty dp);
 
     /// <summary>
+    /// Called by the property system when a local value is written via
+    /// <see cref="DependencyObject.SetValueInternal"/> while this expression is attached.
+    /// Allows the expression to keep its cached value in sync with the local store
+    /// so that <see cref="GetValue"/> returns the latest value.
+    /// </summary>
+    internal virtual void OnLocalValueWritten(object? value) { }
+
+    /// <summary>
     /// Override to perform initialization when the expression is attached
     /// to a dependency property on a target object.
     /// </summary>

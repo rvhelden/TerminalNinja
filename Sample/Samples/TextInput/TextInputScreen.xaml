@@ -1,0 +1,46 @@
+<Border xmlns="http://schemas.terminalninja.dev/xaml"
+        BorderStyle="Rounded">
+    <StackPanel Orientation="Vertical">
+        <!-- Title -->
+        <TextBlock StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1"
+                   Text=" Text Input" Padding="2,0,0,0" />
+
+        <!-- Description -->
+        <TextBlock StackPanel.SizeMode="Fixed" StackPanel.FixedSize="2"
+                   Text="  TextBox controls with editing, selection, placeholder, and multi-line support."
+                   Padding="2,0,0,0" VerticalTextAlignment="Center" />
+
+        <!-- Single-line TextBox -->
+        <TextBlock StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1"
+                   Text="  Single-line input:" Padding="2,0,0,0" />
+        <TextBox StackPanel.SizeMode="Fixed" StackPanel.FixedSize="3"
+                 Text="{Binding InputText, Mode=TwoWay}"
+                 PlaceholderText="Type something here..."
+                 TabIndex="0" />
+
+        <!-- Character count -->
+        <TextBlock StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1"
+                   Text="{Binding StatusText}" Padding="2,0,0,0" />
+
+        <TextBlock StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1" Text="" />
+
+        <!-- Read-only TextBox -->
+        <TextBlock StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1"
+                   Text="  Read-only output:" Padding="2,0,0,0" />
+        <TextBox StackPanel.SizeMode="Fixed" StackPanel.FixedSize="3"
+                 Text="{Binding OutputText}"
+                 IsReadOnly="True"
+                 TabIndex="1" />
+
+        <TextBlock StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1" Text="" />
+
+        <!-- Multi-line TextBox -->
+        <TextBlock StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1"
+                   Text="  Multi-line notes (Enter for new line):" Padding="2,0,0,0" />
+        <TextBox StackPanel.SizeMode="Stretch"
+                 Text="{Binding NotesText, Mode=TwoWay}"
+                 AcceptsReturn="True"
+                 PlaceholderText="Enter notes here..."
+                 TabIndex="2" />
+    </StackPanel>
+</Border>
