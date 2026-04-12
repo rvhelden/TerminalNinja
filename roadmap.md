@@ -17,7 +17,7 @@
 - [ ] Add TreeView control
 - [ ] Add ListView control
 - [ ] Add DataGrid control
-- [ ] Add ComboBox control
+- [x] Add ComboBox control
 - [ ] Add DateTimePicker control
 - [ ] Add DatePicker control
 - [ ] Add TimePicker control
@@ -26,8 +26,6 @@
 - [ ] Add FilePicker control
 - [ ] Add FolderPicker control
 - [ ] Add Image control
-- [ ] Add CheckBox control
-- [ ] Add RadioButton control
-- [ ] Add Label control
-- [ ] Add TextBlock control
+- [x] Add CheckBox control
+- [x] Add RadioButton control
 - [x] Add TextBox control

@@ -14,7 +14,7 @@ namespace TerminalNinja.Controls;
 /// </summary>
 [ContentProperty("Content")]
 [RuntimeNameProperty("Name")]
-public class ListBoxItem : ContentControl
+public class ListBoxItem : ContentControl, ISelectableContainer
 {
     // ─── Dependency Properties ───────────────────────────────────────
 

@@ -50,6 +50,27 @@
     <Color x:Key="ThemeDialogForegroundColor">#f8f8f2</Color>
     <Color x:Key="ThemeDialogBorderColor">#bd93f9</Color>
 
+    <!-- TextBox colors -->
+    <Color x:Key="ThemeTextBoxBackgroundColor">#44475a</Color>
+    <Color x:Key="ThemeTextBoxForegroundColor">#f8f8f2</Color>
+    <Color x:Key="ThemeTextBoxFocusColor">#bd93f9</Color>
+    <Color x:Key="ThemeTextBoxHoverColor">#ff79c6</Color>
+    <Color x:Key="ThemeTextBoxPlaceholderColor">#6272a4</Color>
+
+    <!-- ScrollViewer colors -->
+    <Color x:Key="ThemeScrollIndicatorColor">#6272a4</Color>
+
+    <!-- CheckBox / RadioButton colors -->
+    <Color x:Key="ThemeCheckBoxForegroundColor">#f8f8f2</Color>
+    <Color x:Key="ThemeCheckBoxFocusColor">#bd93f9</Color>
+    <Color x:Key="ThemeCheckBoxHoverColor">#ff79c6</Color>
+
+    <!-- ComboBox colors -->
+    <Color x:Key="ThemeComboBoxBackgroundColor">#44475a</Color>
+    <Color x:Key="ThemeComboBoxForegroundColor">#f8f8f2</Color>
+    <Color x:Key="ThemeComboBoxFocusColor">#bd93f9</Color>
+    <Color x:Key="ThemeComboBoxHoverColor">#ff79c6</Color>
+
     <!-- ═══════════════════════════════════════════════════════════════
          Implicit Styles
          ═══════════════════════════════════════════════════════════════ -->
@@ -96,6 +117,50 @@
         <Setter Property="Foreground" Value="{StaticResource ThemeProgressForegroundColor}" />
         <Setter Property="Background" Value="{StaticResource ThemeProgressBackgroundColor}" />
         <Setter Property="TrackForeground" Value="{StaticResource ThemeProgressTrackColor}" />
+    </Style>
+
+    <Style TargetType="TextBox">
+        <Setter Property="Background" Value="{StaticResource ThemeTextBoxBackgroundColor}" />
+        <Setter Property="Foreground" Value="{StaticResource ThemeTextBoxForegroundColor}" />
+        <Setter Property="FocusColor" Value="{StaticResource ThemeTextBoxFocusColor}" />
+        <Setter Property="HoverColor" Value="{StaticResource ThemeTextBoxHoverColor}" />
+        <Setter Property="PlaceholderForeground" Value="{StaticResource ThemeTextBoxPlaceholderColor}" />
+        <Setter Property="SelectionBackground" Value="{StaticResource ThemeSelectedBackgroundColor}" />
+        <Setter Property="SelectionForeground" Value="{StaticResource ThemeSelectedForegroundColor}" />
+    </Style>
+
+    <Style TargetType="ScrollViewer">
+        <Setter Property="Background" Value="{StaticResource ThemeBackgroundColor}" />
+        <Setter Property="Foreground" Value="{StaticResource ThemeForegroundColor}" />
+        <Setter Property="ScrollIndicatorForeground" Value="{StaticResource ThemeScrollIndicatorColor}" />
+    </Style>
+
+    <Style TargetType="CheckBox">
+        <Setter Property="Foreground" Value="{StaticResource ThemeCheckBoxForegroundColor}" />
+        <Setter Property="FocusColor" Value="{StaticResource ThemeCheckBoxFocusColor}" />
+        <Setter Property="HoverColor" Value="{StaticResource ThemeCheckBoxHoverColor}" />
+    </Style>
+
+    <Style TargetType="RadioButton">
+        <Setter Property="Foreground" Value="{StaticResource ThemeCheckBoxForegroundColor}" />
+        <Setter Property="FocusColor" Value="{StaticResource ThemeCheckBoxFocusColor}" />
+        <Setter Property="HoverColor" Value="{StaticResource ThemeCheckBoxHoverColor}" />
+    </Style>
+
+    <Style TargetType="ComboBox">
+        <Setter Property="Background" Value="{StaticResource ThemeComboBoxBackgroundColor}" />
+        <Setter Property="Foreground" Value="{StaticResource ThemeComboBoxForegroundColor}" />
+        <Setter Property="FocusColor" Value="{StaticResource ThemeComboBoxFocusColor}" />
+        <Setter Property="HoverColor" Value="{StaticResource ThemeComboBoxHoverColor}" />
+        <Setter Property="SelectedBackground" Value="{StaticResource ThemeSelectedBackgroundColor}" />
+        <Setter Property="SelectedForeground" Value="{StaticResource ThemeSelectedForegroundColor}" />
+    </Style>
+
+    <Style TargetType="ComboBoxItem">
+        <Setter Property="Background" Value="{StaticResource ThemeBackgroundColor}" />
+        <Setter Property="Foreground" Value="{StaticResource ThemeForegroundColor}" />
+        <Setter Property="SelectedBackground" Value="{StaticResource ThemeSelectedBackgroundColor}" />
+        <Setter Property="SelectedForeground" Value="{StaticResource ThemeSelectedForegroundColor}" />
     </Style>
 
 </ResourceDictionary>

@@ -176,9 +176,9 @@ public abstract class Selector : ItemsControl
     {
         foreach (var kvp in _itemContainers)
         {
-            if (kvp.Value is ListBoxItem lbi)
+            if (kvp.Value is ISelectableContainer container)
             {
-                lbi.IsSelected = kvp.Key == selectedItem && selectedItem != null;
+                container.IsSelected = kvp.Key == selectedItem && selectedItem != null;
             }
         }
     }

@@ -423,5 +423,57 @@ export const SAMPLES = [
         </StackPanel>
     </Border>
 </Window>`
+  },
+
+  {
+    id: "form-controls",
+    title: "Form Controls",
+    description: "CheckBox, RadioButton, and ComboBox for interactive forms.",
+    docPage: "./samples/form-controls.html",
+    xaml: `<Window xmlns="http://schemas.terminalninja.dev/xaml"
+        Title="Form Controls" Width="80" Height="24">
+    <Border BorderStyle="Rounded">
+        <StackPanel Orientation="Vertical">
+            <TextBlock StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1"
+                       Text=" Form Controls" Padding="2,0,0,0" />
+            <TextBlock StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1"
+                       Text="  CheckBox, RadioButton, and ComboBox demos."
+                       Padding="2,0,0,0" />
+            <TextBlock StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1" Text="" />
+
+            <TextBlock StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1"
+                       Text="  CheckBoxes:" Padding="2,0,0,0" />
+            <CheckBox StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1"
+                      Content="Enable notifications" IsChecked="True" TabIndex="0" />
+            <CheckBox StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1"
+                      Content="Dark mode" IsChecked="True" TabIndex="1" />
+            <CheckBox StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1"
+                      Content="Auto-save" TabIndex="2" />
+
+            <TextBlock StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1" Text="" />
+
+            <TextBlock StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1"
+                       Text="  Size (RadioButton group):" Padding="2,0,0,0" />
+            <RadioButton StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1"
+                         GroupName="Size" Content="Small" TabIndex="3" />
+            <RadioButton StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1"
+                         GroupName="Size" Content="Medium" IsChecked="True" TabIndex="4" />
+            <RadioButton StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1"
+                         GroupName="Size" Content="Large" TabIndex="5" />
+
+            <TextBlock StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1" Text="" />
+
+            <TextBlock StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1"
+                       Text="  ComboBox:" Padding="2,0,0,0" />
+            <ComboBox StackPanel.SizeMode="Fixed" StackPanel.FixedSize="3" TabIndex="6">
+                <ComboBoxItem Content="Red" />
+                <ComboBoxItem Content="Green" />
+                <ComboBoxItem Content="Blue" />
+            </ComboBox>
+
+            <TextBlock StackPanel.SizeMode="Stretch" Text="" />
+        </StackPanel>
+    </Border>
+</Window>`
   }
 ];

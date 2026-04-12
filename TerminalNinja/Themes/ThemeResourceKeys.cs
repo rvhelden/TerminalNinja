@@ -93,6 +93,61 @@ public static class ThemeResourceKeys
     public const string ProgressTrackColor = "ThemeProgressTrackColor";
 
     // ────────────────────────────────────────────────────────────────
+    //  TextBox colors
+    // ────────────────────────────────────────────────────────────────
+
+    /// <summary>TextBox background color.</summary>
+    public const string TextBoxBackgroundColor = "ThemeTextBoxBackgroundColor";
+
+    /// <summary>TextBox foreground (text) color.</summary>
+    public const string TextBoxForegroundColor = "ThemeTextBoxForegroundColor";
+
+    /// <summary>TextBox focus border color.</summary>
+    public const string TextBoxFocusColor = "ThemeTextBoxFocusColor";
+
+    /// <summary>TextBox hover border color.</summary>
+    public const string TextBoxHoverColor = "ThemeTextBoxHoverColor";
+
+    /// <summary>TextBox placeholder text color.</summary>
+    public const string TextBoxPlaceholderColor = "ThemeTextBoxPlaceholderColor";
+
+    // ────────────────────────────────────────────────────────────────
+    //  ScrollViewer colors
+    // ────────────────────────────────────────────────────────────────
+
+    /// <summary>ScrollViewer scroll indicator foreground color.</summary>
+    public const string ScrollIndicatorColor = "ThemeScrollIndicatorColor";
+
+    // ────────────────────────────────────────────────────────────────
+    //  CheckBox / RadioButton colors
+    // ────────────────────────────────────────────────────────────────
+
+    /// <summary>CheckBox/RadioButton foreground color.</summary>
+    public const string CheckBoxForegroundColor = "ThemeCheckBoxForegroundColor";
+
+    /// <summary>CheckBox/RadioButton focus indicator color.</summary>
+    public const string CheckBoxFocusColor = "ThemeCheckBoxFocusColor";
+
+    /// <summary>CheckBox/RadioButton hover indicator color.</summary>
+    public const string CheckBoxHoverColor = "ThemeCheckBoxHoverColor";
+
+    // ────────────────────────────────────────────────────────────────
+    //  ComboBox colors
+    // ────────────────────────────────────────────────────────────────
+
+    /// <summary>ComboBox background color.</summary>
+    public const string ComboBoxBackgroundColor = "ThemeComboBoxBackgroundColor";
+
+    /// <summary>ComboBox foreground color.</summary>
+    public const string ComboBoxForegroundColor = "ThemeComboBoxForegroundColor";
+
+    /// <summary>ComboBox focus border color.</summary>
+    public const string ComboBoxFocusColor = "ThemeComboBoxFocusColor";
+
+    /// <summary>ComboBox hover border color.</summary>
+    public const string ComboBoxHoverColor = "ThemeComboBoxHoverColor";
+
+    // ────────────────────────────────────────────────────────────────
     //  Dialog colors
     // ────────────────────────────────────────────────────────────────
 

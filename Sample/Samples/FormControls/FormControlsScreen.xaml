@@ -1,0 +1,68 @@
+<Border xmlns="http://schemas.terminalninja.dev/xaml"
+        BorderStyle="Rounded">
+    <StackPanel Orientation="Vertical">
+        <!-- Title -->
+        <TextBlock StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1"
+                   Text=" Form Controls" Padding="2,0,0,0" />
+
+        <!-- Description -->
+        <TextBlock StackPanel.SizeMode="Fixed" StackPanel.FixedSize="2"
+                   Text="  CheckBox, RadioButton, and ComboBox controls with data binding."
+                   Padding="2,0,0,0" VerticalTextAlignment="Center" />
+
+        <Grid StackPanel.SizeMode="Stretch" Rows="* * *" Columns="* *">
+            <!-- CheckBoxes -->
+            <Border Grid.Row="0" Grid.Column="0" BorderStyle="Rounded">
+                <StackPanel Orientation="Vertical">
+                    <TextBlock StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1"
+                               Text=" CheckBoxes" Padding="1,0,0,0" />
+                    <CheckBox StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1"
+                              Content="Enable notifications" TabIndex="0"
+                              IsChecked="{Binding IsNotificationsEnabled, Mode=TwoWay}" />
+                    <CheckBox StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1"
+                              Content="Dark mode" TabIndex="1"
+                              IsChecked="{Binding IsDarkMode, Mode=TwoWay}" />
+                    <CheckBox StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1"
+                              Content="Auto-save" TabIndex="2"
+                              IsChecked="{Binding IsAutoSave, Mode=TwoWay}" />
+                    <TextBlock StackPanel.SizeMode="Stretch" Text="" />
+                </StackPanel>
+            </Border>
+
+            <!-- RadioButtons Group 1 -->
+            <Border Grid.Row="0" Grid.Column="1" BorderStyle="Rounded">
+                <StackPanel Orientation="Vertical">
+                    <TextBlock StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1"
+                               Text=" Size" Padding="1,0,0,0" />
+                    <RadioButton StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1"
+                                 GroupName="Size" Content="Small" TabIndex="3" />
+                    <RadioButton StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1"
+                                 GroupName="Size" Content="Medium" TabIndex="4" IsChecked="True" />
+                    <RadioButton StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1"
+                                 GroupName="Size" Content="Large" TabIndex="5" />
+                    <TextBlock StackPanel.SizeMode="Stretch" Text="" />
+                </StackPanel>
+            </Border>
+
+            <!-- ComboBox -->
+            <Border Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="2" BorderStyle="Rounded">
+                <StackPanel Orientation="Vertical">
+                    <TextBlock StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1"
+                               Text=" ComboBox" Padding="1,0,0,0" />
+                    <ComboBox StackPanel.SizeMode="Fixed" StackPanel.FixedSize="3"
+                              ItemsSource="{Binding Colors}" TabIndex="6"
+                              SelectedItem="{Binding SelectedColor, Mode=TwoWay}" />
+                    <TextBlock StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1"
+                               Text="{Binding StatusText}" Padding="2,0,0,0" />
+                    <TextBlock StackPanel.SizeMode="Stretch" Text="" />
+                </StackPanel>
+            </Border>
+
+            <!-- Status -->
+            <Border Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="2" BorderStyle="Rounded">
+                <TextBlock Text="{Binding SummaryText}" Padding="2,0,0,0"
+                           VerticalTextAlignment="Center" />
+            </Border>
+        </Grid>
+    </StackPanel>
+</Border>
