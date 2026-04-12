@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Lists - TerminalNinja</title>
+  <title>ListBox - TerminalNinja</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
@@ -16,12 +16,12 @@
   <div class="bg-glow bg-glow-a" aria-hidden="true"></div>
   <div class="bg-glow bg-glow-b" aria-hidden="true"></div>
   <main class="shell">
-    <nav class="breadcrumb"><a href="../index.html">Docs</a> / <span>Lists</span></nav>
+    <nav class="breadcrumb"><a href="../index.html">Docs</a> / <span>ListBox</span></nav>
     <header class="panel">
-      <h1>Lists and Collections</h1>
-      <p class="section-copy">ListBox with selection, ObservableCollection, and custom UserControls.</p>
+      <h1>ListBox</h1>
+      <p class="section-copy">Selectable list with keyboard navigation, ObservableCollection binding, and selection indicators.</p>
       <div class="hero-actions" style="margin-top:14px">
-        <a class="btn btn-primary" href="../playground.html?sample=lists">Try in Playground</a>
+        <a class="btn btn-primary" href="../playground.html?sample=listbox">Try in Playground</a>
       </div>
     </header>
     <section class="panel doc-section">
@@ -100,7 +100,7 @@
   <script>hljs.highlightAll();</script>
   <script type="module">
     import { renderPreview } from '../sample-preview.js';
-    renderPreview('lists', 'preview-terminal');
+    renderPreview('listbox', 'preview-terminal');
     document.querySelectorAll('.preview-tab').forEach(tab => {
       tab.addEventListener('click', () => {
         const panel = tab.closest('.doc-section');

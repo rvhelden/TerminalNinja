@@ -1,0 +1,23 @@
+<Border xmlns="http://schemas.terminalninja.dev/xaml"
+        BorderStyle="Rounded">
+    <StackPanel Orientation="Vertical">
+        <TextBlock StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1"
+                   Text=" CheckBox" Padding="2,0,0,0" />
+        <TextBlock StackPanel.SizeMode="Fixed" StackPanel.FixedSize="2"
+                   Text="  Toggle controls with [x] / [ ] indicator and content label."
+                   Padding="2,0,0,0" VerticalTextAlignment="Center" />
+
+        <TextBlock StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1" Text="" />
+
+        <CheckBox StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1"
+                  Content="Enable notifications" IsChecked="True" TabIndex="0" />
+        <CheckBox StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1"
+                  Content="Dark mode" IsChecked="True" TabIndex="1" />
+        <CheckBox StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1"
+                  Content="Auto-save" TabIndex="2" />
+        <CheckBox StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1"
+                  Content="Disabled option" IsEnabled="False" TabIndex="3" />
+
+        <TextBlock StackPanel.SizeMode="Stretch" Text="" />
+    </StackPanel>
+</Border>

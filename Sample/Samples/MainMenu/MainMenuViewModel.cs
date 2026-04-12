@@ -7,17 +7,21 @@ public class MainMenuViewModel : ViewModelBase
 {
     public ObservableCollection<string> Samples { get; } =
     [
-        "Progress Bars",
-        "Dialogs",
-        "Buttons",
-        "Data Binding",
-        "Lists",
+        "Button",
+        "CheckBox",
+        "RadioButton",
+        "ComboBox",
+        "TextBox",
+        "ListBox",
+        "ListView",
+        "TreeView",
+        "TabControl",
+        "ScrollViewer",
+        "ProgressBar",
         "Grid Layout",
         "StackPanel Layout",
-        "ScrollViewer",
-        "Text Input",
-        "Form Controls",
-        "Advanced Controls"
+        "Data Binding",
+        "Dialogs"
     ];
 
     public string? SelectedSample

@@ -1,0 +1,155 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>RadioButton - TerminalNinja</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/styles/github-dark-dimmed.min.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@xterm/xterm@5.5.0/css/xterm.css">
+  <link rel="stylesheet" href="../styles.css">
+</head>
+<body>
+  <div class="bg-grid" aria-hidden="true"></div>
+  <div class="bg-glow bg-glow-a" aria-hidden="true"></div>
+  <div class="bg-glow bg-glow-b" aria-hidden="true"></div>
+  <main class="shell">
+    <nav class="breadcrumb"><a href="../index.html">Docs</a> / <span>RadioButton</span></nav>
+    <header class="panel">
+      <h1>RadioButton</h1>
+      <p class="section-copy">Mutually exclusive option with (*) / ( ) indicator and GroupName.</p>
+      <div class="hero-actions" style="margin-top:14px">
+        <a class="btn btn-primary" href="../playground.html?sample=radiobutton">Try in Playground</a>
+      </div>
+    </header>
+
+    <section class="panel doc-section">
+      <h2>Overview</h2>
+      <p>
+        <code>RadioButton</code> extends <code>ButtonBase</code> and provides a mutually exclusive
+        selection option. It renders as <code>(*) Content</code> when checked or <code>( ) Content</code>
+        when unchecked. RadioButtons sharing the same <code>GroupName</code> under the same parent are
+        mutually exclusive &mdash; checking one automatically unchecks the others in the group.
+        Unlike CheckBox, a RadioButton cannot be toggled off by clicking it again.
+      </p>
+    </section>
+
+    <section class="panel doc-section">
+      <h2>Basic Example</h2>
+      <div class="preview-tabs">
+        <button class="preview-tab active" data-tab="preview">Preview</button>
+        <button class="preview-tab" data-tab="source">Source</button>
+      </div>
+      <div class="preview-tab-content active" data-tab="preview">
+        <div class="preview-terminal" id="preview-terminal"></div>
+      </div>
+      <div class="preview-tab-content" data-tab="source">
+<pre><code class="language-xml">&lt;StackPanel Orientation="Vertical"&gt;
+  &lt;RadioButton Content="Small" GroupName="Size" IsChecked="True" /&gt;
+  &lt;RadioButton Content="Medium" GroupName="Size" /&gt;
+  &lt;RadioButton Content="Large" GroupName="Size" /&gt;
+&lt;/StackPanel&gt;</code></pre>
+      </div>
+    </section>
+
+    <section class="panel doc-section">
+      <h2>Properties</h2>
+      <table>
+        <thead>
+          <tr><th>Property</th><th>Type</th><th>Default</th><th>Description</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>IsChecked</td><td>bool</td><td>false</td><td>Whether this radio button is currently selected.</td></tr>
+          <tr><td>GroupName</td><td>string</td><td>""</td><td>Name of the mutual exclusion group. All RadioButtons with the same GroupName under the same parent are exclusive.</td></tr>
+          <tr><td>FocusColor</td><td>Color</td><td>Cyan</td><td>Indicator color when the control has focus.</td></tr>
+          <tr><td>HoverColor</td><td>Color</td><td>Yellow</td><td>Indicator color when the mouse hovers over the control.</td></tr>
+          <tr><td>Content</td><td>object</td><td>null</td><td>The label displayed next to the radio indicator. Inherited from ContentControl.</td></tr>
+          <tr><td>Command</td><td>ICommand</td><td>null</td><td>Command executed when the radio button is checked. Inherited from ButtonBase.</td></tr>
+          <tr><td>CommandParameter</td><td>object</td><td>null</td><td>Parameter passed to the Command. Inherited from ButtonBase.</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section class="panel doc-section">
+      <h2>Examples</h2>
+      <h3>Basic Group</h3>
+<pre><code class="language-xml">&lt;StackPanel Orientation="Vertical"&gt;
+  &lt;TextBlock Text="Select a color:" /&gt;
+  &lt;RadioButton Content="Red" GroupName="Color" /&gt;
+  &lt;RadioButton Content="Green" GroupName="Color" IsChecked="True" /&gt;
+  &lt;RadioButton Content="Blue" GroupName="Color" /&gt;
+&lt;/StackPanel&gt;</code></pre>
+
+      <h3>Multiple GroupNames</h3>
+<pre><code class="language-xml">&lt;StackPanel Orientation="Vertical"&gt;
+  &lt;TextBlock Text="Theme:" /&gt;
+  &lt;RadioButton Content="Dark" GroupName="Theme" IsChecked="True" /&gt;
+  &lt;RadioButton Content="Light" GroupName="Theme" /&gt;
+
+  &lt;TextBlock Text="Font:" /&gt;
+  &lt;RadioButton Content="Monospace" GroupName="Font" IsChecked="True" /&gt;
+  &lt;RadioButton Content="Sans-serif" GroupName="Font" /&gt;
+  &lt;RadioButton Content="Serif" GroupName="Font" /&gt;
+&lt;/StackPanel&gt;</code></pre>
+
+      <h3>Data-Bound RadioButton</h3>
+<pre><code class="language-xml">&lt;StackPanel Orientation="Vertical"&gt;
+  &lt;RadioButton Content="Option A"
+               GroupName="Options"
+               IsChecked="{Binding IsOptionASelected}" /&gt;
+  &lt;RadioButton Content="Option B"
+               GroupName="Options"
+               IsChecked="{Binding IsOptionBSelected}" /&gt;
+&lt;/StackPanel&gt;</code></pre>
+    </section>
+
+    <section class="panel doc-section">
+      <h2>Keyboard Shortcuts</h2>
+      <table>
+        <thead>
+          <tr><th>Key</th><th>Action</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>Enter</td><td>Check this radio button (unchecks others in the same group).</td></tr>
+          <tr><td>Space</td><td>Check this radio button (unchecks others in the same group).</td></tr>
+          <tr><td>Tab</td><td>Move focus to the next focusable control.</td></tr>
+          <tr><td>Shift+Tab</td><td>Move focus to the previous focusable control.</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section class="panel doc-section">
+      <h2>Key Concepts</h2>
+      <ul>
+        <li><code>RadioButton</code> extends <code>ButtonBase</code>, inheriting Click event and Command support.</li>
+        <li>The visual indicator renders as <code>(*)</code> when checked and <code>( )</code> when unchecked.</li>
+        <li>RadioButtons with the same <code>GroupName</code> under the same parent container are mutually exclusive &mdash; only one can be checked at a time.</li>
+        <li>Unlike <code>CheckBox</code>, clicking a checked RadioButton does not toggle it off.</li>
+        <li>If no <code>GroupName</code> is specified, the default empty string group is used, making all ungrouped RadioButtons under the same parent exclusive.</li>
+        <li>The <code>Checked</code> event fires when a RadioButton becomes selected; the previously selected button fires <code>Unchecked</code>.</li>
+      </ul>
+    </section>
+
+    <footer class="footer"><a href="../index.html">&larr; Back to Docs</a></footer>
+  </main>
+  <script src="https://cdn.jsdelivr.net/npm/@xterm/xterm@5.5.0/lib/xterm.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@xterm/addon-fit@0.10.0/lib/addon-fit.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/highlight.min.js"></script>
+  <script>hljs.highlightAll();</script>
+  <script type="module">
+    import { renderPreview } from '../sample-preview.js';
+    renderPreview('radiobutton', 'preview-terminal');
+    document.querySelectorAll('.preview-tab').forEach(tab => {
+      tab.addEventListener('click', () => {
+        const panel = tab.closest('.doc-section');
+        panel.querySelectorAll('.preview-tab').forEach(t => t.classList.remove('active'));
+        panel.querySelectorAll('.preview-tab-content').forEach(c => c.classList.remove('active'));
+        tab.classList.add('active');
+        panel.querySelector(`.preview-tab-content[data-tab="${tab.dataset.tab}"]`).classList.add('active');
+      });
+    });
+  </script>
+</body>
+</html>

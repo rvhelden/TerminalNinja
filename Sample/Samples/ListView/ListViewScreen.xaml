@@ -1,0 +1,14 @@
+<Border xmlns="http://schemas.terminalninja.dev/xaml"
+        BorderStyle="Rounded">
+    <StackPanel Orientation="Vertical">
+        <TextBlock StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1"
+                   Text=" ListView" Padding="2,0,0,0" />
+        <TextBlock StackPanel.SizeMode="Fixed" StackPanel.FixedSize="2"
+                   Text="  Multi-column list with headers, grid lines, and row selection."
+                   Padding="2,0,0,0" VerticalTextAlignment="Center" />
+        <TextBlock StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1" Text="" />
+
+        <ListView StackPanel.SizeMode="Stretch" TabIndex="0"
+                  ItemsSource="{Binding Files}" />
+    </StackPanel>
+</Border>

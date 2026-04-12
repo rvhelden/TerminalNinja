@@ -1,0 +1,35 @@
+<Border xmlns="http://schemas.terminalninja.dev/xaml"
+        BorderStyle="Rounded">
+    <StackPanel Orientation="Vertical">
+        <TextBlock StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1"
+                   Text=" TreeView" Padding="2,0,0,0" />
+        <TextBlock StackPanel.SizeMode="Fixed" StackPanel.FixedSize="2"
+                   Text="  Hierarchical data with expand/collapse. Arrow keys navigate, Left/Right expand/collapse."
+                   Padding="2,0,0,0" VerticalTextAlignment="Center" />
+        <TextBlock StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1" Text="" />
+
+        <TreeView StackPanel.SizeMode="Stretch" TabIndex="0">
+            <TreeViewItem Header="Documents" IsExpanded="True">
+                <TreeViewItem Header="Work">
+                    <TreeViewItem Header="report.docx" />
+                    <TreeViewItem Header="budget.xlsx" />
+                    <TreeViewItem Header="presentation.pptx" />
+                </TreeViewItem>
+                <TreeViewItem Header="Personal" IsExpanded="True">
+                    <TreeViewItem Header="notes.txt" />
+                    <TreeViewItem Header="todo.md" />
+                </TreeViewItem>
+            </TreeViewItem>
+            <TreeViewItem Header="Downloads">
+                <TreeViewItem Header="setup.exe" />
+                <TreeViewItem Header="archive.zip" />
+            </TreeViewItem>
+            <TreeViewItem Header="Pictures">
+                <TreeViewItem Header="vacation/">
+                    <TreeViewItem Header="beach.jpg" />
+                    <TreeViewItem Header="sunset.png" />
+                </TreeViewItem>
+            </TreeViewItem>
+        </TreeView>
+    </StackPanel>
+</Border>

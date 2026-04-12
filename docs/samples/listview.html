@@ -1,0 +1,214 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>ListView - TerminalNinja</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/styles/github-dark-dimmed.min.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@xterm/xterm@5.5.0/css/xterm.css">
+  <link rel="stylesheet" href="../styles.css">
+</head>
+<body>
+  <div class="bg-grid" aria-hidden="true"></div>
+  <div class="bg-glow bg-glow-a" aria-hidden="true"></div>
+  <div class="bg-glow bg-glow-b" aria-hidden="true"></div>
+  <main class="shell">
+    <nav class="breadcrumb"><a href="../index.html">Docs</a> / <span>ListView</span></nav>
+    <header class="panel">
+      <h1>ListView</h1>
+      <p class="section-copy">Multi-column data display with headers, grid lines, and row selection.</p>
+      <div class="hero-actions" style="margin-top:14px">
+        <a class="btn btn-primary" href="../playground.html?sample=listview">Try in Playground</a>
+      </div>
+    </header>
+
+    <section class="panel doc-section">
+      <h2>Overview</h2>
+      <p>
+        <code>ListView</code> extends <code>Selector</code> and renders tabular data with column headers,
+        grid lines, and row-based selection. Columns are defined via <code>ListViewColumn</code> objects
+        specifying <code>Header</code>, <code>Width</code>, and <code>DisplayMemberBinding</code>. The
+        header row is separated from data rows by a horizontal line using box-drawing characters. Column
+        separators use <code>&#9474;</code>, header lines use <code>&#9472;</code>, and crossings use
+        <code>&#9532;</code>. The selected row is highlighted with configurable colors.
+      </p>
+    </section>
+
+    <section class="panel doc-section">
+      <h2>Basic Example</h2>
+      <div class="preview-tabs">
+        <button class="preview-tab active" data-tab="preview">Preview</button>
+        <button class="preview-tab" data-tab="source">Source</button>
+      </div>
+      <div class="preview-tab-content active" data-tab="preview">
+        <div class="preview-terminal" id="preview-terminal"></div>
+      </div>
+      <div class="preview-tab-content" data-tab="source">
+<pre><code class="language-xml">&lt;ListView SelectedIndex="0"&gt;
+  &lt;ListView.Columns&gt;
+    &lt;ListViewColumn Header="Name" Width="20" /&gt;
+    &lt;ListViewColumn Header="Size" Width="10" /&gt;
+    &lt;ListViewColumn Header="Modified" Width="18" /&gt;
+  &lt;/ListView.Columns&gt;
+  &lt;ListViewItem Content="report.pdf    2.4 MB   2026-04-10" /&gt;
+  &lt;ListViewItem Content="notes.txt     128 B    2026-04-09" /&gt;
+  &lt;ListViewItem Content="image.png     1.1 MB   2026-04-08" /&gt;
+&lt;/ListView&gt;</code></pre>
+      </div>
+    </section>
+
+    <section class="panel doc-section">
+      <h2>Properties</h2>
+      <table>
+        <thead>
+          <tr><th>Property</th><th>Type</th><th>Default</th><th>Description</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>SelectedBackground</td><td>Color</td><td>Blue</td><td>Background color of the selected row.</td></tr>
+          <tr><td>SelectedForeground</td><td>Color</td><td>White</td><td>Foreground color of the selected row.</td></tr>
+          <tr><td>HeaderBackground</td><td>Color</td><td>DarkGray</td><td>Background color of the column header row.</td></tr>
+          <tr><td>HeaderForeground</td><td>Color</td><td>White</td><td>Foreground color of the column header row.</td></tr>
+          <tr><td>ShowGridLines</td><td>bool</td><td>true</td><td>Whether to display column separators and header line using box-drawing characters.</td></tr>
+          <tr><td>Columns</td><td>IList&lt;ListViewColumn&gt;</td><td>empty</td><td>Collection of column definitions.</td></tr>
+          <tr><td>SelectedIndex</td><td>int</td><td>-1</td><td>Zero-based index of the currently selected row. Inherited from Selector.</td></tr>
+          <tr><td>SelectedItem</td><td>object</td><td>null</td><td>The currently selected data item. Inherited from Selector.</td></tr>
+          <tr><td>ItemsSource</td><td>IEnumerable</td><td>null</td><td>Data source for generating rows. Inherited from ItemsControl.</td></tr>
+        </tbody>
+      </table>
+
+      <h3>ListViewColumn Properties</h3>
+      <table>
+        <thead>
+          <tr><th>Property</th><th>Type</th><th>Default</th><th>Description</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>Header</td><td>string</td><td>""</td><td>Text displayed in the column header.</td></tr>
+          <tr><td>Width</td><td>int</td><td>10</td><td>Character width of the column.</td></tr>
+          <tr><td>DisplayMemberBinding</td><td>Binding</td><td>null</td><td>Binding path to the property on each data item to display in this column.</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section class="panel doc-section">
+      <h2>Creating Items</h2>
+      <h3>Inline ListViewItem Elements</h3>
+<pre><code class="language-xml">&lt;ListView&gt;
+  &lt;ListView.Columns&gt;
+    &lt;ListViewColumn Header="Process" Width="20" /&gt;
+    &lt;ListViewColumn Header="PID" Width="8" /&gt;
+    &lt;ListViewColumn Header="CPU" Width="8" /&gt;
+  &lt;/ListView.Columns&gt;
+  &lt;ListViewItem Content="dotnet           1234    12%" /&gt;
+  &lt;ListViewItem Content="node             5678     8%" /&gt;
+  &lt;ListViewItem Content="chrome           9012    24%" /&gt;
+&lt;/ListView&gt;</code></pre>
+
+      <h3>ItemsSource Binding with Columns</h3>
+<pre><code class="language-xml">&lt;ListView ItemsSource="{Binding Processes}" SelectedIndex="0"&gt;
+  &lt;ListView.Columns&gt;
+    &lt;ListViewColumn Header="Name" Width="20"
+                    DisplayMemberBinding="{Binding Name}" /&gt;
+    &lt;ListViewColumn Header="PID" Width="8"
+                    DisplayMemberBinding="{Binding ProcessId}" /&gt;
+    &lt;ListViewColumn Header="Memory" Width="12"
+                    DisplayMemberBinding="{Binding MemoryUsage}" /&gt;
+  &lt;/ListView.Columns&gt;
+&lt;/ListView&gt;</code></pre>
+    </section>
+
+    <section class="panel doc-section">
+      <h2>Examples</h2>
+      <h3>Without Grid Lines</h3>
+<pre><code class="language-xml">&lt;ListView ShowGridLines="False" SelectedIndex="0"&gt;
+  &lt;ListView.Columns&gt;
+    &lt;ListViewColumn Header="File" Width="25" /&gt;
+    &lt;ListViewColumn Header="Status" Width="12" /&gt;
+  &lt;/ListView.Columns&gt;
+  &lt;ListViewItem Content="Program.cs               Modified" /&gt;
+  &lt;ListViewItem Content="App.xaml                  Unchanged" /&gt;
+  &lt;ListViewItem Content="README.md                 New" /&gt;
+&lt;/ListView&gt;</code></pre>
+
+      <h3>Custom Header Colors</h3>
+<pre><code class="language-xml">&lt;ListView SelectedIndex="1"
+          HeaderBackground="DarkBlue"
+          HeaderForeground="Yellow"
+          SelectedBackground="DarkGreen"
+          SelectedForeground="White"&gt;
+  &lt;ListView.Columns&gt;
+    &lt;ListViewColumn Header="Server" Width="18" /&gt;
+    &lt;ListViewColumn Header="Status" Width="10" /&gt;
+    &lt;ListViewColumn Header="Uptime" Width="12" /&gt;
+  &lt;/ListView.Columns&gt;
+  &lt;ListViewItem Content="web-01             Online    14d 3h" /&gt;
+  &lt;ListViewItem Content="web-02             Online    14d 3h" /&gt;
+  &lt;ListViewItem Content="db-01              Offline   0d 0h" /&gt;
+&lt;/ListView&gt;</code></pre>
+
+      <h3>Wide Table Layout</h3>
+<pre><code class="language-xml">&lt;ListView SelectedIndex="0"&gt;
+  &lt;ListView.Columns&gt;
+    &lt;ListViewColumn Header="ID" Width="6" /&gt;
+    &lt;ListViewColumn Header="Title" Width="30" /&gt;
+    &lt;ListViewColumn Header="Author" Width="15" /&gt;
+    &lt;ListViewColumn Header="Date" Width="12" /&gt;
+  &lt;/ListView.Columns&gt;
+  &lt;ListViewItem Content="#1     Fix null reference        Alice    2026-04-10" /&gt;
+  &lt;ListViewItem Content="#2     Add TreeView control      Bob      2026-04-11" /&gt;
+  &lt;ListViewItem Content="#3     Update documentation      Charlie  2026-04-12" /&gt;
+&lt;/ListView&gt;</code></pre>
+    </section>
+
+    <section class="panel doc-section">
+      <h2>Keyboard Shortcuts</h2>
+      <table>
+        <thead>
+          <tr><th>Key</th><th>Action</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>Up Arrow</td><td>Move selection to the previous row.</td></tr>
+          <tr><td>Down Arrow</td><td>Move selection to the next row.</td></tr>
+          <tr><td>Home</td><td>Move selection to the first row.</td></tr>
+          <tr><td>End</td><td>Move selection to the last row.</td></tr>
+          <tr><td>Page Up</td><td>Move selection up by one page of visible rows.</td></tr>
+          <tr><td>Page Down</td><td>Move selection down by one page of visible rows.</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section class="panel doc-section">
+      <h2>Key Concepts</h2>
+      <ul>
+        <li><code>ListView</code> extends <code>Selector</code>, inheriting <code>SelectedIndex</code>, <code>SelectedItem</code>, and <code>SelectionChanged</code> event.</li>
+        <li>Columns are defined via <code>ListViewColumn</code> objects with <code>Header</code>, <code>Width</code>, and optional <code>DisplayMemberBinding</code>.</li>
+        <li>When <code>ShowGridLines</code> is <code>True</code>, columns are separated by <code>&#9474;</code> characters, header lines use <code>&#9472;</code>, and crossings use <code>&#9532;</code>.</li>
+        <li>The header row renders with <code>HeaderBackground</code> and <code>HeaderForeground</code> colors, visually distinct from data rows.</li>
+        <li>Row data can be provided inline with <code>&lt;ListViewItem&gt;</code> elements or generated from <code>ItemsSource</code> with <code>DisplayMemberBinding</code> on each column.</li>
+        <li>Use <code>DisplayMemberBinding</code> on columns to automatically extract property values from bound data objects.</li>
+      </ul>
+    </section>
+
+    <footer class="footer"><a href="../index.html">&larr; Back to Docs</a></footer>
+  </main>
+  <script src="https://cdn.jsdelivr.net/npm/@xterm/xterm@5.5.0/lib/xterm.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@xterm/addon-fit@0.10.0/lib/addon-fit.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/highlight.min.js"></script>
+  <script>hljs.highlightAll();</script>
+  <script type="module">
+    import { renderPreview } from '../sample-preview.js';
+    renderPreview('listview', 'preview-terminal');
+    document.querySelectorAll('.preview-tab').forEach(tab => {
+      tab.addEventListener('click', () => {
+        const panel = tab.closest('.doc-section');
+        panel.querySelectorAll('.preview-tab').forEach(t => t.classList.remove('active'));
+        panel.querySelectorAll('.preview-tab-content').forEach(c => c.classList.remove('active'));
+        tab.classList.add('active');
+        panel.querySelector(`.preview-tab-content[data-tab="${tab.dataset.tab}"]`).classList.add('active');
+      });
+    });
+  </script>
+</body>
+</html>

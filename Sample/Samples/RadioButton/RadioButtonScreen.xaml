@@ -1,0 +1,34 @@
+<Border xmlns="http://schemas.terminalninja.dev/xaml"
+        BorderStyle="Rounded">
+    <StackPanel Orientation="Vertical">
+        <TextBlock StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1"
+                   Text=" RadioButton" Padding="2,0,0,0" />
+        <TextBlock StackPanel.SizeMode="Fixed" StackPanel.FixedSize="2"
+                   Text="  Mutually exclusive options with (*) / ( ) indicator and GroupName."
+                   Padding="2,0,0,0" VerticalTextAlignment="Center" />
+
+        <TextBlock StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1" Text="" />
+
+        <TextBlock StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1"
+                   Text="  Size:" Padding="2,0,0,0" />
+        <RadioButton StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1"
+                     GroupName="Size" Content="Small" TabIndex="0" />
+        <RadioButton StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1"
+                     GroupName="Size" Content="Medium" IsChecked="True" TabIndex="1" />
+        <RadioButton StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1"
+                     GroupName="Size" Content="Large" TabIndex="2" />
+
+        <TextBlock StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1" Text="" />
+
+        <TextBlock StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1"
+                   Text="  Color:" Padding="2,0,0,0" />
+        <RadioButton StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1"
+                     GroupName="Color" Content="Red" TabIndex="3" />
+        <RadioButton StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1"
+                     GroupName="Color" Content="Blue" IsChecked="True" TabIndex="4" />
+        <RadioButton StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1"
+                     GroupName="Color" Content="Green" TabIndex="5" />
+
+        <TextBlock StackPanel.SizeMode="Stretch" Text="" />
+    </StackPanel>
+</Border>

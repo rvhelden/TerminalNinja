@@ -1,0 +1,206 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>TreeView - TerminalNinja</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/styles/github-dark-dimmed.min.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@xterm/xterm@5.5.0/css/xterm.css">
+  <link rel="stylesheet" href="../styles.css">
+</head>
+<body>
+  <div class="bg-grid" aria-hidden="true"></div>
+  <div class="bg-glow bg-glow-a" aria-hidden="true"></div>
+  <div class="bg-glow bg-glow-b" aria-hidden="true"></div>
+  <main class="shell">
+    <nav class="breadcrumb"><a href="../index.html">Docs</a> / <span>TreeView</span></nav>
+    <header class="panel">
+      <h1>TreeView</h1>
+      <p class="section-copy">Hierarchical data display with expand/collapse navigation.</p>
+      <div class="hero-actions" style="margin-top:14px">
+        <a class="btn btn-primary" href="../playground.html?sample=treeview">Try in Playground</a>
+      </div>
+    </header>
+
+    <section class="panel doc-section">
+      <h2>Overview</h2>
+      <p>
+        <code>TreeView</code> extends <code>Control</code> and displays hierarchical data as an expandable
+        and collapsible tree structure. Each node is a <code>TreeViewItem</code> that can contain child
+        <code>TreeViewItem</code> elements. Nodes with children show an expand/collapse indicator:
+        <code>&#9660;</code> when expanded and <code>&#9654;</code> when collapsed. Each nesting level is
+        indented by 2 characters. The currently selected node is highlighted with configurable
+        <code>SelectedBackground</code> and <code>SelectedForeground</code> colors.
+      </p>
+    </section>
+
+    <section class="panel doc-section">
+      <h2>Basic Example</h2>
+      <div class="preview-tabs">
+        <button class="preview-tab active" data-tab="preview">Preview</button>
+        <button class="preview-tab" data-tab="source">Source</button>
+      </div>
+      <div class="preview-tab-content active" data-tab="preview">
+        <div class="preview-terminal" id="preview-terminal"></div>
+      </div>
+      <div class="preview-tab-content" data-tab="source">
+<pre><code class="language-xml">&lt;TreeView&gt;
+  &lt;TreeViewItem Header="Documents" IsExpanded="True"&gt;
+    &lt;TreeViewItem Header="Work"&gt;
+      &lt;TreeViewItem Header="report.pdf" /&gt;
+      &lt;TreeViewItem Header="notes.txt" /&gt;
+    &lt;/TreeViewItem&gt;
+    &lt;TreeViewItem Header="Personal"&gt;
+      &lt;TreeViewItem Header="photo.jpg" /&gt;
+    &lt;/TreeViewItem&gt;
+  &lt;/TreeViewItem&gt;
+  &lt;TreeViewItem Header="Downloads"&gt;
+    &lt;TreeViewItem Header="setup.exe" /&gt;
+  &lt;/TreeViewItem&gt;
+&lt;/TreeView&gt;</code></pre>
+      </div>
+    </section>
+
+    <section class="panel doc-section">
+      <h2>Properties</h2>
+      <table>
+        <thead>
+          <tr><th>Property</th><th>Type</th><th>Default</th><th>Description</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>SelectedItem</td><td>TreeViewItem</td><td>null</td><td>The currently selected tree node.</td></tr>
+          <tr><td>SelectedBackground</td><td>Color</td><td>Blue</td><td>Background color of the selected node.</td></tr>
+          <tr><td>SelectedForeground</td><td>Color</td><td>White</td><td>Foreground color of the selected node.</td></tr>
+        </tbody>
+      </table>
+
+      <h3>TreeViewItem Properties</h3>
+      <table>
+        <thead>
+          <tr><th>Property</th><th>Type</th><th>Default</th><th>Description</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>Header</td><td>object</td><td>null</td><td>The text or content displayed for this node.</td></tr>
+          <tr><td>IsExpanded</td><td>bool</td><td>false</td><td>Whether this node's children are visible.</td></tr>
+          <tr><td>Items</td><td>IList&lt;TreeViewItem&gt;</td><td>empty</td><td>Child nodes of this tree item.</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section class="panel doc-section">
+      <h2>Creating Items</h2>
+      <h3>Nested TreeViewItem Elements</h3>
+<pre><code class="language-xml">&lt;TreeView&gt;
+  &lt;TreeViewItem Header="Root"&gt;
+    &lt;TreeViewItem Header="Child 1" /&gt;
+    &lt;TreeViewItem Header="Child 2"&gt;
+      &lt;TreeViewItem Header="Grandchild 1" /&gt;
+      &lt;TreeViewItem Header="Grandchild 2" /&gt;
+    &lt;/TreeViewItem&gt;
+  &lt;/TreeViewItem&gt;
+&lt;/TreeView&gt;</code></pre>
+
+      <h3>Pre-Expanded Nodes</h3>
+<pre><code class="language-xml">&lt;TreeView&gt;
+  &lt;TreeViewItem Header="src" IsExpanded="True"&gt;
+    &lt;TreeViewItem Header="Controls" IsExpanded="True"&gt;
+      &lt;TreeViewItem Header="Button.cs" /&gt;
+      &lt;TreeViewItem Header="TextBlock.cs" /&gt;
+      &lt;TreeViewItem Header="TreeView.cs" /&gt;
+    &lt;/TreeViewItem&gt;
+    &lt;TreeViewItem Header="App.cs" /&gt;
+  &lt;/TreeViewItem&gt;
+  &lt;TreeViewItem Header="tests"&gt;
+    &lt;TreeViewItem Header="ButtonTests.cs" /&gt;
+  &lt;/TreeViewItem&gt;
+&lt;/TreeView&gt;</code></pre>
+    </section>
+
+    <section class="panel doc-section">
+      <h2>Examples</h2>
+      <h3>File Explorer Style</h3>
+<pre><code class="language-xml">&lt;TreeView SelectedBackground="DarkCyan" SelectedForeground="White"&gt;
+  &lt;TreeViewItem Header="C:" IsExpanded="True"&gt;
+    &lt;TreeViewItem Header="Program Files"&gt;
+      &lt;TreeViewItem Header="TerminalNinja" /&gt;
+      &lt;TreeViewItem Header="dotnet" /&gt;
+    &lt;/TreeViewItem&gt;
+    &lt;TreeViewItem Header="Users"&gt;
+      &lt;TreeViewItem Header="Admin" /&gt;
+      &lt;TreeViewItem Header="Guest" /&gt;
+    &lt;/TreeViewItem&gt;
+    &lt;TreeViewItem Header="Windows" /&gt;
+  &lt;/TreeViewItem&gt;
+&lt;/TreeView&gt;</code></pre>
+
+      <h3>Configuration Tree</h3>
+<pre><code class="language-xml">&lt;TreeView&gt;
+  &lt;TreeViewItem Header="Application Settings" IsExpanded="True"&gt;
+    &lt;TreeViewItem Header="General"&gt;
+      &lt;TreeViewItem Header="Language: English" /&gt;
+      &lt;TreeViewItem Header="Theme: Dark" /&gt;
+    &lt;/TreeViewItem&gt;
+    &lt;TreeViewItem Header="Network"&gt;
+      &lt;TreeViewItem Header="Proxy: None" /&gt;
+      &lt;TreeViewItem Header="Timeout: 30s" /&gt;
+    &lt;/TreeViewItem&gt;
+  &lt;/TreeViewItem&gt;
+&lt;/TreeView&gt;</code></pre>
+    </section>
+
+    <section class="panel doc-section">
+      <h2>Keyboard Shortcuts</h2>
+      <table>
+        <thead>
+          <tr><th>Key</th><th>Action</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>Up Arrow</td><td>Move selection to the previous visible node.</td></tr>
+          <tr><td>Down Arrow</td><td>Move selection to the next visible node.</td></tr>
+          <tr><td>Left Arrow</td><td>Collapse the current node, or move to parent if already collapsed or a leaf.</td></tr>
+          <tr><td>Right Arrow</td><td>Expand the current node, or move to first child if already expanded.</td></tr>
+          <tr><td>Enter</td><td>Toggle expand/collapse of the current node.</td></tr>
+          <tr><td>Space</td><td>Toggle expand/collapse of the current node.</td></tr>
+          <tr><td>Home</td><td>Move selection to the first visible node.</td></tr>
+          <tr><td>End</td><td>Move selection to the last visible node.</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section class="panel doc-section">
+      <h2>Key Concepts</h2>
+      <ul>
+        <li><code>TreeView</code> extends <code>Control</code> and manages a collection of root-level <code>TreeViewItem</code> nodes.</li>
+        <li>Each <code>TreeViewItem</code> can contain nested child items, forming a hierarchical tree structure.</li>
+        <li>Expand/collapse indicators use <code>&#9660;</code> (expanded) and <code>&#9654;</code> (collapsed); leaf nodes show no indicator.</li>
+        <li>Each nesting level is indented by 2 characters for clear visual hierarchy.</li>
+        <li>The <code>IsExpanded</code> property on <code>TreeViewItem</code> controls whether children are visible; set it to <code>True</code> in XAML to pre-expand nodes.</li>
+        <li><code>SelectedItem</code> tracks the currently focused node and is updated via keyboard navigation or mouse click.</li>
+        <li>Left arrow on a collapsed or leaf node navigates to the parent node; Right arrow on an expanded node navigates to the first child.</li>
+      </ul>
+    </section>
+
+    <footer class="footer"><a href="../index.html">&larr; Back to Docs</a></footer>
+  </main>
+  <script src="https://cdn.jsdelivr.net/npm/@xterm/xterm@5.5.0/lib/xterm.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@xterm/addon-fit@0.10.0/lib/addon-fit.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/highlight.min.js"></script>
+  <script>hljs.highlightAll();</script>
+  <script type="module">
+    import { renderPreview } from '../sample-preview.js';
+    renderPreview('treeview', 'preview-terminal');
+    document.querySelectorAll('.preview-tab').forEach(tab => {
+      tab.addEventListener('click', () => {
+        const panel = tab.closest('.doc-section');
+        panel.querySelectorAll('.preview-tab').forEach(t => t.classList.remove('active'));
+        panel.querySelectorAll('.preview-tab-content').forEach(c => c.classList.remove('active'));
+        tab.classList.add('active');
+        panel.querySelector(`.preview-tab-content[data-tab="${tab.dataset.tab}"]`).classList.add('active');
+      });
+    });
+  </script>
+</body>
+</html>

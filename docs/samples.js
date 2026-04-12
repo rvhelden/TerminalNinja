@@ -7,12 +7,12 @@
 
 export const SAMPLES = [
   {
-    id: "progress-bars",
-    title: "Progress Bars",
+    id: "progressbar",
+    title: "ProgressBar",
     description: "Determinate, indeterminate, and custom-character progress bars.",
-    docPage: "./samples/progress-bars.html",
+    docPage: "./samples/progressbar.html",
     xaml: `<Window xmlns="http://schemas.terminalninja.dev/xaml"
-        Title="Progress Bars" Width="80" Height="24">
+        Title="Progress Bars">
     <Border BorderStyle="Rounded">
         <StackPanel Orientation="Vertical">
             <TextBlock StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1"
@@ -52,12 +52,12 @@ export const SAMPLES = [
   },
 
   {
-    id: "buttons",
-    title: "Buttons",
+    id: "button",
+    title: "Button",
     description: "Button controls with styling, hover colors, and tab navigation.",
-    docPage: "./samples/buttons.html",
+    docPage: "./samples/button.html",
     xaml: `<Window xmlns="http://schemas.terminalninja.dev/xaml"
-        Title="Buttons" Width="80" Height="24">
+        Title="Buttons">
     <Border BorderStyle="Rounded">
         <StackPanel Orientation="Vertical">
             <TextBlock StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1"
@@ -93,7 +93,7 @@ export const SAMPLES = [
     description: "One-way and two-way binding, converters, and animated colors.",
     docPage: "./samples/data-binding.html",
     xaml: `<Window xmlns="http://schemas.terminalninja.dev/xaml"
-        Title="Data Binding" Width="80" Height="24">
+        Title="Data Binding">
     <Border BorderStyle="Rounded">
         <Grid Rows="1 2 3 1 * 1 *" Columns="* *">
             <TextBlock Grid.Row="0" Grid.ColumnSpan="2"
@@ -149,7 +149,7 @@ export const SAMPLES = [
     description: "Modal dialog with OK/Cancel, dimmed background, and dialog result.",
     docPage: "./samples/dialogs.html",
     xaml: `<Window xmlns="http://schemas.terminalninja.dev/xaml"
-        Title="Dialogs" Width="80" Height="24">
+        Title="Dialogs">
     <Border BorderStyle="Rounded">
         <StackPanel Orientation="Vertical">
             <TextBlock StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1"
@@ -193,12 +193,12 @@ export const SAMPLES = [
   },
 
   {
-    id: "lists",
-    title: "Lists",
+    id: "listbox",
+    title: "ListBox",
     description: "ListBox with selection, ObservableCollection, and add/remove items.",
-    docPage: "./samples/lists.html",
+    docPage: "./samples/listbox.html",
     xaml: `<Window xmlns="http://schemas.terminalninja.dev/xaml"
-        Title="Lists" Width="80" Height="24">
+        Title="Lists">
     <Border BorderStyle="Rounded">
         <Grid Rows="1 2 3 1 *" Columns="* *">
             <TextBlock Grid.Row="0" Grid.ColumnSpan="2"
@@ -253,7 +253,7 @@ export const SAMPLES = [
     description: "Rows, columns, star/fixed sizing, and row/column spans.",
     docPage: "./samples/grid-layout.html",
     xaml: `<Window xmlns="http://schemas.terminalninja.dev/xaml"
-        Title="Grid Layout" Width="80" Height="24">
+        Title="Grid Layout">
     <Border BorderStyle="Rounded">
         <StackPanel Orientation="Vertical">
             <TextBlock StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1"
@@ -299,7 +299,7 @@ export const SAMPLES = [
     description: "Vertical/horizontal stacking with Auto, Fixed, and Stretch sizing.",
     docPage: "./samples/stack-layout.html",
     xaml: `<Window xmlns="http://schemas.terminalninja.dev/xaml"
-        Title="StackPanel Layout" Width="80" Height="24">
+        Title="StackPanel Layout">
     <Border BorderStyle="Rounded">
         <StackPanel Orientation="Vertical">
             <TextBlock StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1"
@@ -355,7 +355,7 @@ export const SAMPLES = [
     description: "Scrollable viewport with keyboard and mouse wheel navigation.",
     docPage: "./samples/scroll-viewer.html",
     xaml: `<Window xmlns="http://schemas.terminalninja.dev/xaml"
-        Title="ScrollViewer" Width="80" Height="24">
+        Title="ScrollViewer">
     <Border BorderStyle="Rounded">
         <StackPanel Orientation="Vertical">
             <TextBlock StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1"
@@ -393,7 +393,7 @@ export const SAMPLES = [
     description: "Editable text input with caret, selection, and placeholder.",
     docPage: "./samples/text-box.html",
     xaml: `<Window xmlns="http://schemas.terminalninja.dev/xaml"
-        Title="TextBox" Width="80" Height="24">
+        Title="TextBox">
     <Border BorderStyle="Rounded">
         <StackPanel Orientation="Vertical">
             <TextBlock StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1"
@@ -426,51 +426,18 @@ export const SAMPLES = [
   },
 
   {
-    id: "form-controls",
-    title: "Form Controls",
-    description: "CheckBox, RadioButton, and ComboBox for interactive forms.",
-    docPage: "./samples/form-controls.html",
-    xaml: `<Window xmlns="http://schemas.terminalninja.dev/xaml"
-        Title="Form Controls" Width="80" Height="24">
+    id: "checkbox",
+    title: "CheckBox",
+    description: "Toggle control with [x] / [ ] indicator and content label.",
+    docPage: "./samples/checkbox.html",
+    xaml: `<Window xmlns="http://schemas.terminalninja.dev/xaml" Title="CheckBox">
     <Border BorderStyle="Rounded">
         <StackPanel Orientation="Vertical">
-            <TextBlock StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1"
-                       Text=" Form Controls" Padding="2,0,0,0" />
-            <TextBlock StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1"
-                       Text="  CheckBox, RadioButton, and ComboBox demos."
-                       Padding="2,0,0,0" />
+            <TextBlock StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1" Text=" CheckBox" Padding="2,0,0,0" />
             <TextBlock StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1" Text="" />
-
-            <TextBlock StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1"
-                       Text="  CheckBoxes:" Padding="2,0,0,0" />
-            <CheckBox StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1"
-                      Content="Enable notifications" IsChecked="True" TabIndex="0" />
-            <CheckBox StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1"
-                      Content="Dark mode" IsChecked="True" TabIndex="1" />
-            <CheckBox StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1"
-                      Content="Auto-save" TabIndex="2" />
-
-            <TextBlock StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1" Text="" />
-
-            <TextBlock StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1"
-                       Text="  Size (RadioButton group):" Padding="2,0,0,0" />
-            <RadioButton StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1"
-                         GroupName="Size" Content="Small" TabIndex="3" />
-            <RadioButton StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1"
-                         GroupName="Size" Content="Medium" IsChecked="True" TabIndex="4" />
-            <RadioButton StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1"
-                         GroupName="Size" Content="Large" TabIndex="5" />
-
-            <TextBlock StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1" Text="" />
-
-            <TextBlock StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1"
-                       Text="  ComboBox:" Padding="2,0,0,0" />
-            <ComboBox StackPanel.SizeMode="Fixed" StackPanel.FixedSize="3" TabIndex="6">
-                <ComboBoxItem Content="Red" />
-                <ComboBoxItem Content="Green" />
-                <ComboBoxItem Content="Blue" />
-            </ComboBox>
-
+            <CheckBox StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1" Content="Enable notifications" IsChecked="True" TabIndex="0" />
+            <CheckBox StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1" Content="Dark mode" IsChecked="True" TabIndex="1" />
+            <CheckBox StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1" Content="Auto-save" TabIndex="2" />
             <TextBlock StackPanel.SizeMode="Stretch" Text="" />
         </StackPanel>
     </Border>
@@ -478,42 +445,115 @@ export const SAMPLES = [
   },
 
   {
-    id: "advanced-controls",
-    title: "Advanced Controls",
-    description: "TabControl, TreeView, and ListView with selection and hierarchical navigation.",
-    docPage: "./samples/advanced-controls.html",
-    xaml: `<Window xmlns="http://schemas.terminalninja.dev/xaml"
-        Title="Advanced Controls" Width="80" Height="24">
+    id: "radiobutton",
+    title: "RadioButton",
+    description: "Mutually exclusive option with (*) / ( ) indicator and GroupName.",
+    docPage: "./samples/radiobutton.html",
+    xaml: `<Window xmlns="http://schemas.terminalninja.dev/xaml" Title="RadioButton">
     <Border BorderStyle="Rounded">
         <StackPanel Orientation="Vertical">
-            <TextBlock StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1"
-                       Text=" Advanced Controls" Padding="2,0,0,0" />
+            <TextBlock StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1" Text=" RadioButton" Padding="2,0,0,0" />
+            <TextBlock StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1" Text="" />
+            <RadioButton StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1" GroupName="Size" Content="Small" TabIndex="0" />
+            <RadioButton StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1" GroupName="Size" Content="Medium" IsChecked="True" TabIndex="1" />
+            <RadioButton StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1" GroupName="Size" Content="Large" TabIndex="2" />
+            <TextBlock StackPanel.SizeMode="Stretch" Text="" />
+        </StackPanel>
+    </Border>
+</Window>`
+  },
+
+  {
+    id: "combobox",
+    title: "ComboBox",
+    description: "Dropdown selection control with popup item list.",
+    docPage: "./samples/combobox.html",
+    xaml: `<Window xmlns="http://schemas.terminalninja.dev/xaml" Title="ComboBox">
+    <Border BorderStyle="Rounded">
+        <StackPanel Orientation="Vertical">
+            <TextBlock StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1" Text=" ComboBox" Padding="2,0,0,0" />
+            <TextBlock StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1" Text="" />
+            <ComboBox StackPanel.SizeMode="Fixed" StackPanel.FixedSize="3" TabIndex="0">
+                <ComboBoxItem Content="Red" />
+                <ComboBoxItem Content="Green" />
+                <ComboBoxItem Content="Blue" />
+            </ComboBox>
+            <TextBlock StackPanel.SizeMode="Stretch" Text="" />
+        </StackPanel>
+    </Border>
+</Window>`
+  },
+
+  {
+    id: "tabcontrol",
+    title: "TabControl",
+    description: "Tabbed content switching with header strip and content area.",
+    docPage: "./samples/tabcontrol.html",
+    xaml: `<Window xmlns="http://schemas.terminalninja.dev/xaml" Title="TabControl">
+    <Border BorderStyle="Rounded">
+        <StackPanel Orientation="Vertical">
+            <TextBlock StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1" Text=" TabControl" Padding="2,0,0,0" />
             <TextBlock StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1" Text="" />
             <TabControl StackPanel.SizeMode="Stretch">
-                <TabItem Header="TreeView">
-                    <TreeView>
-                        <TreeViewItem Header="Documents" IsExpanded="True">
-                            <TreeViewItem Header="Work">
-                                <TreeViewItem Header="report.docx" />
-                                <TreeViewItem Header="budget.xlsx" />
-                            </TreeViewItem>
-                            <TreeViewItem Header="Personal">
-                                <TreeViewItem Header="notes.txt" />
-                            </TreeViewItem>
-                        </TreeViewItem>
-                        <TreeViewItem Header="Downloads">
-                            <TreeViewItem Header="setup.exe" />
-                        </TreeViewItem>
-                    </TreeView>
+                <TabItem Header="Overview">
+                    <TextBlock Text="  Overview content" VerticalTextAlignment="Center" />
+                </TabItem>
+                <TabItem Header="Settings">
+                    <TextBlock Text="  Settings content" VerticalTextAlignment="Center" />
                 </TabItem>
                 <TabItem Header="About">
-                    <StackPanel Orientation="Vertical">
-                        <TextBlock StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1"
-                                   Text="  TabControl + TreeView + ListView" />
-                        <TextBlock StackPanel.SizeMode="Stretch" Text="" />
-                    </StackPanel>
+                    <TextBlock Text="  About content" VerticalTextAlignment="Center" />
                 </TabItem>
             </TabControl>
+        </StackPanel>
+    </Border>
+</Window>`
+  },
+
+  {
+    id: "treeview",
+    title: "TreeView",
+    description: "Hierarchical data display with expand/collapse navigation.",
+    docPage: "./samples/treeview.html",
+    xaml: `<Window xmlns="http://schemas.terminalninja.dev/xaml" Title="TreeView">
+    <Border BorderStyle="Rounded">
+        <StackPanel Orientation="Vertical">
+            <TextBlock StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1" Text=" TreeView" Padding="2,0,0,0" />
+            <TextBlock StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1" Text="" />
+            <TreeView StackPanel.SizeMode="Stretch">
+                <TreeViewItem Header="Documents" IsExpanded="True">
+                    <TreeViewItem Header="Work">
+                        <TreeViewItem Header="report.docx" />
+                        <TreeViewItem Header="budget.xlsx" />
+                    </TreeViewItem>
+                    <TreeViewItem Header="Personal" IsExpanded="True">
+                        <TreeViewItem Header="notes.txt" />
+                    </TreeViewItem>
+                </TreeViewItem>
+                <TreeViewItem Header="Downloads">
+                    <TreeViewItem Header="setup.exe" />
+                </TreeViewItem>
+            </TreeView>
+        </StackPanel>
+    </Border>
+</Window>`
+  },
+
+  {
+    id: "listview",
+    title: "ListView",
+    description: "Multi-column data display with headers, grid lines, and row selection.",
+    docPage: "./samples/listview.html",
+    xaml: `<Window xmlns="http://schemas.terminalninja.dev/xaml" Title="ListView">
+    <Border BorderStyle="Rounded">
+        <StackPanel Orientation="Vertical">
+            <TextBlock StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1" Text=" ListView" Padding="2,0,0,0" />
+            <TextBlock StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1" Text="" />
+            <ListView StackPanel.SizeMode="Stretch">
+                <ListViewItem Content="Program.cs" />
+                <ListViewItem Content="README.md" />
+                <ListViewItem Content="appsettings.json" />
+            </ListView>
         </StackPanel>
     </Border>
 </Window>`

@@ -1,9 +1,9 @@
 using System.Collections.ObjectModel;
 using TerminalNinja.Xaml.Mvvm;
 
-namespace Sample.Samples.AdvancedControls;
+namespace Sample.Samples.ListView;
 
-public class AdvancedControlsViewModel : ViewModelBase
+public class ListViewViewModel : ViewModelBase
 {
     public ObservableCollection<string> Files { get; } =
     [
@@ -11,6 +11,8 @@ public class AdvancedControlsViewModel : ViewModelBase
         "README.md",
         "appsettings.json",
         "Startup.cs",
-        "Controllers/HomeController.cs"
+        "Controllers/HomeController.cs",
+        "Models/User.cs",
+        "Views/Index.cshtml"
     ];
 }

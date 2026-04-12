@@ -1,0 +1,38 @@
+<Border xmlns="http://schemas.terminalninja.dev/xaml"
+        BorderStyle="Rounded">
+    <StackPanel Orientation="Vertical">
+        <TextBlock StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1"
+                   Text=" TabControl" Padding="2,0,0,0" />
+        <TextBlock StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1"
+                   Text="  Tabbed content switching with Left/Right arrow keys."
+                   Padding="2,0,0,0" />
+        <TextBlock StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1" Text="" />
+
+        <TabControl StackPanel.SizeMode="Stretch" TabIndex="0">
+            <TabItem Header="Overview">
+                <StackPanel Orientation="Vertical">
+                    <TextBlock StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1"
+                               Text="  This is the Overview tab." Padding="1,0,0,0" />
+                    <TextBlock StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1"
+                               Text="  Use Left/Right arrows to switch tabs." Padding="1,0,0,0" />
+                    <TextBlock StackPanel.SizeMode="Stretch" Text="" />
+                </StackPanel>
+            </TabItem>
+            <TabItem Header="Settings">
+                <StackPanel Orientation="Vertical">
+                    <TextBlock StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1"
+                               Text="  Settings content goes here." Padding="1,0,0,0" />
+                    <CheckBox StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1"
+                              Content="Enable feature A" IsChecked="True" />
+                    <CheckBox StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1"
+                              Content="Enable feature B" />
+                    <TextBlock StackPanel.SizeMode="Stretch" Text="" />
+                </StackPanel>
+            </TabItem>
+            <TabItem Header="About">
+                <TextBlock Text="  TabControl Demo v1.0" Padding="1,0,0,0"
+                           VerticalTextAlignment="Center" />
+            </TabItem>
+        </TabControl>
+    </StackPanel>
+</Border>

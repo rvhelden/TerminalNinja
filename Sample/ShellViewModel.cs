@@ -9,8 +9,8 @@ using Sample.Samples.Buttons;
 using Sample.Samples.DataBinding;
 using Sample.Samples.Lists;
 using Sample.Samples.TextInput;
-using Sample.Samples.FormControls;
-using Sample.Samples.AdvancedControls;
+using Sample.Samples.ListView;
+using ComboBoxSample = Sample.Samples.ComboBox;
 
 namespace Sample;
 
@@ -55,17 +55,21 @@ public class ShellViewModel : ViewModelBase, IDisposable
 
         UIElement screen = sampleName switch
         {
-            "Progress Bars" => TerminalXaml.Load<Border>(XamlLayouts.ProgressBarsScreen, new ProgressBarsViewModel()),
-            "Dialogs" => TerminalXaml.Load<Border>(XamlLayouts.DialogsScreen, new DialogsViewModel()),
-            "Buttons" => TerminalXaml.Load<Border>(XamlLayouts.ButtonsScreen, new ButtonsViewModel()),
-            "Data Binding" => TerminalXaml.Load<Border>(XamlLayouts.DataBindingScreen, new DataBindingViewModel()),
-            "Lists" => TerminalXaml.Load<Border>(XamlLayouts.ListsScreen, new ListsViewModel()),
+            "Button" => TerminalXaml.Load<Border>(XamlLayouts.ButtonsScreen, new ButtonsViewModel()),
+            "CheckBox" => TerminalXaml.Load<Border>(XamlLayouts.CheckBoxScreen),
+            "RadioButton" => TerminalXaml.Load<Border>(XamlLayouts.RadioButtonScreen),
+            "ComboBox" => TerminalXaml.Load<Border>(XamlLayouts.ComboBoxScreen, new ComboBoxSample.ComboBoxViewModel()),
+            "TextBox" => TerminalXaml.Load<Border>(XamlLayouts.TextInputScreen, new TextInputViewModel()),
+            "ListBox" => TerminalXaml.Load<Border>(XamlLayouts.ListsScreen, new ListsViewModel()),
+            "ListView" => TerminalXaml.Load<Border>(XamlLayouts.ListViewScreen, new ListViewViewModel()),
+            "TreeView" => TerminalXaml.Load<Border>(XamlLayouts.TreeViewScreen),
+            "TabControl" => TerminalXaml.Load<Border>(XamlLayouts.TabControlScreen),
+            "ScrollViewer" => TerminalXaml.Load<Border>(XamlLayouts.ScrollViewerScreen),
+            "ProgressBar" => TerminalXaml.Load<Border>(XamlLayouts.ProgressBarsScreen, new ProgressBarsViewModel()),
             "Grid Layout" => TerminalXaml.Load<Border>(XamlLayouts.GridLayoutScreen),
             "StackPanel Layout" => TerminalXaml.Load<Border>(XamlLayouts.StackLayoutScreen),
-            "ScrollViewer" => TerminalXaml.Load<Border>(XamlLayouts.ScrollViewerScreen),
-            "Text Input" => TerminalXaml.Load<Border>(XamlLayouts.TextInputScreen, new TextInputViewModel()),
-            "Form Controls" => TerminalXaml.Load<Border>(XamlLayouts.FormControlsScreen, new FormControlsViewModel()),
-            "Advanced Controls" => TerminalXaml.Load<Border>(XamlLayouts.AdvancedControlsScreen, new AdvancedControlsViewModel()),
+            "Data Binding" => TerminalXaml.Load<Border>(XamlLayouts.DataBindingScreen, new DataBindingViewModel()),
+            "Dialogs" => TerminalXaml.Load<Border>(XamlLayouts.DialogsScreen, new DialogsViewModel()),
             _ => throw new ArgumentException($"Unknown sample: {sampleName}")
         };
 
