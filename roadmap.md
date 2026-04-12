@@ -5,9 +5,9 @@
   - [x] Add support for Dark theme
   - [x] Add support for Dracula theme
   - [x] Add support for Gruvbox dark theme
-- [ ] Add support for custom themes
-- [ ] Add support for Margin DependencyProperty
-- [ ] Add support for Padding DependencyProperty
+- [x] Add support for custom themes
+- [x] Add support for Margin DependencyProperty
+- [x] Add support for Padding DependencyProperty
 
 # Controls
 - [x] FontIcon control with Nerdfont icons support

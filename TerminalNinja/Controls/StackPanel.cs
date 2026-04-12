@@ -110,20 +110,21 @@ public class StackPanel : Panel
         {
             var sizeMode = GetSizeMode(child);
             var preferredSize = child.GetPreferredSize(parent);
-            
+            var childMargin = child is FrameworkElement fe ? fe.Margin : new Thickness(0);
+
             if (Orientation == Orientation.Horizontal)
             {
-                totalMainAxis += sizeMode == ChildSizeMode.Fixed 
+                totalMainAxis += sizeMode == ChildSizeMode.Fixed
                     ? GetFixedSize(child)
-                    : preferredSize.Width;
-                maxCrossAxis = Math.Max(maxCrossAxis, preferredSize.Height);
+                    : preferredSize.Width + childMargin.HorizontalTotal;
+                maxCrossAxis = Math.Max(maxCrossAxis, preferredSize.Height + childMargin.VerticalTotal);
             }
             else
             {
-                totalMainAxis += sizeMode == ChildSizeMode.Fixed 
+                totalMainAxis += sizeMode == ChildSizeMode.Fixed
                     ? GetFixedSize(child)
-                    : preferredSize.Height;
-                maxCrossAxis = Math.Max(maxCrossAxis, preferredSize.Width);
+                    : preferredSize.Height + childMargin.VerticalTotal;
+                maxCrossAxis = Math.Max(maxCrossAxis, preferredSize.Width + childMargin.HorizontalTotal);
             }
         }
         
@@ -222,9 +223,10 @@ public class StackPanel : Panel
                 
                 case ChildSizeMode.Auto:
                     var preferredSize = child.GetPreferredSize(bounds);
-                    sizes[i] = Orientation == Orientation.Horizontal 
-                        ? preferredSize.Width 
-                        : preferredSize.Height;
+                    var autoMargin = child is FrameworkElement autoFe ? autoFe.Margin : new Thickness(0);
+                    sizes[i] = Orientation == Orientation.Horizontal
+                        ? preferredSize.Width + autoMargin.HorizontalTotal
+                        : preferredSize.Height + autoMargin.VerticalTotal;
                     totalFixed += sizes[i];
                     break;
                 

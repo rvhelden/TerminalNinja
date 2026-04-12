@@ -41,6 +41,10 @@ public sealed class Border : FrameworkElement
         DependencyProperty.Register(nameof(Height), typeof(Size), typeof(Border),
             new FrameworkPropertyMetadata(Size.Stretch, affectsRender: true));
 
+    public static readonly DependencyProperty PaddingProperty =
+        DependencyProperty.Register(nameof(Padding), typeof(Thickness), typeof(Border),
+            new FrameworkPropertyMetadata(new Thickness(0), affectsRender: true));
+
     public static readonly DependencyProperty ChildProperty =
         DependencyProperty.Register(nameof(Child), typeof(UIElement), typeof(Border),
             new FrameworkPropertyMetadata(null, affectsRender: true,
@@ -79,6 +83,13 @@ public sealed class Border : FrameworkElement
         set => SetValue(BorderStyleProperty, value);
     }
     
+    /// <summary>Gets or sets the inner padding between border and child content.</summary>
+    public Thickness Padding
+    {
+        get => (Thickness)GetValue(PaddingProperty)!;
+        set => SetValue(PaddingProperty, value);
+    }
+
     /// <summary>Gets or sets the child control to render inside this border.</summary>
     public UIElement? Child
     {
@@ -109,8 +120,12 @@ public sealed class Border : FrameworkElement
         }
 
         var innerBounds = BorderStyle.HasBorder && myBounds is { Width: >= 2, Height: >= 2 }
-            ? new Rect(myBounds.X + 1, myBounds.Y + 1, myBounds.Width - 2, myBounds.Height - 2)
-            : myBounds;
+            ? new Rect(myBounds.X + 1 + Padding.Left, myBounds.Y + 1 + Padding.Top,
+                Math.Max(0, myBounds.Width - 2 - Padding.HorizontalTotal),
+                Math.Max(0, myBounds.Height - 2 - Padding.VerticalTotal))
+            : new Rect(myBounds.X + Padding.Left, myBounds.Y + Padding.Top,
+                Math.Max(0, myBounds.Width - Padding.HorizontalTotal),
+                Math.Max(0, myBounds.Height - Padding.VerticalTotal));
         yield return (Child, innerBounds);
     }
 
@@ -173,10 +188,14 @@ public sealed class Border : FrameworkElement
         // Render child control if present
         if (Child != null)
         {
-            // Calculate inner bounds (subtract border if present)
+            // Calculate inner bounds (subtract border and padding)
             var childBounds = BorderStyle.HasBorder && bounds is { Width: >= 2, Height: >= 2 }
-                ? new Rect(bounds.X + 1, bounds.Y + 1, bounds.Width - 2, bounds.Height - 2)
-                : bounds;
+                ? new Rect(bounds.X + 1 + Padding.Left, bounds.Y + 1 + Padding.Top,
+                    Math.Max(0, bounds.Width - 2 - Padding.HorizontalTotal),
+                    Math.Max(0, bounds.Height - 2 - Padding.VerticalTotal))
+                : new Rect(bounds.X + Padding.Left, bounds.Y + Padding.Top,
+                    Math.Max(0, bounds.Width - Padding.HorizontalTotal),
+                    Math.Max(0, bounds.Height - Padding.VerticalTotal));
             
             Child.Render(buffer, childBounds);
         }

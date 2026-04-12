@@ -23,6 +23,10 @@ public abstract class FrameworkElement : UIElement
         DependencyProperty.Register(nameof(VerticalAlignment), typeof(Alignment), typeof(FrameworkElement),
             new FrameworkPropertyMetadata(Alignment.Start, affectsRender: true));
 
+    public static readonly DependencyProperty MarginProperty =
+        DependencyProperty.Register(nameof(Margin), typeof(Thickness), typeof(FrameworkElement),
+            new FrameworkPropertyMetadata(new Thickness(0), affectsRender: true));
+
     public static readonly DependencyProperty NameProperty =
         DependencyProperty.Register(nameof(Name), typeof(string), typeof(FrameworkElement),
             new PropertyMetadata((object?)null));
@@ -64,7 +68,14 @@ public abstract class FrameworkElement : UIElement
         get => (Alignment)GetValue(VerticalAlignmentProperty)!;
         set => SetValue(VerticalAlignmentProperty, value);
     }
-    
+
+    /// <summary>Gets or sets the outer margin (space outside the control's bounds).</summary>
+    public Thickness Margin
+    {
+        get => (Thickness)GetValue(MarginProperty)!;
+        set => SetValue(MarginProperty, value);
+    }
+
     /// <summary>
     /// Gets or sets the name of this element for lookup purposes (e.g., XAML x:Name).
     /// </summary>
@@ -306,20 +317,31 @@ public abstract class FrameworkElement : UIElement
     /// <returns>A Rect positioned according to HorizontalAlignment and VerticalAlignment.</returns>
     protected Rect ApplyAlignment(Rect parent, int w, int h)
     {
+        // Reduce available area by margin (margin is space outside the control)
+        var margin = Margin;
+        var availableX = parent.X + margin.Left;
+        var availableY = parent.Y + margin.Top;
+        var availableW = Math.Max(0, parent.Width - margin.HorizontalTotal);
+        var availableH = Math.Max(0, parent.Height - margin.VerticalTotal);
+
+        // Clamp control size to available space
+        w = Math.Min(w, availableW);
+        h = Math.Min(h, availableH);
+
         var x = HorizontalAlignment switch
         {
-            Alignment.Center => parent.X + (parent.Width - w) / 2,
-            Alignment.End => parent.X + parent.Width - w,
-            _ => parent.X // Start
+            Alignment.Center => availableX + (availableW - w) / 2,
+            Alignment.End => availableX + availableW - w,
+            _ => availableX // Start
         };
-        
+
         var y = VerticalAlignment switch
         {
-            Alignment.Center => parent.Y + (parent.Height - h) / 2,
-            Alignment.End => parent.Y + parent.Height - h,
-            _ => parent.Y // Start
+            Alignment.Center => availableY + (availableH - h) / 2,
+            Alignment.End => availableY + availableH - h,
+            _ => availableY // Start
         };
-        
+
         return new Rect(x, y, w, h);
     }
     

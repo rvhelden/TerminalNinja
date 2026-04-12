@@ -16,6 +16,7 @@ public sealed class Button : ButtonBase
     public Button()
     {
         DefaultStyleKey = typeof(Button);
+        Padding = new Thickness(2, 0);
     }
 
     // ─── Dependency Properties ───────────────────────────────────────
@@ -80,10 +81,9 @@ public sealed class Button : ButtonBase
     /// </summary>
     public override Size2D GetPreferredSize(Rect parent)
     {
-        // Button auto size is text length + 4 (2 chars padding on each side) for width, 3 for height
-        var textWidth = Text.Length + 4;
+        var textWidth = Text.Length + Padding.HorizontalTotal;
         var w = Width.Mode == SizeMode.Absolute ? Width.Resolve(parent.Width) : textWidth;
-        var h = Height.Mode == SizeMode.Absolute ? Height.Resolve(parent.Height) : 3;
+        var h = Height.Mode == SizeMode.Absolute ? Height.Resolve(parent.Height) : 2 + Padding.VerticalTotal + 1;
         return new Size2D(w, h);
     }
     
@@ -130,15 +130,17 @@ public sealed class Button : ButtonBase
         // Draw border
         DrawBorder(buffer, bounds, border.Chars, borderColor);
         
-        // Draw text centered in the button
+        // Draw text centered in the padded content area
         if (string.IsNullOrEmpty(Text))
         {
             return;
         }
 
         var textColor = IsEnabled ? Foreground : new Color((byte)(Foreground.R / 2), (byte)(Foreground.G / 2), (byte)(Foreground.B / 2));
-        var textX = bounds.X + (bounds.Width - Text.Length) / 2;
-        var textY = bounds.Y + bounds.Height / 2;
+        var contentX = bounds.X + 1 + Padding.Left; // 1 for border
+        var contentWidth = Math.Max(0, bounds.Width - 2 - Padding.HorizontalTotal);
+        var textX = contentX + (contentWidth - Text.Length) / 2;
+        var textY = bounds.Y + 1 + Padding.Top;
             
         for (var i = 0; i < Text.Length && textX + i < bounds.X + bounds.Width; i++)
         {

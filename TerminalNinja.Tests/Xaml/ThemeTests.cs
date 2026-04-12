@@ -753,4 +753,77 @@ public class ThemeTests : IDisposable
     }
 
     #endregion
+
+    #region Custom Theme Loading
+
+    [Test]
+    public async Task LoadThemeFromXaml_ValidXaml_LoadsTheme()
+    {
+        using var app = new Application(new ApplicationOptions { Headless = true });
+
+        var xaml = """
+            <ResourceDictionary xmlns="http://schemas.terminalninja.dev/xaml"
+                                xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+                <Color x:Key="ThemeBackgroundColor">#FF0000</Color>
+            </ResourceDictionary>
+            """;
+
+        app.LoadThemeFromXaml(xaml);
+
+        await Assert.That(app.ThemeName).IsEqualTo("Custom");
+    }
+
+    [Test]
+    public async Task LoadThemeFromXaml_ReplacesExistingTheme()
+    {
+        using var app = new Application(new ApplicationOptions { Headless = true });
+        app.ThemeName = "Dark";
+
+        var xaml = """
+            <ResourceDictionary xmlns="http://schemas.terminalninja.dev/xaml"
+                                xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+                <Color x:Key="ThemeBackgroundColor">#123456</Color>
+            </ResourceDictionary>
+            """;
+
+        app.LoadThemeFromXaml(xaml);
+
+        await Assert.That(app.ThemeName).IsEqualTo("Custom");
+    }
+
+    [Test]
+    public async Task LoadThemeFromFile_ValidFile_LoadsTheme()
+    {
+        using var app = new Application(new ApplicationOptions { Headless = true });
+        var tempFile = Path.GetTempFileName();
+        try
+        {
+            var xaml = """
+                <ResourceDictionary xmlns="http://schemas.terminalninja.dev/xaml"
+                                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+                    <Color x:Key="ThemeBackgroundColor">#AABBCC</Color>
+                </ResourceDictionary>
+                """;
+            File.WriteAllText(tempFile, xaml);
+
+            app.LoadThemeFromFile(tempFile);
+
+            await Assert.That(app.ThemeName).IsEqualTo(Path.GetFileNameWithoutExtension(tempFile));
+        }
+        finally
+        {
+            File.Delete(tempFile);
+        }
+    }
+
+    [Test]
+    public async Task LoadThemeFromFile_NonExistentFile_ThrowsFileNotFoundException()
+    {
+        using var app = new Application(new ApplicationOptions { Headless = true });
+
+        await Assert.That(() => app.LoadThemeFromFile("/nonexistent/theme.xaml"))
+            .ThrowsExactly<FileNotFoundException>();
+    }
+
+    #endregion
 }

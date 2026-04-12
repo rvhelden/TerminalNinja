@@ -103,33 +103,79 @@ public sealed class Application : IDisposable
                 return;
             }
 
-            // Remove the previous theme dictionary
-            if (_themeDictionary != null)
-            {
-                Resources.MergedDictionaries.Remove(_themeDictionary);
-                _themeDictionary = null;
-            }
-
-            _themeName = value;
-
             if (value != null)
             {
-                _themeDictionary = LoadThemeResourceDictionary(value);
-                // Insert at position 0 so theme resources have the lowest priority
-                // (app-level resources and control-level resources override theme)
-                Resources.MergedDictionaries.Insert(0, _themeDictionary);
+                var dict = LoadBuiltInTheme(value);
+                ApplyThemeDictionary(dict, value);
             }
-
-            // Invalidate all controls so implicit styles re-resolve
-            InvalidateImplicitStyles();
-            Invalidate();
+            else
+            {
+                ApplyThemeDictionary(null, null);
+            }
         }
     }
 
     /// <summary>
-    /// Loads a theme ResourceDictionary from embedded XAML resources.
+    /// Loads a theme from a XAML file path. The file must be a ResourceDictionary
+    /// following the same format as the built-in theme files (Color resources + implicit Styles).
     /// </summary>
-    private static ResourceDictionary LoadThemeResourceDictionary(string themeName)
+    /// <param name="filePath">Path to the theme XAML file.</param>
+    public void LoadThemeFromFile(string filePath)
+    {
+        ArgumentNullException.ThrowIfNull(filePath);
+        if (!File.Exists(filePath))
+        {
+            throw new FileNotFoundException($"Theme file not found: {filePath}", filePath);
+        }
+
+        using var stream = File.OpenRead(filePath);
+        var dict = TerminalXaml.LoadResourceDictionary(stream);
+        ApplyThemeDictionary(dict, Path.GetFileNameWithoutExtension(filePath));
+    }
+
+    /// <summary>
+    /// Loads a theme from a XAML string. The string must be a ResourceDictionary
+    /// following the same format as the built-in theme files.
+    /// </summary>
+    /// <param name="xaml">The theme XAML string.</param>
+    public void LoadThemeFromXaml(string xaml)
+    {
+        ArgumentNullException.ThrowIfNull(xaml);
+        var dict = TerminalXaml.LoadResourceDictionary(xaml);
+        ApplyThemeDictionary(dict, "Custom");
+    }
+
+    /// <summary>
+    /// Applies a theme ResourceDictionary, replacing any previously loaded theme.
+    /// </summary>
+    private void ApplyThemeDictionary(ResourceDictionary? newTheme, string? themeName)
+    {
+        // Remove the previous theme dictionary
+        if (_themeDictionary != null)
+        {
+            Resources.MergedDictionaries.Remove(_themeDictionary);
+            _themeDictionary = null;
+        }
+
+        _themeName = themeName;
+        _themeDictionary = newTheme;
+
+        if (newTheme != null)
+        {
+            // Insert at position 0 so theme resources have the lowest priority
+            // (app-level resources and control-level resources override theme)
+            Resources.MergedDictionaries.Insert(0, newTheme);
+        }
+
+        // Invalidate all controls so implicit styles re-resolve
+        InvalidateImplicitStyles();
+        Invalidate();
+    }
+
+    /// <summary>
+    /// Loads a built-in theme ResourceDictionary from embedded XAML resources.
+    /// </summary>
+    private static ResourceDictionary LoadBuiltInTheme(string themeName)
     {
         var resourceName = $"TerminalNinja.Themes.{themeName}.xaml";
         var assembly = typeof(Application).Assembly;
@@ -144,7 +190,6 @@ public sealed class Application : IDisposable
             $"Theme '{themeName}' not found. Expected embedded resource '{resourceName}'. " +
             $"Available resources: [{string.Join(", ", available)}]. " +
             $"Built-in themes: [{string.Join(", ", BuiltInThemes)}]");
-
     }
 
     /// <summary>
