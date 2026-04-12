@@ -10,6 +10,7 @@ using Sample.Samples.DataBinding;
 using Sample.Samples.Lists;
 using Sample.Samples.TextInput;
 using Sample.Samples.FormControls;
+using Sample.Samples.AdvancedControls;
 
 namespace Sample;
 
@@ -64,6 +65,7 @@ public class ShellViewModel : ViewModelBase, IDisposable
             "ScrollViewer" => TerminalXaml.Load<Border>(XamlLayouts.ScrollViewerScreen),
             "Text Input" => TerminalXaml.Load<Border>(XamlLayouts.TextInputScreen, new TextInputViewModel()),
             "Form Controls" => TerminalXaml.Load<Border>(XamlLayouts.FormControlsScreen, new FormControlsViewModel()),
+            "Advanced Controls" => TerminalXaml.Load<Border>(XamlLayouts.AdvancedControlsScreen, new AdvancedControlsViewModel()),
             _ => throw new ArgumentException($"Unknown sample: {sampleName}")
         };
 

@@ -159,4 +159,58 @@ public static class ThemeResourceKeys
 
     /// <summary>Dialog border/accent color.</summary>
     public const string DialogBorderColor = "ThemeDialogBorderColor";
+
+    // ────────────────────────────────────────────────────────────────
+    //  TabControl colors
+    // ────────────────────────────────────────────────────────────────
+
+    /// <summary>TabControl background color.</summary>
+    public const string TabControlBackgroundColor = "ThemeTabControlBackgroundColor";
+
+    /// <summary>TabControl foreground color.</summary>
+    public const string TabControlForegroundColor = "ThemeTabControlForegroundColor";
+
+    /// <summary>TabControl border color.</summary>
+    public const string TabControlBorderColor = "ThemeTabControlBorderColor";
+
+    /// <summary>Selected tab header background color.</summary>
+    public const string TabSelectedBackgroundColor = "ThemeTabSelectedBackgroundColor";
+
+    /// <summary>Selected tab header foreground color.</summary>
+    public const string TabSelectedForegroundColor = "ThemeTabSelectedForegroundColor";
+
+    /// <summary>Unselected tab header foreground color.</summary>
+    public const string TabUnselectedForegroundColor = "ThemeTabUnselectedForegroundColor";
+
+    // ────────────────────────────────────────────────────────────────
+    //  TreeView colors
+    // ────────────────────────────────────────────────────────────────
+
+    /// <summary>TreeView background color.</summary>
+    public const string TreeViewBackgroundColor = "ThemeTreeViewBackgroundColor";
+
+    /// <summary>TreeView foreground color.</summary>
+    public const string TreeViewForegroundColor = "ThemeTreeViewForegroundColor";
+
+    /// <summary>TreeView expand/collapse indicator color.</summary>
+    public const string TreeViewExpandIndicatorColor = "ThemeTreeViewExpandIndicatorColor";
+
+    // ────────────────────────────────────────────────────────────────
+    //  ListView colors
+    // ────────────────────────────────────────────────────────────────
+
+    /// <summary>ListView background color.</summary>
+    public const string ListViewBackgroundColor = "ThemeListViewBackgroundColor";
+
+    /// <summary>ListView foreground color.</summary>
+    public const string ListViewForegroundColor = "ThemeListViewForegroundColor";
+
+    /// <summary>ListView header row background color.</summary>
+    public const string ListViewHeaderBackgroundColor = "ThemeListViewHeaderBackgroundColor";
+
+    /// <summary>ListView header row foreground color.</summary>
+    public const string ListViewHeaderForegroundColor = "ThemeListViewHeaderForegroundColor";
+
+    /// <summary>ListView grid line / separator color.</summary>
+    public const string ListViewGridLineColor = "ThemeListViewGridLineColor";
 }

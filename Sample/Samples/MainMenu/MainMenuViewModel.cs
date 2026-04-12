@@ -16,7 +16,8 @@ public class MainMenuViewModel : ViewModelBase
         "StackPanel Layout",
         "ScrollViewer",
         "Text Input",
-        "Form Controls"
+        "Form Controls",
+        "Advanced Controls"
     ];
 
     public string? SelectedSample

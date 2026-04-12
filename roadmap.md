@@ -13,9 +13,9 @@
 - [x] FontIcon control with Nerdfont icons support
 - [x] Add ProgressBar control
 - [x] Add ScrollViewer control
-- [ ] Add TabControl control
-- [ ] Add TreeView control
-- [ ] Add ListView control
+- [x] Add TabControl control
+- [x] Add TreeView control
+- [x] Add ListView control
 - [ ] Add DataGrid control
 - [x] Add ComboBox control
 - [ ] Add DateTimePicker control

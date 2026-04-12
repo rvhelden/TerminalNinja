@@ -475,5 +475,47 @@ export const SAMPLES = [
         </StackPanel>
     </Border>
 </Window>`
+  },
+
+  {
+    id: "advanced-controls",
+    title: "Advanced Controls",
+    description: "TabControl, TreeView, and ListView with selection and hierarchical navigation.",
+    docPage: "./samples/advanced-controls.html",
+    xaml: `<Window xmlns="http://schemas.terminalninja.dev/xaml"
+        Title="Advanced Controls" Width="80" Height="24">
+    <Border BorderStyle="Rounded">
+        <StackPanel Orientation="Vertical">
+            <TextBlock StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1"
+                       Text=" Advanced Controls" Padding="2,0,0,0" />
+            <TextBlock StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1" Text="" />
+            <TabControl StackPanel.SizeMode="Stretch">
+                <TabItem Header="TreeView">
+                    <TreeView>
+                        <TreeViewItem Header="Documents" IsExpanded="True">
+                            <TreeViewItem Header="Work">
+                                <TreeViewItem Header="report.docx" />
+                                <TreeViewItem Header="budget.xlsx" />
+                            </TreeViewItem>
+                            <TreeViewItem Header="Personal">
+                                <TreeViewItem Header="notes.txt" />
+                            </TreeViewItem>
+                        </TreeViewItem>
+                        <TreeViewItem Header="Downloads">
+                            <TreeViewItem Header="setup.exe" />
+                        </TreeViewItem>
+                    </TreeView>
+                </TabItem>
+                <TabItem Header="About">
+                    <StackPanel Orientation="Vertical">
+                        <TextBlock StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1"
+                                   Text="  TabControl + TreeView + ListView" />
+                        <TextBlock StackPanel.SizeMode="Stretch" Text="" />
+                    </StackPanel>
+                </TabItem>
+            </TabControl>
+        </StackPanel>
+    </Border>
+</Window>`
   }
 ];

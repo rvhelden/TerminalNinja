@@ -49,6 +49,26 @@
     <Color x:Key="ThemeDialogForegroundColor">#ebdbb2</Color>
     <Color x:Key="ThemeDialogBorderColor">#fabd2f</Color>
 
+    <!-- TabControl colors -->
+    <Color x:Key="ThemeTabControlBackgroundColor">#282828</Color>
+    <Color x:Key="ThemeTabControlForegroundColor">#ebdbb2</Color>
+    <Color x:Key="ThemeTabControlBorderColor">#928374</Color>
+    <Color x:Key="ThemeTabSelectedBackgroundColor">#282828</Color>
+    <Color x:Key="ThemeTabSelectedForegroundColor">#fbf1c7</Color>
+    <Color x:Key="ThemeTabUnselectedForegroundColor">#928374</Color>
+
+    <!-- TreeView colors -->
+    <Color x:Key="ThemeTreeViewBackgroundColor">#282828</Color>
+    <Color x:Key="ThemeTreeViewForegroundColor">#ebdbb2</Color>
+    <Color x:Key="ThemeTreeViewExpandIndicatorColor">#fabd2f</Color>
+
+    <!-- ListView colors -->
+    <Color x:Key="ThemeListViewBackgroundColor">#282828</Color>
+    <Color x:Key="ThemeListViewForegroundColor">#ebdbb2</Color>
+    <Color x:Key="ThemeListViewHeaderBackgroundColor">#3c3836</Color>
+    <Color x:Key="ThemeListViewHeaderForegroundColor">#fbf1c7</Color>
+    <Color x:Key="ThemeListViewGridLineColor">#504945</Color>
+
     <!-- TextBox colors -->
     <Color x:Key="ThemeTextBoxBackgroundColor">#3c3836</Color>
     <Color x:Key="ThemeTextBoxForegroundColor">#ebdbb2</Color>
@@ -158,6 +178,48 @@
     <Style TargetType="ComboBoxItem">
         <Setter Property="Background" Value="{StaticResource ThemeBackgroundColor}" />
         <Setter Property="Foreground" Value="{StaticResource ThemeForegroundColor}" />
+        <Setter Property="SelectedBackground" Value="{StaticResource ThemeSelectedBackgroundColor}" />
+        <Setter Property="SelectedForeground" Value="{StaticResource ThemeSelectedForegroundColor}" />
+    </Style>
+
+    <Style TargetType="TabControl">
+        <Setter Property="Background" Value="{StaticResource ThemeTabControlBackgroundColor}" />
+        <Setter Property="Foreground" Value="{StaticResource ThemeTabControlForegroundColor}" />
+        <Setter Property="SelectedBackground" Value="{StaticResource ThemeTabSelectedBackgroundColor}" />
+        <Setter Property="SelectedForeground" Value="{StaticResource ThemeTabSelectedForegroundColor}" />
+    </Style>
+
+    <Style TargetType="TabItem">
+        <Setter Property="Background" Value="{StaticResource ThemeTabControlBackgroundColor}" />
+        <Setter Property="Foreground" Value="{StaticResource ThemeTabControlForegroundColor}" />
+        <Setter Property="SelectedBackground" Value="{StaticResource ThemeTabSelectedBackgroundColor}" />
+        <Setter Property="SelectedForeground" Value="{StaticResource ThemeTabSelectedForegroundColor}" />
+    </Style>
+
+    <Style TargetType="TreeView">
+        <Setter Property="Background" Value="{StaticResource ThemeTreeViewBackgroundColor}" />
+        <Setter Property="Foreground" Value="{StaticResource ThemeTreeViewForegroundColor}" />
+        <Setter Property="SelectedBackground" Value="{StaticResource ThemeSelectedBackgroundColor}" />
+        <Setter Property="SelectedForeground" Value="{StaticResource ThemeSelectedForegroundColor}" />
+    </Style>
+
+    <Style TargetType="TreeViewItem">
+        <Setter Property="Background" Value="{StaticResource ThemeTreeViewBackgroundColor}" />
+        <Setter Property="Foreground" Value="{StaticResource ThemeTreeViewForegroundColor}" />
+    </Style>
+
+    <Style TargetType="ListView">
+        <Setter Property="Background" Value="{StaticResource ThemeListViewBackgroundColor}" />
+        <Setter Property="Foreground" Value="{StaticResource ThemeListViewForegroundColor}" />
+        <Setter Property="SelectedBackground" Value="{StaticResource ThemeSelectedBackgroundColor}" />
+        <Setter Property="SelectedForeground" Value="{StaticResource ThemeSelectedForegroundColor}" />
+        <Setter Property="HeaderBackground" Value="{StaticResource ThemeListViewHeaderBackgroundColor}" />
+        <Setter Property="HeaderForeground" Value="{StaticResource ThemeListViewHeaderForegroundColor}" />
+    </Style>
+
+    <Style TargetType="ListViewItem">
+        <Setter Property="Background" Value="{StaticResource ThemeListViewBackgroundColor}" />
+        <Setter Property="Foreground" Value="{StaticResource ThemeListViewForegroundColor}" />
         <Setter Property="SelectedBackground" Value="{StaticResource ThemeSelectedBackgroundColor}" />
         <Setter Property="SelectedForeground" Value="{StaticResource ThemeSelectedForegroundColor}" />
     </Style>

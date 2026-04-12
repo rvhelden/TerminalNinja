@@ -1,0 +1,34 @@
+<Border xmlns="http://schemas.terminalninja.dev/xaml"
+        BorderStyle="Rounded">
+    <StackPanel Orientation="Vertical">
+        <TextBlock StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1"
+                   Text=" Advanced Controls" Padding="2,0,0,0" />
+        <TextBlock StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1"
+                   Text="  TabControl, TreeView, and ListView." Padding="2,0,0,0" />
+        <TextBlock StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1" Text="" />
+
+        <TabControl StackPanel.SizeMode="Stretch" TabIndex="0">
+            <TabItem Header="Files">
+                <ListView SelectedBackground="Blue" SelectedForeground="White"
+                          ItemsSource="{Binding Files}" />
+            </TabItem>
+            <TabItem Header="Tree">
+                <TreeView SelectedBackground="Blue" SelectedForeground="White" />
+            </TabItem>
+            <TabItem Header="About">
+                <StackPanel Orientation="Vertical">
+                    <TextBlock StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1"
+                               Text="  Advanced Controls Demo" Padding="1,0,0,0" />
+                    <TextBlock StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1" Text="" />
+                    <TextBlock StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1"
+                               Text="  TabControl: Tabbed content switching" Padding="1,0,0,0" />
+                    <TextBlock StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1"
+                               Text="  TreeView: Hierarchical expand/collapse" Padding="1,0,0,0" />
+                    <TextBlock StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1"
+                               Text="  ListView: Multi-column data with headers" Padding="1,0,0,0" />
+                    <TextBlock StackPanel.SizeMode="Stretch" Text="" />
+                </StackPanel>
+            </TabItem>
+        </TabControl>
+    </StackPanel>
+</Border>
