@@ -7,13 +7,26 @@ This document provides essential information for AI coding agents working in the
 - **Language**: C# 13 (latest)
 - **Framework**: .NET 10.0
 - **Platform**: Cross-platform (Windows, Linux, macOS)
-- **Test Framework**: TUnit v1.12.93
+- **Test Framework**: TUnit v1.20.0
 - **IDE**: JetBrains Rider (optional)
 - **Solution Structure**:
     - `TerminalNinja/` - Core library (terminal UI framework with XAML support)
+    - `TerminalNinja.Wasm/` - Library for bringing TerminalNinja to WebAssembly
+    - `TerminalNinja.Cli/` - Program for generating a single frame for the given xaml
     - `TerminalNinja.Generators/` - Source generators (ControlFactory, PropertyAccessor, XamlClass)
-    - `TerminalNinja.Tests/` - Test project (665 tests, all passing)
+    - `TerminalNinja.Tests/` - Test project (955 tests, all passing)
     - `Sample/` - Sample console application demonstrating XAML usage
+    - `docs/` - Interactive documentation used for github pages containing and interactive playground using TerminalNinja.Wasm
+
+## Feature development process
+1. Identify the feature to be implemented (e.g., new control, XAML feature, rendering optimization)
+2. Create a new branch for the feature (e.g., `feature/new-control-name`)
+3. Implement the feature in the appropriate project (e.g., `TerminalNinja/Controls/` for new controls)
+4. Add unit tests in `TerminalNinja.Tests/Unit/` corresponding to the new feature
+5. Run all tests to ensure they pass
+6. Add XAML samples in `Sample/` if applicable
+7. Update documentation in `docs/` if applicable
+8. Commit changes with a clear message (e.g., `feat: add new control for
 
 ## Build & Test Commands
 
@@ -86,18 +99,22 @@ dotnet run --project Sample/Sample.csproj
 TerminalNinja is a WPF-like terminal UI framework with XAML support:
 
 - **DependencySystem** (`TerminalNinja.DependencySystem`): DependencyObject, DependencyProperty, PropertyMetadata, FrameworkPropertyMetadata
-- **Controls** (`TerminalNinja.Controls`): UI controls — Visual, UIElement, FrameworkElement, Control, Panel, StackPanel, Grid, ContentControl, ContentPresenter, Window, UserControl, ItemsControl, ItemsPresenter, Selector, ListBox, ListBoxItem, ButtonBase, Button, TextBlock, Border
+- **Controls** (`TerminalNinja.Controls`): UI controls — Visual, UIElement, FrameworkElement, Control, Panel, StackPanel, Grid, ContentControl, ContentPresenter, Window, UserControl, ItemsControl, ItemsPresenter, Selector, ListBox, ListBoxItem, ButtonBase, Button, TextBlock, Border, FontIcon, ProgressBar
+    - `Controls.Primitives` — Popup, PopupRoot
 - **Primitives** (`TerminalNinja.Primitives`): Basic types (Color, Size, Size2D, Rect, Thickness, GridLength, Alignment, SelectionMode, TextAlignment, TextWrapping, TextTrimming)
 - **Buffers** (`TerminalNinja.Buffers`): Cell-based rendering buffers (CellBuffer, DirtyRect)
 - **Styling** (`TerminalNinja.Styling`): Style, Setter, BorderStyle, BorderChars
 - **Resources** (`TerminalNinja.Resources`): ResourceDictionary for shared resources
 - **Commands** (`TerminalNinja.Commands`): ICommand, RelayCommand
+- **Documents** (`TerminalNinja.Documents`): Inline text elements for rich text — Inline (abstract), Run, Span, InlineCollection, InlineRun
+- **Markup** (`TerminalNinja.Markup`): XAML markup infrastructure — ContentPropertyAttribute, RuntimeNamePropertyAttribute, MarkupExtension, StaticResourceExtension, XmlnsDefinitionAttribute, XmlnsPrefixAttribute
+- **Themes** (`TerminalNinja.Themes`): Built-in theme system — ThemeResourceKeys, Dark.xaml, Dracula.xaml, GruvboxDark.xaml (embedded resources)
 - **XAML** (`TerminalNinja.Xaml`): XAML loading (TerminalXaml, XamlLoader)
-    - `Xaml.Binding` — BindingExpression, BindingExtension, BindingManager, BindingMode, ElementBinding, PropertyPath, RelativeSource
+    - `Xaml.Binding` — Binding, BindingBase, BindingExpression, BindingExpressionBase, BindingMode, BindingOperations, PropertyPath, PropertyPathObserver, PropertyPathSegment, RelativeSource, RelativeSourceMode
     - `Xaml.Data` — IValueConverter, DateTimeConverter
     - `Xaml.Mvvm` — ViewModelBase
     - `Xaml.Extensions` — ControlExtensions
-    - `Xaml.TypeConverters` — ColorTypeConverter, SizeTypeConverter, ThicknessTypeConverter, BorderTypeConverter, GridLengthTypeConverter
+    - `Xaml.TypeConverters` — ColorTypeConverter, SizeTypeConverter, ThicknessTypeConverter, BorderTypeConverter, GridLengthTypeConverter, TextDecorationsTypeConverter
 - **Aot** (`TerminalNinja.Aot`): AOT-compatible registries — PropertyAccessorRegistry, ControlFactoryRegistry, TypeNameRegistry, TypeConverterRegistry, ContentPropertyRegistry, AttachedPropertySetterRegistry
 - **App** (`TerminalNinja.App`): Application class with event loop
 - **Rendering** (`TerminalNinja.Rendering`): ANSI terminal renderer
@@ -158,6 +175,8 @@ global using TUnit.Assertions.Extensions;
 global using TerminalNinja.Primitives;
 global using TerminalNinja.Buffers;
 global using TerminalNinja.Controls;
+global using TerminalNinja.Controls.Primitives;
+global using TerminalNinja.Documents;
 global using TerminalNinja.Styling;
 global using TerminalNinja.Input;
 global using TerminalNinja.Xaml;
@@ -338,6 +357,7 @@ await Assert.That(text).Contains("substring");
 - All tests are **async** - use `async Task` and `await Assert.That(...)`
 - Tests should reference file locations: `TerminalNinja/Controls/StackPanel.cs:123`
 - Test project uses NSubstitute v5.3.0 for mocking
+- Primitive controls live in `TerminalNinja.Controls.Primitives` (e.g., Popup, ButtonBase)
 
 ## Git Workflow
 
@@ -416,14 +436,19 @@ All CLR namespaces are mapped to a single XAML namespace in `Properties/Assembly
 using System.Windows.Markup;
 
 [assembly: XmlnsDefinition("http://schemas.terminalninja.dev/xaml", "TerminalNinja.Controls")]
+[assembly: XmlnsDefinition("http://schemas.terminalninja.dev/xaml", "TerminalNinja.Controls.Primitives")]
+[assembly: XmlnsDefinition("http://schemas.terminalninja.dev/xaml", "TerminalNinja.Documents")]
 [assembly: XmlnsDefinition("http://schemas.terminalninja.dev/xaml", "TerminalNinja.Primitives")]
 [assembly: XmlnsDefinition("http://schemas.terminalninja.dev/xaml", "TerminalNinja.Styling")]
 [assembly: XmlnsDefinition("http://schemas.terminalninja.dev/xaml", "TerminalNinja.Commands")]
 [assembly: XmlnsDefinition("http://schemas.terminalninja.dev/xaml", "TerminalNinja.Resources")]
 [assembly: XmlnsDefinition("http://schemas.terminalninja.dev/xaml", "TerminalNinja.App")]
 [assembly: XmlnsDefinition("http://schemas.terminalninja.dev/xaml", "TerminalNinja.Xaml.Binding")]
+[assembly: XmlnsDefinition("http://schemas.terminalninja.dev/xaml", "TerminalNinja.Xaml.Markup")]
+[assembly: XmlnsDefinition("http://schemas.terminalninja.dev/xaml", "System.Windows.Markup")]
 [assembly: XmlnsDefinition("http://schemas.terminalninja.dev/xaml", "TerminalNinja.Xaml.Mvvm")]
 [assembly: XmlnsDefinition("http://schemas.terminalninja.dev/xaml", "TerminalNinja.Xaml.Data")]
+[assembly: XmlnsDefinition("http://schemas.terminalninja.dev/xaml", "System")]
 
 [assembly: XmlnsPrefix("http://schemas.terminalninja.dev/xaml", "tn")]
 ```
@@ -443,7 +468,58 @@ var window = TerminalXaml.LoadFromFile<Window>("DemoLayout.xaml");
 window.Show();  // Sets Application.Current.RootControl = window
 ```
 
-## Recent Changes (Feb-Mar 2026)
+## Recent Changes (Feb-Apr 2026)
+
+### Theming System (Apr 2026)
+
+Added a built-in theme system with switchable XAML resource dictionaries:
+
+- `ThemeResourceKeys` — well-known string constants for theme color resources (e.g., `ThemeBackgroundColor`, `ThemeForegroundColor`, `ThemeAccentColor`)
+- Built-in themes as embedded resources: `Dark.xaml`, `Dracula.xaml`, `GruvboxDark.xaml`
+- Themes are XAML ResourceDictionaries loaded via `Application.ThemeName`
+- Controls reference theme colors via `{StaticResource ThemeBackgroundColor}` etc.
+
+### FontIcon Control (Apr 2026)
+
+- `FontIcon` (sealed) — extends FrameworkElement for displaying Nerd Font icons
+- DependencyProperties: Glyph, FontSize
+
+### ProgressBar Control (Apr 2026)
+
+- `ProgressBar` (sealed) — extends FrameworkElement, implements IDisposable
+- DependencyProperties: Value, Minimum, Maximum, IsIndeterminate
+
+### Popup Control (Apr 2026)
+
+- `Popup` — extends FrameworkElement (in Controls.Primitives namespace)
+- `PopupRoot` (internal) — supporting class for Popup rendering
+
+### Documents / Inline Text (Apr 2026)
+
+Added rich inline text support within TextBlock:
+
+- `Inline` (abstract) — base class for inline text elements, extends FrameworkElement
+- `Run` (sealed) — text content inline
+- `Span` (sealed) — container for nested inlines
+- `InlineCollection` — collection type for managing inlines
+- `InlineRun` — internal run representation
+
+### Markup Infrastructure (Apr 2026)
+
+Moved XAML markup attributes and extensions to dedicated `TerminalNinja.Markup` namespace:
+
+- `ContentPropertyAttribute`, `RuntimeNamePropertyAttribute`
+- `MarkupExtension`, `StaticResourceExtension`
+- `XmlnsDefinitionAttribute`, `XmlnsPrefixAttribute`
+- `ConstructorArgumentAttribute`, `MarkupExtensionReturnTypeAttribute`
+
+### Binding Infrastructure Refactoring (Apr 2026)
+
+Refactored binding system to more closely resemble WPF:
+
+- `BindingExtension` / `BindingManager` / `ElementBinding` removed
+- Replaced by: `Binding`, `BindingBase`, `BindingExpression`, `BindingExpressionBase`, `BindingOperations`
+- Added: `PropertyPathObserver`, `PropertyPathSegment`, `RelativeSourceMode`
 
 ### Selector / ListBox / ListBoxItem (Mar 2026)
 
@@ -505,6 +581,9 @@ public static void SetXxx(DependencyObject d, T value) => d.SetValue(XxxProperty
 | Selector | SelectedIndex, SelectedItem, SelectionMode (with PropertyChangedCallbacks) |
 | ListBox | SelectedBackground, SelectedForeground |
 | ListBoxItem | IsSelected, SelectedBackground, SelectedForeground |
+| FontIcon | Glyph, FontSize |
+| ProgressBar | Value, Minimum, Maximum, IsIndeterminate |
+| Popup | IsOpen, Child, PlacementTarget |
 
 **Metadata usage:**
 - Visual properties use `FrameworkPropertyMetadata(default, affectsRender: true)` — triggers `InvalidateVisual()` on change
@@ -536,7 +615,7 @@ DependencyObject (DependencySystem/)
                     │     ├── ItemsControl [ContentProperty("Items")] — Items, ItemsSource, ItemTemplate, ItemsPanel
                     │     │     └── Selector (abstract) — SelectedIndex, SelectedItem, SelectionMode, SelectionChanged
                     │     │           └── ListBox — keyboard navigation, item container generation
-                    │     └── ButtonBase (abstract) — Command, CommandParameter, Click
+                    │     └── ButtonBase (abstract, in Controls.Primitives) — Command, CommandParameter, Click
                     │           └── Button (sealed) — Text, FocusColor, HoverColor, focus/hover rendering
                     ├── Panel (abstract) [ContentProperty("Children")] — Children (IList<UIElement>), Background
                     │     ├── StackPanel — Orientation, CrossAxisAlignment, attached SizeMode/FixedSize
@@ -544,7 +623,13 @@ DependencyObject (DependencySystem/)
                     ├── ContentPresenter — Content, ContentTemplate (renders ContentControl's content)
                     ├── ItemsPresenter — finds owning ItemsControl, delegates to ItemsPanel
                     ├── TextBlock (sealed) — Text, Foreground, Background, wrapping, trimming, alignment
-                    └── Border (sealed) — BorderStyle, Background, Foreground, Child (UIElement?)
+                    ├── Border (sealed) — BorderStyle, Background, Foreground, Child (UIElement?)
+                    ├── FontIcon (sealed) — Glyph, FontSize for Nerd Font icon display
+                    ├── ProgressBar (sealed) — Value, Minimum, Maximum, IsIndeterminate; implements IDisposable
+                    ├── Popup (in Controls.Primitives) — IsOpen, Child, PlacementTarget
+                    └── Inline (abstract, in Documents/) — base for inline text elements
+                          ├── Run (sealed) — Text content inline
+                          └── Span (sealed) — container for nested inlines
 ```
 
 **Key Changes (from original codebase):**
@@ -614,12 +699,9 @@ XAML changes:
 - `Stack.SizeMode` → `StackPanel.SizeMode`
 - `Stack.FixedSize` → `StackPanel.FixedSize`
 
-### Windows Desktop Framework for IDE Support (Feb 1, 2026)
+### Cross-Platform TargetFramework (Apr 2026)
 
-Added `Microsoft.WindowsDesktop.App` framework reference to enable IDE XAML IntelliSense:
-- Changed TargetFramework from `net10.0` to `net10.0-windows` (Windows-only)
-- Rider/Visual Studio now recognize the XAML namespace and provide IntelliSense
-- Runtime behavior unchanged - Portable.Xaml still used for XAML parsing
+TargetFramework is `net10.0` (cross-platform). The project previously used `net10.0-windows` for IDE XAML IntelliSense but reverted to the cross-platform target. Portable.Xaml is used for XAML parsing at runtime.
 
 ### XAML Features
 
@@ -636,6 +718,6 @@ Added `Microsoft.WindowsDesktop.App` framework reference to enable IDE XAML Inte
 
 ## Current Test Stats
 
-- **Total Tests**: 665
+- **Total Tests**: 955
 - **Status**: All passing
-- **Test Coverage**: Unit tests for Controls, DependencySystem, Styling, Resources, XAML loading, Binding, and rendering
+- **Test Coverage**: Unit tests for Controls, DependencySystem, Styling, Resources, XAML loading, Binding, Theming, Documents, and rendering
