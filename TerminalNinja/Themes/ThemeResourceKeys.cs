@@ -213,4 +213,23 @@ public static class ThemeResourceKeys
 
     /// <summary>ListView grid line / separator color.</summary>
     public const string ListViewGridLineColor = "ThemeListViewGridLineColor";
+
+    // ────────────────────────────────────────────────────────────────
+    //  Picker colors (NumberPicker, DatePicker, TimePicker, DateTimePicker)
+    // ────────────────────────────────────────────────────────────────
+
+    /// <summary>Picker background color.</summary>
+    public const string PickerBackgroundColor = "ThemePickerBackgroundColor";
+
+    /// <summary>Picker foreground color.</summary>
+    public const string PickerForegroundColor = "ThemePickerForegroundColor";
+
+    /// <summary>Picker focus border color.</summary>
+    public const string PickerFocusColor = "ThemePickerFocusColor";
+
+    /// <summary>Picker hover border color.</summary>
+    public const string PickerHoverColor = "ThemePickerHoverColor";
+
+    /// <summary>Picker active field highlight color.</summary>
+    public const string PickerHighlightColor = "ThemePickerHighlightColor";
 }

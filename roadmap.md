@@ -18,10 +18,10 @@
 - [x] Add ListView control
 - [ ] Add DataGrid control
 - [x] Add ComboBox control
-- [ ] Add DateTimePicker control
-- [ ] Add DatePicker control
-- [ ] Add TimePicker control
-- [ ] Add NumberPicker control
+- [x] Add DateTimePicker control
+- [x] Add DatePicker control
+- [x] Add TimePicker control
+- [x] Add NumberPicker control
 - [ ] Add ColorPicker control
 - [ ] Add FilePicker control
 - [ ] Add FolderPicker control

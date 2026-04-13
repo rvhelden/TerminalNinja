@@ -70,6 +70,13 @@
     <Color x:Key="ThemeListViewHeaderForegroundColor">#f8f8f2</Color>
     <Color x:Key="ThemeListViewGridLineColor">#44475a</Color>
 
+    <!-- Picker colors -->
+    <Color x:Key="ThemePickerBackgroundColor">#44475a</Color>
+    <Color x:Key="ThemePickerForegroundColor">#f8f8f2</Color>
+    <Color x:Key="ThemePickerFocusColor">#bd93f9</Color>
+    <Color x:Key="ThemePickerHoverColor">#ff79c6</Color>
+    <Color x:Key="ThemePickerHighlightColor">#bd93f9</Color>
+
     <!-- TextBox colors -->
     <Color x:Key="ThemeTextBoxBackgroundColor">#44475a</Color>
     <Color x:Key="ThemeTextBoxForegroundColor">#f8f8f2</Color>
@@ -223,6 +230,34 @@
         <Setter Property="Foreground" Value="{StaticResource ThemeListViewForegroundColor}" />
         <Setter Property="SelectedBackground" Value="{StaticResource ThemeSelectedBackgroundColor}" />
         <Setter Property="SelectedForeground" Value="{StaticResource ThemeSelectedForegroundColor}" />
+    </Style>
+
+    <Style TargetType="NumberPicker">
+        <Setter Property="Background" Value="{StaticResource ThemePickerBackgroundColor}" />
+        <Setter Property="Foreground" Value="{StaticResource ThemePickerForegroundColor}" />
+        <Setter Property="FocusColor" Value="{StaticResource ThemePickerFocusColor}" />
+        <Setter Property="HoverColor" Value="{StaticResource ThemePickerHoverColor}" />
+    </Style>
+
+    <Style TargetType="DatePicker">
+        <Setter Property="Background" Value="{StaticResource ThemePickerBackgroundColor}" />
+        <Setter Property="Foreground" Value="{StaticResource ThemePickerForegroundColor}" />
+        <Setter Property="FocusColor" Value="{StaticResource ThemePickerFocusColor}" />
+        <Setter Property="HoverColor" Value="{StaticResource ThemePickerHoverColor}" />
+    </Style>
+
+    <Style TargetType="TimePicker">
+        <Setter Property="Background" Value="{StaticResource ThemePickerBackgroundColor}" />
+        <Setter Property="Foreground" Value="{StaticResource ThemePickerForegroundColor}" />
+        <Setter Property="FocusColor" Value="{StaticResource ThemePickerFocusColor}" />
+        <Setter Property="HoverColor" Value="{StaticResource ThemePickerHoverColor}" />
+    </Style>
+
+    <Style TargetType="DateTimePicker">
+        <Setter Property="Background" Value="{StaticResource ThemePickerBackgroundColor}" />
+        <Setter Property="Foreground" Value="{StaticResource ThemePickerForegroundColor}" />
+        <Setter Property="FocusColor" Value="{StaticResource ThemePickerFocusColor}" />
+        <Setter Property="HoverColor" Value="{StaticResource ThemePickerHoverColor}" />
     </Style>
 
 </ResourceDictionary>

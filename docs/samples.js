@@ -557,5 +557,79 @@ export const SAMPLES = [
         </StackPanel>
     </Border>
 </Window>`
+  },
+
+  {
+    id: "numberpicker",
+    title: "NumberPicker",
+    description: "Numeric input with arrow key increment/decrement and direct digit entry.",
+    docPage: "./samples/numberpicker.html",
+    xaml: `<Window xmlns="http://schemas.terminalninja.dev/xaml" Title="NumberPicker">
+    <Border BorderStyle="Rounded">
+        <StackPanel Orientation="Vertical">
+            <TextBlock StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1" Text=" NumberPicker" Padding="2,0,0,0" />
+            <TextBlock StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1" Text="" />
+            <NumberPicker StackPanel.SizeMode="Fixed" StackPanel.FixedSize="3" Value="42" Minimum="0" Maximum="100" TabIndex="0" />
+            <TextBlock StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1" Text="" />
+            <NumberPicker StackPanel.SizeMode="Fixed" StackPanel.FixedSize="3" Value="0.5" Minimum="0" Maximum="1" Increment="0.1" DecimalPlaces="1" TabIndex="1" />
+            <TextBlock StackPanel.SizeMode="Stretch" Text="" />
+        </StackPanel>
+    </Border>
+</Window>`
+  },
+
+  {
+    id: "datepicker",
+    title: "DatePicker",
+    description: "Date input with field-by-field editing and calendar icon.",
+    docPage: "./samples/datepicker.html",
+    xaml: `<Window xmlns="http://schemas.terminalninja.dev/xaml" Title="DatePicker">
+    <Border BorderStyle="Rounded">
+        <StackPanel Orientation="Vertical">
+            <TextBlock StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1" Text=" DatePicker" Padding="2,0,0,0" />
+            <TextBlock StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1" Text="" />
+            <DatePicker StackPanel.SizeMode="Fixed" StackPanel.FixedSize="3" TabIndex="0" />
+            <TextBlock StackPanel.SizeMode="Stretch" Text="" />
+        </StackPanel>
+    </Border>
+</Window>`
+  },
+
+  {
+    id: "timepicker",
+    title: "TimePicker",
+    description: "Time input with hours/minutes/seconds fields and clock icon.",
+    docPage: "./samples/timepicker.html",
+    xaml: `<Window xmlns="http://schemas.terminalninja.dev/xaml" Title="TimePicker">
+    <Border BorderStyle="Rounded">
+        <StackPanel Orientation="Vertical">
+            <TextBlock StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1" Text=" TimePicker" Padding="2,0,0,0" />
+            <TextBlock StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1" Text="" />
+            <TimePicker StackPanel.SizeMode="Fixed" StackPanel.FixedSize="3" TabIndex="0" />
+            <TextBlock StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1" Text="" />
+            <TimePicker StackPanel.SizeMode="Fixed" StackPanel.FixedSize="3" ShowSeconds="True" TabIndex="1" />
+            <TextBlock StackPanel.SizeMode="Stretch" Text="" />
+        </StackPanel>
+    </Border>
+</Window>`
+  },
+
+  {
+    id: "datetimepicker",
+    title: "DateTimePicker",
+    description: "Combined date and time input with calendar icon.",
+    docPage: "./samples/datetimepicker.html",
+    xaml: `<Window xmlns="http://schemas.terminalninja.dev/xaml" Title="DateTimePicker">
+    <Border BorderStyle="Rounded">
+        <StackPanel Orientation="Vertical">
+            <TextBlock StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1" Text=" DateTimePicker" Padding="2,0,0,0" />
+            <TextBlock StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1" Text="" />
+            <DateTimePicker StackPanel.SizeMode="Fixed" StackPanel.FixedSize="3" TabIndex="0" />
+            <TextBlock StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1" Text="" />
+            <DateTimePicker StackPanel.SizeMode="Fixed" StackPanel.FixedSize="3" ShowSeconds="True" TabIndex="1" />
+            <TextBlock StackPanel.SizeMode="Stretch" Text="" />
+        </StackPanel>
+    </Border>
+</Window>`
   }
 ];

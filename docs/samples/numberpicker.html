@@ -1,0 +1,167 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>NumberPicker - TerminalNinja</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/styles/github-dark-dimmed.min.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@xterm/xterm@5.5.0/css/xterm.css">
+  <link rel="stylesheet" href="../styles.css">
+</head>
+<body>
+  <div class="bg-grid" aria-hidden="true"></div>
+  <div class="bg-glow bg-glow-a" aria-hidden="true"></div>
+  <div class="bg-glow bg-glow-b" aria-hidden="true"></div>
+  <main class="shell">
+    <nav class="breadcrumb"><a href="../index.html">Docs</a> / <span>NumberPicker</span></nav>
+    <header class="panel">
+      <h1>NumberPicker</h1>
+      <p class="section-copy">Numeric input with arrow key increment/decrement and direct digit entry.</p>
+      <div class="hero-actions" style="margin-top:14px">
+        <a class="btn btn-primary" href="../playground.html?sample=numberpicker">Try in Playground</a>
+      </div>
+    </header>
+
+    <section class="panel doc-section">
+      <h2>Overview</h2>
+      <p>
+        <code>NumberPicker</code> extends <code>Control</code> and provides a focused numeric input for
+        selecting a value within a defined range. The control displays the current value with optional
+        left/right arrow indicators. Users can adjust the value using arrow keys for fine-grained
+        increment/decrement, Page Up/Down for larger jumps, or type digits directly for rapid entry.
+        The value is always clamped between <code>Minimum</code> and <code>Maximum</code>.
+        <code>DecimalPlaces</code> and <code>FormatString</code> control how the number is rendered,
+        making it suitable for both integer counters and decimal inputs like percentages or currencies.
+      </p>
+    </section>
+
+    <section class="panel doc-section">
+      <h2>Basic Example</h2>
+      <div class="preview-tabs">
+        <button class="preview-tab active" data-tab="preview">Preview</button>
+        <button class="preview-tab" data-tab="source">Source</button>
+      </div>
+      <div class="preview-tab-content active" data-tab="preview">
+        <div class="preview-terminal" id="preview-terminal"></div>
+      </div>
+      <div class="preview-tab-content" data-tab="source">
+<pre><code class="language-xml">&lt;StackPanel Orientation="Vertical"&gt;
+  &lt;TextBlock Text="Select quantity:" /&gt;
+  &lt;NumberPicker Value="1" Minimum="1" Maximum="99" Increment="1" /&gt;
+&lt;/StackPanel&gt;</code></pre>
+      </div>
+    </section>
+
+    <section class="panel doc-section">
+      <h2>Properties</h2>
+      <table>
+        <thead>
+          <tr><th>Property</th><th>Type</th><th>Default</th><th>Description</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>Value</td><td>double</td><td>0</td><td>The current numeric value of the picker.</td></tr>
+          <tr><td>Minimum</td><td>double</td><td>0</td><td>The smallest allowed value. The control clamps input to this floor.</td></tr>
+          <tr><td>Maximum</td><td>double</td><td>100</td><td>The largest allowed value. The control clamps input to this ceiling.</td></tr>
+          <tr><td>Increment</td><td>double</td><td>1</td><td>The amount added or subtracted per arrow key press.</td></tr>
+          <tr><td>DecimalPlaces</td><td>int</td><td>0</td><td>Number of decimal digits displayed. Use 0 for integer-only input.</td></tr>
+          <tr><td>FormatString</td><td>string?</td><td>null</td><td>Optional .NET format string (e.g. <code>"C2"</code>, <code>"P0"</code>). Overrides DecimalPlaces when set.</td></tr>
+          <tr><td>Width</td><td>Size</td><td>Auto</td><td>Explicit width of the control.</td></tr>
+          <tr><td>Height</td><td>Size</td><td>Auto</td><td>Explicit height of the control.</td></tr>
+          <tr><td>FocusColor</td><td>Color</td><td>Cyan</td><td>Border color when the control has keyboard focus.</td></tr>
+          <tr><td>HoverColor</td><td>Color</td><td>Yellow</td><td>Border color when the mouse hovers over the control.</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section class="panel doc-section">
+      <h2>Examples</h2>
+      <h3>Integer Picker</h3>
+<pre><code class="language-xml">&lt;StackPanel Orientation="Vertical"&gt;
+  &lt;TextBlock Text="Items in cart:" /&gt;
+  &lt;NumberPicker Value="1"
+                Minimum="1"
+                Maximum="50"
+                Increment="1"
+                DecimalPlaces="0" /&gt;
+&lt;/StackPanel&gt;</code></pre>
+
+      <h3>Decimal Picker</h3>
+<pre><code class="language-xml">&lt;StackPanel Orientation="Vertical"&gt;
+  &lt;TextBlock Text="Temperature (&amp;deg;C):" /&gt;
+  &lt;NumberPicker Value="36.5"
+                Minimum="30.0"
+                Maximum="45.0"
+                Increment="0.1"
+                DecimalPlaces="1" /&gt;
+&lt;/StackPanel&gt;</code></pre>
+
+      <h3>Large Range with Step 100</h3>
+<pre><code class="language-xml">&lt;StackPanel Orientation="Vertical"&gt;
+  &lt;TextBlock Text="Budget ($):" /&gt;
+  &lt;NumberPicker Value="1000"
+                Minimum="0"
+                Maximum="100000"
+                Increment="100"
+                DecimalPlaces="0"
+                FocusColor="Green" /&gt;
+&lt;/StackPanel&gt;</code></pre>
+    </section>
+
+    <section class="panel doc-section">
+      <h2>Keyboard Shortcuts</h2>
+      <table>
+        <thead>
+          <tr><th>Key</th><th>Action</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>Up Arrow</td><td>Increment the value by <code>Increment</code>.</td></tr>
+          <tr><td>Right Arrow</td><td>Increment the value by <code>Increment</code>.</td></tr>
+          <tr><td>Down Arrow</td><td>Decrement the value by <code>Increment</code>.</td></tr>
+          <tr><td>Left Arrow</td><td>Decrement the value by <code>Increment</code>.</td></tr>
+          <tr><td>Page Up</td><td>Increment the value by 10 &times; <code>Increment</code>.</td></tr>
+          <tr><td>Page Down</td><td>Decrement the value by 10 &times; <code>Increment</code>.</td></tr>
+          <tr><td>Home</td><td>Set the value to <code>Minimum</code>.</td></tr>
+          <tr><td>End</td><td>Set the value to <code>Maximum</code>.</td></tr>
+          <tr><td>0&ndash;9</td><td>Direct digit entry &mdash; appends to the current input buffer.</td></tr>
+          <tr><td>Backspace</td><td>Delete the last entered digit from the input buffer.</td></tr>
+          <tr><td>Enter</td><td>Commit the typed digit sequence and clamp to the allowed range.</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section class="panel doc-section">
+      <h2>Key Concepts</h2>
+      <ul>
+        <li><code>NumberPicker</code> extends <code>Control</code> and is focusable by default, supporting both keyboard and mouse interaction.</li>
+        <li>The value is always clamped between <code>Minimum</code> and <code>Maximum</code> &mdash; arrow keys, digit entry, and programmatic changes all respect the range.</li>
+        <li>When <code>FormatString</code> is set it takes precedence over <code>DecimalPlaces</code> for display formatting, allowing currency, percentage, or custom patterns.</li>
+        <li>Direct digit entry accumulates in an internal buffer; pressing Enter commits the typed number, while Escape or losing focus discards uncommitted input.</li>
+        <li>Page Up and Page Down provide a 10&times; multiplier on the <code>Increment</code> for quickly traversing large ranges.</li>
+        <li>Use <code>Value="{Binding ...}"</code> with <code>Mode=TwoWay</code> for two-way data binding of the numeric value.</li>
+      </ul>
+    </section>
+
+    <footer class="footer"><a href="../index.html">&larr; Back to Docs</a></footer>
+  </main>
+  <script src="https://cdn.jsdelivr.net/npm/@xterm/xterm@5.5.0/lib/xterm.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@xterm/addon-fit@0.10.0/lib/addon-fit.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/highlight.min.js"></script>
+  <script>hljs.highlightAll();</script>
+  <script type="module">
+    import { renderPreview } from '../sample-preview.js';
+    renderPreview('numberpicker', 'preview-terminal');
+    document.querySelectorAll('.preview-tab').forEach(tab => {
+      tab.addEventListener('click', () => {
+        const panel = tab.closest('.doc-section');
+        panel.querySelectorAll('.preview-tab').forEach(t => t.classList.remove('active'));
+        panel.querySelectorAll('.preview-tab-content').forEach(c => c.classList.remove('active'));
+        tab.classList.add('active');
+        panel.querySelector(`.preview-tab-content[data-tab="${tab.dataset.tab}"]`).classList.add('active');
+      });
+    });
+  </script>
+</body>
+</html>

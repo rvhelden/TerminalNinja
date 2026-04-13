@@ -1,0 +1,32 @@
+<Border xmlns="http://schemas.terminalninja.dev/xaml"
+        BorderStyle="Rounded">
+    <StackPanel Orientation="Vertical">
+        <TextBlock StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1"
+                   Text=" NumberPicker" Padding="2,0,0,0" />
+        <TextBlock StackPanel.SizeMode="Fixed" StackPanel.FixedSize="2"
+                   Text="  Numeric input with Up/Down arrows, PageUp/Down, and direct digit entry."
+                   Padding="2,0,0,0" VerticalTextAlignment="Center" />
+        <TextBlock StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1" Text="" />
+
+        <TextBlock StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1"
+                   Text="  Integer (0-100, step 1):" Padding="2,0,0,0" />
+        <NumberPicker StackPanel.SizeMode="Fixed" StackPanel.FixedSize="3"
+                      Value="42" Minimum="0" Maximum="100" TabIndex="0" />
+
+        <TextBlock StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1" Text="" />
+
+        <TextBlock StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1"
+                   Text="  Decimal (0-1, step 0.1):" Padding="2,0,0,0" />
+        <NumberPicker StackPanel.SizeMode="Fixed" StackPanel.FixedSize="3"
+                      Value="0.5" Minimum="0" Maximum="1" Increment="0.1" DecimalPlaces="1" TabIndex="1" />
+
+        <TextBlock StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1" Text="" />
+
+        <TextBlock StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1"
+                   Text="  Large range (step 100):" Padding="2,0,0,0" />
+        <NumberPicker StackPanel.SizeMode="Fixed" StackPanel.FixedSize="3"
+                      Value="1000" Minimum="0" Maximum="10000" Increment="100" TabIndex="2" />
+
+        <TextBlock StackPanel.SizeMode="Stretch" Text="" />
+    </StackPanel>
+</Border>

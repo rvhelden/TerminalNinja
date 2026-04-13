@@ -1,0 +1,148 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>DatePicker - TerminalNinja</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/styles/github-dark-dimmed.min.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@xterm/xterm@5.5.0/css/xterm.css">
+  <link rel="stylesheet" href="../styles.css">
+</head>
+<body>
+  <div class="bg-grid" aria-hidden="true"></div>
+  <div class="bg-glow bg-glow-a" aria-hidden="true"></div>
+  <div class="bg-glow bg-glow-b" aria-hidden="true"></div>
+  <main class="shell">
+    <nav class="breadcrumb"><a href="../index.html">Docs</a> / <span>DatePicker</span></nav>
+    <header class="panel">
+      <h1>DatePicker</h1>
+      <p class="section-copy">Date input with field-by-field editing and calendar icon.</p>
+      <div class="hero-actions" style="margin-top:14px">
+        <a class="btn btn-primary" href="../playground.html?sample=datepicker">Try in Playground</a>
+      </div>
+    </header>
+
+    <section class="panel doc-section">
+      <h2>Overview</h2>
+      <p>
+        <code>DatePicker</code> extends <code>Control</code> and provides a structured date input
+        with separate editable fields for year, month, and day. A calendar icon (<code>&#xF073;</code>)
+        is displayed alongside the fields to visually identify the control. When no date is selected,
+        customizable placeholder text is shown. Users navigate between fields with Left/Right arrows
+        or Tab, adjust values with Up/Down arrows, or type digits directly &mdash; the cursor
+        auto-advances to the next field once enough digits are entered. The control validates dates
+        automatically, clamping day values to the correct range for the selected month and year.
+      </p>
+    </section>
+
+    <section class="panel doc-section">
+      <h2>Basic Example</h2>
+      <div class="preview-tabs">
+        <button class="preview-tab active" data-tab="preview">Preview</button>
+        <button class="preview-tab" data-tab="source">Source</button>
+      </div>
+      <div class="preview-tab-content active" data-tab="preview">
+        <div class="preview-terminal" id="preview-terminal"></div>
+      </div>
+      <div class="preview-tab-content" data-tab="source">
+<pre><code class="language-xml">&lt;StackPanel Orientation="Vertical"&gt;
+  &lt;TextBlock Text="Select a date:" /&gt;
+  &lt;DatePicker PlaceholderText="Pick a date..." /&gt;
+&lt;/StackPanel&gt;</code></pre>
+      </div>
+    </section>
+
+    <section class="panel doc-section">
+      <h2>Properties</h2>
+      <table>
+        <thead>
+          <tr><th>Property</th><th>Type</th><th>Default</th><th>Description</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>SelectedDate</td><td>DateTime?</td><td>null</td><td>The currently selected date, or null if no date is chosen.</td></tr>
+          <tr><td>DateFormat</td><td>string</td><td>"yyyy-MM-dd"</td><td>Display format string controlling field order and separators.</td></tr>
+          <tr><td>Icon</td><td>string</td><td>"\uF073"</td><td>Nerd Font glyph displayed as the calendar icon.</td></tr>
+          <tr><td>PlaceholderText</td><td>string</td><td>"Select date..."</td><td>Text shown when <code>SelectedDate</code> is null.</td></tr>
+          <tr><td>Width</td><td>Size</td><td>Auto</td><td>Explicit width of the control.</td></tr>
+          <tr><td>Height</td><td>Size</td><td>Auto</td><td>Explicit height of the control.</td></tr>
+          <tr><td>FocusColor</td><td>Color</td><td>Cyan</td><td>Border color when the control has keyboard focus.</td></tr>
+          <tr><td>HoverColor</td><td>Color</td><td>Yellow</td><td>Border color when the mouse hovers over the control.</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section class="panel doc-section">
+      <h2>Examples</h2>
+      <h3>Empty with Placeholder</h3>
+<pre><code class="language-xml">&lt;DatePicker PlaceholderText="No date selected" /&gt;</code></pre>
+
+      <h3>Pre-Set Date</h3>
+<pre><code class="language-xml">&lt;StackPanel Orientation="Vertical"&gt;
+  &lt;TextBlock Text="Start date:" /&gt;
+  &lt;DatePicker SelectedDate="2026-01-15"
+              DateFormat="yyyy-MM-dd" /&gt;
+&lt;/StackPanel&gt;</code></pre>
+
+      <h3>Custom Icon</h3>
+<pre><code class="language-xml">&lt;StackPanel Orientation="Vertical"&gt;
+  &lt;TextBlock Text="Event date:" /&gt;
+  &lt;DatePicker SelectedDate="2026-12-25"
+              Icon="&#xF274;"
+              FocusColor="Magenta"
+              DateFormat="yyyy-MM-dd" /&gt;
+&lt;/StackPanel&gt;</code></pre>
+    </section>
+
+    <section class="panel doc-section">
+      <h2>Keyboard Shortcuts</h2>
+      <table>
+        <thead>
+          <tr><th>Key</th><th>Action</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>Left Arrow</td><td>Move focus to the previous field (day &rarr; month &rarr; year).</td></tr>
+          <tr><td>Right Arrow</td><td>Move focus to the next field (year &rarr; month &rarr; day).</td></tr>
+          <tr><td>Tab</td><td>Advance to the next field, same as Right Arrow.</td></tr>
+          <tr><td>Up Arrow</td><td>Increment the focused field by one (year, month, or day).</td></tr>
+          <tr><td>Down Arrow</td><td>Decrement the focused field by one (year, month, or day).</td></tr>
+          <tr><td>0&ndash;9</td><td>Direct digit entry &mdash; auto-advances to the next field when the current field is full.</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section class="panel doc-section">
+      <h2>Key Concepts</h2>
+      <ul>
+        <li><code>DatePicker</code> extends <code>Control</code> and is focusable by default, with keyboard-driven field editing.</li>
+        <li>The control splits the date into three editable fields (year, month, day) based on the <code>DateFormat</code> pattern.</li>
+        <li>Day values are automatically clamped to the valid range for the selected month and year &mdash; for example, selecting February limits the day to 28 or 29 depending on leap year status.</li>
+        <li>When <code>SelectedDate</code> is null the control renders <code>PlaceholderText</code> in a dimmed style; pressing any navigation or digit key initialises the date to today.</li>
+        <li>The <code>Icon</code> property accepts any Nerd Font glyph, allowing you to swap the default calendar icon for a project-specific symbol.</li>
+        <li>Use <code>SelectedDate="{Binding ...}"</code> with <code>Mode=TwoWay</code> for two-way data binding of the date value.</li>
+      </ul>
+    </section>
+
+    <footer class="footer"><a href="../index.html">&larr; Back to Docs</a></footer>
+  </main>
+  <script src="https://cdn.jsdelivr.net/npm/@xterm/xterm@5.5.0/lib/xterm.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@xterm/addon-fit@0.10.0/lib/addon-fit.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/highlight.min.js"></script>
+  <script>hljs.highlightAll();</script>
+  <script type="module">
+    import { renderPreview } from '../sample-preview.js';
+    renderPreview('datepicker', 'preview-terminal');
+    document.querySelectorAll('.preview-tab').forEach(tab => {
+      tab.addEventListener('click', () => {
+        const panel = tab.closest('.doc-section');
+        panel.querySelectorAll('.preview-tab').forEach(t => t.classList.remove('active'));
+        panel.querySelectorAll('.preview-tab-content').forEach(c => c.classList.remove('active'));
+        tab.classList.add('active');
+        panel.querySelector(`.preview-tab-content[data-tab="${tab.dataset.tab}"]`).classList.add('active');
+      });
+    });
+  </script>
+</body>
+</html>
