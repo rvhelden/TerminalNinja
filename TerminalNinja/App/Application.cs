@@ -368,10 +368,16 @@ public sealed class Application : IDisposable
         }
         
         FocusManager = new FocusManager();
-        
+
         if (_options.EnableMouseTracking)
         {
             _inputReader.EnableMouseTracking();
+        }
+
+        // Auto-enable hot reload when a debugger is attached
+        if (!options.Headless)
+        {
+            TryAutoEnableHotReload();
         }
     }
     
@@ -729,6 +735,73 @@ public sealed class Application : IDisposable
         });
 
         _hotReloadWatcher.Start();
+    }
+
+    /// <summary>
+    /// Automatically enables hot reload if a debugger is attached and a project
+    /// directory with .xaml files can be found by walking up from the output directory.
+    /// Called automatically during construction — no user code needed.
+    /// </summary>
+    private void TryAutoEnableHotReload()
+    {
+        if (!System.Diagnostics.Debugger.IsAttached)
+            return;
+
+        var projectPath = FindProjectPathWithXaml();
+        if (projectPath == null)
+            return;
+
+        try
+        {
+            EnableHotReload(projectPath);
+        }
+        catch
+        {
+            // Silently fail — hot reload is a dev convenience, not critical
+        }
+    }
+
+    /// <summary>
+    /// Walks up from <see cref="AppContext.BaseDirectory"/> looking for a directory
+    /// that contains both a .csproj file and .xaml files. This finds the project root
+    /// even when running from bin/Debug/net10.0/.
+    /// </summary>
+    private static string? FindProjectPathWithXaml()
+    {
+        var dir = AppContext.BaseDirectory;
+
+        for (var i = 0; i < 10 && dir != null; i++)
+        {
+            dir = Path.GetDirectoryName(dir);
+            if (dir == null) break;
+
+            // Check if this directory or any immediate child has .csproj + .xaml
+            if (HasXamlProject(dir))
+                return dir;
+
+            // Also check sibling directories (e.g., from bin/Debug/net10.0 up to solution root,
+            // then into the actual project folder)
+            foreach (var subDir in Directory.EnumerateDirectories(dir))
+            {
+                if (HasXamlProject(subDir))
+                    return subDir;
+            }
+        }
+
+        return null;
+    }
+
+    private static bool HasXamlProject(string dir)
+    {
+        try
+        {
+            return Directory.EnumerateFiles(dir, "*.csproj").Any() &&
+                   Directory.EnumerateFiles(dir, "*.xaml", SearchOption.AllDirectories).Any();
+        }
+        catch
+        {
+            return false;
+        }
     }
 
     /// <summary>
