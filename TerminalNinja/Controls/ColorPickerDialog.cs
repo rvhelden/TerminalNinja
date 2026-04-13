@@ -88,9 +88,9 @@ public sealed class ColorPickerDialog : Window
                 var topColor = HslToColor(_hue, s, lTop);
                 var bottomColor = HslToColor(_hue, s, lBot);
 
-                // Highlight the selected position
-                var selX = (int)(_saturation * gradW);
-                var selPixelY = (int)((1.0 - _lightness) * GradientPixelHeight);
+                // Highlight the selected position (clamped to grid bounds)
+                var selX = Math.Clamp((int)(_saturation * gradW), 0, gradW - 1);
+                var selPixelY = Math.Clamp((int)((1.0 - _lightness) * (GradientPixelHeight - 1)), 0, GradientPixelHeight - 1);
                 var selCellY = selPixelY / 2;
                 var isTopSel = !_hueMode && cellX == selX && cellY == selCellY && selPixelY % 2 == 0;
                 var isBotSel = !_hueMode && cellX == selX && cellY == selCellY && selPixelY % 2 == 1;
@@ -188,7 +188,9 @@ public sealed class ColorPickerDialog : Window
 
             case ConsoleKey.UpArrow:
                 if (_hueMode)
-                    _hueMode = false; // move from hue bar into SL gradient — no value change needed
+                    _hueMode = false; // move from hue bar into SL gradient
+                else if (_lightness >= 0.99)
+                    _hueMode = true; // at top of gradient — move back to hue bar
                 else
                     _lightness = Math.Min(1, _lightness + 0.05);
                 UpdateColorFromHsl();
