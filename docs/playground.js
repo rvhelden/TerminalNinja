@@ -137,12 +137,12 @@ function scheduleAutoRender() {
 function liveReloadXaml() {
   if (!wasmReady || !wasm.reloadXaml) return;
 
-  const xaml   = monacoEditor?.getValue() ?? '';
-  const width  = Math.max(20, parseInt(inputWidth.value,  10) || 80);
-  const height = Math.max(5,  parseInt(inputHeight.value, 10) || 24);
+  const xaml = monacoEditor?.getValue() ?? '';
+  fitAddon.fit();
+  const width  = term.cols;
+  const height = term.rows;
 
   try {
-    term.resize(width, height);
     const ansi = wasm.reloadXaml(xaml, width, height);
     term.write('\x1b[2J\x1b[H');
     if (ansi) term.write(ansi);
@@ -256,12 +256,12 @@ function startLiveSession() {
   // Stop any existing session and animation loop
   stopLiveSession();
 
-  const xaml   = monacoEditor?.getValue() ?? '';
-  const width  = Math.max(20, parseInt(inputWidth.value,  10) || 80);
-  const height = Math.max(5,  parseInt(inputHeight.value, 10) || 24);
+  const xaml = monacoEditor?.getValue() ?? '';
 
-  // Resize xterm to match
-  term.resize(width, height);
+  // Use xterm's fitted size as default, falling back to input fields
+  fitAddon.fit();
+  const width  = term.cols;
+  const height = term.rows;
 
   try {
     // Apply current theme before session start
