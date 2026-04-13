@@ -18,6 +18,7 @@ public class ListBox : Selector
 {
     private DateTime _lastClickTime;
     private int _lastClickY = -1;
+    private int _scrollOffset;
 
     public ListBox()
     {
@@ -243,22 +244,46 @@ public class ListBox : Selector
     /// <inheritdoc />
     public override void OnMouseEvent(MouseEvent e)
     {
-        if (e is { Action: MouseAction.Press, Button: MouseButton.Left })
+        switch (e.Action)
         {
-            var now = DateTime.UtcNow;
+            case MouseAction.Press when e.Button == MouseButton.Left:
+            {
+                var now = DateTime.UtcNow;
 
-            // Double-click: two presses within 500ms at same Y coordinate
-            if ((now - _lastClickTime).TotalMilliseconds < 500 && e.Y == _lastClickY)
-            {
-                ItemActivated?.Invoke(this, EventArgs.Empty);
-                _lastClickTime = DateTime.MinValue; // reset to avoid triple-click
+                // Double-click: two presses within 500ms at same Y coordinate
+                if ((now - _lastClickTime).TotalMilliseconds < 500 && e.Y == _lastClickY)
+                {
+                    ItemActivated?.Invoke(this, EventArgs.Empty);
+                    _lastClickTime = DateTime.MinValue;
+                }
+                else
+                {
+                    _lastClickTime = now;
+                    _lastClickY = e.Y;
+                }
+                break;
             }
-            else
-            {
-                _lastClickTime = now;
-                _lastClickY = e.Y;
-            }
+            case MouseAction.ScrollUp:
+                _scrollOffset = Math.Max(0, _scrollOffset - 3);
+                InvalidateVisual();
+                break;
+            case MouseAction.ScrollDown:
+                _scrollOffset = Math.Min(Math.Max(0, ItemsPanel.Children.Count - 1), _scrollOffset + 3);
+                InvalidateVisual();
+                break;
         }
+    }
+
+    // ─── Internal Scrolling ──────────────────────────────────────────
+
+    private void EnsureSelectedVisible(int viewportHeight)
+    {
+        if (SelectedIndex < 0 || viewportHeight <= 0) return;
+
+        if (SelectedIndex < _scrollOffset)
+            _scrollOffset = SelectedIndex;
+        else if (SelectedIndex >= _scrollOffset + viewportHeight)
+            _scrollOffset = SelectedIndex - viewportHeight + 1;
     }
 
     // ─── Rendering ───────────────────────────────────────────────────
@@ -268,7 +293,6 @@ public class ListBox : Selector
     {
         var bounds = CalculateBounds(parentBounds);
 
-        // Fill background
         var clipped = bounds.Intersect(new Rect(0, 0, buffer.Width, buffer.Height));
         if (clipped.Width <= 0 || clipped.Height <= 0)
         {
@@ -278,7 +302,21 @@ public class ListBox : Selector
         var bgCell = new Cell(' ', Foreground, Background);
         buffer.FillRect(clipped, bgCell);
 
-        // Render items panel
-        ItemsPanel.Render(buffer, bounds);
+        var children = ItemsPanel.Children;
+        var viewportHeight = bounds.Height;
+
+        // Ensure selected item is visible
+        EnsureSelectedVisible(viewportHeight);
+
+        // Clamp scroll offset
+        _scrollOffset = Math.Clamp(_scrollOffset, 0, Math.Max(0, children.Count - viewportHeight));
+
+        // Render only the visible items
+        for (var i = 0; i < viewportHeight && _scrollOffset + i < children.Count; i++)
+        {
+            var child = children[_scrollOffset + i];
+            var itemBounds = new Rect(bounds.X, bounds.Y + i, bounds.Width, 1);
+            child.Render(buffer, itemBounds);
+        }
     }
 }
