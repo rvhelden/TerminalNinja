@@ -678,6 +678,93 @@ public sealed class Application : IDisposable
         Invalidate();
     }
     
+    // ─── Hot Reload ─────────────────────────────────────────────────
+
+    private HotReloadWatcher? _hotReloadWatcher;
+
+    /// <summary>
+    /// Gets or sets whether hot reload is active.
+    /// </summary>
+    public bool IsHotReloadEnabled => _hotReloadWatcher != null;
+
+    /// <summary>
+    /// Gets the path being watched for hot reload, or null if not enabled.
+    /// </summary>
+    public string? HotReloadPath { get; private set; }
+
+    /// <summary>
+    /// Enables XAML hot reload by watching the specified project directory for .xaml file changes.
+    /// When a file changes, the current screen is reloaded from disk while preserving the ViewModel.
+    /// <para>
+    /// Call this during app startup in debug builds:
+    /// <code>app.EnableHotReload("path/to/Sample");</code>
+    /// </para>
+    /// </summary>
+    /// <param name="projectPath">Root directory of the project containing .xaml files.</param>
+    /// <param name="onReload">Optional callback invoked with the changed file path after successful reload.
+    /// Use this to update status text or log the reload.</param>
+    /// <param name="onError">Optional callback invoked with the exception when a reload fails (e.g., XAML parse error).</param>
+    public void EnableHotReload(string projectPath, Action<string>? onReload = null, Action<string, Exception>? onError = null)
+    {
+        ArgumentNullException.ThrowIfNull(projectPath);
+        if (!Directory.Exists(projectPath))
+        {
+            throw new DirectoryNotFoundException($"Hot reload path not found: {projectPath}");
+        }
+
+        _hotReloadWatcher?.Dispose();
+        HotReloadPath = Path.GetFullPath(projectPath);
+
+        _hotReloadWatcher = new HotReloadWatcher(HotReloadPath, filePath =>
+        {
+            try
+            {
+                HotReloadFile(filePath);
+                onReload?.Invoke(filePath);
+            }
+            catch (Exception ex)
+            {
+                onError?.Invoke(filePath, ex);
+            }
+        });
+
+        _hotReloadWatcher.Start();
+    }
+
+    /// <summary>
+    /// Disables hot reload and stops watching for file changes.
+    /// </summary>
+    public void DisableHotReload()
+    {
+        _hotReloadWatcher?.Dispose();
+        _hotReloadWatcher = null;
+        HotReloadPath = null;
+    }
+
+    /// <summary>
+    /// Reloads a XAML file from disk and swaps the current screen's control tree,
+    /// preserving the existing DataContext (ViewModel).
+    /// </summary>
+    private void HotReloadFile(string filePath)
+    {
+        if (_rootControl == null) return;
+
+        // Read the XAML from disk
+        using var stream = File.OpenRead(filePath);
+
+        // Find the current screen and its DataContext
+        var currentDataContext = (_rootControl as FrameworkElement)?.DataContext;
+
+        // Reload from disk, passing the existing DataContext to preserve the ViewModel
+        var newControl = Xaml.TerminalXaml.LoadFromStream<FrameworkElement>(stream, currentDataContext);
+
+        // Swap the root control — triggers re-render
+        RootControl = newControl;
+
+        // Re-apply theme
+        InvalidateImplicitStyles();
+    }
+
     /// <summary>
     /// Disposes the application and cleans up resources.
     /// </summary>
@@ -701,6 +788,7 @@ public sealed class Application : IDisposable
         // Safe to call even if we never subscribed (headless mode).
         System.Console.CancelKeyPress -= OnCancelKeyPress;
         
+        _hotReloadWatcher?.Dispose();
         _inputReader.Dispose();
         Renderer.Dispose();
     }
