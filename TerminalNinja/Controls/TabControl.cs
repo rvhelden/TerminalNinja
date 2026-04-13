@@ -104,7 +104,7 @@ public sealed class TabControl : Selector
 
     // ─── Layout ──────────────────────────────────────────────────────
 
-    private const int HeaderHeight = 2; // Tab strip row + border merge row
+    private const int HeaderHeight = 3; // Tab text row + underline row + separator
 
     /// <inheritdoc />
     public override Size2D GetPreferredSize(Rect parent) => new(parent.Width, parent.Height);
@@ -125,163 +125,86 @@ public sealed class TabControl : Selector
         buffer.FillRect(clipped, new Cell(' ', Foreground, Background));
 
         var tabs = GetTabItems();
-        if (tabs.Count == 0)
-        {
-            return;
-        }
+        if (tabs.Count == 0) return;
 
         // Auto-select first tab if none selected
-        if (SelectedIndex < 0)
-        {
-            SelectedIndex = 0;
-        }
+        if (SelectedIndex < 0) SelectedIndex = 0;
 
-        var borderColor = IsFocused ? FocusColor : Foreground;
+        var accentColor = IsFocused ? FocusColor : Foreground;
         var mutedFg = DimColor(Foreground);
 
-        // Calculate tab header widths
-        var tabWidths = new int[tabs.Count];
-        for (var i = 0; i < tabs.Count; i++)
-        {
-            tabWidths[i] = tabs[i].HeaderText.Length + 2; // +2 for padding
-        }
-
-        // ── Row 0: Tab headers ──
+        // ── Row 0: Tab header text ──
         var headerY = bounds.Y;
-        var x = bounds.X;
+        var x = bounds.X + 1; // 1-char left margin
 
         for (var i = 0; i < tabs.Count; i++)
         {
             var isSelected = i == SelectedIndex;
-            var w = tabWidths[i];
-            var fg = isSelected ? SelectedForeground : mutedFg;
-            var bg = isSelected ? Background : Background;
-
-            // Left edge
-            if (i == 0)
-            {
-                SetCharSafe(buffer, x, headerY, '┌', borderColor, Background);
-            }
-            else
-            {
-                SetCharSafe(buffer, x, headerY, '┬', borderColor, Background);
-            }
-            x++;
-
-            // Header text with padding
-            SetCharSafe(buffer, x, headerY, '─', borderColor, Background);
-            x++;
             var text = tabs[i].HeaderText;
-            for (var c = 0; c < text.Length; c++)
+            var fg = isSelected ? SelectedForeground : mutedFg;
+
+            // Space before tab (gap between tabs)
+            if (i > 0)
             {
-                SetCharSafe(buffer, x, headerY, text[c], fg, bg);
+                SetCharSafe(buffer, x, headerY, ' ', Foreground, Background);
                 x++;
             }
-            SetCharSafe(buffer, x, headerY, '─', borderColor, Background);
-            x++;
+
+            // Tab text
+            for (var c = 0; c < text.Length && x < bounds.Right; c++)
+            {
+                SetCharSafe(buffer, x, headerY, text[c], fg, Background);
+                x++;
+            }
         }
 
-        // Right cap and fill to end
-        SetCharSafe(buffer, x, headerY, '┐', borderColor, Background);
-        x++;
-        // Fill remaining header row
-        for (; x < bounds.Right; x++)
+        // ── Row 1: Underline bar (▄ under selected tab) ──
+        var underlineY = bounds.Y + 1;
+        if (underlineY < bounds.Bottom)
         {
-            SetCharSafe(buffer, x, headerY, ' ', Foreground, Background);
-        }
-
-        // ── Row 1: Border merge row ──
-        var mergeY = bounds.Y + 1;
-        if (mergeY < bounds.Bottom)
-        {
-            x = bounds.X;
-
-            // Left edge
-            SetCharSafe(buffer, x, mergeY, '│', borderColor, Background);
-            x++;
-
-            // Fill with ─ but leave gap under selected tab
-            var tabStart = bounds.X + 1;
+            x = bounds.X + 1;
             for (var i = 0; i < tabs.Count; i++)
             {
-                var w = tabWidths[i];
                 var isSelected = i == SelectedIndex;
+                var textLen = tabs[i].HeaderText.Length;
 
-                for (var c = 0; c < w; c++)
+                if (i > 0) { x++; } // gap
+
+                for (var c = 0; c < textLen && x < bounds.Right; c++)
                 {
                     if (isSelected)
                     {
-                        SetCharSafe(buffer, x, mergeY, ' ', Foreground, Background);
-                    }
-                    else
-                    {
-                        SetCharSafe(buffer, x, mergeY, '─', borderColor, Background);
-                    }
-                    x++;
-                }
-
-                // Separator between tabs
-                if (i < tabs.Count - 1)
-                {
-                    var nextSelected = (i + 1) == SelectedIndex;
-                    if (isSelected || nextSelected)
-                    {
-                        SetCharSafe(buffer, x, mergeY, isSelected && nextSelected ? ' ' : isSelected ? '┐' : '┌', borderColor, Background);
-                    }
-                    else
-                    {
-                        SetCharSafe(buffer, x, mergeY, '┴', borderColor, Background);
+                        // Half-block underline: ▄ with accent color as foreground
+                        SetCharSafe(buffer, x, underlineY, '\u2584', accentColor, Background);
                     }
                     x++;
                 }
             }
-
-            // After last tab to right edge
-            var lastSelected = SelectedIndex == tabs.Count - 1;
-            SetCharSafe(buffer, x, mergeY, lastSelected ? '┘' : '┴', borderColor, Background);
-            x++;
-            // Right border continues
-            var rightEdgeX = bounds.Right - 1;
-            for (; x < rightEdgeX; x++)
-            {
-                SetCharSafe(buffer, x, mergeY, '─', borderColor, Background);
-            }
-            SetCharSafe(buffer, rightEdgeX, mergeY, '┐', borderColor, Background);
         }
 
-        // ── Content area: rows 2 to bottom-1, with left/right borders ──
+        // ── Row 2: Thin separator line ──
+        var sepY = bounds.Y + 2;
+        if (sepY < bounds.Bottom)
+        {
+            var sepColor = DimColor(Foreground);
+            for (var sx = bounds.X; sx < bounds.Right; sx++)
+            {
+                SetCharSafe(buffer, sx, sepY, '─', sepColor, Background);
+            }
+        }
+
+        // ── Content area: row 3+ ──
         var contentTop = bounds.Y + HeaderHeight;
-        var contentBottom = bounds.Bottom - 1;
-
-        for (var y = contentTop; y < contentBottom; y++)
-        {
-            SetCharSafe(buffer, bounds.X, y, '│', borderColor, Background);
-            SetCharSafe(buffer, bounds.Right - 1, y, '│', borderColor, Background);
-        }
-
-        // ── Bottom border ──
-        if (contentBottom >= bounds.Y && contentBottom < bounds.Bottom)
-        {
-            SetCharSafe(buffer, bounds.X, contentBottom, '└', borderColor, Background);
-            for (var bx = bounds.X + 1; bx < bounds.Right - 1; bx++)
-            {
-                SetCharSafe(buffer, bx, contentBottom, '─', borderColor, Background);
-            }
-            SetCharSafe(buffer, bounds.Right - 1, contentBottom, '┘', borderColor, Background);
-        }
-
-        // ── Render selected tab content ──
         if (SelectedIndex >= 0 && SelectedIndex < tabs.Count)
         {
             var selectedTab = tabs[SelectedIndex];
             var contentBounds = new Rect(
-                bounds.X + 1, contentTop,
-                Math.Max(0, bounds.Width - 2),
-                Math.Max(0, contentBottom - contentTop));
+                bounds.X, contentTop,
+                bounds.Width,
+                Math.Max(0, bounds.Bottom - contentTop));
 
             if (contentBounds.Width > 0 && contentBounds.Height > 0)
             {
-                // Render the TabItem's content via its ContentPresenter
                 selectedTab.Render(buffer, contentBounds);
             }
         }
@@ -306,9 +229,9 @@ public sealed class TabControl : Selector
         if (SelectedIndex >= 0 && SelectedIndex < tabs.Count)
         {
             var contentBounds = new Rect(
-                myBounds.X + 1, myBounds.Y + HeaderHeight,
-                Math.Max(0, myBounds.Width - 2),
-                Math.Max(0, myBounds.Height - HeaderHeight - 1));
+                myBounds.X, myBounds.Y + HeaderHeight,
+                myBounds.Width,
+                Math.Max(0, myBounds.Height - HeaderHeight));
             yield return (tabs[SelectedIndex], contentBounds);
         }
     }

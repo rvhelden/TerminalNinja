@@ -186,9 +186,8 @@ public class TabControlTests
         using var buffer = new CellBuffer(40, 10);
         tc.Render(buffer, new Rect(0, 0, 40, 10));
 
-        // First tab header chars should be visible
-        // ┌─Tab1─┬─Tab2─┐
-        await Assert.That(buffer.GetCell(0, 0).Character).IsEqualTo('┌');
+        // First tab header text starts at (1, 0)
+        await Assert.That(buffer.GetCell(1, 0).Character).IsEqualTo('T');
     }
 
     [Test]
@@ -204,8 +203,8 @@ public class TabControlTests
         using var buffer = new CellBuffer(30, 8);
         tc.Render(buffer, new Rect(0, 0, 30, 8));
 
-        // Content starts at row 2, col 1 (inside border)
-        await Assert.That(buffer.GetCell(1, 2).Character).IsEqualTo('H');
+        // Content starts at row 3 (header + underline + separator)
+        await Assert.That(buffer.GetCell(0, 3).Character).IsEqualTo('H');
     }
 
     [Test]
@@ -233,11 +232,11 @@ public class TabControlTests
 
         tc.SelectedIndex = 0;
         tc.Render(buffer, new Rect(0, 0, 30, 8));
-        await Assert.That(buffer.GetCell(1, 2).Character).IsEqualTo('A');
+        await Assert.That(buffer.GetCell(0, 3).Character).IsEqualTo('A');
 
         tc.SelectedIndex = 1;
         tc.Render(buffer, new Rect(0, 0, 30, 8));
-        await Assert.That(buffer.GetCell(1, 2).Character).IsEqualTo('B');
+        await Assert.That(buffer.GetCell(0, 3).Character).IsEqualTo('B');
     }
 
     #endregion
