@@ -45,10 +45,11 @@ public class ScrollViewerTests
     }
 
     [Test]
-    public async Task IsFocusable_Default_IsTrue()
+    public async Task Focusable_Default_IsFalse()
     {
+        // ScrollViewer is a container — should not steal focus from children
         var sv = new ScrollViewer();
-        await Assert.That(sv.Focusable).IsTrue();
+        await Assert.That(sv.Focusable).IsFalse();
     }
 
     #endregion

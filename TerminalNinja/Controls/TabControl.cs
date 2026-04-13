@@ -26,6 +26,12 @@ public sealed class TabControl : Selector
         DependencyProperty.Register(nameof(SelectedBackground), typeof(Color), typeof(TabControl),
             new FrameworkPropertyMetadata(Color.Blue, affectsRender: true));
 
+    public static readonly DependencyProperty FocusColorProperty =
+        DependencyProperty.Register(nameof(FocusColor), typeof(Color), typeof(TabControl),
+            new FrameworkPropertyMetadata(Color.Cyan, affectsRender: true));
+
+    public Color FocusColor { get => (Color)GetValue(FocusColorProperty)!; set => SetValue(FocusColorProperty, value); }
+
     public static readonly DependencyProperty SelectedForegroundProperty =
         DependencyProperty.Register(nameof(SelectedForeground), typeof(Color), typeof(TabControl),
             new FrameworkPropertyMetadata(Color.White, affectsRender: true));
@@ -130,7 +136,7 @@ public sealed class TabControl : Selector
             SelectedIndex = 0;
         }
 
-        var borderColor = Foreground;
+        var borderColor = IsFocused ? FocusColor : Foreground;
         var mutedFg = DimColor(Foreground);
 
         // Calculate tab header widths

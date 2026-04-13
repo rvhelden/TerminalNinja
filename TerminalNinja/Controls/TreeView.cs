@@ -29,6 +29,16 @@ public sealed class TreeView : Control
 
     // ─── Dependency Properties ───────────────────────────────────────
 
+    public static readonly DependencyProperty FocusColorProperty =
+        DependencyProperty.Register(nameof(FocusColor), typeof(Color), typeof(TreeView),
+            new FrameworkPropertyMetadata(Color.Cyan, affectsRender: true));
+
+    public Color FocusColor
+    {
+        get => (Color)GetValue(FocusColorProperty)!;
+        set => SetValue(FocusColorProperty, value);
+    }
+
     public static readonly DependencyProperty SelectedItemProperty =
         DependencyProperty.Register(nameof(SelectedItem), typeof(TreeViewItem), typeof(TreeView),
             new FrameworkPropertyMetadata((object?)null, affectsRender: true));
@@ -169,6 +179,27 @@ public sealed class TreeView : Control
             for (var c = 0; c < text.Length && textX + c < bounds.Right; c++)
             {
                 SetCharSafe(buffer, textX + c, y, text[c], fg, bg);
+            }
+        }
+
+        // Focus border
+        if (IsFocused && bounds is { Width: >= 2, Height: >= 2 })
+        {
+            for (var x = bounds.X; x < bounds.Right; x++)
+            {
+                if (x >= 0 && x < buffer.Width)
+                {
+                    if (bounds.Y >= 0 && bounds.Y < buffer.Height) { var c = buffer.GetCell(x, bounds.Y); buffer.SetCell(x, bounds.Y, new Cell(c.Character, FocusColor, c.Background)); }
+                    if (bounds.Bottom - 1 >= 0 && bounds.Bottom - 1 < buffer.Height) { var c = buffer.GetCell(x, bounds.Bottom - 1); buffer.SetCell(x, bounds.Bottom - 1, new Cell(c.Character, FocusColor, c.Background)); }
+                }
+            }
+            for (var y = bounds.Y; y < bounds.Bottom; y++)
+            {
+                if (y >= 0 && y < buffer.Height)
+                {
+                    if (bounds.X >= 0 && bounds.X < buffer.Width) { var c = buffer.GetCell(bounds.X, y); buffer.SetCell(bounds.X, y, new Cell(c.Character, FocusColor, c.Background)); }
+                    if (bounds.Right - 1 >= 0 && bounds.Right - 1 < buffer.Width) { var c = buffer.GetCell(bounds.Right - 1, y); buffer.SetCell(bounds.Right - 1, y, new Cell(c.Character, FocusColor, c.Background)); }
+                }
             }
         }
     }

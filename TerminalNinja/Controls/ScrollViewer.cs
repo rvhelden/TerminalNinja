@@ -19,6 +19,7 @@ public class ScrollViewer : ContentControl
     public ScrollViewer()
     {
         DefaultStyleKey = typeof(ScrollViewer);
+        Focusable = false; // Container should not steal focus from children
     }
 
     // ─── Dependency Properties ───────────────────────────────────────

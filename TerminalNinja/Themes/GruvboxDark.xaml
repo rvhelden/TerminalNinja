@@ -132,6 +132,7 @@
     <Style TargetType="ListBox">
         <Setter Property="Background" Value="{StaticResource ThemeBackgroundColor}" />
         <Setter Property="Foreground" Value="{StaticResource ThemeForegroundColor}" />
+        <Setter Property="FocusColor" Value="{StaticResource ThemeAccentColor}" />
         <Setter Property="SelectedBackground" Value="{StaticResource ThemeSelectedBackgroundColor}" />
         <Setter Property="SelectedForeground" Value="{StaticResource ThemeSelectedForegroundColor}" />
         <Setter Property="ShowSelectionIndicator" Value="True" />
@@ -198,6 +199,7 @@
     <Style TargetType="TabControl">
         <Setter Property="Background" Value="{StaticResource ThemeTabControlBackgroundColor}" />
         <Setter Property="Foreground" Value="{StaticResource ThemeTabControlForegroundColor}" />
+        <Setter Property="FocusColor" Value="{StaticResource ThemeAccentColor}" />
         <Setter Property="SelectedBackground" Value="{StaticResource ThemeTabSelectedBackgroundColor}" />
         <Setter Property="SelectedForeground" Value="{StaticResource ThemeTabSelectedForegroundColor}" />
     </Style>
@@ -212,6 +214,7 @@
     <Style TargetType="TreeView">
         <Setter Property="Background" Value="{StaticResource ThemeTreeViewBackgroundColor}" />
         <Setter Property="Foreground" Value="{StaticResource ThemeTreeViewForegroundColor}" />
+        <Setter Property="FocusColor" Value="{StaticResource ThemeAccentColor}" />
         <Setter Property="SelectedBackground" Value="{StaticResource ThemeSelectedBackgroundColor}" />
         <Setter Property="SelectedForeground" Value="{StaticResource ThemeSelectedForegroundColor}" />
     </Style>
@@ -224,6 +227,7 @@
     <Style TargetType="ListView">
         <Setter Property="Background" Value="{StaticResource ThemeListViewBackgroundColor}" />
         <Setter Property="Foreground" Value="{StaticResource ThemeListViewForegroundColor}" />
+        <Setter Property="FocusColor" Value="{StaticResource ThemeAccentColor}" />
         <Setter Property="SelectedBackground" Value="{StaticResource ThemeSelectedBackgroundColor}" />
         <Setter Property="SelectedForeground" Value="{StaticResource ThemeSelectedForegroundColor}" />
         <Setter Property="HeaderBackground" Value="{StaticResource ThemeListViewHeaderBackgroundColor}" />
@@ -240,6 +244,7 @@
     <Style TargetType="DataGrid">
         <Setter Property="Background" Value="{StaticResource ThemeListViewBackgroundColor}" />
         <Setter Property="Foreground" Value="{StaticResource ThemeListViewForegroundColor}" />
+        <Setter Property="FocusColor" Value="{StaticResource ThemeAccentColor}" />
         <Setter Property="SelectedBackground" Value="{StaticResource ThemeSelectedBackgroundColor}" />
         <Setter Property="SelectedForeground" Value="{StaticResource ThemeSelectedForegroundColor}" />
         <Setter Property="HeaderBackground" Value="{StaticResource ThemeListViewHeaderBackgroundColor}" />

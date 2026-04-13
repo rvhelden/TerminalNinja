@@ -33,6 +33,17 @@ public class ListBox : Selector
 
     // ─── Dependency Properties ───────────────────────────────────────
 
+    public static readonly DependencyProperty FocusColorProperty =
+        DependencyProperty.Register(nameof(FocusColor), typeof(Color), typeof(ListBox),
+            new FrameworkPropertyMetadata(Color.Cyan, affectsRender: true));
+
+    /// <summary>Gets or sets the border color when the ListBox has focus.</summary>
+    public Color FocusColor
+    {
+        get => (Color)GetValue(FocusColorProperty)!;
+        set => SetValue(FocusColorProperty, value);
+    }
+
     public static readonly DependencyProperty SelectedBackgroundProperty =
         DependencyProperty.Register(nameof(SelectedBackground), typeof(Color), typeof(ListBox),
             new FrameworkPropertyMetadata(Color.Blue, affectsRender: true));
@@ -317,6 +328,51 @@ public class ListBox : Selector
             var child = children[_scrollOffset + i];
             var itemBounds = new Rect(bounds.X, bounds.Y + i, bounds.Width, 1);
             child.Render(buffer, itemBounds);
+        }
+
+        // Draw focus border when focused
+        if (IsFocused && bounds is { Width: >= 2, Height: >= 2 })
+        {
+            DrawFocusBorder(buffer, bounds, FocusColor);
+        }
+    }
+
+    private static void DrawFocusBorder(CellBuffer buffer, Rect bounds, Color color)
+    {
+        // Top and bottom edges
+        for (var x = bounds.X; x < bounds.Right; x++)
+        {
+            if (x >= 0 && x < buffer.Width)
+            {
+                if (bounds.Y >= 0 && bounds.Y < buffer.Height)
+                {
+                    var cell = buffer.GetCell(x, bounds.Y);
+                    buffer.SetCell(x, bounds.Y, new Cell(cell.Character, color, cell.Background));
+                }
+                if (bounds.Bottom - 1 >= 0 && bounds.Bottom - 1 < buffer.Height)
+                {
+                    var cell = buffer.GetCell(x, bounds.Bottom - 1);
+                    buffer.SetCell(x, bounds.Bottom - 1, new Cell(cell.Character, color, cell.Background));
+                }
+            }
+        }
+
+        // Left and right edges
+        for (var y = bounds.Y; y < bounds.Bottom; y++)
+        {
+            if (y >= 0 && y < buffer.Height)
+            {
+                if (bounds.X >= 0 && bounds.X < buffer.Width)
+                {
+                    var cell = buffer.GetCell(bounds.X, y);
+                    buffer.SetCell(bounds.X, y, new Cell(cell.Character, color, cell.Background));
+                }
+                if (bounds.Right - 1 >= 0 && bounds.Right - 1 < buffer.Width)
+                {
+                    var cell = buffer.GetCell(bounds.Right - 1, y);
+                    buffer.SetCell(bounds.Right - 1, y, new Cell(cell.Character, color, cell.Background));
+                }
+            }
         }
     }
 }

@@ -27,6 +27,12 @@ public sealed class DataGrid : Selector
 
     // ─── Dependency Properties ───────────────────────────────────────
 
+    public static readonly DependencyProperty FocusColorProperty =
+        DependencyProperty.Register(nameof(FocusColor), typeof(Color), typeof(DataGrid),
+            new FrameworkPropertyMetadata(Color.Cyan, affectsRender: true));
+
+    public Color FocusColor { get => (Color)GetValue(FocusColorProperty)!; set => SetValue(FocusColorProperty, value); }
+
     public static readonly DependencyProperty SelectedBackgroundProperty =
         DependencyProperty.Register(nameof(SelectedBackground), typeof(Color), typeof(DataGrid),
             new FrameworkPropertyMetadata(Color.Blue, affectsRender: true));
@@ -253,6 +259,27 @@ public sealed class DataGrid : Selector
             }
 
             RenderRow(buffer, bounds.X, rowY, bounds.Width, colWidths, cellTexts, fg, bg, gridLineColor);
+        }
+
+        // Focus border
+        if (IsFocused && bounds is { Width: >= 2, Height: >= 2 })
+        {
+            for (var fx = bounds.X; fx < bounds.Right; fx++)
+            {
+                if (fx >= 0 && fx < buffer.Width)
+                {
+                    if (bounds.Y >= 0 && bounds.Y < buffer.Height) { var c = buffer.GetCell(fx, bounds.Y); buffer.SetCell(fx, bounds.Y, new Cell(c.Character, FocusColor, c.Background)); }
+                    if (bounds.Bottom - 1 >= 0 && bounds.Bottom - 1 < buffer.Height) { var c = buffer.GetCell(fx, bounds.Bottom - 1); buffer.SetCell(fx, bounds.Bottom - 1, new Cell(c.Character, FocusColor, c.Background)); }
+                }
+            }
+            for (var fy = bounds.Y; fy < bounds.Bottom; fy++)
+            {
+                if (fy >= 0 && fy < buffer.Height)
+                {
+                    if (bounds.X >= 0 && bounds.X < buffer.Width) { var c = buffer.GetCell(bounds.X, fy); buffer.SetCell(bounds.X, fy, new Cell(c.Character, FocusColor, c.Background)); }
+                    if (bounds.Right - 1 >= 0 && bounds.Right - 1 < buffer.Width) { var c = buffer.GetCell(bounds.Right - 1, fy); buffer.SetCell(bounds.Right - 1, fy, new Cell(c.Character, FocusColor, c.Background)); }
+                }
+            }
         }
     }
 
