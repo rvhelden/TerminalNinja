@@ -35,9 +35,33 @@ public class ShellViewModel : ViewModelBase, IDisposable
         // Reuse the same ViewModel instance so SelectedSample persists across navigations
         _mainMenuViewModel ??= new MainMenuViewModel();
         var screen = TerminalXaml.Load<Border>(XamlLayouts.MainMenuScreen, _mainMenuViewModel);
+
+        // Wire up ListBox.ItemActivated so double-click also navigates
+        var listBox = FindDescendant<ListBox>(screen);
+        if (listBox != null)
+        {
+            listBox.ItemActivated += (_, _) => NavigateToSelectedSample();
+        }
+
         WireAndSetScreen(screen);
         IsOnMainMenu = true;
         StatusText = "Select a sample and press Enter";
+    }
+
+    private static T? FindDescendant<T>(UIElement root) where T : class
+    {
+        // Walk visual tree using a dummy bounds (just need to enumerate children)
+        var dummyBounds = new TerminalNinja.Primitives.Rect(0, 0, 1000, 1000);
+        foreach (var (child, childBounds) in root.GetChildrenWithBounds(dummyBounds))
+        {
+            if (child is T match) return match;
+            if (child is UIElement uiChild)
+            {
+                var found = FindDescendant<T>(uiChild);
+                if (found != null) return found;
+            }
+        }
+        return null;
     }
 
     public void NavigateToSelectedSample()
