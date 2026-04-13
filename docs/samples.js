@@ -634,6 +634,58 @@ export const SAMPLES = [
   },
 
   {
+    id: "datagrid",
+    title: "DataGrid",
+    description: "Read-only multi-column grid with sorting indicators and row selection.",
+    docPage: "./samples/datagrid.html",
+    xaml: `<Window xmlns="http://schemas.terminalninja.dev/xaml" Title="DataGrid">
+    <Border BorderStyle="Rounded">
+        <StackPanel Orientation="Vertical">
+            <TextBlock StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1" Text=" DataGrid" Padding="2,0,0,0" />
+            <TextBlock StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1" Text="" />
+            <DataGrid StackPanel.SizeMode="Stretch">
+                <ListViewItem Content="Program.cs" />
+                <ListViewItem Content="README.md" />
+                <ListViewItem Content="appsettings.json" />
+            </DataGrid>
+        </StackPanel>
+    </Border>
+</Window>`
+  },
+
+  {
+    id: "filepicker",
+    title: "FilePicker",
+    description: "Modal dialog for browsing and selecting files.",
+    docPage: "./samples/filepicker.html",
+    xaml: `<Window xmlns="http://schemas.terminalninja.dev/xaml" Title="FilePicker">
+    <Border BorderStyle="Rounded">
+        <StackPanel Orientation="Vertical">
+            <TextBlock StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1" Text=" FilePicker" Padding="2,0,0,0" />
+            <TextBlock StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1" Text="  Opens a modal dialog (requires Application)" Padding="2,0,0,0" />
+            <TextBlock StackPanel.SizeMode="Stretch" Text="" />
+        </StackPanel>
+    </Border>
+</Window>`
+  },
+
+  {
+    id: "folderpicker",
+    title: "FolderPicker",
+    description: "Modal dialog for browsing and selecting a folder.",
+    docPage: "./samples/folderpicker.html",
+    xaml: `<Window xmlns="http://schemas.terminalninja.dev/xaml" Title="FolderPicker">
+    <Border BorderStyle="Rounded">
+        <StackPanel Orientation="Vertical">
+            <TextBlock StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1" Text=" FolderPicker" Padding="2,0,0,0" />
+            <TextBlock StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1" Text="  Opens a modal dialog (requires Application)" Padding="2,0,0,0" />
+            <TextBlock StackPanel.SizeMode="Stretch" Text="" />
+        </StackPanel>
+    </Border>
+</Window>`
+  },
+
+  {
     id: "colorpicker",
     title: "ColorPicker",
     description: "Color selection with palette grid, hex entry, and preview swatch.",

@@ -1,0 +1,188 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>DataGrid - TerminalNinja</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/styles/github-dark-dimmed.min.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@xterm/xterm@5.5.0/css/xterm.css">
+  <link rel="stylesheet" href="../styles.css">
+</head>
+<body>
+  <div class="bg-grid" aria-hidden="true"></div>
+  <div class="bg-glow bg-glow-a" aria-hidden="true"></div>
+  <div class="bg-glow bg-glow-b" aria-hidden="true"></div>
+  <main class="shell">
+    <nav class="breadcrumb"><a href="../index.html">Docs</a> / <span>DataGrid</span></nav>
+    <header class="panel">
+      <h1>DataGrid</h1>
+      <p class="section-copy">Read-only multi-column grid with sorting indicators and row selection.</p>
+      <div class="hero-actions" style="margin-top:14px">
+        <a class="btn btn-primary" href="../playground.html?sample=datagrid">Try in Playground</a>
+      </div>
+    </header>
+
+    <section class="panel doc-section">
+      <h2>Overview</h2>
+      <p>
+        <code>DataGrid</code> extends <code>Selector</code> and provides an enhanced tabular data view
+        with sortable column headers and row selection. Columns are defined via <code>DataGridColumn</code>
+        objects specifying <code>Header</code>, <code>Width</code>, <code>DisplayMemberBinding</code>,
+        <code>SortDirection</code>, and <code>IsSortable</code>. When a column is sorted, the header
+        displays a sort indicator: <code>&#9650;</code> for ascending and <code>&#9660;</code> for descending.
+        Column separators use <code>&#9474;</code>, header lines use <code>&#9472;</code>, and crossings
+        use <code>&#9532;</code>. The selected row is highlighted with configurable colors.
+      </p>
+    </section>
+
+    <section class="panel doc-section">
+      <h2>Basic Example</h2>
+      <div class="preview-tabs">
+        <button class="preview-tab active" data-tab="preview">Preview</button>
+        <button class="preview-tab" data-tab="source">Source</button>
+      </div>
+      <div class="preview-tab-content active" data-tab="preview">
+        <div class="preview-terminal" id="preview-terminal"></div>
+      </div>
+      <div class="preview-tab-content" data-tab="source">
+<pre><code class="language-xml">&lt;DataGrid SelectedIndex="0"&gt;
+  &lt;DataGrid.Columns&gt;
+    &lt;DataGridColumn Header="Name" Width="20" /&gt;
+    &lt;DataGridColumn Header="Age" Width="8" /&gt;
+    &lt;DataGridColumn Header="Department" Width="18" /&gt;
+  &lt;/DataGrid.Columns&gt;
+  &lt;DataGridRow Content="Alice                28      Engineering" /&gt;
+  &lt;DataGridRow Content="Bob                  34      Marketing" /&gt;
+  &lt;DataGridRow Content="Charlie              22      Design" /&gt;
+&lt;/DataGrid&gt;</code></pre>
+      </div>
+    </section>
+
+    <section class="panel doc-section">
+      <h2>Properties</h2>
+      <table>
+        <thead>
+          <tr><th>Property</th><th>Type</th><th>Default</th><th>Description</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>SelectedBackground</td><td>Color</td><td>Blue</td><td>Background color of the selected row.</td></tr>
+          <tr><td>SelectedForeground</td><td>Color</td><td>White</td><td>Foreground color of the selected row.</td></tr>
+          <tr><td>HeaderBackground</td><td>Color</td><td>DarkGray</td><td>Background color of the column header row.</td></tr>
+          <tr><td>HeaderForeground</td><td>Color</td><td>White</td><td>Foreground color of the column header row.</td></tr>
+          <tr><td>ShowGridLines</td><td>bool</td><td>true</td><td>Whether to display column separators and header line using box-drawing characters.</td></tr>
+          <tr><td>CanSort</td><td>bool</td><td>true</td><td>Whether sorting is enabled globally for the grid. When false, clicking headers has no effect.</td></tr>
+          <tr><td>SelectedIndex</td><td>int</td><td>-1</td><td>Zero-based index of the currently selected row. Inherited from Selector.</td></tr>
+          <tr><td>SelectedItem</td><td>object</td><td>null</td><td>The currently selected data item. Inherited from Selector.</td></tr>
+          <tr><td>ItemsSource</td><td>IEnumerable</td><td>null</td><td>Data source for generating rows. Inherited from ItemsControl.</td></tr>
+        </tbody>
+      </table>
+
+      <h3>DataGridColumn Properties</h3>
+      <table>
+        <thead>
+          <tr><th>Property</th><th>Type</th><th>Default</th><th>Description</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>Header</td><td>string</td><td>""</td><td>Text displayed in the column header.</td></tr>
+          <tr><td>Width</td><td>int</td><td>0 (star)</td><td>Character width of the column. A value of 0 means the column fills remaining space (star sizing).</td></tr>
+          <tr><td>DisplayMemberBinding</td><td>string?</td><td>null</td><td>Binding path to the property on each data item to display in this column.</td></tr>
+          <tr><td>SortDirection</td><td>SortDirection</td><td>None</td><td>Current sort direction: None, Ascending, or Descending. Displays &#9650; or &#9660; in the header.</td></tr>
+          <tr><td>IsSortable</td><td>bool</td><td>true</td><td>Whether this column can be sorted. When false, no sort indicator is shown.</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section class="panel doc-section">
+      <h2>Examples</h2>
+      <h3>Sorting Columns</h3>
+<pre><code class="language-xml">&lt;DataGrid SelectedIndex="0" CanSort="True"&gt;
+  &lt;DataGrid.Columns&gt;
+    &lt;DataGridColumn Header="Name" Width="20"
+                    SortDirection="Ascending" /&gt;
+    &lt;DataGridColumn Header="Score" Width="10"
+                    IsSortable="True" /&gt;
+    &lt;DataGridColumn Header="Date" Width="14"
+                    IsSortable="True" /&gt;
+  &lt;/DataGrid.Columns&gt;
+  &lt;DataGridRow Content="Alice                95     2026-04-10" /&gt;
+  &lt;DataGridRow Content="Bob                  87     2026-04-11" /&gt;
+  &lt;DataGridRow Content="Charlie              92     2026-04-12" /&gt;
+&lt;/DataGrid&gt;</code></pre>
+
+      <h3>Without Grid Lines</h3>
+<pre><code class="language-xml">&lt;DataGrid ShowGridLines="False" SelectedIndex="1"&gt;
+  &lt;DataGrid.Columns&gt;
+    &lt;DataGridColumn Header="File" Width="25" /&gt;
+    &lt;DataGridColumn Header="Status" Width="12" /&gt;
+    &lt;DataGridColumn Header="Size" Width="10" /&gt;
+  &lt;/DataGrid.Columns&gt;
+  &lt;DataGridRow Content="Program.cs               Modified     4.2 KB" /&gt;
+  &lt;DataGridRow Content="App.xaml                  Unchanged    1.1 KB" /&gt;
+  &lt;DataGridRow Content="README.md                 New          2.8 KB" /&gt;
+&lt;/DataGrid&gt;</code></pre>
+
+      <h3>ItemsSource Binding with Columns</h3>
+<pre><code class="language-xml">&lt;DataGrid ItemsSource="{Binding Employees}" SelectedIndex="0"&gt;
+  &lt;DataGrid.Columns&gt;
+    &lt;DataGridColumn Header="Name" Width="20"
+                    DisplayMemberBinding="{Binding Name}" /&gt;
+    &lt;DataGridColumn Header="Role" Width="15"
+                    DisplayMemberBinding="{Binding Role}" /&gt;
+    &lt;DataGridColumn Header="Salary" Width="12"
+                    DisplayMemberBinding="{Binding Salary}" /&gt;
+  &lt;/DataGrid.Columns&gt;
+&lt;/DataGrid&gt;</code></pre>
+    </section>
+
+    <section class="panel doc-section">
+      <h2>Keyboard Shortcuts</h2>
+      <table>
+        <thead>
+          <tr><th>Key</th><th>Action</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>Up Arrow</td><td>Move selection to the previous row.</td></tr>
+          <tr><td>Down Arrow</td><td>Move selection to the next row.</td></tr>
+          <tr><td>Home</td><td>Move selection to the first row.</td></tr>
+          <tr><td>End</td><td>Move selection to the last row.</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section class="panel doc-section">
+      <h2>Key Concepts</h2>
+      <ul>
+        <li><code>DataGrid</code> extends <code>Selector</code>, inheriting <code>SelectedIndex</code>, <code>SelectedItem</code>, and <code>SelectionChanged</code> event.</li>
+        <li>Columns are defined via <code>DataGridColumn</code> objects with <code>Header</code>, <code>Width</code>, optional <code>DisplayMemberBinding</code>, and sort configuration.</li>
+        <li>A <code>Width</code> of <code>0</code> uses star sizing, meaning the column fills all remaining horizontal space.</li>
+        <li>Sort indicators <code>&#9650;</code> (ascending) and <code>&#9660;</code> (descending) are rendered in the header next to the column title when <code>SortDirection</code> is set.</li>
+        <li>Set <code>IsSortable="False"</code> on individual columns or <code>CanSort="False"</code> on the grid to disable sorting.</li>
+        <li>When <code>ShowGridLines</code> is <code>True</code>, columns are separated by <code>&#9474;</code> characters, header lines use <code>&#9472;</code>, and crossings use <code>&#9532;</code>.</li>
+        <li>Row data can be provided inline with <code>&lt;DataGridRow&gt;</code> elements or generated from <code>ItemsSource</code> with <code>DisplayMemberBinding</code> on each column.</li>
+      </ul>
+    </section>
+
+    <footer class="footer"><a href="../index.html">&larr; Back to Docs</a></footer>
+  </main>
+  <script src="https://cdn.jsdelivr.net/npm/@xterm/xterm@5.5.0/lib/xterm.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@xterm/addon-fit@0.10.0/lib/addon-fit.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/highlight.min.js"></script>
+  <script>hljs.highlightAll();</script>
+  <script type="module">
+    import { renderPreview } from '../sample-preview.js';
+    renderPreview('datagrid', 'preview-terminal');
+    document.querySelectorAll('.preview-tab').forEach(tab => {
+      tab.addEventListener('click', () => {
+        const panel = tab.closest('.doc-section');
+        panel.querySelectorAll('.preview-tab').forEach(t => t.classList.remove('active'));
+        panel.querySelectorAll('.preview-tab-content').forEach(c => c.classList.remove('active'));
+        tab.classList.add('active');
+        panel.querySelector(`.preview-tab-content[data-tab="${tab.dataset.tab}"]`).classList.add('active');
+      });
+    });
+  </script>
+</body>
+</html>

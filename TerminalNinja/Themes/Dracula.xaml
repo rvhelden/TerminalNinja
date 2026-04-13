@@ -238,6 +238,15 @@
         <Setter Property="SelectedForeground" Value="{StaticResource ThemeSelectedForegroundColor}" />
     </Style>
 
+    <Style TargetType="DataGrid">
+        <Setter Property="Background" Value="{StaticResource ThemeListViewBackgroundColor}" />
+        <Setter Property="Foreground" Value="{StaticResource ThemeListViewForegroundColor}" />
+        <Setter Property="SelectedBackground" Value="{StaticResource ThemeSelectedBackgroundColor}" />
+        <Setter Property="SelectedForeground" Value="{StaticResource ThemeSelectedForegroundColor}" />
+        <Setter Property="HeaderBackground" Value="{StaticResource ThemeListViewHeaderBackgroundColor}" />
+        <Setter Property="HeaderForeground" Value="{StaticResource ThemeListViewHeaderForegroundColor}" />
+    </Style>
+
     <Style TargetType="ColorPicker">
         <Setter Property="Background" Value="{StaticResource ThemeColorPickerBackgroundColor}" />
         <Setter Property="Foreground" Value="{StaticResource ThemeColorPickerForegroundColor}" />

@@ -1,0 +1,21 @@
+<Border xmlns="http://schemas.terminalninja.dev/xaml"
+        BorderStyle="Rounded">
+    <StackPanel Orientation="Vertical">
+        <TextBlock StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1"
+                   Text=" FilePicker" Padding="2,0,0,0" />
+        <TextBlock StackPanel.SizeMode="Fixed" StackPanel.FixedSize="2"
+                   Text="  Modal dialog for browsing and selecting files. Press Enter to open."
+                   Padding="2,0,0,0" VerticalTextAlignment="Center" />
+        <TextBlock StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1" Text="" />
+
+        <Button StackPanel.SizeMode="Fixed" StackPanel.FixedSize="3"
+                Text="Open File Picker" TabIndex="0"
+                Command="{Binding OpenFilePickerCommand}" />
+
+        <TextBlock StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1" Text="" />
+        <TextBlock StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1"
+                   Text="{Binding SelectedFile}" Padding="2,0,0,0" />
+
+        <TextBlock StackPanel.SizeMode="Stretch" Text="" />
+    </StackPanel>
+</Border>

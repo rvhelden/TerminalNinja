@@ -1,0 +1,14 @@
+<Border xmlns="http://schemas.terminalninja.dev/xaml"
+        BorderStyle="Rounded">
+    <StackPanel Orientation="Vertical">
+        <TextBlock StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1"
+                   Text=" DataGrid" Padding="2,0,0,0" />
+        <TextBlock StackPanel.SizeMode="Fixed" StackPanel.FixedSize="2"
+                   Text="  Read-only multi-column grid with sorting indicators and row selection."
+                   Padding="2,0,0,0" VerticalTextAlignment="Center" />
+        <TextBlock StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1" Text="" />
+
+        <DataGrid StackPanel.SizeMode="Stretch" TabIndex="0"
+                  ItemsSource="{Binding Items}" />
+    </StackPanel>
+</Border>

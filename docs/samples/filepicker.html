@@ -1,0 +1,169 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>FilePicker - TerminalNinja</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/styles/github-dark-dimmed.min.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@xterm/xterm@5.5.0/css/xterm.css">
+  <link rel="stylesheet" href="../styles.css">
+</head>
+<body>
+  <div class="bg-grid" aria-hidden="true"></div>
+  <div class="bg-glow bg-glow-a" aria-hidden="true"></div>
+  <div class="bg-glow bg-glow-b" aria-hidden="true"></div>
+  <main class="shell">
+    <nav class="breadcrumb"><a href="../index.html">Docs</a> / <span>FilePicker</span></nav>
+    <header class="panel">
+      <h1>FilePicker</h1>
+      <p class="section-copy">Modal dialog for browsing and selecting files from the filesystem.</p>
+      <div class="hero-actions" style="margin-top:14px">
+        <a class="btn btn-primary" href="../playground.html?sample=filepicker">Try in Playground</a>
+      </div>
+    </header>
+
+    <section class="panel doc-section">
+      <h2>Overview</h2>
+      <p>
+        <code>FilePicker</code> extends <code>Window</code> and presents a modal dialog for browsing
+        the filesystem and selecting a file. Directories are displayed with a folder icon and files
+        are listed below them. Use <code>Up</code>/<code>Down</code> to navigate the list,
+        <code>Enter</code> to open a directory or select a file, <code>Backspace</code> to navigate
+        to the parent directory, and <code>Escape</code> to cancel without selecting. An optional
+        <code>Filter</code> property restricts the visible files (e.g., <code>"*.txt"</code>).
+        The control supports an <code>IFileSystem</code> abstraction for testing and virtualized
+        file sources.
+      </p>
+    </section>
+
+    <section class="panel doc-section">
+      <h2>Basic Example</h2>
+      <div class="preview-tabs">
+        <button class="preview-tab active" data-tab="preview">Preview</button>
+        <button class="preview-tab" data-tab="source">Source</button>
+      </div>
+      <div class="preview-tab-content active" data-tab="preview">
+        <div class="preview-terminal" id="preview-terminal"></div>
+      </div>
+      <div class="preview-tab-content" data-tab="source">
+<pre><code class="language-xml">&lt;FilePicker Title="Select File"
+            InitialDirectory="/home/user/documents"
+            Filter="*.txt" /&gt;</code></pre>
+      </div>
+    </section>
+
+    <section class="panel doc-section">
+      <h2>Properties</h2>
+      <table>
+        <thead>
+          <tr><th>Property</th><th>Type</th><th>Default</th><th>Description</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>InitialDirectory</td><td>string</td><td>Current directory</td><td>The directory to display when the picker opens.</td></tr>
+          <tr><td>SelectedPath</td><td>string?</td><td>null</td><td>The full path of the selected file after confirmation, or null if cancelled.</td></tr>
+          <tr><td>Filter</td><td>string?</td><td>null</td><td>Glob pattern to filter visible files (e.g., <code>"*.txt"</code>, <code>"*.cs"</code>). Directories are always shown.</td></tr>
+          <tr><td>Title</td><td>string</td><td>"Select File"</td><td>The title displayed in the dialog header.</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section class="panel doc-section">
+      <h2>Static API</h2>
+<pre><code class="language-csharp">// Show the file picker and await the result
+string? selectedFile = await FilePicker.ShowAsync(
+    initialDirectory: "/home/user/documents",
+    filter: "*.txt",
+    fileSystem: null  // uses real filesystem by default
+);
+
+if (selectedFile is not null)
+{
+    Console.WriteLine($"Selected: {selectedFile}");
+}</code></pre>
+      <p>
+        The <code>ShowAsync</code> method creates a <code>FilePicker</code> window, displays it modally,
+        and returns the <code>SelectedPath</code> once the user confirms or <code>null</code> if cancelled.
+        Pass a custom <code>IFileSystem</code> implementation for unit testing.
+      </p>
+    </section>
+
+    <section class="panel doc-section">
+      <h2>Examples</h2>
+      <h3>Unfiltered File Browser</h3>
+<pre><code class="language-xml">&lt;FilePicker Title="Open File"
+            InitialDirectory="/home/user" /&gt;</code></pre>
+
+      <h3>Filtered by Extension</h3>
+<pre><code class="language-xml">&lt;FilePicker Title="Select Image"
+            InitialDirectory="/home/user/pictures"
+            Filter="*.png" /&gt;</code></pre>
+
+      <h3>Using ShowAsync in Code-Behind</h3>
+<pre><code class="language-csharp">private async Task OnOpenFileClicked()
+{
+    var path = await FilePicker.ShowAsync(
+        initialDirectory: Environment.GetFolderPath(
+            Environment.SpecialFolder.MyDocuments),
+        filter: "*.cs"
+    );
+
+    if (path is not null)
+    {
+        ViewModel.FilePath = path;
+    }
+}</code></pre>
+    </section>
+
+    <section class="panel doc-section">
+      <h2>Keyboard Shortcuts</h2>
+      <table>
+        <thead>
+          <tr><th>Key</th><th>Action</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>Up Arrow</td><td>Move selection to the previous entry.</td></tr>
+          <tr><td>Down Arrow</td><td>Move selection to the next entry.</td></tr>
+          <tr><td>Enter</td><td>Open the selected directory, or select the highlighted file and close the dialog.</td></tr>
+          <tr><td>Backspace</td><td>Navigate to the parent directory.</td></tr>
+          <tr><td>Escape</td><td>Cancel the dialog and return null.</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section class="panel doc-section">
+      <h2>Key Concepts</h2>
+      <ul>
+        <li><code>FilePicker</code> extends <code>Window</code> and displays as a modal dialog over the current application content.</li>
+        <li>Directories are shown with a folder icon and are always visible regardless of the <code>Filter</code> setting.</li>
+        <li>Files are filtered by the <code>Filter</code> glob pattern when specified; all files are shown when <code>Filter</code> is null.</li>
+        <li>The <code>SelectedPath</code> property contains the full path to the chosen file after confirmation, or null if the user cancels.</li>
+        <li>Use the static <code>FilePicker.ShowAsync</code> method for a one-call pattern that returns the selected path directly.</li>
+        <li>Pass a custom <code>IFileSystem</code> implementation to <code>ShowAsync</code> for unit testing without real filesystem access.</li>
+        <li>Pressing <code>Backspace</code> navigates up to the parent directory, while <code>Enter</code> on a directory descends into it.</li>
+      </ul>
+    </section>
+
+    <footer class="footer"><a href="../index.html">&larr; Back to Docs</a></footer>
+  </main>
+  <script src="https://cdn.jsdelivr.net/npm/@xterm/xterm@5.5.0/lib/xterm.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@xterm/addon-fit@0.10.0/lib/addon-fit.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/highlight.min.js"></script>
+  <script>hljs.highlightAll();</script>
+  <script type="module">
+    import { renderPreview } from '../sample-preview.js';
+    renderPreview('filepicker', 'preview-terminal');
+    document.querySelectorAll('.preview-tab').forEach(tab => {
+      tab.addEventListener('click', () => {
+        const panel = tab.closest('.doc-section');
+        panel.querySelectorAll('.preview-tab').forEach(t => t.classList.remove('active'));
+        panel.querySelectorAll('.preview-tab-content').forEach(c => c.classList.remove('active'));
+        tab.classList.add('active');
+        panel.querySelector(`.preview-tab-content[data-tab="${tab.dataset.tab}"]`).classList.add('active');
+      });
+    });
+  </script>
+</body>
+</html>

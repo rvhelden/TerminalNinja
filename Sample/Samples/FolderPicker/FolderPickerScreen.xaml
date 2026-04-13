@@ -1,0 +1,21 @@
+<Border xmlns="http://schemas.terminalninja.dev/xaml"
+        BorderStyle="Rounded">
+    <StackPanel Orientation="Vertical">
+        <TextBlock StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1"
+                   Text=" FolderPicker" Padding="2,0,0,0" />
+        <TextBlock StackPanel.SizeMode="Fixed" StackPanel.FixedSize="2"
+                   Text="  Modal dialog for browsing and selecting a folder. Press Enter to open."
+                   Padding="2,0,0,0" VerticalTextAlignment="Center" />
+        <TextBlock StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1" Text="" />
+
+        <Button StackPanel.SizeMode="Fixed" StackPanel.FixedSize="3"
+                Text="Open Folder Picker" TabIndex="0"
+                Command="{Binding OpenFolderPickerCommand}" />
+
+        <TextBlock StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1" Text="" />
+        <TextBlock StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1"
+                   Text="{Binding SelectedFolder}" Padding="2,0,0,0" />
+
+        <TextBlock StackPanel.SizeMode="Stretch" Text="" />
+    </StackPanel>
+</Border>

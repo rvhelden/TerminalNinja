@@ -16,15 +16,15 @@
 - [x] Add TabControl control
 - [x] Add TreeView control
 - [x] Add ListView control
-- [ ] Add DataGrid control
+- [x] Add DataGrid control
 - [x] Add ComboBox control
 - [x] Add DateTimePicker control
 - [x] Add DatePicker control
 - [x] Add TimePicker control
 - [x] Add NumberPicker control
 - [x] Add ColorPicker control
-- [ ] Add FilePicker control
-- [ ] Add FolderPicker control
+- [x] Add FilePicker control
+- [x] Add FolderPicker control
 - [x] Add Image control
 - [x] Add CheckBox control
 - [x] Add RadioButton control
