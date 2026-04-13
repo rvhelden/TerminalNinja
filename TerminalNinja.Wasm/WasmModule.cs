@@ -153,6 +153,41 @@ public partial class WasmModule
     }
 
     /// <summary>
+    /// Reloads the XAML in the current session without restarting.
+    /// Preserves the Application, input backend, and render stream.
+    /// Returns the first frame of the new XAML, or an error string.
+    /// </summary>
+    [JSExport]
+    public static string ReloadXaml(string xaml, int width, int height)
+    {
+        if (_app == null || _renderStream == null)
+        {
+            return StartSession(xaml, width, height);
+        }
+
+        try
+        {
+            _app.Renderer.Resize(width, height);
+
+            var window = TerminalXaml.Load<Window>(xaml);
+            window.Show();
+
+            _app.WireInvalidation(window);
+            _app.Invalidate();
+            _app.ProcessTick();
+
+            _renderStream.Position = 0;
+            var result = Encoding.UTF8.GetString(_renderStream.ToArray());
+            _renderStream.SetLength(0);
+            return result;
+        }
+        catch (Exception ex)
+        {
+            return $"\e[31mReload error: {ex.Message}\e[0m";
+        }
+    }
+
+    /// <summary>
     /// Performs one tick of the event loop: processes queued input events,
     /// re-renders if invalidated. Returns the ANSI delta (empty string if no change).
     /// </summary>

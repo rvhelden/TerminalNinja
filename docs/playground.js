@@ -74,7 +74,12 @@ term.write('\x1b[2J\x1b[H');
 term.write('\x1b[38;2;149;167;191mLoading .NET WASM runtime\x1b[0m\r\n');
 term.write('\x1b[38;2;61;217;177m\u25B6\x1b[0m This may take a few seconds on first load.\r\n');
 
-window.addEventListener('resize', () => fitAddon.fit());
+window.addEventListener('resize', () => {
+  fitAddon.fit();
+  if (sessionActive && wasm.sessionResize) {
+    wasm.sessionResize(term.cols, term.rows);
+  }
+});
 
 // ── Monaco editor setup ─────────────────────────────────────────────────────
 let monacoEditor = null;
@@ -119,7 +124,32 @@ let autoRenderTimer = null;
 
 function scheduleAutoRender() {
   clearTimeout(autoRenderTimer);
-  autoRenderTimer = setTimeout(() => startLiveSession(), 600);
+  autoRenderTimer = setTimeout(() => {
+    if (sessionActive && wasm.reloadXaml) {
+      // Live reload without restarting session
+      liveReloadXaml();
+    } else {
+      startLiveSession();
+    }
+  }, 600);
+}
+
+function liveReloadXaml() {
+  if (!wasmReady || !wasm.reloadXaml) return;
+
+  const xaml   = monacoEditor?.getValue() ?? '';
+  const width  = Math.max(20, parseInt(inputWidth.value,  10) || 80);
+  const height = Math.max(5,  parseInt(inputHeight.value, 10) || 24);
+
+  try {
+    term.resize(width, height);
+    const ansi = wasm.reloadXaml(xaml, width, height);
+    term.write('\x1b[2J\x1b[H');
+    if (ansi) term.write(ansi);
+    setStatus('ready', 'Live \u2014 hot reloaded');
+  } catch (err) {
+    term.write(`\x1b[2J\x1b[H\x1b[31mReload error: ${err.message}\x1b[0m\r\n`);
+  }
 }
 
 // ── Sample selector ─────────────────────────────────────────────────────────
@@ -173,6 +203,7 @@ async function loadWasm() {
     wasm.injectMouseEvent= (x, y, b, a) => mod.InjectMouseEvent(x, y, b, a);
     wasm.sessionResize   = (w, h)    => mod.SessionResize(w, h);
     wasm.stopSession     = ()        => mod.StopSession();
+    wasm.reloadXaml      = (x, w, h) => mod.ReloadXaml(x, w, h);
     wasm.setTheme        = (n)       => mod.SetTheme(n);
     wasm.getThemeNames   = ()        => mod.GetThemeNames();
 
@@ -390,3 +421,13 @@ xtermContainer.addEventListener('mousemove', (ev) => {
   if (!coords) return;
   wasm.injectMouseEvent(coords.x, coords.y, 0, 2); // Move (None button)
 });
+
+xtermContainer.addEventListener('wheel', (ev) => {
+  if (!sessionActive || !wasm.injectMouseEvent) return;
+  const coords = getTerminalCellCoords(ev);
+  if (!coords) return;
+  // ScrollUp=3, ScrollDown=4 (MouseAction enum)
+  const action = ev.deltaY < 0 ? 3 : 4;
+  wasm.injectMouseEvent(coords.x, coords.y, 0, action);
+  ev.preventDefault();
+}, { passive: false });
