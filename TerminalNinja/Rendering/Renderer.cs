@@ -112,12 +112,18 @@ public sealed class Renderer : IDisposable
     /// </summary>
     public void Present()
     {
+        // Reset cursor tracking so the first cell in each frame always emits
+        // an absolute cursor position. Without this, stale cursor coordinates
+        // from the previous frame can cause MoveTo() to be incorrectly skipped,
+        // leading to rendering corruption (characters at wrong positions).
+        _writer.ResetCursorTracking();
+
         // Zero-allocation iteration using struct enumerator
         foreach (var change in _buffer.GetChanges())
         {
             _writer.WriteCell(change.X, change.Y, change.Cell);
         }
-        
+
         _writer.Flush();
         _buffer.SwapBuffers();
     }

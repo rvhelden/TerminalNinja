@@ -300,6 +300,18 @@ public sealed class AnsiWriter : IDisposable
         WriteSpan(AnsiCodes.Reset);
         _currentStyle.Reset();
     }
+
+    /// <summary>
+    /// Invalidates the internal cursor position tracking without emitting any ANSI codes.
+    /// Call this at the start of each frame to ensure the first cell always emits
+    /// an absolute cursor position, preventing stale position state from causing
+    /// MoveTo() to be incorrectly skipped on delta renders.
+    /// </summary>
+    public void ResetCursorTracking()
+    {
+        _cursorX = -1;
+        _cursorY = -1;
+    }
     
     /// <summary>
     /// Hides the cursor.
