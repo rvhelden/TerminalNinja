@@ -25,52 +25,12 @@ public class ColorPickerTests
         await Assert.That(cp.FocusColor).IsEqualTo(Color.Cyan);
     }
 
-    #endregion
-
-    #region Palette Navigation
-
     [Test]
-    public async Task RightArrow_MovesPaletteRight()
+    public async Task GetPreferredSize_HeightIs3()
     {
         var cp = new ColorPicker();
-        // Start at index 0 (Black), move right to index 1
-        cp.OnKeyEvent(new KeyEvent(ConsoleKey.RightArrow, '\0', false, false, false));
-        cp.OnKeyEvent(new KeyEvent(ConsoleKey.Enter, '\r', false, false, false));
-
-        // Index 1 should be dark red (128,0,0)
-        await Assert.That(cp.SelectedColor).IsNotEqualTo(Color.Black);
-    }
-
-    [Test]
-    public async Task DownArrow_MovesPaletteDown()
-    {
-        var cp = new ColorPicker();
-        // Move down one row (8 columns) then select
-        cp.OnKeyEvent(new KeyEvent(ConsoleKey.DownArrow, '\0', false, false, false));
-        cp.OnKeyEvent(new KeyEvent(ConsoleKey.Enter, '\r', false, false, false));
-
-        // Row 1, col 0 should be DarkGray
-        await Assert.That(cp.SelectedColor).IsEqualTo(Color.DarkGray);
-    }
-
-    [Test]
-    public async Task Enter_SelectsPaletteColor()
-    {
-        var cp = new ColorPicker();
-        // Index 0 = Black
-        cp.OnKeyEvent(new KeyEvent(ConsoleKey.Enter, '\r', false, false, false));
-
-        await Assert.That(cp.SelectedColor).IsEqualTo(Color.Black);
-    }
-
-    [Test]
-    public async Task LeftArrow_AtStart_StaysAtZero()
-    {
-        var cp = new ColorPicker();
-        cp.OnKeyEvent(new KeyEvent(ConsoleKey.LeftArrow, '\0', false, false, false));
-        cp.OnKeyEvent(new KeyEvent(ConsoleKey.Enter, '\r', false, false, false));
-
-        await Assert.That(cp.SelectedColor).IsEqualTo(Color.Black);
+        var size = cp.GetPreferredSize(new Rect(0, 0, 40, 10));
+        await Assert.That(size.Height).IsEqualTo(3);
     }
 
     #endregion
@@ -81,7 +41,6 @@ public class ColorPickerTests
     public async Task HexDigits_SetColor()
     {
         var cp = new ColorPicker();
-        // Type "FF0000" (red)
         cp.OnKeyEvent(new KeyEvent(ConsoleKey.F, 'F', false, false, false));
         cp.OnKeyEvent(new KeyEvent(ConsoleKey.F, 'F', false, false, false));
         cp.OnKeyEvent(new KeyEvent(ConsoleKey.D0, '0', false, false, false));
@@ -98,14 +57,10 @@ public class ColorPickerTests
         var cp = new ColorPicker();
         var original = cp.SelectedColor;
 
-        // Start typing hex
         cp.OnKeyEvent(new KeyEvent(ConsoleKey.A, 'A', false, false, false));
         cp.OnKeyEvent(new KeyEvent(ConsoleKey.B, 'B', false, false, false));
-
-        // Cancel
         cp.OnKeyEvent(new KeyEvent(ConsoleKey.Escape, '\0', false, false, false));
 
-        // Color should not have changed
         await Assert.That(cp.SelectedColor).IsEqualTo(original);
     }
 
@@ -116,10 +71,8 @@ public class ColorPickerTests
         cp.OnKeyEvent(new KeyEvent(ConsoleKey.A, 'A', false, false, false));
         cp.OnKeyEvent(new KeyEvent(ConsoleKey.Backspace, '\0', false, false, false));
 
-        // Should exit hex mode (buffer empty)
-        // Now arrow keys should work again
-        cp.OnKeyEvent(new KeyEvent(ConsoleKey.Enter, '\r', false, false, false));
-        await Assert.That(cp.SelectedColor).IsEqualTo(Color.Black); // palette index 0
+        // Should exit hex mode — color unchanged
+        await Assert.That(cp.SelectedColor).IsEqualTo(Color.White);
     }
 
     #endregion
@@ -160,10 +113,9 @@ public class ColorPickerTests
     {
         var cp = new ColorPicker { SelectedColor = Color.Red };
 
-        using var buffer = new CellBuffer(20, 5);
-        cp.Render(buffer, new Rect(0, 0, 20, 5));
+        using var buffer = new CellBuffer(20, 3);
+        cp.Render(buffer, new Rect(0, 0, 20, 3));
 
-        // Swatch at (1,1) should be full block with Red foreground
         var cell = buffer.GetCell(1, 1);
         await Assert.That(cell.Character).IsEqualTo('\u2588');
         await Assert.That(cell.Foreground).IsEqualTo(Color.Red);
@@ -174,10 +126,9 @@ public class ColorPickerTests
     {
         var cp = new ColorPicker { SelectedColor = Color.Red };
 
-        using var buffer = new CellBuffer(20, 5);
-        cp.Render(buffer, new Rect(0, 0, 20, 5));
+        using var buffer = new CellBuffer(20, 3);
+        cp.Render(buffer, new Rect(0, 0, 20, 3));
 
-        // Hex starts at (4,1): "#FF0000"
         await Assert.That(buffer.GetCell(4, 1).Character).IsEqualTo('#');
     }
 
@@ -186,25 +137,75 @@ public class ColorPickerTests
     {
         var cp = new ColorPicker();
 
-        using var buffer = new CellBuffer(20, 5);
-        cp.Render(buffer, new Rect(0, 0, 20, 5));
+        using var buffer = new CellBuffer(20, 3);
+        cp.Render(buffer, new Rect(0, 0, 20, 3));
 
         var corner = buffer.GetCell(0, 0);
         await Assert.That(corner.Character).IsNotEqualTo(' ');
         await Assert.That(corner.Character).IsNotEqualTo('\0');
     }
 
+    #endregion
+
+    #region Dialog
+
     [Test]
-    public async Task Render_ShowsPalette()
+    public async Task ColorPickerDialog_Enter_ClosesWithTrue()
     {
-        var cp = new ColorPicker();
+        var dialog = new ColorPickerDialog(Color.Red);
 
-        using var buffer = new CellBuffer(20, 5);
-        cp.Render(buffer, new Rect(0, 0, 20, 5));
+        dialog.OnKeyEvent(new KeyEvent(ConsoleKey.Enter, '\r', false, false, false));
 
-        // Palette row at y=2 (border + preview row)
-        var paletteCell = buffer.GetCell(1, 2);
-        await Assert.That(paletteCell.Character == '\u2588' || paletteCell.Character == '\u25A0').IsTrue();
+        await Assert.That(dialog.DialogResult).IsNotNull();
+        await Assert.That(dialog.DialogResult!.Value).IsTrue();
+    }
+
+    [Test]
+    public async Task ColorPickerDialog_Escape_ClosesWithFalse()
+    {
+        var dialog = new ColorPickerDialog(Color.Red);
+
+        dialog.OnKeyEvent(new KeyEvent(ConsoleKey.Escape, '\0', false, false, false));
+
+        await Assert.That(dialog.DialogResult).IsNotNull();
+        await Assert.That(dialog.DialogResult!.Value).IsFalse();
+    }
+
+    [Test]
+    public async Task ColorPickerDialog_ArrowNavigation_ChangesColor()
+    {
+        var dialog = new ColorPickerDialog(Color.Black);
+        var initial = dialog.SelectedColor;
+
+        dialog.OnKeyEvent(new KeyEvent(ConsoleKey.RightArrow, '\0', false, false, false));
+
+        await Assert.That(dialog.SelectedColor).IsNotEqualTo(initial);
+    }
+
+    [Test]
+    public async Task ColorPickerDialog_HexEntry_SetsColor()
+    {
+        var dialog = new ColorPickerDialog(Color.White);
+
+        dialog.OnKeyEvent(new KeyEvent(ConsoleKey.D0, '0', false, false, false));
+        dialog.OnKeyEvent(new KeyEvent(ConsoleKey.D0, '0', false, false, false));
+        dialog.OnKeyEvent(new KeyEvent(ConsoleKey.F, 'F', false, false, false));
+        dialog.OnKeyEvent(new KeyEvent(ConsoleKey.F, 'F', false, false, false));
+        dialog.OnKeyEvent(new KeyEvent(ConsoleKey.D0, '0', false, false, false));
+        dialog.OnKeyEvent(new KeyEvent(ConsoleKey.D0, '0', false, false, false));
+
+        await Assert.That(dialog.SelectedColor).IsEqualTo(Color.Green);
+    }
+
+    [Test]
+    public async Task ColorPickerDialog_Render_DoesNotThrow()
+    {
+        var dialog = new ColorPickerDialog(Color.Cyan);
+
+        using var buffer = new CellBuffer(40, 16);
+        dialog.Render(buffer, new Rect(0, 0, 40, 16));
+
+        await Assert.That(buffer.GetCell(0, 0).Character).IsNotEqualTo('\0');
     }
 
     #endregion

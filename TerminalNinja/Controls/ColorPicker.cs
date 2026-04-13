@@ -7,27 +7,15 @@ using TerminalNinja.Styling;
 namespace TerminalNinja.Controls;
 
 /// <summary>
-/// A color selection control with a preview swatch, hex value display,
-/// and a built-in palette grid. Navigate the palette with arrow keys,
-/// select with Enter, or type hex digits (0-9, A-F) directly.
+/// A compact color selection control with a preview swatch and hex value display.
+/// Type hex digits (0-9, A-F) for inline editing, or press Enter/Space to open
+/// a full <see cref="ColorPickerDialog"/> with a large palette grid.
 /// </summary>
 [RuntimeNameProperty("Name")]
 public sealed class ColorPicker : Control
 {
-    private int _paletteIndex;
     private string _hexBuffer = "";
     private bool _isEditingHex;
-
-    private static readonly Color[] Palette =
-    [
-        Color.Black, new(128, 0, 0), new(0, 128, 0), new(128, 128, 0),
-        new(0, 0, 128), new(128, 0, 128), new(0, 128, 128), Color.Gray,
-        Color.DarkGray, Color.Red, Color.Green, Color.Yellow,
-        Color.Blue, Color.Magenta, Color.Cyan, Color.White
-    ];
-
-    private const int PaletteCols = 8;
-    private const int PaletteRows = 2;
 
     public ColorPicker()
     {
@@ -77,13 +65,8 @@ public sealed class ColorPicker : Control
 
     public override Size2D GetPreferredSize(Rect parent)
     {
-        // Row 0: border top
-        // Row 1: "██ #RRGGBB" preview
-        // Row 2: palette row 1 (8 swatches)
-        // Row 3: palette row 2 (8 swatches)
-        // Row 4: border bottom
-        var w = Width.Mode == SizeMode.Absolute ? Width.Resolve(parent.Width) : PaletteCols * 2 + 2; // 2 chars per swatch + border
-        var h = Height.Mode == SizeMode.Absolute ? Height.Resolve(parent.Height) : PaletteRows + 3; // preview + palette rows + border
+        var w = Width.Mode == SizeMode.Absolute ? Width.Resolve(parent.Width) : 14; // "██ #RRGGBB" + border
+        var h = Height.Mode == SizeMode.Absolute ? Height.Resolve(parent.Height) : 3;
         return new Size2D(w, h);
     }
 
@@ -116,46 +99,20 @@ public sealed class ColorPicker : Control
 
         var fg = IsEnabled ? Foreground : DimColor(Foreground);
         var innerX = bounds.X + 1;
-        var innerW = bounds.Width - 2;
 
-        // Row 0 (inside border): preview swatch + hex value
-        var previewY = bounds.Y + 1;
+        // Preview swatch + hex value
+        var previewY = bounds.Y + bounds.Height / 2;
         if (previewY >= 0 && previewY < buffer.Height)
         {
             // Color swatch (2 chars)
-            SetCharSafe(buffer, innerX, previewY, '\u2588', SelectedColor, Background); // █
+            SetCharSafe(buffer, innerX, previewY, '\u2588', SelectedColor, Background);
             SetCharSafe(buffer, innerX + 1, previewY, '\u2588', SelectedColor, Background);
             SetCharSafe(buffer, innerX + 2, previewY, ' ', fg, Background);
 
-            // Hex value or hex entry buffer
+            // Hex value or entry buffer
             var hexText = _isEditingHex ? "#" + _hexBuffer + "_" : SelectedColor.ToHex();
             for (var i = 0; i < hexText.Length && innerX + 3 + i < bounds.Right - 1; i++)
                 SetCharSafe(buffer, innerX + 3 + i, previewY, hexText[i], fg, Background);
-        }
-
-        // Palette rows
-        for (var row = 0; row < PaletteRows; row++)
-        {
-            var paletteY = bounds.Y + 2 + row;
-            if (paletteY < 0 || paletteY >= buffer.Height || paletteY >= bounds.Bottom - 1) continue;
-
-            for (var col = 0; col < PaletteCols; col++)
-            {
-                var idx = row * PaletteCols + col;
-                if (idx >= Palette.Length) break;
-
-                var swatchX = innerX + col * 2;
-                var color = Palette[idx];
-                var isHighlighted = IsFocused && idx == _paletteIndex;
-
-                // Draw 2-char swatch
-                var ch = isHighlighted ? '\u25A0' : '\u2588'; // ■ highlighted, █ normal
-                var swatchFg = isHighlighted ? borderColor : color;
-                var swatchBg = isHighlighted ? color : Background;
-
-                SetCharSafe(buffer, swatchX, paletteY, ch, swatchFg, swatchBg);
-                SetCharSafe(buffer, swatchX + 1, paletteY, ch, swatchFg, swatchBg);
-            }
         }
     }
 
@@ -173,8 +130,7 @@ public sealed class ColorPicker : Control
             _hexBuffer += ch;
             if (_hexBuffer.Length >= 6)
             {
-                var parsed = Color.FromHex(_hexBuffer);
-                SelectedColor = parsed;
+                SelectedColor = Color.FromHex(_hexBuffer);
                 _hexBuffer = "";
                 _isEditingHex = false;
             }
@@ -184,10 +140,8 @@ public sealed class ColorPicker : Control
 
         if (e.Key == ConsoleKey.Backspace && _isEditingHex)
         {
-            if (_hexBuffer.Length > 0)
-                _hexBuffer = _hexBuffer[..^1];
-            if (_hexBuffer.Length == 0)
-                _isEditingHex = false;
+            if (_hexBuffer.Length > 0) _hexBuffer = _hexBuffer[..^1];
+            if (_hexBuffer.Length == 0) _isEditingHex = false;
             InvalidateVisual();
             return;
         }
@@ -200,30 +154,11 @@ public sealed class ColorPicker : Control
             return;
         }
 
-        // Palette navigation
-        switch (e.Key)
+        // Enter/Space: open the full color picker dialog
+        if (e.Key is ConsoleKey.Enter or ConsoleKey.Spacebar)
         {
-            case ConsoleKey.LeftArrow:
-                _paletteIndex = Math.Max(0, _paletteIndex - 1);
-                break;
-            case ConsoleKey.RightArrow:
-                _paletteIndex = Math.Min(Palette.Length - 1, _paletteIndex + 1);
-                break;
-            case ConsoleKey.UpArrow:
-                if (_paletteIndex >= PaletteCols)
-                    _paletteIndex -= PaletteCols;
-                break;
-            case ConsoleKey.DownArrow:
-                if (_paletteIndex + PaletteCols < Palette.Length)
-                    _paletteIndex += PaletteCols;
-                break;
-            case ConsoleKey.Enter or ConsoleKey.Spacebar:
-                if (_paletteIndex >= 0 && _paletteIndex < Palette.Length)
-                    SelectedColor = Palette[_paletteIndex];
-                break;
+            OpenColorDialog();
         }
-
-        InvalidateVisual();
     }
 
     public override void OnGotFocus()
@@ -231,6 +166,15 @@ public sealed class ColorPicker : Control
         _hexBuffer = "";
         _isEditingHex = false;
         InvalidateVisual();
+    }
+
+    private async void OpenColorDialog()
+    {
+        var result = await ColorPickerDialog.ShowAsync(SelectedColor);
+        if (result.HasValue)
+        {
+            SelectedColor = result.Value;
+        }
     }
 
     // ─── Helpers ─────────────────────────────────────────────────────
