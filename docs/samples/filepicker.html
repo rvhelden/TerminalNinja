@@ -127,8 +127,12 @@ if (selectedFile is not null)
           <tr><td>Up Arrow</td><td>Move selection to the previous entry.</td></tr>
           <tr><td>Down Arrow</td><td>Move selection to the next entry.</td></tr>
           <tr><td>Enter</td><td>Open the selected directory, or select the highlighted file and close the dialog.</td></tr>
-          <tr><td>Backspace</td><td>Navigate to the parent directory.</td></tr>
-          <tr><td>Escape</td><td>Cancel the dialog and return null.</td></tr>
+          <tr><td>Backspace</td><td>Navigate to the parent directory (or delete last character in search mode).</td></tr>
+          <tr><td>Escape</td><td>Exit search mode, or cancel the dialog and return null.</td></tr>
+          <tr><td>/</td><td>Activate fuzzy search — type to filter entries in real-time. Matches characters in order (not necessarily contiguous). Results are ranked by consecutive matches and word-boundary hits.</td></tr>
+          <tr><td>Click</td><td>Select the clicked entry.</td></tr>
+          <tr><td>Double-click</td><td>Open the clicked directory, or select the clicked file.</td></tr>
+          <tr><td>Scroll wheel</td><td>Move selection up or down.</td></tr>
         </tbody>
       </table>
     </section>
@@ -143,6 +147,7 @@ if (selectedFile is not null)
         <li>Use the static <code>FilePicker.ShowAsync</code> method for a one-call pattern that returns the selected path directly.</li>
         <li>Pass a custom <code>IFileSystem</code> implementation to <code>ShowAsync</code> for unit testing without real filesystem access.</li>
         <li>Pressing <code>Backspace</code> navigates up to the parent directory, while <code>Enter</code> on a directory descends into it.</li>
+        <li>Press <code>/</code> to activate fuzzy search. Type to filter entries — characters are matched in order but don't need to be contiguous. Results are ranked by consecutive runs and word-boundary hits. Press <code>Escape</code> to exit search, or <code>Enter</code> to select from filtered results.</li>
       </ul>
     </section>
 

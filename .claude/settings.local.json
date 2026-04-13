@@ -1,21 +1,21 @@
 {
   "permissions": {
     "allow": [
-      "Bash(cd e:/TerminalNinja && dotnet build 2>&1)",
-      "Bash(cd e:/TerminalNinja && dotnet test 2>&1)",
-      "Bash(ls -la \"E:/TerminalNinja/Sample/\" | grep -E \"\\\\.cs$|\\\\.xaml$\")",
-      "Bash(cd e:/TerminalNinja && dotnet build 2>&1 && dotnet test 2>&1)",
-      "Bash(dotnet build:*)",
-      "Bash(dotnet test:*)",
+      "Bash(cd *)",
+      "Bash(xargs -I {} basename {})",
+      "Bash(xargs basename:*)",
+      "Bash(wc -l /e/TerminalNinja/*)",
+      "Bash(awk *)",
+      "Bash(dotnet *)",
       "Bash(ls:*)",
       "Bash(grep:*)",
       "Bash(mv:*)",
+      "Bash(find:*)",
       "Bash(where:*)",
-      "Read(//c/Program Files/Microsoft Visual Studio/**)",
-      "Read(//c/Program Files \\(x86\\)/Microsoft Visual Studio/**)",
+      "Read(*)",
       "Bash(cmd /c \"call \\\\\"C:\\\\\\\\Program Files\\\\\\\\Microsoft Visual Studio\\\\\\\\18\\\\\\\\Enterprise\\\\\\\\Common7\\\\\\\\Tools\\\\\\\\VsDevCmd.bat\\\\\" -arch=x64 2>&1 && dotnet publish E:\\\\\\\\TerminalNinja\\\\\\\\Sample\\\\\\\\Sample.csproj -c Release 2>&1\")",
-      "Bash(dotnet run:*)",
-      "Bash(xargs -I {} basename {})"
+      "WebFetch(domain:www.hslpicker.com)",
+      "Bash(git add:*)"
     ]
   }
 }

@@ -8,6 +8,8 @@ namespace TerminalNinja.Controls;
 /// <summary>
 /// A modal dialog for browsing and selecting files from the filesystem.
 /// Shows a list of directories and files with keyboard navigation.
+/// Press <c>/</c> to activate fuzzy search — type to filter entries in real-time.
+/// Click to select, double-click to open. Scroll wheel navigates the list.
 /// Use <see cref="ShowAsync"/> for a convenient static API.
 /// </summary>
 public sealed class FilePicker : Window
@@ -17,6 +19,16 @@ public sealed class FilePicker : Window
     private readonly List<string> _entries = [];
     private int _selectedIndex;
     private int _scrollOffset;
+
+    // ─── Fuzzy search state ──────────────────────────────────────────
+    private bool _searchMode;
+    private string _searchQuery = "";
+    private List<string> _filteredEntries = [];
+
+    // ─── Mouse state ─────────────────────────────────────────────────
+    private Rect _lastBounds;
+    private DateTime _lastClickTime;
+    private int _lastClickY = -1;
 
     public FilePicker(IFileSystem? fileSystem = null)
     {
@@ -51,6 +63,16 @@ public sealed class FilePicker : Window
     /// <summary>Gets or sets a file filter (e.g., "*.txt"). Null means all files.</summary>
     public string? Filter { get; set; }
 
+    /// <summary>Whether the picker is currently in fuzzy search mode.</summary>
+    public bool IsSearchMode => _searchMode;
+
+    /// <summary>The current fuzzy search query.</summary>
+    public string SearchQuery => _searchQuery;
+
+    // ─── Visible entries ─────────────────────────────────────────────
+
+    private List<string> VisibleEntries => _searchMode ? _filteredEntries : _entries;
+
     // ─── Entry Management ────────────────────────────────────────────
 
     private void RefreshEntries()
@@ -70,8 +92,7 @@ public sealed class FilePicker : Window
                 _entries.Add("  " + file);
         }
 
-        _selectedIndex = 0;
-        _scrollOffset = 0;
+        ExitSearch();
         InvalidateVisual();
     }
 
@@ -84,9 +105,13 @@ public sealed class FilePicker : Window
 
     private void NavigateToEntry()
     {
-        if (_selectedIndex < 0 || _selectedIndex >= _entries.Count) return;
+        var visible = VisibleEntries;
+        if (_selectedIndex < 0 || _selectedIndex >= visible.Count) return;
 
-        var entry = _entries[_selectedIndex];
+        var entry = visible[_selectedIndex];
+        var wasSearching = _searchMode;
+        if (wasSearching) ExitSearch();
+
         if (entry == "..")
         {
             var parent = _fileSystem.GetDirectoryName(_currentPath);
@@ -116,11 +141,135 @@ public sealed class FilePicker : Window
         }
     }
 
+    // ─── Fuzzy Search ────────────────────────────────────────────────
+
+    private void EnterSearch()
+    {
+        _searchMode = true;
+        _searchQuery = "";
+        ApplySearch();
+    }
+
+    private void ExitSearch()
+    {
+        _searchMode = false;
+        _searchQuery = "";
+        _filteredEntries.Clear();
+        _selectedIndex = 0;
+        _scrollOffset = 0;
+    }
+
+    private void ApplySearch()
+    {
+        _filteredEntries.Clear();
+
+        // ".." is always available as the first entry
+        _filteredEntries.Add("..");
+
+        if (_searchQuery.Length == 0)
+        {
+            // Empty query — show all entries (except ".." which is already added)
+            for (var i = 1; i < _entries.Count; i++)
+                _filteredEntries.Add(_entries[i]);
+        }
+        else
+        {
+            // Score and filter entries (skip ".." at index 0)
+            var scored = new List<(string Entry, int Score)>();
+            for (var i = 1; i < _entries.Count; i++)
+            {
+                var score = FuzzyScore(_searchQuery, EntryDisplayName(_entries[i]));
+                if (score >= 0)
+                    scored.Add((_entries[i], score));
+            }
+
+            // Sort by score descending (best matches first)
+            scored.Sort((a, b) => b.Score.CompareTo(a.Score));
+            foreach (var (entry, _) in scored)
+                _filteredEntries.Add(entry);
+        }
+
+        _selectedIndex = _filteredEntries.Count > 1 ? 1 : 0; // Select first match (skip "..")
+        _scrollOffset = 0;
+    }
+
+    /// <summary>
+    /// Extracts the display name from an entry string for fuzzy matching.
+    /// Strips the folder icon prefix, leading whitespace, and trailing slash.
+    /// </summary>
+    internal static string EntryDisplayName(string entry)
+    {
+        if (entry.StartsWith("\uF07B "))
+            return entry[2..].TrimEnd('/'); // strip icon + trailing /
+        return entry.TrimStart(); // strip leading spaces for files
+    }
+
+    /// <summary>
+    /// Scores a fuzzy match of <paramref name="query"/> against <paramref name="target"/>.
+    /// Returns -1 if the query does not match. Higher scores indicate better matches.
+    /// Rewards consecutive character matches and matches at word boundaries.
+    /// </summary>
+    internal static int FuzzyScore(string query, string target)
+    {
+        if (query.Length == 0) return 0;
+        if (target.Length == 0) return -1;
+
+        var qi = 0;
+        var score = 0;
+        var consecutive = 0;
+
+        for (var ti = 0; ti < target.Length && qi < query.Length; ti++)
+        {
+            if (char.ToLowerInvariant(target[ti]) == char.ToLowerInvariant(query[qi]))
+            {
+                qi++;
+                consecutive++;
+                score += consecutive * 2; // Reward consecutive runs: 2 + 4 + 6 + ...
+
+                // Bonus for word boundaries (start, after separator, uppercase in camelCase)
+                if (ti == 0 || target[ti - 1] is '/' or '\\' or '.' or '_' or '-' or ' '
+                    || (char.IsUpper(target[ti]) && ti > 0 && char.IsLower(target[ti - 1])))
+                {
+                    score += 3;
+                }
+            }
+            else
+            {
+                consecutive = 0;
+            }
+        }
+
+        // All query chars consumed? If not, no match.
+        if (qi < query.Length) return -1;
+
+        // Bonus for shorter targets (more precise matches)
+        score += Math.Max(0, 20 - target.Length);
+
+        return score;
+    }
+
+    // ─── List geometry helpers ────────────────────────────────────────
+
+    private int ListY => _lastBounds.Y + 3; // border + path + separator
+    private int ListHeight => _lastBounds.Height - 5; // border + path + sep + sep + hint
+
+    /// <summary>
+    /// Converts a screen Y coordinate to a visible entry index, or -1 if outside the list.
+    /// </summary>
+    private int HitTestRow(int screenY)
+    {
+        var row = screenY - ListY;
+        if (row < 0 || row >= ListHeight) return -1;
+        var idx = _scrollOffset + row;
+        return idx < VisibleEntries.Count ? idx : -1;
+    }
+
     // ─── Rendering ───────────────────────────────────────────────────
 
     public override void Render(CellBuffer buffer, Rect parentBounds)
     {
         var bounds = CalculateBounds(parentBounds);
+        _lastBounds = bounds;
         var clipped = bounds.Intersect(new Rect(0, 0, buffer.Width, buffer.Height));
         if (clipped.Width <= 0 || clipped.Height <= 0) return;
 
@@ -144,17 +293,18 @@ public sealed class FilePicker : Window
 
         // Separator
         for (var x = bounds.X + 1; x < bounds.Right - 1; x++)
-            SetCharSafe(buffer, x, pathY + 1, '─', DimColor(Foreground), Background);
+            SetCharSafe(buffer, x, pathY + 1, '\u2500', DimColor(Foreground), Background);
 
         // File list
+        var visible = VisibleEntries;
         var listY = pathY + 2;
-        var listHeight = bounds.Height - 5; // border + path + sep + buttons
+        var listHeight = bounds.Height - 5; // border + path + sep + bottom
 
         // Ensure selected visible
         if (_selectedIndex < _scrollOffset) _scrollOffset = _selectedIndex;
         if (_selectedIndex >= _scrollOffset + listHeight) _scrollOffset = _selectedIndex - listHeight + 1;
 
-        for (var i = 0; i < listHeight && _scrollOffset + i < _entries.Count; i++)
+        for (var i = 0; i < listHeight && _scrollOffset + i < visible.Count; i++)
         {
             var idx = _scrollOffset + i;
             var y = listY + i;
@@ -168,56 +318,165 @@ public sealed class FilePicker : Window
                 buffer.FillRect(rowRect, new Cell(' ', fg, bg));
             }
 
-            var text = _entries[idx];
+            var text = visible[idx];
             for (var c = 0; c < text.Length && c < bounds.Width - 2; c++)
                 SetCharSafe(buffer, bounds.X + 1 + c, y, text[c], fg, bg);
         }
 
-        // Bottom separator + buttons
+        // Bottom separator
         var btnY = bounds.Bottom - 2;
         for (var x = bounds.X + 1; x < bounds.Right - 1; x++)
-            SetCharSafe(buffer, x, btnY - 1, '─', DimColor(Foreground), Background);
+            SetCharSafe(buffer, x, btnY - 1, '\u2500', DimColor(Foreground), Background);
 
-        var okText = "[ OK ]";
-        var cancelText = "[ Cancel ]";
-        var btnX = bounds.X + bounds.Width / 2 - (okText.Length + cancelText.Length + 2) / 2;
-        for (var i = 0; i < okText.Length; i++)
-            SetCharSafe(buffer, btnX + i, btnY, okText[i], Foreground, Background);
-        for (var i = 0; i < cancelText.Length; i++)
-            SetCharSafe(buffer, btnX + okText.Length + 2 + i, btnY, cancelText[i], Foreground, Background);
+        // Bottom bar: search prompt or hint text
+        if (_searchMode)
+        {
+            var searchText = $"/ {_searchQuery}\u2588"; // block cursor
+            var countText = $" ({visible.Count - 1})"; // exclude ".."
+            var maxQuery = bounds.Width - 2 - countText.Length;
+            if (searchText.Length > maxQuery)
+                searchText = searchText[..maxQuery];
+
+            for (var i = 0; i < searchText.Length; i++)
+                SetCharSafe(buffer, bounds.X + 1 + i, btnY, searchText[i], Foreground, Background);
+            for (var i = 0; i < countText.Length; i++)
+                SetCharSafe(buffer, bounds.Right - 1 - countText.Length + i, btnY, countText[i], DimColor(Foreground), Background);
+        }
+        else
+        {
+            var hintText = " / search  \u23ce select  esc cancel";
+            for (var i = 0; i < hintText.Length && i < bounds.Width - 2; i++)
+                SetCharSafe(buffer, bounds.X + 1 + i, btnY, hintText[i], DimColor(Foreground), Background);
+        }
     }
 
     // ─── Input ───────────────────────────────────────────────────────
 
     public override void OnKeyEvent(KeyEvent e)
     {
-        switch (e.Key)
+        if (_searchMode)
         {
-            case ConsoleKey.UpArrow:
+            HandleSearchInput(e);
+        }
+        else
+        {
+            HandleNormalInput(e);
+        }
+        InvalidateVisual();
+    }
+
+    public override void OnMouseEvent(MouseEvent e)
+    {
+        switch (e.Action)
+        {
+            case MouseAction.Press when e.Button == MouseButton.Left:
+            {
+                var idx = HitTestRow(e.Y);
+                if (idx < 0) break;
+
+                var now = DateTime.UtcNow;
+                if ((now - _lastClickTime).TotalMilliseconds < 500 && e.Y == _lastClickY)
+                {
+                    // Double-click — activate the entry
+                    _selectedIndex = idx;
+                    NavigateToEntry();
+                    _lastClickTime = DateTime.MinValue;
+                }
+                else
+                {
+                    // Single click — select the row
+                    _selectedIndex = idx;
+                    _lastClickTime = now;
+                    _lastClickY = e.Y;
+                }
+                break;
+            }
+
+            case MouseAction.ScrollUp:
                 _selectedIndex = Math.Max(0, _selectedIndex - 1);
                 break;
-            case ConsoleKey.DownArrow:
+
+            case MouseAction.ScrollDown:
+                _selectedIndex = Math.Min(VisibleEntries.Count - 1, _selectedIndex + 1);
+                break;
+        }
+
+        InvalidateVisual();
+    }
+
+    private void HandleNormalInput(KeyEvent e)
+    {
+        switch (e)
+        {
+            case { Key: ConsoleKey.UpArrow }:
+                _selectedIndex = Math.Max(0, _selectedIndex - 1);
+                break;
+            case { Key: ConsoleKey.DownArrow }:
                 _selectedIndex = Math.Min(_entries.Count - 1, _selectedIndex + 1);
                 break;
-            case ConsoleKey.Home:
+            case { Key: ConsoleKey.Home }:
                 _selectedIndex = 0;
                 break;
-            case ConsoleKey.End:
+            case { Key: ConsoleKey.End }:
                 _selectedIndex = _entries.Count - 1;
                 break;
-            case ConsoleKey.Enter:
+            case { Key: ConsoleKey.Enter }:
                 NavigateToEntry();
                 break;
-            case ConsoleKey.Backspace:
+            case { Key: ConsoleKey.Backspace }:
                 var parent = _fileSystem.GetDirectoryName(_currentPath);
                 if (parent != null) { _currentPath = parent; RefreshEntries(); }
                 break;
-            case ConsoleKey.Escape:
+            case { Key: ConsoleKey.Escape }:
                 SelectedPath = null;
                 DialogResult = false;
                 break;
+            default:
+                // '/' activates search (only when no modifiers)
+                if (e.KeyChar == '/' && !e.HasModifiers)
+                    EnterSearch();
+                break;
         }
-        InvalidateVisual();
+    }
+
+    private void HandleSearchInput(KeyEvent e)
+    {
+        var visible = VisibleEntries;
+
+        switch (e)
+        {
+            case { Key: ConsoleKey.Escape }:
+                ExitSearch();
+                break;
+            case { Key: ConsoleKey.Enter }:
+                NavigateToEntry();
+                break;
+            case { Key: ConsoleKey.UpArrow }:
+                _selectedIndex = Math.Max(0, _selectedIndex - 1);
+                break;
+            case { Key: ConsoleKey.DownArrow }:
+                _selectedIndex = Math.Min(visible.Count - 1, _selectedIndex + 1);
+                break;
+            case { Key: ConsoleKey.Backspace }:
+                if (_searchQuery.Length > 0)
+                {
+                    _searchQuery = _searchQuery[..^1];
+                    ApplySearch();
+                }
+                else
+                {
+                    ExitSearch();
+                }
+                break;
+            default:
+                // Append printable characters to the search query
+                if (e.KeyChar >= ' ')
+                {
+                    _searchQuery += e.KeyChar;
+                    ApplySearch();
+                }
+                break;
+        }
     }
 
     // ─── Static API ──────────────────────────────────────────────────

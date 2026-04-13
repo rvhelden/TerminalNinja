@@ -111,8 +111,10 @@ public class Window : ContentControl
         // Push as a modal overlay with background dimming
         app.PushOverlay(this, isModal: true, dimBackground: true);
 
-        // Move focus into the dialog so tab navigation works immediately
-        app.FocusManager.SetFocus(null);
+        // Move focus into the dialog so keyboard input works immediately.
+        // Focus the dialog window itself — it is Focusable (inherits from Control)
+        // so key events dispatched via FocusManager will reach OnKeyEvent.
+        app.FocusManager.SetFocus(this);
 
         return _dialogTcs.Task;
     }

@@ -12,10 +12,13 @@
                        Text="  Use arrows to browse, Enter to open, ESC to exit"
                        VerticalTextAlignment="Center"
                        Padding="2,0,0,0" />
+            <ScrollViewer>
+                
             <ListBox StackPanel.SizeMode="Stretch"
                      ItemsSource="{Binding Samples}"
                      SelectedItem="{Binding SelectedSample, Mode=TwoWay}"
                      TabIndex="0" />
+            </ScrollViewer>
         </StackPanel>
     </Grid>
 </Border>

@@ -123,4 +123,129 @@ public class FolderPickerTests
     }
 
     #endregion
+
+    #region Search Mode
+
+    [Test]
+    public async Task Slash_EntersSearchMode()
+    {
+        var fp = new FolderPicker(CreateMockFs());
+
+        fp.OnKeyEvent(new KeyEvent(ConsoleKey.Oem2, '/', false, false, false));
+
+        await Assert.That(fp.IsSearchMode).IsTrue();
+        await Assert.That(fp.SearchQuery).IsEqualTo("");
+    }
+
+    [Test]
+    public async Task Escape_InSearchMode_ExitsSearch()
+    {
+        var fp = new FolderPicker(CreateMockFs());
+
+        fp.OnKeyEvent(new KeyEvent(ConsoleKey.Oem2, '/', false, false, false));
+        fp.OnKeyEvent(new KeyEvent(ConsoleKey.Escape, '\0', false, false, false));
+
+        await Assert.That(fp.IsSearchMode).IsFalse();
+    }
+
+    [Test]
+    public async Task Typing_InSearchMode_UpdatesQuery()
+    {
+        var fp = new FolderPicker(CreateMockFs());
+
+        fp.OnKeyEvent(new KeyEvent(ConsoleKey.Oem2, '/', false, false, false));
+        fp.OnKeyEvent(new KeyEvent(ConsoleKey.D, 'd', false, false, false));
+        fp.OnKeyEvent(new KeyEvent(ConsoleKey.O, 'o', false, false, false));
+
+        await Assert.That(fp.SearchQuery).IsEqualTo("do");
+    }
+
+    [Test]
+    public async Task Backspace_EmptyQuery_ExitsSearch()
+    {
+        var fp = new FolderPicker(CreateMockFs());
+
+        fp.OnKeyEvent(new KeyEvent(ConsoleKey.Oem2, '/', false, false, false));
+        fp.OnKeyEvent(new KeyEvent(ConsoleKey.Backspace, '\0', false, false, false));
+
+        await Assert.That(fp.IsSearchMode).IsFalse();
+    }
+
+    [Test]
+    public async Task Search_EnterOnDirectory_NavigatesIn()
+    {
+        var fp = new FolderPicker(CreateMockFs());
+
+        // Search for "doc" — should match "Documents/"
+        fp.OnKeyEvent(new KeyEvent(ConsoleKey.Oem2, '/', false, false, false));
+        fp.OnKeyEvent(new KeyEvent(ConsoleKey.D, 'd', false, false, false));
+        fp.OnKeyEvent(new KeyEvent(ConsoleKey.O, 'o', false, false, false));
+        fp.OnKeyEvent(new KeyEvent(ConsoleKey.C, 'c', false, false, false));
+        fp.OnKeyEvent(new KeyEvent(ConsoleKey.Enter, '\r', false, false, false));
+
+        await Assert.That(fp.IsSearchMode).IsFalse();
+        await Assert.That(fp.InitialDirectory).IsEqualTo(DocsDir);
+    }
+
+    [Test]
+    public async Task Render_InSearchMode_DoesNotThrow()
+    {
+        var fp = new FolderPicker(CreateMockFs());
+
+        fp.OnKeyEvent(new KeyEvent(ConsoleKey.Oem2, '/', false, false, false));
+        fp.OnKeyEvent(new KeyEvent(ConsoleKey.D, 'd', false, false, false));
+
+        using var buffer = new CellBuffer(60, 18);
+        fp.Render(buffer, new Rect(0, 0, 60, 18));
+
+        await Assert.That(buffer.GetCell(0, 0).Character).IsNotEqualTo('\0');
+    }
+
+    #endregion
+
+    #region Mouse
+
+    [Test]
+    public async Task LeftClick_SelectsRow()
+    {
+        var fp = new FolderPicker(CreateMockFs());
+
+        using var buffer = new CellBuffer(60, 18);
+        fp.Render(buffer, new Rect(0, 0, 60, 18));
+
+        // Click on row 1 (first directory after "..")
+        fp.OnMouseEvent(new MouseEvent(10, 4, MouseButton.Left, MouseAction.Press));
+
+        await Assert.That(fp.SelectedPath).IsNull(); // clicked, not activated
+    }
+
+    [Test]
+    public async Task DoubleClick_NavigatesIntoDirectory()
+    {
+        var fp = new FolderPicker(CreateMockFs());
+
+        using var buffer = new CellBuffer(60, 18);
+        fp.Render(buffer, new Rect(0, 0, 60, 18));
+
+        // Double-click on row 1 (Documents/) — Y=4 (listY=3, row 1 = Y 4)
+        fp.OnMouseEvent(new MouseEvent(10, 4, MouseButton.Left, MouseAction.Press));
+        fp.OnMouseEvent(new MouseEvent(10, 4, MouseButton.Left, MouseAction.Press));
+
+        await Assert.That(fp.InitialDirectory).IsEqualTo(DocsDir);
+    }
+
+    [Test]
+    public async Task ScrollDown_MovesSelection()
+    {
+        var fp = new FolderPicker(CreateMockFs());
+
+        using var buffer = new CellBuffer(60, 18);
+        fp.Render(buffer, new Rect(0, 0, 60, 18));
+
+        fp.OnMouseEvent(new MouseEvent(10, 5, MouseButton.None, MouseAction.ScrollDown));
+
+        await Assert.That(fp.SelectedPath).IsNull();
+    }
+
+    #endregion
 }

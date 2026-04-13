@@ -130,8 +130,12 @@ var folder = await FolderPicker.ShowAsync(
           <tr><td>Down Arrow</td><td>Move selection to the next directory.</td></tr>
           <tr><td>Enter</td><td>Navigate into the selected directory.</td></tr>
           <tr><td>Space</td><td>Select the currently highlighted directory and close the dialog.</td></tr>
-          <tr><td>Backspace</td><td>Navigate to the parent directory.</td></tr>
-          <tr><td>Escape</td><td>Cancel the dialog and return null.</td></tr>
+          <tr><td>Backspace</td><td>Navigate to the parent directory (or delete last character in search mode).</td></tr>
+          <tr><td>Escape</td><td>Exit search mode, or cancel the dialog and return null.</td></tr>
+          <tr><td>/</td><td>Activate fuzzy search — type to filter directories in real-time.</td></tr>
+          <tr><td>Click</td><td>Select the clicked directory entry.</td></tr>
+          <tr><td>Double-click</td><td>Navigate into the clicked directory.</td></tr>
+          <tr><td>Scroll wheel</td><td>Move selection up or down.</td></tr>
         </tbody>
       </table>
     </section>
@@ -146,6 +150,8 @@ var folder = await FolderPicker.ShowAsync(
         <li>Use the static <code>FolderPicker.ShowAsync</code> method for a one-call pattern that returns the selected path directly.</li>
         <li>Pass a custom <code>IFileSystem</code> implementation to <code>ShowAsync</code> for unit testing without real filesystem access.</li>
         <li>Pressing <code>Backspace</code> navigates up to the parent directory, providing familiar filesystem navigation.</li>
+        <li>Press <code>/</code> to activate fuzzy search. Type to filter directories — characters are matched in order but don't need to be contiguous. Press <code>Escape</code> to exit search, or <code>Enter</code> to navigate into a match.</li>
+        <li>Mouse support: click to select a row, double-click to navigate into a directory, scroll wheel to move the selection.</li>
       </ul>
     </section>
 
