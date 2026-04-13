@@ -154,36 +154,31 @@ export const SAMPLES = [
         <StackPanel Orientation="Vertical">
             <TextBlock StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1"
                        Text=" Dialogs" Padding="2,0,0,0" />
-
             <TextBlock StackPanel.SizeMode="Fixed" StackPanel.FixedSize="2"
-                       Text="  Modal dialogs with OK/Cancel buttons and dimmed background."
+                       Text="  Modal dialogs use ShowDialogAsync() from C# code-behind."
                        Padding="2,0,0,0" VerticalTextAlignment="Center" />
-
-            <StackPanel StackPanel.SizeMode="Fixed" StackPanel.FixedSize="3" Orientation="Horizontal">
-                <Button StackPanel.SizeMode="Auto" Text="Show Dialog" Width="20" Height="3" TabIndex="0" />
-            </StackPanel>
-
             <TextBlock StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1" Text="" />
-
             <TextBlock StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1"
-                       Text="  Dialog #2: Confirmed" Padding="2,0,0,0" />
-
+                       Text="  Usage:" Padding="2,0,0,0" />
+            <TextBlock StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1"
+                       Text="    var result = await dialog.ShowDialogAsync();" Padding="2,0,0,0" />
+            <TextBlock StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1"
+                       Text="    dialog.DialogResult = true; // closes it" Padding="2,0,0,0" />
             <TextBlock StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1" Text="" />
-
-            <!-- Simulated dialog preview -->
-            <Border StackPanel.SizeMode="Stretch" BorderStyle="Rounded">
+            <TextBlock StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1"
+                       Text="  Dialog layout preview:" Padding="2,0,0,0" />
+            <TextBlock StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1" Text="" />
+            <Border StackPanel.SizeMode="Stretch" BorderStyle="Rounded" Background="#252526">
                 <StackPanel Orientation="Vertical">
                     <TextBlock StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1"
                                Text=" Confirm Action" />
-                    <TextBlock StackPanel.SizeMode="Stretch"
-                               Text="Are you sure you want to proceed?\\n\\nThis is a modal dialog demo."
-                               HorizontalTextAlignment="Center" VerticalTextAlignment="Center"
-                               TextWrapping="Wrap" Padding="2,1,2,1" />
+                    <TextBlock StackPanel.SizeMode="Stretch" Text="Are you sure?"
+                               HorizontalTextAlignment="Center" VerticalTextAlignment="Center" />
                     <StackPanel StackPanel.SizeMode="Fixed" StackPanel.FixedSize="3" Orientation="Horizontal">
                         <Button StackPanel.SizeMode="Auto" Text="OK" Width="12" Height="3"
-                                HoverColor="Green" TabIndex="1" />
+                                HoverColor="Green" TabIndex="0" />
                         <Button StackPanel.SizeMode="Auto" Text="Cancel" Width="12" Height="3"
-                                HoverColor="Red" TabIndex="2" />
+                                HoverColor="Red" TabIndex="1" />
                     </StackPanel>
                 </StackPanel>
             </Border>
