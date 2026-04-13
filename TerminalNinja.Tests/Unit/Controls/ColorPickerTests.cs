@@ -174,10 +174,12 @@ public class ColorPickerTests
     [Test]
     public async Task ColorPickerDialog_ArrowNavigation_ChangesColor()
     {
-        var dialog = new ColorPickerDialog(Color.Black);
+        var dialog = new ColorPickerDialog(Color.Red);
         var initial = dialog.SelectedColor;
 
-        dialog.OnKeyEvent(new KeyEvent(ConsoleKey.RightArrow, '\0', false, false, false));
+        // Switch to SL mode (Tab), then adjust saturation
+        dialog.OnKeyEvent(new KeyEvent(ConsoleKey.Tab, '\0', false, false, false));
+        dialog.OnKeyEvent(new KeyEvent(ConsoleKey.LeftArrow, '\0', false, false, false));
 
         await Assert.That(dialog.SelectedColor).IsNotEqualTo(initial);
     }
