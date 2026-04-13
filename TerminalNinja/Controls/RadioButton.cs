@@ -212,8 +212,56 @@ public sealed class RadioButton : ButtonBase
     /// <inheritdoc />
     public override void OnKeyEvent(KeyEvent e)
     {
-        if (e.Key is ConsoleKey.Enter or ConsoleKey.Spacebar)
-            Check();
+        switch (e.Key)
+        {
+            case ConsoleKey.Enter or ConsoleKey.Spacebar:
+                Check();
+                break;
+            case ConsoleKey.DownArrow or ConsoleKey.RightArrow:
+                FocusSibling(1);
+                break;
+            case ConsoleKey.UpArrow or ConsoleKey.LeftArrow:
+                FocusSibling(-1);
+                break;
+        }
+    }
+
+    /// <summary>
+    /// Moves focus to the next or previous RadioButton in the same group.
+    /// </summary>
+    private void FocusSibling(int direction)
+    {
+        var siblings = GetGroupSiblings();
+        if (siblings.Count <= 1) return;
+
+        var currentIdx = siblings.IndexOf(this);
+        if (currentIdx < 0) return;
+
+        var nextIdx = currentIdx + direction;
+        if (nextIdx < 0) nextIdx = siblings.Count - 1;     // wrap to last
+        else if (nextIdx >= siblings.Count) nextIdx = 0;    // wrap to first
+
+        var target = siblings[nextIdx];
+        App.Application.Current?.FocusManager.SetFocus(target);
+    }
+
+    private List<RadioButton> GetGroupSiblings()
+    {
+        var result = new List<RadioButton>();
+        var parent = Parent;
+        if (parent == null) return result;
+
+        IEnumerable<UIElement>? children = parent is Panel panel ? panel.Children :
+            parent is FrameworkElement fe ? fe.GetLogicalChildren() : null;
+
+        if (children == null) return result;
+
+        foreach (var child in children)
+        {
+            if (child is RadioButton rb && rb.GroupName == GroupName)
+                result.Add(rb);
+        }
+        return result;
     }
 
     /// <inheritdoc />

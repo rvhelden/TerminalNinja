@@ -16,10 +16,19 @@ namespace TerminalNinja.Controls;
 [RuntimeNameProperty("Name")]
 public class ListBox : Selector
 {
+    private DateTime _lastClickTime;
+    private int _lastClickY = -1;
+
     public ListBox()
     {
         DefaultStyleKey = typeof(ListBox);
     }
+
+    /// <summary>
+    /// Raised when an item is activated via Enter, Space, or double-click
+    /// (clicking an already-selected item).
+    /// </summary>
+    public event EventHandler? ItemActivated;
 
     // ─── Dependency Properties ───────────────────────────────────────
 
@@ -154,8 +163,7 @@ public class ListBox : Selector
                 SelectLast();
                 break;
             case ConsoleKey.Enter or ConsoleKey.Spacebar:
-                // Enter/Space confirms the current selection — no additional action needed
-                // since SelectedItem is already set. Subclasses or bindings can react to SelectionChanged.
+                ItemActivated?.Invoke(this, EventArgs.Empty);
                 break;
         }
     }
@@ -207,6 +215,27 @@ public class ListBox : Selector
         if (count > 0)
         {
             SelectedIndex = count - 1;
+        }
+    }
+
+    /// <inheritdoc />
+    public override void OnMouseEvent(MouseEvent e)
+    {
+        if (e is { Action: MouseAction.Press, Button: MouseButton.Left })
+        {
+            var now = DateTime.UtcNow;
+
+            // Double-click: two presses within 500ms at same Y coordinate
+            if ((now - _lastClickTime).TotalMilliseconds < 500 && e.Y == _lastClickY)
+            {
+                ItemActivated?.Invoke(this, EventArgs.Empty);
+                _lastClickTime = DateTime.MinValue; // reset to avoid triple-click
+            }
+            else
+            {
+                _lastClickTime = now;
+                _lastClickY = e.Y;
+            }
         }
     }
 

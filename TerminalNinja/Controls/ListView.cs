@@ -195,7 +195,11 @@ public sealed class ListView : Selector
 
         buffer.FillRect(clipped, new Cell(' ', Foreground, Background));
 
-        if (Columns.Count == 0) return;
+        // Auto-create a default column if none defined
+        if (Columns.Count == 0)
+        {
+            Columns.Add(new ListViewColumn { Header = "Item", Width = 0 });
+        }
 
         var colWidths = ResolveColumnWidths(bounds.Width);
         var gridLineColor = DimColor(Foreground);
