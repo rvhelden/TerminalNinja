@@ -272,12 +272,32 @@ app.Run();</code></pre>
 app.ThemeName = "Dracula";   // Dracula color scheme
 app.ThemeName = "GruvboxDark"; // Gruvbox dark palette</code></pre>
       <p class="section-copy" style="margin-top:12px">
-        Themes define 49 color resource keys and implicit styles for all built-in controls including
-        <code>TextBlock</code>, <code>Button</code>, <code>Border</code>, <code>Window</code>,
-        <code>ListBox</code>, <code>ProgressBar</code>, <code>TextBox</code>, <code>ScrollViewer</code>,
-        <code>CheckBox</code>, <code>RadioButton</code>, <code>ComboBox</code>, <code>TabControl</code>,
-        <code>TreeView</code>, and <code>ListView</code>.
+        Themes define 58 color resource keys and implicit styles for all built-in controls.
+        Load custom themes from file or XAML string:
+      </p>
+      <pre><code class="language-csharp">app.LoadThemeFromFile("MyTheme.xaml");
+app.LoadThemeFromXaml(customXaml);</code></pre>
+      <p class="section-copy" style="margin-top:12px">
         Try switching themes in the <a href="./playground.html">playground</a>.
+      </p>
+    </section>
+
+    <!-- ─── Hot Reload ──────────────────────────────────────────────── -->
+    <section class="panel doc-section" id="hot-reload" aria-label="Hot Reload">
+      <h2>XAML Hot Reload</h2>
+      <p class="section-copy">
+        TerminalNinja automatically enables XAML hot reload when a debugger is attached.
+        Edit any <code>.xaml</code> file and save &mdash; the UI updates instantly without restarting.
+        ViewModels and application state are preserved.
+      </p>
+      <pre><code class="language-csharp">// Automatic — just run with debugger attached
+// Or enable manually:
+app.EnableHotReload("path/to/project");</code></pre>
+      <p class="section-copy" style="margin-top:12px">
+        Hot reload works by watching <code>.xaml</code> files with <code>FileSystemWatcher</code>,
+        re-parsing on change via <code>TerminalXaml.LoadFromStream</code>, and swapping the control tree.
+        Source-generated registries (control factories, property accessors) are unaffected &mdash;
+        only the view is reloaded. XAML parse errors are caught gracefully, not crashes.
       </p>
     </section>
 
