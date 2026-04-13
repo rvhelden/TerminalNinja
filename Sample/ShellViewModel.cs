@@ -66,6 +66,8 @@ public class ShellViewModel : ViewModelBase, IDisposable
             "TabControl" => TerminalXaml.Load<Border>(XamlLayouts.TabControlScreen),
             "ScrollViewer" => TerminalXaml.Load<Border>(XamlLayouts.ScrollViewerScreen),
             "ProgressBar" => TerminalXaml.Load<Border>(XamlLayouts.ProgressBarsScreen, new ProgressBarsViewModel()),
+            "ColorPicker" => TerminalXaml.Load<Border>(XamlLayouts.ColorPickerScreen),
+            "Image" => TerminalXaml.Load<Border>(XamlLayouts.ImageScreen, new Samples.Image.ImageViewModel()),
             "NumberPicker" => TerminalXaml.Load<Border>(XamlLayouts.NumberPickerScreen),
             "DatePicker" => TerminalXaml.Load<Border>(XamlLayouts.DatePickerScreen),
             "TimePicker" => TerminalXaml.Load<Border>(XamlLayouts.TimePickerScreen),

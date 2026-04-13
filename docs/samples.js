@@ -631,5 +631,40 @@ export const SAMPLES = [
         </StackPanel>
     </Border>
 </Window>`
+  },
+
+  {
+    id: "colorpicker",
+    title: "ColorPicker",
+    description: "Color selection with palette grid, hex entry, and preview swatch.",
+    docPage: "./samples/colorpicker.html",
+    xaml: `<Window xmlns="http://schemas.terminalninja.dev/xaml" Title="ColorPicker">
+    <Border BorderStyle="Rounded">
+        <StackPanel Orientation="Vertical">
+            <TextBlock StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1" Text=" ColorPicker" Padding="2,0,0,0" />
+            <TextBlock StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1" Text="" />
+            <ColorPicker StackPanel.SizeMode="Fixed" StackPanel.FixedSize="5" TabIndex="0" />
+            <TextBlock StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1" Text="" />
+            <ColorPicker StackPanel.SizeMode="Fixed" StackPanel.FixedSize="5" TabIndex="1" SelectedColor="#FF6B6B" />
+            <TextBlock StackPanel.SizeMode="Stretch" Text="" />
+        </StackPanel>
+    </Border>
+</Window>`
+  },
+
+  {
+    id: "image",
+    title: "Image",
+    description: "Pixel rendering using half-block characters for 2x vertical resolution.",
+    docPage: "./samples/image.html",
+    xaml: `<Window xmlns="http://schemas.terminalninja.dev/xaml" Title="Image">
+    <Border BorderStyle="Rounded">
+        <StackPanel Orientation="Vertical">
+            <TextBlock StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1" Text=" Image" Padding="2,0,0,0" />
+            <TextBlock StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1" Text="  Half-block rendering (source set programmatically)" Padding="2,0,0,0" />
+            <TextBlock StackPanel.SizeMode="Stretch" Text="" />
+        </StackPanel>
+    </Border>
+</Window>`
   }
 ];

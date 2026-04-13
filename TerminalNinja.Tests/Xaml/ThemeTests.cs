@@ -420,7 +420,7 @@ public class ThemeTests : IDisposable
     public async Task ThemeResourceKeys_Has34Constants()
     {
         var allKeys = GetAllThemeResourceKeys();
-        await Assert.That(allKeys.Count).IsEqualTo(54);
+        await Assert.That(allKeys.Count).IsEqualTo(58);
     }
 
     /// <summary>

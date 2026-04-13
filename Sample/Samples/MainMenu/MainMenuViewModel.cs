@@ -18,6 +18,8 @@ public class MainMenuViewModel : ViewModelBase
         "TabControl",
         "ScrollViewer",
         "ProgressBar",
+        "ColorPicker",
+        "Image",
         "NumberPicker",
         "DatePicker",
         "TimePicker",

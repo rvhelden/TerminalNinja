@@ -232,4 +232,20 @@ public static class ThemeResourceKeys
 
     /// <summary>Picker active field highlight color.</summary>
     public const string PickerHighlightColor = "ThemePickerHighlightColor";
+
+    // ────────────────────────────────────────────────────────────────
+    //  ColorPicker colors
+    // ────────────────────────────────────────────────────────────────
+
+    /// <summary>ColorPicker background color.</summary>
+    public const string ColorPickerBackgroundColor = "ThemeColorPickerBackgroundColor";
+
+    /// <summary>ColorPicker foreground color.</summary>
+    public const string ColorPickerForegroundColor = "ThemeColorPickerForegroundColor";
+
+    /// <summary>ColorPicker focus border color.</summary>
+    public const string ColorPickerFocusColor = "ThemeColorPickerFocusColor";
+
+    /// <summary>ColorPicker hover border color.</summary>
+    public const string ColorPickerHoverColor = "ThemeColorPickerHoverColor";
 }

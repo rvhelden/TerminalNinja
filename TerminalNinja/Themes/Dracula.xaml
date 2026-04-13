@@ -70,6 +70,12 @@
     <Color x:Key="ThemeListViewHeaderForegroundColor">#f8f8f2</Color>
     <Color x:Key="ThemeListViewGridLineColor">#44475a</Color>
 
+    <!-- ColorPicker colors -->
+    <Color x:Key="ThemeColorPickerBackgroundColor">#44475a</Color>
+    <Color x:Key="ThemeColorPickerForegroundColor">#f8f8f2</Color>
+    <Color x:Key="ThemeColorPickerFocusColor">#bd93f9</Color>
+    <Color x:Key="ThemeColorPickerHoverColor">#ff79c6</Color>
+
     <!-- Picker colors -->
     <Color x:Key="ThemePickerBackgroundColor">#44475a</Color>
     <Color x:Key="ThemePickerForegroundColor">#f8f8f2</Color>
@@ -230,6 +236,13 @@
         <Setter Property="Foreground" Value="{StaticResource ThemeListViewForegroundColor}" />
         <Setter Property="SelectedBackground" Value="{StaticResource ThemeSelectedBackgroundColor}" />
         <Setter Property="SelectedForeground" Value="{StaticResource ThemeSelectedForegroundColor}" />
+    </Style>
+
+    <Style TargetType="ColorPicker">
+        <Setter Property="Background" Value="{StaticResource ThemeColorPickerBackgroundColor}" />
+        <Setter Property="Foreground" Value="{StaticResource ThemeColorPickerForegroundColor}" />
+        <Setter Property="FocusColor" Value="{StaticResource ThemeColorPickerFocusColor}" />
+        <Setter Property="HoverColor" Value="{StaticResource ThemeColorPickerHoverColor}" />
     </Style>
 
     <Style TargetType="NumberPicker">

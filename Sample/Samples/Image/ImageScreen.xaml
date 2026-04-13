@@ -1,0 +1,15 @@
+<Border xmlns="http://schemas.terminalninja.dev/xaml"
+        BorderStyle="Rounded">
+    <StackPanel Orientation="Vertical">
+        <TextBlock StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1"
+                   Text=" Image" Padding="2,0,0,0" />
+        <TextBlock StackPanel.SizeMode="Fixed" StackPanel.FixedSize="2"
+                   Text="  Half-block rendering for 2x vertical pixel resolution. Each cell = 2 pixels."
+                   Padding="2,0,0,0" VerticalTextAlignment="Center" />
+        <TextBlock StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1" Text="" />
+
+        <Image StackPanel.SizeMode="Stretch"
+               Source="{Binding GradientImage}"
+               Stretch="Uniform" />
+    </StackPanel>
+</Border>

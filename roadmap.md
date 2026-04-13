@@ -22,10 +22,10 @@
 - [x] Add DatePicker control
 - [x] Add TimePicker control
 - [x] Add NumberPicker control
-- [ ] Add ColorPicker control
+- [x] Add ColorPicker control
 - [ ] Add FilePicker control
 - [ ] Add FolderPicker control
-- [ ] Add Image control
+- [x] Add Image control
 - [x] Add CheckBox control
 - [x] Add RadioButton control
 - [x] Add TextBox control
