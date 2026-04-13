@@ -187,13 +187,19 @@ public sealed class ColorPickerDialog : Window
                 break;
 
             case ConsoleKey.UpArrow:
-                if (!_hueMode)
+                if (_hueMode)
+                    _hueMode = false; // move from hue bar into SL gradient — no value change needed
+                else
                     _lightness = Math.Min(1, _lightness + 0.05);
                 UpdateColorFromHsl();
                 break;
 
             case ConsoleKey.DownArrow:
-                if (!_hueMode)
+                if (_hueMode)
+                    _hueMode = false; // move from hue bar into SL gradient
+                else if (_lightness <= 0.01)
+                    _hueMode = true; // at bottom of gradient — move back to hue bar
+                else
                     _lightness = Math.Max(0, _lightness - 0.05);
                 UpdateColorFromHsl();
                 break;
