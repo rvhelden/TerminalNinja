@@ -21,7 +21,7 @@
 
     <header class="panel">
       <h1>ProgressBar</h1>
-      <p class="section-copy">Determinate, indeterminate, and custom-character progress indicators.</p>
+      <p class="section-copy">Determinate, indeterminate, and styled progress indicators.</p>
       <div class="hero-actions" style="margin-top:14px">
         <a class="btn btn-primary" href="../playground.html?sample=progressbar">Try in Playground</a>
       </div>
@@ -33,7 +33,7 @@
         The <code>ProgressBar</code> control displays a horizontal bar indicating progress.
         It supports three modes: <strong>determinate</strong> (bound to a value 0-100),
         <strong>indeterminate</strong> (animated marquee), and <strong>static</strong> with
-        customizable bar and track characters.
+        customizable colors.
       </p>
     </section>
 
@@ -53,10 +53,10 @@
 &lt;!-- Indeterminate (animated marquee) --&gt;
 &lt;ProgressBar IsIndeterminate="True" /&gt;
 
-&lt;!-- Custom characters --&gt;
-&lt;ProgressBar Value="25" BarCharacter="=" TrackCharacter="-" /&gt;
+&lt;!-- Custom color --&gt;
+&lt;ProgressBar Value="25" Foreground="#E06C75" /&gt;
 
-&lt;!-- Default characters at 75% --&gt;
+&lt;!-- Default at 75% --&gt;
 &lt;ProgressBar Value="75" /&gt;</code></pre>
         </div>
       </div>
@@ -97,7 +97,7 @@
         <li><code>Value</code> property (0-100) for determinate progress</li>
         <li><code>IsIndeterminate="True"</code> for animated marquee mode</li>
         <li><code>ShowPercentage="True"</code> to display the percentage text</li>
-        <li><code>BarCharacter</code> and <code>TrackCharacter</code> for custom rendering</li>
+        <li><code>Foreground</code> and <code>TrackForeground</code> for color customization</li>
         <li>Timer-based animation with <code>ViewModelBase.SetProperty</code></li>
         <li><code>IDisposable</code> pattern for timer cleanup on navigation</li>
       </ul>

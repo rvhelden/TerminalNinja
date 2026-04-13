@@ -26,14 +26,14 @@
 
         <!-- Static progress bars at fixed levels -->
         <TextBlock StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1"
-                   Text="  Static (25%, custom chars):" Padding="2,0,0,0" />
+                   Text="  Static (25%, custom color):" Padding="2,0,0,0" />
         <ProgressBar StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1"
-                     Value="25" BarCharacter="=" TrackCharacter="-" />
+                     Value="25" Foreground="#E06C75" />
 
         <TextBlock StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1" Text="" />
 
         <TextBlock StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1"
-                   Text="  Static (75%, default chars):" Padding="2,0,0,0" />
+                   Text="  Static (75%):" Padding="2,0,0,0" />
         <ProgressBar StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1"
                      Value="75" />
 

@@ -193,6 +193,7 @@ public class ListBox : Selector
         }
 
         SelectedIndex = newIndex;
+        ScrollSelectedIntoView();
     }
 
     /// <summary>
@@ -203,6 +204,7 @@ public class ListBox : Selector
         if (ItemsPanel.Children.Count > 0)
         {
             SelectedIndex = 0;
+            ScrollSelectedIntoView();
         }
     }
 
@@ -215,6 +217,26 @@ public class ListBox : Selector
         if (count > 0)
         {
             SelectedIndex = count - 1;
+            ScrollSelectedIntoView();
+        }
+    }
+
+    /// <summary>
+    /// If this ListBox is inside a ScrollViewer, scrolls to keep the selected item visible.
+    /// </summary>
+    private void ScrollSelectedIntoView()
+    {
+        if (SelectedIndex < 0) return;
+
+        var current = Parent;
+        while (current != null)
+        {
+            if (current is ScrollViewer sv)
+            {
+                sv.ScrollIntoView(SelectedIndex);
+                return;
+            }
+            current = current.Parent;
         }
     }
 

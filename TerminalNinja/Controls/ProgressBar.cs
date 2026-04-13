@@ -24,6 +24,17 @@ public sealed class ProgressBar : FrameworkElement, IDisposable
     /// <summary>Fraction of the bar length occupied by the indeterminate sliding block body.</summary>
     private const double IndeterminateBlockRatio = 0.15;
 
+    /// <summary>How much to lighten the Foreground at the trailing edge of the gradient (0-1).</summary>
+    private const double GradientLightenAmount = 0.35;
+
+    // Unicode block characters for sub-cell precision rendering
+    private const char FullBlock = '\u2588';       // █
+    private const char LeftHalfBlock = '\u258C';   // ▌
+    private const char RightHalfBlock = '\u2590';  // ▐
+    private const char UpperHalfBlock = '\u2580';  // ▀
+    private const char LowerHalfBlock = '\u2584';  // ▄
+    private const char TrackDot = '\u00B7';        // · middle dot
+
     public ProgressBar()
     {
         DefaultStyleKey = typeof(ProgressBar);
@@ -74,18 +85,6 @@ public sealed class ProgressBar : FrameworkElement, IDisposable
     public static readonly DependencyProperty HeightProperty =
         DependencyProperty.Register(nameof(Height), typeof(Size), typeof(ProgressBar),
             new FrameworkPropertyMetadata(Size.Absolute(1), affectsRender: true));
-
-    public static readonly DependencyProperty BarCharacterProperty =
-        DependencyProperty.Register(nameof(BarCharacter), typeof(char), typeof(ProgressBar),
-            new FrameworkPropertyMetadata('\u2501', affectsRender: true)); // '━' heavy horizontal
-
-    public static readonly DependencyProperty TrackCharacterProperty =
-        DependencyProperty.Register(nameof(TrackCharacter), typeof(char), typeof(ProgressBar),
-            new FrameworkPropertyMetadata('\u2500', affectsRender: true)); // '─' light horizontal
-
-    public static readonly DependencyProperty IndeterminateAccentCharacterProperty =
-        DependencyProperty.Register(nameof(IndeterminateAccentCharacter), typeof(char), typeof(ProgressBar),
-            new FrameworkPropertyMetadata('\u2578', affectsRender: true)); // '╸' heavy left
 
     public static readonly DependencyProperty ShowPercentageProperty =
         DependencyProperty.Register(nameof(ShowPercentage), typeof(bool), typeof(ProgressBar),
@@ -161,27 +160,6 @@ public sealed class ProgressBar : FrameworkElement, IDisposable
     {
         get => (Size)GetValue(HeightProperty)!;
         set => SetValue(HeightProperty, value);
-    }
-
-    /// <summary>Gets or sets the character used for the filled portion. Default is '━' (heavy horizontal).</summary>
-    public char BarCharacter
-    {
-        get => (char)GetValue(BarCharacterProperty)!;
-        set => SetValue(BarCharacterProperty, value);
-    }
-
-    /// <summary>Gets or sets the character used for the unfilled portion. Default is '─'.</summary>
-    public char TrackCharacter
-    {
-        get => (char)GetValue(TrackCharacterProperty)!;
-        set => SetValue(TrackCharacterProperty, value);
-    }
-
-    /// <summary>Gets or sets the accent character used for the leading/trailing gradient in indeterminate mode. Default is '╸' (heavy left).</summary>
-    public char IndeterminateAccentCharacter
-    {
-        get => (char)GetValue(IndeterminateAccentCharacterProperty)!;
-        set => SetValue(IndeterminateAccentCharacterProperty, value);
     }
 
     /// <summary>Gets or sets whether to display a percentage text overlay on the bar.</summary>
@@ -270,8 +248,8 @@ public sealed class ProgressBar : FrameworkElement, IDisposable
         {
             offset++;
             // We don't know the track length here, so just increment and
-            // let Render handle wrapping. Use a reasonable upper bound.
-            if (offset > 200)
+            // let Render handle wrapping. Use a reasonable upper bound (half-cell units).
+            if (offset > 400)
             {
                 _animationForward = false;
                 offset--;
@@ -358,15 +336,23 @@ public sealed class ProgressBar : FrameworkElement, IDisposable
     private void RenderHorizontalDeterminate(CellBuffer buffer, Rect bounds)
     {
         var range = Maximum - Minimum;
-        var fillWidth = range > 0
-            ? (int)Math.Round((Value - Minimum) / range * bounds.Width)
-            : 0;
+        var percentage = range > 0 ? (Value - Minimum) / range : 0.0;
 
-        fillWidth = Math.Clamp(fillWidth, 0, bounds.Width);
+        // Half-cell precision: 2x horizontal resolution
+        var fillHalfCells = (int)Math.Round(percentage * bounds.Width * 2);
+        fillHalfCells = Math.Clamp(fillHalfCells, 0, bounds.Width * 2);
+        var fullFilledCells = fillHalfCells / 2;
+        var hasHalfCell = fillHalfCells % 2 == 1;
+        var totalFillCells = fullFilledCells + (hasHalfCell ? 1 : 0);
 
         // Build percentage text if needed
         var percentText = ShowPercentage ? GetPercentageText() : null;
         var textStartX = percentText != null ? bounds.X + (bounds.Width - percentText.Length) / 2 : -1;
+
+        var fg = Foreground;
+        var trackFg = TrackForeground;
+        var bg = Background;
+        var gradientEnd = Lighten(fg, GradientLightenAmount);
 
         for (var y = bounds.Y; y < bounds.Bottom; y++)
         {
@@ -374,10 +360,33 @@ public sealed class ProgressBar : FrameworkElement, IDisposable
             {
                 if (!buffer.IsInBounds(x, y)) continue;
 
-                var isFilled = x < bounds.X + fillWidth;
-                var barChar = isFilled ? BarCharacter : TrackCharacter;
-                var fg = isFilled ? Foreground : TrackForeground;
-                var bg = isFilled ? Background : Color.Transparent;
+                var relX = x - bounds.X;
+                char ch;
+                Color cellFg, cellBg;
+
+                if (relX < fullFilledCells)
+                {
+                    var t = totalFillCells > 1 ? (double)relX / (totalFillCells - 1) : 0.0;
+                    var color = LerpColor(fg, gradientEnd, t);
+                    ch = FullBlock;
+                    cellFg = color;
+                    cellBg = color;
+                }
+                else if (relX == fullFilledCells && hasHalfCell)
+                {
+                    var t = totalFillCells > 1 ? (double)relX / (totalFillCells - 1) : 0.0;
+                    var color = LerpColor(fg, gradientEnd, t);
+                    ch = LeftHalfBlock;
+                    cellFg = color;
+                    cellBg = bg;
+                }
+                else
+                {
+                    // Track dot
+                    ch = TrackDot;
+                    cellFg = trackFg;
+                    cellBg = bg;
+                }
 
                 // Overlay percentage text
                 if (percentText != null)
@@ -385,14 +394,24 @@ public sealed class ProgressBar : FrameworkElement, IDisposable
                     var textIdx = x - textStartX;
                     if (textIdx >= 0 && textIdx < percentText.Length)
                     {
-                        barChar = percentText[textIdx];
-                        // Invert fill/track colors so text is readable on both halves
-                        fg = isFilled ? Background : Foreground;
-                        bg = isFilled ? Foreground : Background;
+                        var isFilled = relX < totalFillCells;
+                        ch = percentText[textIdx];
+                        if (isFilled)
+                        {
+                            var t = totalFillCells > 1 ? (double)Math.Min(relX, totalFillCells - 1) / (totalFillCells - 1) : 0.0;
+                            var fillColor = LerpColor(fg, gradientEnd, t);
+                            cellFg = trackFg;
+                            cellBg = fillColor;
+                        }
+                        else
+                        {
+                            cellFg = fg;
+                            cellBg = trackFg;
+                        }
                     }
                 }
 
-                buffer.SetChar(x, y, barChar, fg, bg);
+                buffer.SetChar(x, y, ch, cellFg, cellBg);
             }
         }
     }
@@ -400,14 +419,24 @@ public sealed class ProgressBar : FrameworkElement, IDisposable
     private void RenderVerticalDeterminate(CellBuffer buffer, Rect bounds)
     {
         var range = Maximum - Minimum;
-        var fillHeight = range > 0
-            ? (int)Math.Round((Value - Minimum) / range * bounds.Height)
-            : 0;
+        var percentage = range > 0 ? (Value - Minimum) / range : 0.0;
 
-        fillHeight = Math.Clamp(fillHeight, 0, bounds.Height);
+        // Half-cell precision: 2x vertical resolution
+        var fillHalfCells = (int)Math.Round(percentage * bounds.Height * 2);
+        fillHalfCells = Math.Clamp(fillHalfCells, 0, bounds.Height * 2);
+        var fullFilledCells = fillHalfCells / 2;
+        var hasHalfCell = fillHalfCells % 2 == 1;
+        var totalFillCells = fullFilledCells + (hasHalfCell ? 1 : 0);
 
-        // Fill from bottom to top
-        var fillStartY = bounds.Bottom - fillHeight;
+        // Fill from bottom: fully filled rows start at fillStartY
+        var fillStartY = bounds.Bottom - fullFilledCells;
+        // Boundary row (if any) is one row above the fully filled region
+        var boundaryY = hasHalfCell ? fillStartY - 1 : -1;
+
+        var fg = Foreground;
+        var trackFg = TrackForeground;
+        var bg = Background;
+        var gradientEnd = Lighten(fg, GradientLightenAmount);
 
         for (var y = bounds.Y; y < bounds.Bottom; y++)
         {
@@ -415,24 +444,46 @@ public sealed class ProgressBar : FrameworkElement, IDisposable
             {
                 if (!buffer.IsInBounds(x, y)) continue;
 
-                var isFilled = y >= fillStartY;
-                var barChar = isFilled ? BarCharacter : TrackCharacter;
-                var fg = isFilled ? Foreground : TrackForeground;
-                var bg = isFilled ? Background : Color.Transparent;
+                char ch;
+                Color cellFg, cellBg;
 
-                buffer.SetChar(x, y, barChar, fg, bg);
+                if (y >= fillStartY)
+                {
+                    // Gradient: bottom = Foreground, top of fill = lighter
+                    var fillRelPos = bounds.Bottom - 1 - y;
+                    var t = totalFillCells > 1 ? (double)fillRelPos / (totalFillCells - 1) : 0.0;
+                    var color = LerpColor(fg, gradientEnd, t);
+                    ch = FullBlock;
+                    cellFg = color;
+                    cellBg = color;
+                }
+                else if (y == boundaryY)
+                {
+                    // Boundary: bottom half = fill (lightest gradient), top half = background
+                    var color = totalFillCells > 1 ? gradientEnd : fg;
+                    ch = LowerHalfBlock;
+                    cellFg = color;
+                    cellBg = bg;
+                }
+                else
+                {
+                    // Track dot
+                    ch = TrackDot;
+                    cellFg = trackFg;
+                    cellBg = bg;
+                }
+
+                buffer.SetChar(x, y, ch, cellFg, cellBg);
             }
         }
     }
 
     private void RenderHorizontalIndeterminate(CellBuffer buffer, Rect bounds)
     {
-        var trackWidth = bounds.Width;
-        var bodySize = Math.Max(1, (int)(trackWidth * IndeterminateBlockRatio));
-        // Add lead+trail accent chars for a gradient look (▪■■■▪)
-        var hasAccents = bodySize >= 2;
-        var totalBlockSize = hasAccents ? bodySize + 2 : bodySize;
-        var maxOffset = Math.Max(0, trackWidth - totalBlockSize);
+        // Half-cell units for smooth sliding
+        var trackHalfCells = bounds.Width * 2;
+        var bodyHalfSize = Math.Max(2, (int)(trackHalfCells * IndeterminateBlockRatio));
+        var maxOffset = Math.Max(0, trackHalfCells - bodyHalfSize);
 
         var offset = Interlocked.CompareExchange(ref _animationOffset, 0, 0);
         offset = Math.Clamp(offset, 0, maxOffset);
@@ -440,8 +491,13 @@ public sealed class ProgressBar : FrameworkElement, IDisposable
         if (offset >= maxOffset) _animationForward = false;
         if (offset <= 0) _animationForward = true;
 
-        var blockStart = bounds.X + offset;
-        var blockEnd = blockStart + totalBlockSize;
+        var blockStartHalf = offset;
+        var blockEndHalf = offset + bodyHalfSize;
+
+        var fg = Foreground;
+        var trackFg = TrackForeground;
+        var bg = Background;
+        var gradientEnd = Lighten(fg, GradientLightenAmount);
 
         for (var y = bounds.Y; y < bounds.Bottom; y++)
         {
@@ -449,44 +505,59 @@ public sealed class ProgressBar : FrameworkElement, IDisposable
             {
                 if (!buffer.IsInBounds(x, y)) continue;
 
-                char ch;
-                Color fg, bg;
+                var relX = x - bounds.X;
+                var cellLeftHalf = relX * 2;
+                var cellRightHalf = relX * 2 + 1;
 
-                if (hasAccents && (x == blockStart || x == blockEnd - 1))
+                var leftInBlock = cellLeftHalf >= blockStartHalf && cellLeftHalf < blockEndHalf;
+                var rightInBlock = cellRightHalf >= blockStartHalf && cellRightHalf < blockEndHalf;
+
+                char ch;
+                Color cellFg, cellBg;
+
+                if (leftInBlock && rightInBlock)
                 {
-                    // Leading/trailing accent — gradient fade
-                    ch = IndeterminateAccentCharacter;
-                    fg = Foreground;
-                    bg = Background;
+                    var t = bodyHalfSize > 1 ? (double)(cellLeftHalf - blockStartHalf) / (bodyHalfSize - 1) : 0.0;
+                    var color = LerpColor(fg, gradientEnd, t);
+                    ch = FullBlock;
+                    cellFg = color;
+                    cellBg = color;
                 }
-                else if (x > blockStart && x < blockEnd - (hasAccents ? 1 : 0)
-                         || (!hasAccents && x >= blockStart && x < blockEnd))
+                else if (leftInBlock)
                 {
-                    // Body
-                    ch = BarCharacter;
-                    fg = Foreground;
-                    bg = Background;
+                    var t = bodyHalfSize > 1 ? (double)(cellLeftHalf - blockStartHalf) / (bodyHalfSize - 1) : 0.0;
+                    var color = LerpColor(fg, gradientEnd, t);
+                    ch = LeftHalfBlock;
+                    cellFg = color;
+                    cellBg = bg;
+                }
+                else if (rightInBlock)
+                {
+                    var t = bodyHalfSize > 1 ? (double)(cellRightHalf - blockStartHalf) / (bodyHalfSize - 1) : 0.0;
+                    var color = LerpColor(fg, gradientEnd, t);
+                    ch = RightHalfBlock;
+                    cellFg = color;
+                    cellBg = bg;
                 }
                 else
                 {
-                    // Track
-                    ch = TrackCharacter;
-                    fg = TrackForeground;
-                    bg = Color.Transparent;
+                    // Track dot
+                    ch = TrackDot;
+                    cellFg = trackFg;
+                    cellBg = bg;
                 }
 
-                buffer.SetChar(x, y, ch, fg, bg);
+                buffer.SetChar(x, y, ch, cellFg, cellBg);
             }
         }
     }
 
     private void RenderVerticalIndeterminate(CellBuffer buffer, Rect bounds)
     {
-        var trackHeight = bounds.Height;
-        var bodySize = Math.Max(1, (int)(trackHeight * IndeterminateBlockRatio));
-        var hasAccents = bodySize >= 2;
-        var totalBlockSize = hasAccents ? bodySize + 2 : bodySize;
-        var maxOffset = Math.Max(0, trackHeight - totalBlockSize);
+        // Half-cell units for smooth sliding
+        var trackHalfCells = bounds.Height * 2;
+        var bodyHalfSize = Math.Max(2, (int)(trackHalfCells * IndeterminateBlockRatio));
+        var maxOffset = Math.Max(0, trackHalfCells - bodyHalfSize);
 
         var offset = Interlocked.CompareExchange(ref _animationOffset, 0, 0);
         offset = Math.Clamp(offset, 0, maxOffset);
@@ -494,8 +565,13 @@ public sealed class ProgressBar : FrameworkElement, IDisposable
         if (offset >= maxOffset) _animationForward = false;
         if (offset <= 0) _animationForward = true;
 
-        var blockStart = bounds.Y + offset;
-        var blockEnd = blockStart + totalBlockSize;
+        var blockStartHalf = offset;
+        var blockEndHalf = offset + bodyHalfSize;
+
+        var fg = Foreground;
+        var trackFg = TrackForeground;
+        var bg = Background;
+        var gradientEnd = Lighten(fg, GradientLightenAmount);
 
         for (var y = bounds.Y; y < bounds.Bottom; y++)
         {
@@ -503,32 +579,65 @@ public sealed class ProgressBar : FrameworkElement, IDisposable
             {
                 if (!buffer.IsInBounds(x, y)) continue;
 
-                char ch;
-                Color fg, bg;
+                var relY = y - bounds.Y;
+                var cellTopHalf = relY * 2;
+                var cellBottomHalf = relY * 2 + 1;
 
-                if (hasAccents && (y == blockStart || y == blockEnd - 1))
+                var topInBlock = cellTopHalf >= blockStartHalf && cellTopHalf < blockEndHalf;
+                var bottomInBlock = cellBottomHalf >= blockStartHalf && cellBottomHalf < blockEndHalf;
+
+                char ch;
+                Color cellFg, cellBg;
+
+                if (topInBlock && bottomInBlock)
                 {
-                    ch = IndeterminateAccentCharacter;
-                    fg = Foreground;
-                    bg = Background;
+                    var t = bodyHalfSize > 1 ? (double)(cellTopHalf - blockStartHalf) / (bodyHalfSize - 1) : 0.0;
+                    var color = LerpColor(fg, gradientEnd, t);
+                    ch = FullBlock;
+                    cellFg = color;
+                    cellBg = color;
                 }
-                else if (y > blockStart && y < blockEnd - (hasAccents ? 1 : 0)
-                         || (!hasAccents && y >= blockStart && y < blockEnd))
+                else if (topInBlock)
                 {
-                    ch = BarCharacter;
-                    fg = Foreground;
-                    bg = Background;
+                    var t = bodyHalfSize > 1 ? (double)(cellTopHalf - blockStartHalf) / (bodyHalfSize - 1) : 0.0;
+                    var color = LerpColor(fg, gradientEnd, t);
+                    ch = UpperHalfBlock;
+                    cellFg = color;
+                    cellBg = bg;
+                }
+                else if (bottomInBlock)
+                {
+                    var t = bodyHalfSize > 1 ? (double)(cellBottomHalf - blockStartHalf) / (bodyHalfSize - 1) : 0.0;
+                    var color = LerpColor(fg, gradientEnd, t);
+                    ch = LowerHalfBlock;
+                    cellFg = color;
+                    cellBg = bg;
                 }
                 else
                 {
-                    ch = TrackCharacter;
-                    fg = TrackForeground;
-                    bg = Color.Transparent;
+                    // Track dot
+                    ch = TrackDot;
+                    cellFg = trackFg;
+                    cellBg = bg;
                 }
 
-                buffer.SetChar(x, y, ch, fg, bg);
+                buffer.SetChar(x, y, ch, cellFg, cellBg);
             }
         }
+    }
+
+    private static Color LerpColor(Color a, Color b, double t)
+    {
+        t = Math.Clamp(t, 0.0, 1.0);
+        return new Color(
+            (byte)(a.R + (b.R - a.R) * t),
+            (byte)(a.G + (b.G - a.G) * t),
+            (byte)(a.B + (b.B - a.B) * t));
+    }
+
+    private static Color Lighten(Color color, double amount)
+    {
+        return LerpColor(color, new Color(255, 255, 255), amount);
     }
 
     private string GetPercentageText()

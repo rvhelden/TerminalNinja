@@ -2,7 +2,7 @@ namespace TerminalNinja.Tests.Unit.Controls;
 
 /// <summary>
 /// Comprehensive tests for the ProgressBar control covering:
-/// - Determinate rendering (horizontal and vertical)
+/// - Determinate rendering (horizontal and vertical) with half-block precision and gradient
 /// - Value coercion (clamping to [Minimum, Maximum])
 /// - Indeterminate mode (sliding block animation)
 /// - ShowPercentage text overlay
@@ -15,6 +15,11 @@ public class ProgressBarTests
     private CellBuffer _buffer = null!;
     private const int BufferWidth = 80;
     private const int BufferHeight = 24;
+
+    private const char FullBlock = '\u2588';
+    private const char LeftHalfBlock = '\u258C';
+    private const char LowerHalfBlock = '\u2584';
+    private const char TrackDot = '\u00B7';
 
     [Before(Test)]
     public Task Setup()
@@ -35,7 +40,7 @@ public class ProgressBarTests
     #region Determinate Horizontal Rendering
 
     [Test]
-    public async Task Render_ZeroPercent_ShowsOnlyTrackCharacters()
+    public async Task Render_ZeroPercent_ShowsOnlyTrackDots()
     {
         // Arrange
         var pb = new ProgressBar
@@ -51,15 +56,17 @@ public class ProgressBarTests
         // Act
         pb.Render(_buffer, bounds);
 
-        // Assert — all 10 cells should be the track character
+        // Assert — all 10 cells should be track dots
         for (var x = 0; x < 10; x++)
         {
-            await Assert.That(_buffer.GetCell(x, 0).Character).IsEqualTo(pb.TrackCharacter);
+            var cell = _buffer.GetCell(x, 0);
+            await Assert.That(cell.Character).IsEqualTo(TrackDot);
+            await Assert.That(cell.Foreground).IsEqualTo(pb.TrackForeground);
         }
     }
 
     [Test]
-    public async Task Render_HundredPercent_ShowsOnlyBarCharacters()
+    public async Task Render_HundredPercent_ShowsOnlyFilledBlocks()
     {
         // Arrange
         var pb = new ProgressBar
@@ -75,17 +82,20 @@ public class ProgressBarTests
         // Act
         pb.Render(_buffer, bounds);
 
-        // Assert — all 10 cells should be the bar character
+        // Assert — all cells are full blocks with fg == bg (solid), first cell is exact Foreground
+        await Assert.That(_buffer.GetCell(0, 0).Foreground).IsEqualTo(pb.Foreground);
         for (var x = 0; x < 10; x++)
         {
-            await Assert.That(_buffer.GetCell(x, 0).Character).IsEqualTo(pb.BarCharacter);
+            var cell = _buffer.GetCell(x, 0);
+            await Assert.That(cell.Character).IsEqualTo(FullBlock);
+            await Assert.That(cell.Foreground).IsEqualTo(cell.Background);
         }
     }
 
     [Test]
-    public async Task Render_FiftyPercent_FillsHalfWithBarCharacter()
+    public async Task Render_FiftyPercent_FillsHalfWithBlocksHalfWithDots()
     {
-        // Arrange
+        // Arrange — 50% of 10 cells = 10 half-cells = 5 full cells, no boundary
         var pb = new ProgressBar
         {
             Value = 50,
@@ -99,49 +109,168 @@ public class ProgressBarTests
         // Act
         pb.Render(_buffer, bounds);
 
-        // Assert — first 5 should be bar character, last 5 should be track character
+        // Assert — first 5 filled blocks, last 5 track dots
         for (var x = 0; x < 5; x++)
         {
-            await Assert.That(_buffer.GetCell(x, 0).Character).IsEqualTo(pb.BarCharacter);
+            var cell = _buffer.GetCell(x, 0);
+            await Assert.That(cell.Character).IsEqualTo(FullBlock);
+            await Assert.That(cell.Foreground).IsEqualTo(cell.Background);
         }
         for (var x = 5; x < 10; x++)
         {
-            await Assert.That(_buffer.GetCell(x, 0).Character).IsEqualTo(pb.TrackCharacter);
+            await Assert.That(_buffer.GetCell(x, 0).Character).IsEqualTo(TrackDot);
         }
     }
 
     [Test]
-    public async Task Render_CustomCharacters_UsesSpecifiedBarAndTrackChars()
+    public async Task Render_SubCellPrecision_ShowsBoundaryHalfBlock()
     {
-        // Arrange
+        // Arrange — 25% of 10 cells = 5 half-cells = 2 full + 1 boundary
         var pb = new ProgressBar
         {
-            Value = 50,
+            Value = 25,
             Minimum = 0,
             Maximum = 100,
             Width = Size.Absolute(10),
-            Height = Size.Absolute(1),
-            BarCharacter = '#',
-            TrackCharacter = '-'
+            Height = Size.Absolute(1)
         };
         var bounds = new Rect(0, 0, BufferWidth, BufferHeight);
 
         // Act
         pb.Render(_buffer, bounds);
 
-        // Assert
-        for (var x = 0; x < 5; x++)
+        // Assert — cells 0-1 filled blocks, cell 2 boundary half-block, cells 3-9 track dots
+        for (var x = 0; x < 2; x++)
         {
-            await Assert.That(_buffer.GetCell(x, 0).Character).IsEqualTo('#');
+            var cell = _buffer.GetCell(x, 0);
+            await Assert.That(cell.Character).IsEqualTo(FullBlock);
+            await Assert.That(cell.Foreground).IsEqualTo(cell.Background);
         }
-        for (var x = 5; x < 10; x++)
+
+        var boundary = _buffer.GetCell(2, 0);
+        await Assert.That(boundary.Character).IsEqualTo(LeftHalfBlock);
+
+        for (var x = 3; x < 10; x++)
         {
-            await Assert.That(_buffer.GetCell(x, 0).Character).IsEqualTo('-');
+            await Assert.That(_buffer.GetCell(x, 0).Character).IsEqualTo(TrackDot);
         }
     }
 
     [Test]
-    public async Task Render_ForegroundColor_AppliedToFilledPortion()
+    public async Task Render_ExactCellBoundary_NoBoundaryChar()
+    {
+        // Arrange — 50% of 10 cells = 10 half-cells = 5 full cells, no half-block needed
+        var pb = new ProgressBar
+        {
+            Value = 50,
+            Minimum = 0,
+            Maximum = 100,
+            Width = Size.Absolute(10),
+            Height = Size.Absolute(1)
+        };
+        var bounds = new Rect(0, 0, BufferWidth, BufferHeight);
+
+        // Act
+        pb.Render(_buffer, bounds);
+
+        // Assert — no half-block character; filled are full blocks, track are dots
+        for (var x = 0; x < 5; x++)
+        {
+            await Assert.That(_buffer.GetCell(x, 0).Character).IsEqualTo(FullBlock);
+        }
+        for (var x = 5; x < 10; x++)
+        {
+            await Assert.That(_buffer.GetCell(x, 0).Character).IsEqualTo(TrackDot);
+        }
+    }
+
+    [Test]
+    public async Task Render_Gradient_FirstCellIsForegroundLastCellIsLighter()
+    {
+        // Arrange — 100% fill on a 10-cell bar
+        var pb = new ProgressBar
+        {
+            Value = 100,
+            Minimum = 0,
+            Maximum = 100,
+            Width = Size.Absolute(10),
+            Height = Size.Absolute(1),
+            Foreground = new Color(86, 156, 214)
+        };
+        var bounds = new Rect(0, 0, BufferWidth, BufferHeight);
+
+        // Act
+        pb.Render(_buffer, bounds);
+
+        // Assert — first cell is exact Foreground, last cell is lighter (gradient)
+        var firstCell = _buffer.GetCell(0, 0);
+        var lastCell = _buffer.GetCell(9, 0);
+        await Assert.That(firstCell.Foreground).IsEqualTo(pb.Foreground);
+
+        // Last cell should be brighter (each channel closer to 255)
+        await Assert.That(lastCell.Foreground.R).IsGreaterThan(firstCell.Foreground.R);
+        await Assert.That(lastCell.Foreground.G).IsGreaterThan(firstCell.Foreground.G);
+        await Assert.That(lastCell.Foreground.B).IsGreaterThan(firstCell.Foreground.B);
+    }
+
+    [Test]
+    public async Task Render_FilledCells_HaveSolidBlockAppearance()
+    {
+        // Arrange
+        var pb = new ProgressBar
+        {
+            Value = 100,
+            Minimum = 0,
+            Maximum = 100,
+            Width = Size.Absolute(5),
+            Height = Size.Absolute(1),
+            Foreground = Color.Cyan
+        };
+        var bounds = new Rect(0, 0, BufferWidth, BufferHeight);
+
+        // Act
+        pb.Render(_buffer, bounds);
+
+        // Assert — all filled cells have fg == bg (solid block appearance)
+        for (var x = 0; x < 5; x++)
+        {
+            var cell = _buffer.GetCell(x, 0);
+            await Assert.That(cell.Character).IsEqualTo(FullBlock);
+            await Assert.That(cell.Foreground).IsEqualTo(cell.Background);
+        }
+        // First cell should be exact Foreground
+        await Assert.That(_buffer.GetCell(0, 0).Foreground).IsEqualTo(Color.Cyan);
+    }
+
+    [Test]
+    public async Task Render_TrackCells_ShowDotsWithTrackForeground()
+    {
+        // Arrange
+        var pb = new ProgressBar
+        {
+            Value = 0,
+            Minimum = 0,
+            Maximum = 100,
+            Width = Size.Absolute(5),
+            Height = Size.Absolute(1),
+            TrackForeground = Color.Red
+        };
+        var bounds = new Rect(0, 0, BufferWidth, BufferHeight);
+
+        // Act
+        pb.Render(_buffer, bounds);
+
+        // Assert — track cells show dots with TrackForeground color
+        for (var x = 0; x < 5; x++)
+        {
+            var cell = _buffer.GetCell(x, 0);
+            await Assert.That(cell.Character).IsEqualTo(TrackDot);
+            await Assert.That(cell.Foreground).IsEqualTo(Color.Red);
+        }
+    }
+
+    [Test]
+    public async Task Render_ForegroundColor_AppliedToFirstFilledCell()
     {
         // Arrange
         var pb = new ProgressBar
@@ -158,12 +287,12 @@ public class ProgressBarTests
         // Act
         pb.Render(_buffer, bounds);
 
-        // Assert — foreground color used for the bar character's foreground
+        // Assert — first cell (gradient start) is exact Foreground
         await Assert.That(_buffer.GetCell(0, 0).Foreground).IsEqualTo(Color.Cyan);
     }
 
     [Test]
-    public async Task Render_TrackForegroundColor_AppliedToTrackPortion()
+    public async Task Render_TrackForegroundColor_AppliedToTrackDots()
     {
         // Arrange
         var pb = new ProgressBar
@@ -180,7 +309,7 @@ public class ProgressBarTests
         // Act
         pb.Render(_buffer, bounds);
 
-        // Assert — track char uses TrackForeground as its foreground color
+        // Assert
         await Assert.That(_buffer.GetCell(0, 0).Foreground).IsEqualTo(Color.Red);
     }
 
@@ -201,12 +330,14 @@ public class ProgressBarTests
         // Act
         pb.Render(_buffer, bounds);
 
-        // Assert — all 3 rows should have bar characters
+        // Assert — all 3 rows should have filled blocks with solid appearance
         for (var y = 0; y < 3; y++)
         {
             for (var x = 0; x < 10; x++)
             {
-                await Assert.That(_buffer.GetCell(x, y).Character).IsEqualTo(pb.BarCharacter);
+                var cell = _buffer.GetCell(x, y);
+                await Assert.That(cell.Character).IsEqualTo(FullBlock);
+                await Assert.That(cell.Foreground).IsEqualTo(cell.Background);
             }
         }
     }
@@ -228,14 +359,14 @@ public class ProgressBarTests
         // Act
         pb.Render(_buffer, bounds);
 
-        // Assert — 50% fill = 5 filled cells
+        // Assert — 50% fill = 5 filled blocks, 5 track dots
         for (var x = 0; x < 5; x++)
         {
-            await Assert.That(_buffer.GetCell(x, 0).Character).IsEqualTo(pb.BarCharacter);
+            await Assert.That(_buffer.GetCell(x, 0).Character).IsEqualTo(FullBlock);
         }
         for (var x = 5; x < 10; x++)
         {
-            await Assert.That(_buffer.GetCell(x, 0).Character).IsEqualTo(pb.TrackCharacter);
+            await Assert.That(_buffer.GetCell(x, 0).Character).IsEqualTo(TrackDot);
         }
     }
 
@@ -246,7 +377,7 @@ public class ProgressBarTests
     #region Determinate Vertical Rendering
 
     [Test]
-    public async Task Render_VerticalZeroPercent_ShowsOnlyTrackCharacters()
+    public async Task Render_VerticalZeroPercent_ShowsOnlyTrackDots()
     {
         // Arrange
         var pb = new ProgressBar
@@ -263,15 +394,17 @@ public class ProgressBarTests
         // Act
         pb.Render(_buffer, bounds);
 
-        // Assert — all 10 rows should be track character
+        // Assert — all 10 rows should be track dots
         for (var y = 0; y < 10; y++)
         {
-            await Assert.That(_buffer.GetCell(0, y).Character).IsEqualTo(pb.TrackCharacter);
+            var cell = _buffer.GetCell(0, y);
+            await Assert.That(cell.Character).IsEqualTo(TrackDot);
+            await Assert.That(cell.Foreground).IsEqualTo(pb.TrackForeground);
         }
     }
 
     [Test]
-    public async Task Render_VerticalHundredPercent_ShowsOnlyBarCharacters()
+    public async Task Render_VerticalHundredPercent_ShowsOnlyFilledBlocks()
     {
         // Arrange
         var pb = new ProgressBar
@@ -288,10 +421,12 @@ public class ProgressBarTests
         // Act
         pb.Render(_buffer, bounds);
 
-        // Assert — all 10 rows should be bar character
+        // Assert — all 10 rows should be filled blocks with solid appearance
         for (var y = 0; y < 10; y++)
         {
-            await Assert.That(_buffer.GetCell(0, y).Character).IsEqualTo(pb.BarCharacter);
+            var cell = _buffer.GetCell(0, y);
+            await Assert.That(cell.Character).IsEqualTo(FullBlock);
+            await Assert.That(cell.Foreground).IsEqualTo(cell.Background);
         }
     }
 
@@ -313,15 +448,78 @@ public class ProgressBarTests
         // Act
         pb.Render(_buffer, bounds);
 
-        // Assert — top 5 rows are track, bottom 5 rows are bar (fills from bottom)
+        // Assert — top 5 rows are track dots, bottom 5 rows are filled blocks
         for (var y = 0; y < 5; y++)
         {
-            await Assert.That(_buffer.GetCell(0, y).Character).IsEqualTo(pb.TrackCharacter);
+            await Assert.That(_buffer.GetCell(0, y).Character).IsEqualTo(TrackDot);
         }
         for (var y = 5; y < 10; y++)
         {
-            await Assert.That(_buffer.GetCell(0, y).Character).IsEqualTo(pb.BarCharacter);
+            var cell = _buffer.GetCell(0, y);
+            await Assert.That(cell.Character).IsEqualTo(FullBlock);
+            await Assert.That(cell.Foreground).IsEqualTo(cell.Background);
         }
+    }
+
+    [Test]
+    public async Task Render_VerticalSubCellPrecision_ShowsBoundaryHalfBlock()
+    {
+        // Arrange — 25% of 10 rows = 5 half-cells = 2 full + 1 boundary
+        var pb = new ProgressBar
+        {
+            Value = 25,
+            Minimum = 0,
+            Maximum = 100,
+            Orientation = Orientation.Vertical,
+            Width = Size.Absolute(1),
+            Height = Size.Absolute(10)
+        };
+        var bounds = new Rect(0, 0, BufferWidth, BufferHeight);
+
+        // Act
+        pb.Render(_buffer, bounds);
+
+        // Assert — top 7 rows track dots, row 7 boundary, bottom 2 filled
+        for (var y = 0; y < 7; y++)
+        {
+            await Assert.That(_buffer.GetCell(0, y).Character).IsEqualTo(TrackDot);
+        }
+
+        var boundary = _buffer.GetCell(0, 7);
+        await Assert.That(boundary.Character).IsEqualTo(LowerHalfBlock);
+
+        for (var y = 8; y < 10; y++)
+        {
+            var cell = _buffer.GetCell(0, y);
+            await Assert.That(cell.Character).IsEqualTo(FullBlock);
+            await Assert.That(cell.Foreground).IsEqualTo(cell.Background);
+        }
+    }
+
+    [Test]
+    public async Task Render_VerticalGradient_BottomIsForegroundTopIsLighter()
+    {
+        // Arrange — 100% fill on a 10-row bar
+        var pb = new ProgressBar
+        {
+            Value = 100,
+            Minimum = 0,
+            Maximum = 100,
+            Orientation = Orientation.Vertical,
+            Width = Size.Absolute(1),
+            Height = Size.Absolute(10),
+            Foreground = new Color(86, 156, 214)
+        };
+        var bounds = new Rect(0, 0, BufferWidth, BufferHeight);
+
+        // Act
+        pb.Render(_buffer, bounds);
+
+        // Assert — bottom cell (y=9) is Foreground, top cell (y=0) is lighter
+        var bottomCell = _buffer.GetCell(0, 9);
+        var topCell = _buffer.GetCell(0, 0);
+        await Assert.That(bottomCell.Foreground).IsEqualTo(pb.Foreground);
+        await Assert.That(topCell.Foreground.R).IsGreaterThan(bottomCell.Foreground.R);
     }
 
     #endregion
@@ -463,7 +661,7 @@ public class ProgressBarTests
         // Act
         pb.Render(_buffer, bounds);
 
-        // Assert — should NOT contain any digit characters (only bar/track chars)
+        // Assert — should NOT contain any percentage text
         var rendered = new string(Enumerable.Range(0, 20)
             .Select(x => _buffer.GetCell(x, 0).Character).ToArray());
         await Assert.That(rendered).DoesNotContain("50%");
@@ -538,18 +736,18 @@ public class ProgressBarTests
         // Act
         pb.Render(_buffer, bounds);
 
-        // Assert — there should be at least one bar character and at least one track character
-        var hasBar = false;
-        var hasTrack = false;
+        // Assert — there should be filled block cells and track dot cells
+        var hasBlock = false;
+        var hasDot = false;
         for (var x = 0; x < 20; x++)
         {
-            var ch = _buffer.GetCell(x, 0).Character;
-            if (ch == pb.BarCharacter) hasBar = true;
-            if (ch == pb.TrackCharacter) hasTrack = true;
+            var cell = _buffer.GetCell(x, 0);
+            if (cell.Character == FullBlock && cell.Foreground != pb.TrackForeground) hasBlock = true;
+            if (cell.Character == TrackDot) hasDot = true;
         }
 
-        await Assert.That(hasBar).IsTrue();
-        await Assert.That(hasTrack).IsTrue();
+        await Assert.That(hasBlock).IsTrue();
+        await Assert.That(hasDot).IsTrue();
 
         // Cleanup
         pb.Dispose();
@@ -571,81 +769,18 @@ public class ProgressBarTests
         // Act
         pb.Render(_buffer, bounds);
 
-        // Assert — there should be at least one bar character and at least one track character
-        var hasBar = false;
-        var hasTrack = false;
+        // Assert — there should be filled block cells and track dot cells
+        var hasBlock = false;
+        var hasDot = false;
         for (var y = 0; y < 20; y++)
         {
-            var ch = _buffer.GetCell(0, y).Character;
-            if (ch == pb.BarCharacter) hasBar = true;
-            if (ch == pb.TrackCharacter) hasTrack = true;
+            var cell = _buffer.GetCell(0, y);
+            if (cell.Character == FullBlock && cell.Foreground != pb.TrackForeground) hasBlock = true;
+            if (cell.Character == TrackDot) hasDot = true;
         }
 
-        await Assert.That(hasBar).IsTrue();
-        await Assert.That(hasTrack).IsTrue();
-
-        // Cleanup
-        pb.Dispose();
-    }
-
-    [Test]
-    public async Task Render_Indeterminate_ShowsAccentGradient()
-    {
-        // Arrange — 40-wide bar; body = max(1, 40*0.15) = 6, plus 2 accents = 8 total
-        var pb = new ProgressBar
-        {
-            IsIndeterminate = true,
-            Width = Size.Absolute(40),
-            Height = Size.Absolute(1)
-        };
-        var bounds = new Rect(0, 0, BufferWidth, BufferHeight);
-
-        // Act
-        pb.Render(_buffer, bounds);
-
-        // Assert — the rendered row should contain the accent character (▪) as gradient edges
-        var hasAccent = false;
-        for (var x = 0; x < 40; x++)
-        {
-            if (_buffer.GetCell(x, 0).Character == pb.IndeterminateAccentCharacter)
-            {
-                hasAccent = true;
-                break;
-            }
-        }
-        await Assert.That(hasAccent).IsTrue();
-
-        // Cleanup
-        pb.Dispose();
-    }
-
-    [Test]
-    public async Task Render_IndeterminateCustomAccent_UsesCustomChar()
-    {
-        // Arrange
-        var pb = new ProgressBar
-        {
-            IsIndeterminate = true,
-            Width = Size.Absolute(40),
-            Height = Size.Absolute(1),
-            IndeterminateAccentCharacter = '·'
-        };
-        var bounds = new Rect(0, 0, BufferWidth, BufferHeight);
-
-        // Act
-        pb.Render(_buffer, bounds);
-
-        // Assert — should contain the custom accent character
-        var hasAccent = false;
-        for (var x = 0; x < 40; x++)
-        {
-            if (_buffer.GetCell(x, 0).Character == '·')
-            {
-                hasAccent = true;
-                break;
-            }
-        }
-        await Assert.That(hasAccent).IsTrue();
+        await Assert.That(hasBlock).IsTrue();
+        await Assert.That(hasDot).IsTrue();
 
         // Cleanup
         pb.Dispose();
@@ -666,7 +801,9 @@ public class ProgressBarTests
         pb.Height = Size.Absolute(1);
         pb.Render(_buffer, new Rect(0, 0, BufferWidth, BufferHeight));
 
-        await Assert.That(_buffer.GetCell(0, 0).Character).IsEqualTo(pb.BarCharacter);
+        var cell = _buffer.GetCell(0, 0);
+        await Assert.That(cell.Character).IsEqualTo(FullBlock);
+        await Assert.That(cell.Foreground).IsEqualTo(pb.Foreground);
 
         // Cleanup
         pb.Dispose();
@@ -914,10 +1051,12 @@ public class ProgressBarTests
         // Act & Assert — should not throw
         pb.Render(_buffer, bounds);
 
-        // When range is zero, fillWidth should be 0; all track characters
+        // When range is zero, fill should be 0; all track dots
         for (var x = 0; x < 10; x++)
         {
-            await Assert.That(_buffer.GetCell(x, 0).Character).IsEqualTo(pb.TrackCharacter);
+            var cell = _buffer.GetCell(x, 0);
+            await Assert.That(cell.Character).IsEqualTo(TrackDot);
+            await Assert.That(cell.Foreground).IsEqualTo(pb.TrackForeground);
         }
     }
 
@@ -953,10 +1092,12 @@ public class ProgressBarTests
         // Act
         pb.Render(_buffer, bounds);
 
-        // Assert — only x=75..79 should be rendered (clipped at buffer edge)
+        // Assert — only x=75..79 should be rendered (clipped at buffer edge), all filled blocks
         for (var x = 75; x < 80; x++)
         {
-            await Assert.That(_buffer.GetCell(x, 0).Character).IsEqualTo(pb.BarCharacter);
+            var cell = _buffer.GetCell(x, 0);
+            await Assert.That(cell.Character).IsEqualTo(FullBlock);
+            await Assert.That(cell.Foreground).IsEqualTo(cell.Background);
         }
     }
 
@@ -981,9 +1122,6 @@ public class ProgressBarTests
         await Assert.That(pb.Foreground).IsEqualTo(new Color(86, 156, 214));
         await Assert.That(pb.Background).IsEqualTo(Color.Transparent);
         await Assert.That(pb.TrackForeground).IsEqualTo(new Color(60, 60, 60));
-        await Assert.That(pb.BarCharacter).IsEqualTo('\u2501');  // ━
-        await Assert.That(pb.TrackCharacter).IsEqualTo('\u2500'); // ─
-        await Assert.That(pb.IndeterminateAccentCharacter).IsEqualTo('\u2578'); // ╸
         await Assert.That(pb.ShowPercentage).IsFalse();
     }
 
@@ -1019,7 +1157,9 @@ public class ProgressBarTests
         pb.Height = Size.Absolute(1);
         pb.Render(_buffer, new Rect(0, 0, BufferWidth, BufferHeight));
 
-        await Assert.That(_buffer.GetCell(0, 0).Character).IsEqualTo(pb.BarCharacter);
+        var cell = _buffer.GetCell(0, 0);
+        await Assert.That(cell.Character).IsEqualTo(FullBlock);
+        await Assert.That(cell.Foreground).IsEqualTo(pb.Foreground);
     }
 
     #endregion

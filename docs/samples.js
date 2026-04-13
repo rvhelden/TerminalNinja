@@ -9,7 +9,7 @@ export const SAMPLES = [
   {
     id: "progressbar",
     title: "ProgressBar",
-    description: "Determinate, indeterminate, and custom-character progress bars.",
+    description: "Determinate, indeterminate, and styled progress bars.",
     docPage: "./samples/progressbar.html",
     xaml: `<Window xmlns="http://schemas.terminalninja.dev/xaml"
         Title="Progress Bars">
@@ -34,14 +34,14 @@ export const SAMPLES = [
             <TextBlock StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1" Text="" />
 
             <TextBlock StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1"
-                       Text="  Custom characters (25%):" Padding="2,0,0,0" />
+                       Text="  Custom color (25%):" Padding="2,0,0,0" />
             <ProgressBar StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1"
-                         Value="25" BarCharacter="=" TrackCharacter="-" />
+                         Value="25" Foreground="#E06C75" />
 
             <TextBlock StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1" Text="" />
 
             <TextBlock StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1"
-                       Text="  Default characters (75%):" Padding="2,0,0,0" />
+                       Text="  Default (75%):" Padding="2,0,0,0" />
             <ProgressBar StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1"
                          Value="75" />
 
