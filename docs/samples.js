@@ -638,13 +638,15 @@ export const SAMPLES = [
         <StackPanel Orientation="Vertical">
             <TextBlock StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1" Text=" DataGrid" Padding="2,0,0,0" />
             <TextBlock StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1" Text="" />
-            <DataGrid StackPanel.SizeMode="Stretch">
+            <DataGrid StackPanel.SizeMode="Stretch" SelectedIndex="0">
                 <DataGrid.Columns>
-                    <DataGridTextColumn Header="Name" />
-                    <DataGridTextColumn Header="Status" Width="12" />
+                    <DataGridTextColumn Header="File" />
+                    <DataGridTextColumn Header="Size" Width="10" />
+                    <DataGridTextColumn Header="Status" Width="12" SortDirection="Ascending" />
                 </DataGrid.Columns>
                 <ListViewItem Content="Program.cs" />
                 <ListViewItem Content="README.md" />
+                <ListViewItem Content="App.xaml" />
                 <ListViewItem Content="appsettings.json" />
             </DataGrid>
         </StackPanel>
