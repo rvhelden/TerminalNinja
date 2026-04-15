@@ -63,6 +63,7 @@ public class ContentControl : Control
         DefaultStyleKey = typeof(ContentControl);
         _contentPresenter = new ContentPresenter();
         _contentPresenter.Parent = this;
+        Focusable = false;
     }
 
     // ─── CLR wrappers ────────────────────────────────────────────────

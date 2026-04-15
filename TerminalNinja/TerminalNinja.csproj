@@ -11,6 +11,15 @@
     <EmitCompilerGeneratedFiles>true</EmitCompilerGeneratedFiles>
   </PropertyGroup>
 
+  <!-- NuGet package metadata -->
+  <PropertyGroup>
+    <PackageId>TerminalNinja</PackageId>
+    <Description>A WPF-inspired terminal UI framework for .NET, built native AOT-first. Declarative XAML layouts, dependency properties, data binding, theming, and 30+ controls.</Description>
+    <PackageTags>terminal;tui;console;ui;xaml;wpf;aot;dotnet</PackageTags>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <TargetsForTfmSpecificContentInPackage>$(TargetsForTfmSpecificContentInPackage);_AddGeneratorToPackage</TargetsForTfmSpecificContentInPackage>
+  </PropertyGroup>
+
   <ItemGroup>
     <InternalsVisibleTo Include="TerminalNinja.Tests" />
   </ItemGroup>
@@ -27,11 +36,24 @@
     <None Include="build\TerminalNinja.targets" Pack="true" PackagePath="buildTransitive\" />
   </ItemGroup>
 
+  <!-- Include README and icon in the package -->
+  <ItemGroup>
+    <None Include="..\README.md" Pack="true" PackagePath="\" />
+  </ItemGroup>
+
   <!-- Built-in theme XAML files as embedded resources -->
   <ItemGroup>
     <EmbeddedResource Update="Themes\Dark.xaml" LogicalName="TerminalNinja.Themes.Dark.xaml" />
     <EmbeddedResource Update="Themes\Dracula.xaml" LogicalName="TerminalNinja.Themes.Dracula.xaml" />
     <EmbeddedResource Update="Themes\GruvboxDark.xaml" LogicalName="TerminalNinja.Themes.GruvboxDark.xaml" />
   </ItemGroup>
+
+  <!-- Bundle the source generators DLL as an analyzer in the NuGet package -->
+  <Target Name="_AddGeneratorToPackage">
+    <ItemGroup>
+      <TfmSpecificPackageFile Include="..\TerminalNinja.Generators\bin\$(Configuration)\netstandard2.0\TerminalNinja.Generators.dll"
+                               PackagePath="analyzers/dotnet/cs/" />
+    </ItemGroup>
+  </Target>
 
 </Project>

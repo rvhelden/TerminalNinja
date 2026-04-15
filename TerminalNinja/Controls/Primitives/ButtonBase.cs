@@ -8,6 +8,11 @@ namespace TerminalNinja.Controls.Primitives;
 /// </summary>
 public abstract class ButtonBase : ContentControl
 {
+    protected ButtonBase()
+    {
+        Focusable = true;
+    }
+
     // ─── Dependency Properties ───────────────────────────────────────
 
     public static readonly DependencyProperty CommandProperty =

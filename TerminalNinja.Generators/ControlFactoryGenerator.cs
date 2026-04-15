@@ -33,7 +33,9 @@ public sealed class ControlFactoryGenerator : IIncrementalGenerator
         "ColumnDefinition",
         "Style",
         "Setter",
-        "ResourceDictionary"
+        "ResourceDictionary",
+        "ListViewColumn",
+        "DataGridColumn"
     };
 
     /// <summary>

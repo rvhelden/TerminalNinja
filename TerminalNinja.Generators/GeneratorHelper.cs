@@ -67,7 +67,9 @@ internal static class GeneratorHelper
         "Setter",
         "RowDefinition",
         "ColumnDefinition",
-        "ResourceDictionary"
+        "ResourceDictionary",
+        "ListViewColumn",
+        "DataGridColumn"
     };
 
     /// <summary>

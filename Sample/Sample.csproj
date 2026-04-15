@@ -8,6 +8,7 @@
         <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
         <PublishAot>true</PublishAot>
         <EmitCompilerGeneratedFiles>true</EmitCompilerGeneratedFiles>
+        <IsPackable>false</IsPackable>
     </PropertyGroup>
 
     <ItemGroup>

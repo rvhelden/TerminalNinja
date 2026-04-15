@@ -15,7 +15,11 @@
       "Read(*)",
       "Bash(cmd /c \"call \\\\\"C:\\\\\\\\Program Files\\\\\\\\Microsoft Visual Studio\\\\\\\\18\\\\\\\\Enterprise\\\\\\\\Common7\\\\\\\\Tools\\\\\\\\VsDevCmd.bat\\\\\" -arch=x64 2>&1 && dotnet publish E:\\\\\\\\TerminalNinja\\\\\\\\Sample\\\\\\\\Sample.csproj -c Release 2>&1\")",
       "WebFetch(domain:www.hslpicker.com)",
-      "Bash(git add:*)"
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(dotnet nuget:*)",
+      "Bash(unzip -l artifacts/TerminalNinja.0.1.0.nupkg)",
+      "Bash(powershell -c \"Add-Type -Assembly System.IO.Compression.FileSystem; [System.IO.Compression.ZipFile]::OpenRead\\('artifacts/TerminalNinja.0.1.0.nupkg'\\).Entries | Select-Object FullName | Format-Table -AutoSize\")"
     ]
   }
 }

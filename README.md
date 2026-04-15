@@ -1,5 +1,8 @@
 # TerminalNinja
 
+[![NuGet](https://img.shields.io/nuget/v/TerminalNinja.svg)](https://www.nuget.org/packages/TerminalNinja)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+
 A WPF-inspired terminal UI framework for .NET 10, built native AOT-first.
 
 ## Features
@@ -9,7 +12,7 @@ A WPF-inspired terminal UI framework for .NET 10, built native AOT-first.
 - **Data binding** — `{Binding}`, `RelativeSource`, `IValueConverter`, OneWay/TwoWay/OneTime modes
 - **MVVM pattern** — `ViewModelBase`, `RelayCommand`, `INotifyPropertyChanged`
 - **Theming** — 3 built-in themes (Dark, Dracula, Gruvbox Dark) with implicit styles
-- **Rich controls** — Grid, StackPanel, ListBox, Button, ProgressBar, Border, TextBlock, Window
+- **30+ controls** — Grid, ListBox, ComboBox, TabControl, TreeView, DataGrid, DatePicker, and more
 - **Modal dialogs** — `ShowDialogAsync()` with overlay stack and dimmed background
 - **Keyboard and mouse input** — focus management, tab navigation, hit testing
 - **Native AOT** — source generators for property accessors, control factories, and XAML code-behind
@@ -17,25 +20,15 @@ A WPF-inspired terminal UI framework for .NET 10, built native AOT-first.
 - **Cross-platform** — Windows (VT100) and Unix terminal support
 - **WASM playground** — try XAML in the browser at the docs site
 
-## Project Structure
-
-```
-TerminalNinja/              Core framework library
-TerminalNinja.Generators/   Source generators (PropertyAccessor, ControlFactory, XamlClass)
-TerminalNinja.Wasm/         Browser WASM module for the playground
-TerminalNinja.Cli/          CLI snapshot tool
-TerminalNinja.Tests/        Test suite (1033 tests)
-Sample/                     Sample app with 7 navigable demo screens
-docs/                       GitHub Pages site + XAML playground
-```
-
-## Quick Start
+## Installation
 
 ```bash
-dotnet new console -n MyApp
-cd MyApp
-dotnet add reference ../TerminalNinja/TerminalNinja.csproj
+dotnet add package TerminalNinja
 ```
+
+The package includes the core library, source generators, and MSBuild targets — everything you need in a single reference.
+
+## Quick Start
 
 ```csharp
 using TerminalNinja.App;
@@ -51,24 +44,57 @@ using var app = new Application(new ApplicationOptions
 
 app.ThemeName = "GruvboxDark";
 
-var window = TerminalXaml.Load<Window>("<Window xmlns='http://schemas.terminalninja.dev/xaml' Title='Hello'><TextBlock Text='Hello, TerminalNinja!' /></Window>");
+var window = TerminalXaml.Load<Window>("""
+    <Window xmlns='http://schemas.terminalninja.dev/xaml' Title='Hello'>
+        <TextBlock Text='Hello, TerminalNinja!' />
+    </Window>
+    """);
 window.Show();
 app.Run();
 ```
 
+## Project Structure
+
+```
+TerminalNinja/              Core framework library
+TerminalNinja.Generators/   Source generators (PropertyAccessor, ControlFactory, XamlClass)
+TerminalNinja.Wasm/         Browser WASM module for the playground
+TerminalNinja.Cli/          CLI snapshot tool
+TerminalNinja.Tests/        Test suite
+Sample/                     Sample app with navigable demo screens
+docs/                       GitHub Pages site + XAML playground
+```
+
 ## Samples
 
-The `Sample/` project includes 7 demo screens accessible from a main menu:
+The `Sample/` project includes 24 demo screens accessible from a main menu:
 
 | Sample | Description |
 |--------|-------------|
-| **Progress Bars** | Determinate, indeterminate, and custom-character progress indicators |
 | **Buttons** | ICommand binding with RelayCommand, hover/focus styling |
-| **Data Binding** | One-way, two-way, converters, and animated OKLCH color binding |
+| **CheckBox** | Tri-state check boxes with data binding |
+| **ColorPicker** | Interactive color selection |
+| **ComboBox** | Drop-down selection with keyboard navigation |
+| **DataBinding** | One-way, two-way, converters, and animated OKLCH color binding |
+| **DataGrid** | Tabular data with columns, sorting, and selection |
+| **DatePicker** | Calendar-based date selection |
+| **DateTimePicker** | Combined date and time selection |
 | **Dialogs** | Modal dialogs with ShowDialogAsync, theme color resolution |
-| **Lists** | ListBox with ObservableCollection, add/remove, custom UserControl |
+| **FilePicker** | File browser dialog |
+| **FolderPicker** | Folder browser dialog |
 | **Grid Layout** | Rows, columns, star/fixed sizing, row/column spans |
+| **Image** | Image rendering in the terminal |
+| **ListView** | Multi-column list with custom columns |
+| **Lists** | ListBox with ObservableCollection, add/remove, custom UserControl |
+| **NumberPicker** | Numeric input with increment/decrement |
+| **Progress Bars** | Determinate, indeterminate, and custom-character progress indicators |
+| **RadioButton** | Grouped radio button selection |
+| **ScrollViewer** | Scrollable content regions |
 | **StackPanel Layout** | Vertical/horizontal stacking, Auto/Fixed/Stretch modes |
+| **TabControl** | Tabbed content with keyboard navigation |
+| **TextInput** | Text editing with selection and clipboard support |
+| **TimePicker** | Time selection control |
+| **TreeView** | Hierarchical data with expand/collapse |
 
 ```bash
 dotnet run --project Sample/Sample.csproj
@@ -76,7 +102,7 @@ dotnet run --project Sample/Sample.csproj
 
 ## Theming
 
-Three built-in themes with 24 color resource keys and implicit styles:
+Three built-in themes with implicit styles for all controls:
 
 ```csharp
 app.ThemeName = "Dark";        // VS Code-inspired
@@ -84,14 +110,33 @@ app.ThemeName = "Dracula";     // Dracula color scheme
 app.ThemeName = "GruvboxDark"; // Gruvbox dark palette
 ```
 
+Custom themes can be loaded from XAML files:
+
+```csharp
+Application.LoadThemeFromFile("MyTheme.xaml");
+```
+
 ## Building
 
 ```bash
 dotnet build                                          # Build all projects
 dotnet run --project Sample/Sample.csproj             # Run the sample app
-dotnet run --project TerminalNinja.Tests              # Run all 1033 tests
-dotnet build TerminalNinja.Wasm/TerminalNinja.Wasm.csproj  # Build WASM module
+dotnet run --project TerminalNinja.Tests              # Run tests
+dotnet pack TerminalNinja/TerminalNinja.csproj -c Release  # Create NuGet package
 ```
+
+## Publishing to NuGet
+
+Packages are published automatically via GitHub Actions when a version tag is pushed:
+
+```bash
+git tag v0.1.0
+git push origin v0.1.0
+```
+
+This triggers the workflow to build, test, pack, and publish to NuGet.org. Requires a `NUGET_API_KEY` secret configured in the repository.
+
+You can also trigger a publish manually from the Actions tab using workflow dispatch.
 
 ## Requirements
 
@@ -101,4 +146,4 @@ dotnet build TerminalNinja.Wasm/TerminalNinja.Wasm.csproj  # Build WASM module
 
 ## License
 
-See LICENSE file for details.
+[MIT](LICENSE)

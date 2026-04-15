@@ -14,3 +14,5 @@ public class DataGridColumn : ListViewColumn
     /// <summary>Gets or sets whether this column supports sorting.</summary>
     public bool IsSortable { get; set; } = true;
 }
+
+
