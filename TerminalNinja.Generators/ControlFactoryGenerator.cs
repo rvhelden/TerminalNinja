@@ -35,7 +35,9 @@ public sealed class ControlFactoryGenerator : IIncrementalGenerator
         "Setter",
         "ResourceDictionary",
         "ListViewColumn",
-        "DataGridColumn"
+        "DataGridTextColumn",
+        "DataGridCheckBoxColumn",
+        "DataGridTemplateColumn"
     };
 
     /// <summary>
@@ -49,7 +51,7 @@ public sealed class ControlFactoryGenerator : IIncrementalGenerator
         // Pipeline 1: Collect class declarations for factory types
         var classDeclarations = context.SyntaxProvider
             .CreateSyntaxProvider(
-                static (node, _) => node is ClassDeclarationSyntax,
+                static (node, _) => node is ClassDeclarationSyntax or RecordDeclarationSyntax,
                 static (ctx, _) => GetFactoryType(ctx))
             .Where(static t => t is not null)
             .Select(static (t, _) => t!);
@@ -71,8 +73,8 @@ public sealed class ControlFactoryGenerator : IIncrementalGenerator
 
     private static INamedTypeSymbol? GetFactoryType(GeneratorSyntaxContext context)
     {
-        var classDecl = (ClassDeclarationSyntax)context.Node;
-        if (context.SemanticModel.GetDeclaredSymbol(classDecl) is not INamedTypeSymbol symbol)
+        var typeDecl = (TypeDeclarationSyntax)context.Node;
+        if (context.SemanticModel.GetDeclaredSymbol(typeDecl) is not INamedTypeSymbol symbol)
         {
             return null;
         }

@@ -69,7 +69,11 @@ internal static class GeneratorHelper
         "ColumnDefinition",
         "ResourceDictionary",
         "ListViewColumn",
-        "DataGridColumn"
+        "DataGridColumn",
+        "DataGridBoundColumn",
+        "DataGridTextColumn",
+        "DataGridCheckBoxColumn",
+        "DataGridTemplateColumn"
     };
 
     /// <summary>

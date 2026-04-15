@@ -19,7 +19,7 @@
     <nav class="breadcrumb"><a href="../index.html">Docs</a> / <span>DataGrid</span></nav>
     <header class="panel">
       <h1>DataGrid</h1>
-      <p class="section-copy">Read-only multi-column grid with sorting indicators and row selection.</p>
+      <p class="section-copy">Multi-column data grid with typed columns, sorting indicators, and row selection.</p>
       <div class="hero-actions" style="margin-top:14px">
         <a class="btn btn-primary" href="../playground.html?sample=datagrid">Try in Playground</a>
       </div>
@@ -28,13 +28,21 @@
     <section class="panel doc-section">
       <h2>Overview</h2>
       <p>
-        <code>DataGrid</code> extends <code>Selector</code> and provides an enhanced tabular data view
-        with sortable column headers and row selection. Columns are defined via <code>DataGridColumn</code>
-        objects specifying <code>Header</code>, <code>Width</code>, <code>DisplayMemberBinding</code>,
-        <code>SortDirection</code>, and <code>IsSortable</code>. When a column is sorted, the header
-        displays a sort indicator: <code>&#9650;</code> for ascending and <code>&#9660;</code> for descending.
-        Column separators use <code>&#9474;</code>, header lines use <code>&#9472;</code>, and crossings
-        use <code>&#9532;</code>. The selected row is highlighted with configurable colors.
+        <code>DataGrid</code> extends <code>Selector</code> and provides a tabular data view
+        with typed columns, sortable headers, and row selection. Columns follow a WPF-aligned
+        type hierarchy:
+      </p>
+      <ul>
+        <li><code>DataGridColumn</code> &mdash; abstract base with Header, Width, sorting config</li>
+        <li><code>DataGridBoundColumn</code> &mdash; abstract, adds <code>Binding</code> property (AOT-safe via PropertyAccessorRegistry)</li>
+        <li><code>DataGridTextColumn</code> &mdash; displays bound values as text</li>
+        <li><code>DataGridCheckBoxColumn</code> &mdash; displays boolean values as <code>[x]</code> / <code>[ ]</code></li>
+        <li><code>DataGridTemplateColumn</code> &mdash; renders cells via a <code>CellTemplate</code> DataTemplate</li>
+      </ul>
+      <p>
+        When a column is sorted, the header displays <code>&#9650;</code> for ascending and
+        <code>&#9660;</code> for descending. Column separators use <code>&#9474;</code>, header
+        lines use <code>&#9472;</code>, and crossings use <code>&#9532;</code>.
       </p>
     </section>
 
@@ -48,15 +56,12 @@
         <div class="preview-terminal" id="preview-terminal"></div>
       </div>
       <div class="preview-tab-content" data-tab="source">
-<pre><code class="language-xml">&lt;DataGrid SelectedIndex="0"&gt;
+<pre><code class="language-xml">&lt;DataGrid ItemsSource="{Binding Employees}" SelectedIndex="0"&gt;
   &lt;DataGrid.Columns&gt;
-    &lt;DataGridColumn Header="Name" Width="20" /&gt;
-    &lt;DataGridColumn Header="Age" Width="8" /&gt;
-    &lt;DataGridColumn Header="Department" Width="18" /&gt;
+    &lt;DataGridTextColumn Header="Name" Binding="Name" /&gt;
+    &lt;DataGridTextColumn Header="Department" Binding="Department" /&gt;
+    &lt;DataGridCheckBoxColumn Header="Active" Binding="Active" Width="10" /&gt;
   &lt;/DataGrid.Columns&gt;
-  &lt;DataGridRow Content="Alice                28      Engineering" /&gt;
-  &lt;DataGridRow Content="Bob                  34      Marketing" /&gt;
-  &lt;DataGridRow Content="Charlie              22      Design" /&gt;
 &lt;/DataGrid&gt;</code></pre>
       </div>
     </section>
@@ -73,66 +78,101 @@
           <tr><td>HeaderBackground</td><td>Color</td><td>DarkGray</td><td>Background color of the column header row.</td></tr>
           <tr><td>HeaderForeground</td><td>Color</td><td>White</td><td>Foreground color of the column header row.</td></tr>
           <tr><td>ShowGridLines</td><td>bool</td><td>true</td><td>Whether to display column separators and header line using box-drawing characters.</td></tr>
-          <tr><td>CanSort</td><td>bool</td><td>true</td><td>Whether sorting is enabled globally for the grid. When false, clicking headers has no effect.</td></tr>
+          <tr><td>CanSort</td><td>bool</td><td>true</td><td>Whether sorting is enabled globally for the grid.</td></tr>
           <tr><td>SelectedIndex</td><td>int</td><td>-1</td><td>Zero-based index of the currently selected row. Inherited from Selector.</td></tr>
           <tr><td>SelectedItem</td><td>object</td><td>null</td><td>The currently selected data item. Inherited from Selector.</td></tr>
           <tr><td>ItemsSource</td><td>IEnumerable</td><td>null</td><td>Data source for generating rows. Inherited from ItemsControl.</td></tr>
         </tbody>
       </table>
 
-      <h3>DataGridColumn Properties</h3>
+      <h3>Column Types</h3>
+
+      <h4>DataGridColumn (abstract base)</h4>
       <table>
         <thead>
           <tr><th>Property</th><th>Type</th><th>Default</th><th>Description</th></tr>
         </thead>
         <tbody>
           <tr><td>Header</td><td>string</td><td>""</td><td>Text displayed in the column header.</td></tr>
-          <tr><td>Width</td><td>int</td><td>0 (star)</td><td>Character width of the column. A value of 0 means the column fills remaining space (star sizing).</td></tr>
-          <tr><td>DisplayMemberBinding</td><td>string?</td><td>null</td><td>Binding path to the property on each data item to display in this column.</td></tr>
-          <tr><td>SortDirection</td><td>SortDirection</td><td>None</td><td>Current sort direction: None, Ascending, or Descending. Displays &#9650; or &#9660; in the header.</td></tr>
-          <tr><td>IsSortable</td><td>bool</td><td>true</td><td>Whether this column can be sorted. When false, no sort indicator is shown.</td></tr>
+          <tr><td>Width</td><td>int</td><td>0 (star)</td><td>Character width. 0 = fill remaining space (star sizing).</td></tr>
+          <tr><td>SortDirection</td><td>SortDirection</td><td>None</td><td>Current sort direction: None, Ascending, or Descending.</td></tr>
+          <tr><td>CanUserSort</td><td>bool</td><td>true</td><td>Whether this column can be sorted.</td></tr>
+          <tr><td>SortMemberPath</td><td>string?</td><td>null</td><td>Property path for sorting. Bound columns default to their Binding path.</td></tr>
+        </tbody>
+      </table>
+
+      <h4>DataGridBoundColumn (abstract, extends DataGridColumn)</h4>
+      <table>
+        <thead>
+          <tr><th>Property</th><th>Type</th><th>Default</th><th>Description</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>Binding</td><td>string?</td><td>null</td><td>Property path on each data item. Resolved via PropertyAccessorRegistry (AOT-safe).</td></tr>
+        </tbody>
+      </table>
+
+      <h4>DataGridTextColumn (extends DataGridBoundColumn)</h4>
+      <p>Displays the bound value as text. Falls back to <code>ToString()</code> if Binding is not set.</p>
+
+      <h4>DataGridCheckBoxColumn (extends DataGridBoundColumn)</h4>
+      <p>Displays a boolean value as <code>[x]</code> (true) or <code>[ ]</code> (false), centered in the cell.</p>
+
+      <h4>DataGridTemplateColumn (extends DataGridColumn)</h4>
+      <table>
+        <thead>
+          <tr><th>Property</th><th>Type</th><th>Default</th><th>Description</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>CellTemplate</td><td>DataTemplate?</td><td>null</td><td>Template used to render each cell. DataContext is set to the row's data item.</td></tr>
         </tbody>
       </table>
     </section>
 
     <section class="panel doc-section">
       <h2>Examples</h2>
-      <h3>Sorting Columns</h3>
-<pre><code class="language-xml">&lt;DataGrid SelectedIndex="0" CanSort="True"&gt;
+
+      <h3>Text and CheckBox Columns</h3>
+<pre><code class="language-xml">&lt;DataGrid ItemsSource="{Binding Employees}" SelectedIndex="0"&gt;
   &lt;DataGrid.Columns&gt;
-    &lt;DataGridColumn Header="Name" Width="20"
-                    SortDirection="Ascending" /&gt;
-    &lt;DataGridColumn Header="Score" Width="10"
-                    IsSortable="True" /&gt;
-    &lt;DataGridColumn Header="Date" Width="14"
-                    IsSortable="True" /&gt;
+    &lt;DataGridTextColumn Header="Id" Binding="Id" Width="6" /&gt;
+    &lt;DataGridTextColumn Header="Name" Binding="Name" /&gt;
+    &lt;DataGridTextColumn Header="Department" Binding="Department" /&gt;
+    &lt;DataGridCheckBoxColumn Header="Active" Binding="Active" Width="10" /&gt;
   &lt;/DataGrid.Columns&gt;
-  &lt;DataGridRow Content="Alice                95     2026-04-10" /&gt;
-  &lt;DataGridRow Content="Bob                  87     2026-04-11" /&gt;
-  &lt;DataGridRow Content="Charlie              92     2026-04-12" /&gt;
+&lt;/DataGrid&gt;</code></pre>
+
+      <h3>Template Column</h3>
+<pre><code class="language-xml">&lt;DataGrid ItemsSource="{Binding Items}"&gt;
+  &lt;DataGrid.Columns&gt;
+    &lt;DataGridTextColumn Header="Name" Binding="Name" /&gt;
+    &lt;DataGridTemplateColumn Header="Status"&gt;
+      &lt;DataGridTemplateColumn.CellTemplate&gt;
+        &lt;DataTemplate&gt;
+          &lt;TextBlock Text="{Binding Status}"
+                     Foreground="Green" /&gt;
+        &lt;/DataTemplate&gt;
+      &lt;/DataGridTemplateColumn.CellTemplate&gt;
+    &lt;/DataGridTemplateColumn&gt;
+  &lt;/DataGrid.Columns&gt;
+&lt;/DataGrid&gt;</code></pre>
+
+      <h3>Sorting Columns</h3>
+<pre><code class="language-xml">&lt;DataGrid CanSort="True"&gt;
+  &lt;DataGrid.Columns&gt;
+    &lt;DataGridTextColumn Header="Name" Binding="Name"
+                        SortDirection="Ascending" /&gt;
+    &lt;DataGridTextColumn Header="Score" Binding="Score"
+                        CanUserSort="True" /&gt;
+    &lt;DataGridCheckBoxColumn Header="Passed" Binding="Passed"
+                            CanUserSort="False" /&gt;
+  &lt;/DataGrid.Columns&gt;
 &lt;/DataGrid&gt;</code></pre>
 
       <h3>Without Grid Lines</h3>
-<pre><code class="language-xml">&lt;DataGrid ShowGridLines="False" SelectedIndex="1"&gt;
+<pre><code class="language-xml">&lt;DataGrid ShowGridLines="False" SelectedIndex="0"&gt;
   &lt;DataGrid.Columns&gt;
-    &lt;DataGridColumn Header="File" Width="25" /&gt;
-    &lt;DataGridColumn Header="Status" Width="12" /&gt;
-    &lt;DataGridColumn Header="Size" Width="10" /&gt;
-  &lt;/DataGrid.Columns&gt;
-  &lt;DataGridRow Content="Program.cs               Modified     4.2 KB" /&gt;
-  &lt;DataGridRow Content="App.xaml                  Unchanged    1.1 KB" /&gt;
-  &lt;DataGridRow Content="README.md                 New          2.8 KB" /&gt;
-&lt;/DataGrid&gt;</code></pre>
-
-      <h3>ItemsSource Binding with Columns</h3>
-<pre><code class="language-xml">&lt;DataGrid ItemsSource="{Binding Employees}" SelectedIndex="0"&gt;
-  &lt;DataGrid.Columns&gt;
-    &lt;DataGridColumn Header="Name" Width="20"
-                    DisplayMemberBinding="{Binding Name}" /&gt;
-    &lt;DataGridColumn Header="Role" Width="15"
-                    DisplayMemberBinding="{Binding Role}" /&gt;
-    &lt;DataGridColumn Header="Salary" Width="12"
-                    DisplayMemberBinding="{Binding Salary}" /&gt;
+    &lt;DataGridTextColumn Header="File" Binding="FileName" /&gt;
+    &lt;DataGridTextColumn Header="Size" Binding="Size" Width="10" /&gt;
   &lt;/DataGrid.Columns&gt;
 &lt;/DataGrid&gt;</code></pre>
     </section>
@@ -156,12 +196,12 @@
       <h2>Key Concepts</h2>
       <ul>
         <li><code>DataGrid</code> extends <code>Selector</code>, inheriting <code>SelectedIndex</code>, <code>SelectedItem</code>, and <code>SelectionChanged</code> event.</li>
-        <li>Columns are defined via <code>DataGridColumn</code> objects with <code>Header</code>, <code>Width</code>, optional <code>DisplayMemberBinding</code>, and sort configuration.</li>
-        <li>A <code>Width</code> of <code>0</code> uses star sizing, meaning the column fills all remaining horizontal space.</li>
-        <li>Sort indicators <code>&#9650;</code> (ascending) and <code>&#9660;</code> (descending) are rendered in the header next to the column title when <code>SortDirection</code> is set.</li>
-        <li>Set <code>IsSortable="False"</code> on individual columns or <code>CanSort="False"</code> on the grid to disable sorting.</li>
-        <li>When <code>ShowGridLines</code> is <code>True</code>, columns are separated by <code>&#9474;</code> characters, header lines use <code>&#9472;</code>, and crossings use <code>&#9532;</code>.</li>
-        <li>Row data can be provided inline with <code>&lt;DataGridRow&gt;</code> elements or generated from <code>ItemsSource</code> with <code>DisplayMemberBinding</code> on each column.</li>
+        <li>Columns use a WPF-aligned type hierarchy: <code>DataGridColumn</code> &rarr; <code>DataGridBoundColumn</code> &rarr; <code>DataGridTextColumn</code> / <code>DataGridCheckBoxColumn</code>, and <code>DataGridColumn</code> &rarr; <code>DataGridTemplateColumn</code>.</li>
+        <li>The <code>Binding</code> property on bound columns is a string path resolved via <code>PropertyAccessorRegistry</code> &mdash; fully Native AOT compatible, no reflection at runtime.</li>
+        <li>Data item types must be discoverable by the source generator: use <code>[BindableObject]</code> for plain records/classes, or extend <code>ViewModelBase</code>.</li>
+        <li>A <code>Width</code> of <code>0</code> uses star sizing, filling all remaining horizontal space equally.</li>
+        <li>Sort indicators <code>&#9650;</code> (ascending) and <code>&#9660;</code> (descending) are rendered in the header next to the column title.</li>
+        <li><code>DataGridTemplateColumn</code> renders each cell via a <code>CellTemplate</code>, setting <code>DataContext</code> on the template content to the row's data item.</li>
       </ul>
     </section>
 

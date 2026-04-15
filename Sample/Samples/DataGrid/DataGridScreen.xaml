@@ -10,14 +10,16 @@
         <TextBlock StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1"
                    Text=" DataGrid" Padding="2,0,0,0" />
         <TextBlock StackPanel.SizeMode="Fixed" StackPanel.FixedSize="2"
-                   Text="  Read-only multi-column grid with sorting indicators and row selection."
+                   Text="  Multi-column grid with typed columns, sorting, and row selection."
                    Padding="2,0,0,0" VerticalTextAlignment="Center" />
         <TextBlock StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1" Text="" />
 
-        <DataGrid StackPanel.SizeMode="Stretch" TabIndex="0" ItemsSource="{Binding Items}">
+        <DataGrid StackPanel.SizeMode="Stretch" TabIndex="0" ItemsSource="{Binding Employees}">
             <DataGrid.Columns>
-                <DataGridColumn Header="Id" DisplayMemberBinding="Id" />
-                <DataGridColumn Header="Name" DisplayMemberBinding="Name" />
+                <DataGridTextColumn Header="Id" Binding="Id" Width="6" />
+                <DataGridTextColumn Header="Name" Binding="Name" />
+                <DataGridTextColumn Header="Department" Binding="Department" />
+                <DataGridCheckBoxColumn Header="Active" Binding="Active" Width="10" />
             </DataGrid.Columns>
         </DataGrid>
     </StackPanel>

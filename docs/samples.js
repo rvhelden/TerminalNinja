@@ -631,7 +631,7 @@ export const SAMPLES = [
   {
     id: "datagrid",
     title: "DataGrid",
-    description: "Read-only multi-column grid with sorting indicators and row selection.",
+    description: "Multi-column grid with typed columns, sorting, and row selection.",
     docPage: "./samples/datagrid.html",
     xaml: `<Window xmlns="http://schemas.terminalninja.dev/xaml" Title="DataGrid">
     <Border BorderStyle="Rounded">
@@ -639,6 +639,10 @@ export const SAMPLES = [
             <TextBlock StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1" Text=" DataGrid" Padding="2,0,0,0" />
             <TextBlock StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1" Text="" />
             <DataGrid StackPanel.SizeMode="Stretch">
+                <DataGrid.Columns>
+                    <DataGridTextColumn Header="Name" />
+                    <DataGridTextColumn Header="Status" Width="12" />
+                </DataGrid.Columns>
                 <ListViewItem Content="Program.cs" />
                 <ListViewItem Content="README.md" />
                 <ListViewItem Content="appsettings.json" />

@@ -35,7 +35,7 @@ public class DataGridTests
     public async Task SortByColumn_CyclesDirection()
     {
         var dg = new DataGrid();
-        dg.Columns.Add(new DataGridColumn { Header = "Name" });
+        dg.Columns.Add(new DataGridTextColumn { Header = "Name" });
 
         dg.SortByColumn(0);
         await Assert.That(dg.Columns[0].SortDirection).IsEqualTo(SortDirection.Ascending);
@@ -51,8 +51,8 @@ public class DataGridTests
     public async Task SortByColumn_ClearsOtherColumns()
     {
         var dg = new DataGrid();
-        dg.Columns.Add(new DataGridColumn { Header = "A" });
-        dg.Columns.Add(new DataGridColumn { Header = "B" });
+        dg.Columns.Add(new DataGridTextColumn { Header = "A" });
+        dg.Columns.Add(new DataGridTextColumn { Header = "B" });
 
         dg.SortByColumn(0);
         await Assert.That(dg.Columns[0].SortDirection).IsEqualTo(SortDirection.Ascending);
@@ -66,7 +66,7 @@ public class DataGridTests
     public async Task SortByColumn_NotSortable_DoesNothing()
     {
         var dg = new DataGrid();
-        dg.Columns.Add(new DataGridColumn { Header = "A", IsSortable = false });
+        dg.Columns.Add(new DataGridTextColumn { Header = "A", CanUserSort = false });
 
         dg.SortByColumn(0);
         await Assert.That(dg.Columns[0].SortDirection).IsEqualTo(SortDirection.None);
@@ -76,7 +76,7 @@ public class DataGridTests
     public async Task SortingChanged_Fires()
     {
         var dg = new DataGrid();
-        dg.Columns.Add(new DataGridColumn { Header = "A" });
+        dg.Columns.Add(new DataGridTextColumn { Header = "A" });
         var fired = false;
         dg.SortingChanged += (_, _) => fired = true;
 
@@ -92,7 +92,7 @@ public class DataGridTests
     public async Task Render_ShowsSortIndicator()
     {
         var dg = new DataGrid();
-        dg.Columns.Add(new DataGridColumn { Header = "Name", Width = 15 });
+        dg.Columns.Add(new DataGridTextColumn { Header = "Name", Width = 15 });
         dg.Columns[0].SortDirection = SortDirection.Ascending;
         dg.ItemsSource = new ObservableCollection<string> { "A" };
 
@@ -110,8 +110,8 @@ public class DataGridTests
     public async Task Render_ShowsHeaders()
     {
         var dg = new DataGrid();
-        dg.Columns.Add(new DataGridColumn { Header = "Name", Width = 10 });
-        dg.Columns.Add(new DataGridColumn { Header = "Value", Width = 10 });
+        dg.Columns.Add(new DataGridTextColumn { Header = "Name", Width = 10 });
+        dg.Columns.Add(new DataGridTextColumn { Header = "Value", Width = 10 });
 
         using var buffer = new CellBuffer(25, 5);
         dg.Render(buffer, new Rect(0, 0, 25, 5));
@@ -123,7 +123,7 @@ public class DataGridTests
     public async Task Render_SelectedRow_Highlighted()
     {
         var dg = new DataGrid { SelectedBackground = Color.Blue };
-        dg.Columns.Add(new DataGridColumn { Header = "X", Width = 10 });
+        dg.Columns.Add(new DataGridTextColumn { Header = "X", Width = 10 });
         dg.ItemsSource = new ObservableCollection<string> { "A", "B" };
         dg.SelectedIndex = 0;
 
@@ -141,7 +141,7 @@ public class DataGridTests
     public async Task DownArrow_SelectsNext()
     {
         var dg = new DataGrid();
-        dg.Columns.Add(new DataGridColumn { Header = "X" });
+        dg.Columns.Add(new DataGridTextColumn { Header = "X" });
         dg.ItemsSource = new ObservableCollection<string> { "A", "B" };
         dg.SelectedIndex = 0;
 

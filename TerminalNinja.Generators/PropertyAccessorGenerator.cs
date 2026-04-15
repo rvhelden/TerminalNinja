@@ -27,7 +27,7 @@ public sealed class PropertyAccessorGenerator : IIncrementalGenerator
         // Collect all class declarations that match IsTargetType or IsBindableType
         var classDeclarations = context.SyntaxProvider
             .CreateSyntaxProvider(
-                predicate: static (node, _) => node is ClassDeclarationSyntax,
+                predicate: static (node, _) => node is ClassDeclarationSyntax or RecordDeclarationSyntax,
                 transform: static (ctx, _) => GetTargetType(ctx))
             .Where(static t => t is not null)
             .Select(static (t, _) => t!);
@@ -50,7 +50,7 @@ public sealed class PropertyAccessorGenerator : IIncrementalGenerator
 
     private static INamedTypeSymbol? GetTargetType(GeneratorSyntaxContext context)
     {
-        var classDecl = (ClassDeclarationSyntax)context.Node;
+        var classDecl = (TypeDeclarationSyntax)context.Node;
         if (context.SemanticModel.GetDeclaredSymbol(classDecl) is not INamedTypeSymbol symbol)
         {
             return null;

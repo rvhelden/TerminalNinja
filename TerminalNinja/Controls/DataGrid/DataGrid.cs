@@ -1,5 +1,4 @@
 using System.Windows.Markup;
-using TerminalNinja.Aot;
 using TerminalNinja.Buffers;
 using TerminalNinja.Controls.Primitives;
 using TerminalNinja.Input;
@@ -11,8 +10,10 @@ namespace TerminalNinja.Controls;
 /// A read-only multi-column data grid with column headers, sorting indicators,
 /// grid lines, and row selection. Extends <see cref="Selector"/> for selection semantics.
 /// <para>
-/// Columns are defined via <see cref="Columns"/> (list of <see cref="DataGridColumn"/>).
-/// Sort indicators (▲/▼) are shown in headers for sortable columns.
+/// Columns are defined via <see cref="Columns"/> using typed column classes:
+/// <see cref="DataGridTextColumn"/>, <see cref="DataGridCheckBoxColumn"/>,
+/// and <see cref="DataGridTemplateColumn"/>.
+/// Sort indicators (&#x25B2;/&#x25BC;) are shown in headers for sortable columns.
 /// </para>
 /// </summary>
 [ContentProperty("Items")]
@@ -76,7 +77,7 @@ public sealed class DataGrid : Selector
 
     protected override UIElement CreateContainerForItem(object item)
     {
-        var lvi = new ListViewItem
+        return new ListViewItem
         {
             Background = Background,
             Foreground = Foreground,
@@ -84,7 +85,6 @@ public sealed class DataGrid : Selector
             SelectedForeground = SelectedForeground,
             Content = item
         };
-        return lvi;
     }
 
     protected override void PrepareContainerForItem(UIElement container, object item)
@@ -109,7 +109,7 @@ public sealed class DataGrid : Selector
         if (!CanSort || columnIndex < 0 || columnIndex >= Columns.Count) return;
 
         var col = Columns[columnIndex];
-        if (!col.IsSortable) return;
+        if (!col.CanUserSort) return;
 
         // Cycle direction
         col.SortDirection = col.SortDirection switch
@@ -167,19 +167,6 @@ public sealed class DataGrid : Selector
         return widths;
     }
 
-    // ─── Cell Text ───────────────────────────────────────────────────
-
-    private static string GetCellText(object? dataItem, DataGridColumn column)
-    {
-        if (dataItem == null) return "";
-        if (!string.IsNullOrEmpty(column.DisplayMemberBinding))
-        {
-            if (PropertyAccessorRegistry.TryGetAccessor(dataItem.GetType(), column.DisplayMemberBinding, out var accessor))
-                return accessor.Value.Getter(dataItem)?.ToString() ?? "";
-        }
-        return dataItem.ToString() ?? "";
-    }
-
     // ─── Rendering ───────────────────────────────────────────────────
 
     private const int HeaderRowCount = 2;
@@ -209,7 +196,7 @@ public sealed class DataGrid : Selector
             headerTexts[i] = Columns[i].Header + indicator;
         }
 
-        RenderRow(buffer, bounds.X, bounds.Y, bounds.Width, colWidths, headerTexts,
+        RenderTextRow(buffer, bounds.X, bounds.Y, bounds.Width, colWidths, headerTexts,
             HeaderForeground, HeaderBackground, gridLineColor);
 
         // Separator
@@ -221,18 +208,18 @@ public sealed class DataGrid : Selector
             {
                 for (var c = 0; c < colWidths[col] && x < bounds.Right; c++)
                 {
-                    SetCharSafe(buffer, x, sepY, '─', gridLineColor, Background);
+                    SetCharSafe(buffer, x, sepY, '\u2500', gridLineColor, Background);
                     x++;
                 }
                 if (ShowGridLines && col < Columns.Count - 1 && x < bounds.Right)
                 {
-                    SetCharSafe(buffer, x, sepY, '┼', gridLineColor, Background);
+                    SetCharSafe(buffer, x, sepY, '\u253C', gridLineColor, Background);
                     x++;
                 }
             }
         }
 
-        // Data rows
+        // Data rows — delegate cell rendering to each column
         var items = new List<object>();
         foreach (var kvp in _itemContainers) items.Add(kvp.Key);
 
@@ -247,10 +234,6 @@ public sealed class DataGrid : Selector
             var dataItem = _itemContainers.TryGetValue(item, out var cnt) && cnt is ListViewItem lvi
                 ? lvi.Content ?? item : item;
 
-            var cellTexts = new string[Columns.Count];
-            for (var col = 0; col < Columns.Count; col++)
-                cellTexts[col] = GetCellText(dataItem, Columns[col]);
-
             var rowY = bounds.Y + HeaderRowCount + row;
             if (isSelected)
             {
@@ -258,7 +241,19 @@ public sealed class DataGrid : Selector
                 if (rowRect.Width > 0) buffer.FillRect(rowRect, new Cell(' ', fg, bg));
             }
 
-            RenderRow(buffer, bounds.X, rowY, bounds.Width, colWidths, cellTexts, fg, bg, gridLineColor);
+            // Render each cell via column type
+            var cellX = bounds.X;
+            for (var col = 0; col < Columns.Count; col++)
+            {
+                Columns[col].RenderCell(buffer, cellX, rowY, colWidths[col], dataItem, fg, bg);
+                cellX += colWidths[col];
+
+                if (ShowGridLines && col < Columns.Count - 1 && cellX < bounds.Right)
+                {
+                    SetCharSafe(buffer, cellX, rowY, '\u2502', gridLineColor, bg);
+                    cellX++;
+                }
+            }
         }
 
         // Focus border
@@ -283,7 +278,10 @@ public sealed class DataGrid : Selector
         }
     }
 
-    private void RenderRow(CellBuffer buffer, int startX, int y, int totalWidth, int[] colWidths,
+    /// <summary>
+    /// Renders a row of text cells (used for the header row).
+    /// </summary>
+    private void RenderTextRow(CellBuffer buffer, int startX, int y, int totalWidth, int[] colWidths,
         string[] cellTexts, Color fg, Color bg, Color gridLineColor)
     {
         if (y < 0 || y >= buffer.Height) return;
@@ -300,7 +298,7 @@ public sealed class DataGrid : Selector
             }
             if (ShowGridLines && col < Columns.Count - 1 && x < startX + totalWidth)
             {
-                SetCharSafe(buffer, x, y, '│', gridLineColor, bg);
+                SetCharSafe(buffer, x, y, '\u2502', gridLineColor, bg);
                 x++;
             }
         }

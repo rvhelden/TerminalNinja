@@ -5,6 +5,8 @@
 
 A WPF-inspired terminal UI framework for .NET 10, built native AOT-first.
 
+**[Documentation](https://rvhelden.github.io/TerminalNinja/)** | **[XAML Playground](https://rvhelden.github.io/TerminalNinja/playground.html)**
+
 ## Features
 
 - **XAML-first UI** — declarative layouts with the TerminalNinja XML namespace
@@ -15,10 +17,16 @@ A WPF-inspired terminal UI framework for .NET 10, built native AOT-first.
 - **30+ controls** — Grid, ListBox, ComboBox, TabControl, TreeView, DataGrid, DatePicker, and more
 - **Modal dialogs** — `ShowDialogAsync()` with overlay stack and dimmed background
 - **Keyboard and mouse input** — focus management, tab navigation, hit testing
-- **Native AOT** — source generators for property accessors, control factories, and XAML code-behind
+- **Native AOT** — ~20ms startup, 18MB memory footprint. Source generators for property accessors, control factories, and XAML code-behind
 - **Zero-allocation rendering** — cell-level diffing with packed 8-byte cell structures
 - **Cross-platform** — Windows (VT100) and Unix terminal support
-- **WASM playground** — try XAML in the browser at the docs site
+- **WASM playground** — [try XAML in the browser](https://rvhelden.github.io/TerminalNinja/playground.html)
+
+## Built for Speed
+
+TerminalNinja is native AOT from the ground up — not bolted on as an afterthought. The result: your app starts in **~20ms** and uses **under 18MB of memory** at startup. That's it. No JIT warmup, no GC pressure from framework initialization, no 100MB+ memory overhead just to render a console UI.
+
+Every layer is designed with this in mind: zero-allocation cell-level diffing, packed 8-byte cell structures, and source generators that replace all reflection at compile time. You get a full WPF-style control framework at a fraction of the cost.
 
 ## Installation
 
@@ -137,6 +145,15 @@ git push origin v0.1.0
 This triggers the workflow to build, test, pack, and publish to NuGet.org. Requires a `NUGET_API_KEY` secret configured in the repository.
 
 You can also trigger a publish manually from the Actions tab using workflow dispatch.
+
+## Learning XAML
+
+TerminalNinja follows WPF conventions closely. If you're new to XAML, data binding, or the control model, the official Microsoft WPF docs are a great starting point:
+
+- [WPF Overview](https://learn.microsoft.com/en-us/dotnet/desktop/wpf/) — XAML fundamentals, dependency properties, data binding, styling
+- [WPF Controls](https://learn.microsoft.com/en-us/dotnet/desktop/wpf/controls/) — control types, templates, and layout panels
+
+Most WPF concepts (dependency properties, `{Binding}`, styles, `Grid`/`StackPanel` layout) translate directly to TerminalNinja.
 
 ## Requirements
 
