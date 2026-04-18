@@ -241,10 +241,26 @@ public class ApplicationCtrlCTests
             return;
         }
 
+        // Probe whether the setter works in this environment. In CI (e.g. GitHub
+        // Actions) the getter may succeed while the setter throws IOException
+        // because stdin is redirected. The backend swallows that IOException,
+        // so we can't tell from outside whether the value was actually changed —
+        // probe here and skip the strict assertion if the setter is a no-op.
+        bool setterWorks;
+        try
+        {
+            System.Console.TreatControlCAsInput = previousValue;
+            setterWorks = true;
+        }
+        catch (IOException)
+        {
+            setterWorks = false;
+        }
+
         try
         {
             var unixBackend = new TerminalNinja.Platform.Unix.UnixInputBackend();
-            
+
             bool valueAfterConstruct;
             try
             {
@@ -257,11 +273,14 @@ public class ApplicationCtrlCTests
                 unixBackend.Dispose();
                 return;
             }
-            
+
             unixBackend.Dispose();
             var valueAfterDispose = System.Console.TreatControlCAsInput;
 
-            await Assert.That(valueAfterConstruct).IsTrue();
+            if (setterWorks)
+            {
+                await Assert.That(valueAfterConstruct).IsTrue();
+            }
             await Assert.That(valueAfterDispose).IsEqualTo(previousValue);
         }
         finally
