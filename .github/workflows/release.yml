@@ -1,0 +1,69 @@
+name: Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      prerelease:
+        description: "Pre-release identifier (blank for stable, e.g. 'alpha', 'beta', 'rc')"
+        required: false
+        default: ""
+
+permissions:
+  contents: write      # push commit + tag created by Versionize
+  id-token: write      # NuGet Trusted Publishing (OIDC)
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    environment: nuget-release
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Configure git identity
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+      - name: Install Versionize
+        run: dotnet tool install --global Versionize
+
+      - name: Bump version
+        run: |
+          PRE_FLAG=""
+          if [ -n "${{ inputs.prerelease }}" ]; then
+            PRE_FLAG="--pre-release ${{ inputs.prerelease }}"
+          fi
+          versionize --workingDir TerminalNinja --exit-insignificant-commits $PRE_FLAG
+
+      - name: Push commit and tag
+        run: git push --follow-tags
+
+      - name: Login to NuGet (Trusted Publishing)
+        id: nuget-login
+        uses: NuGet/login@v1
+        with:
+          user: kiltux
+
+      - name: Build
+        run: dotnet build -c Release
+
+      - name: Test
+        run: dotnet run --project TerminalNinja.Tests/TerminalNinja.Tests.csproj -c Release
+
+      - name: Pack
+        run: dotnet pack TerminalNinja/TerminalNinja.csproj -c Release --no-build -o ./artifacts
+
+      - name: Push to NuGet
+        run: >
+          dotnet nuget push ./artifacts/*.nupkg
+          --api-key ${{ steps.nuget-login.outputs.NUGET_API_KEY }}
+          --source https://api.nuget.org/v3/index.json
+          --skip-duplicate

@@ -1,7 +1,6 @@
 <Project>
 
   <PropertyGroup>
-    <Version>0.1.0</Version>
     <Authors>Ronald van Helden</Authors>
     <Company>TerminalNinja</Company>
     <Copyright>Copyright (c) Ronald van Helden</Copyright>

@@ -13,6 +13,7 @@
 
   <!-- NuGet package metadata -->
   <PropertyGroup>
+    <Version>0.1.0</Version>
     <PackageId>TerminalNinja</PackageId>
     <Description>A WPF-inspired terminal UI framework for .NET, built native AOT-first. Declarative XAML layouts, dependency properties, data binding, theming, and 30+ controls.</Description>
     <PackageTags>terminal;tui;console;ui;xaml;wpf;aot;dotnet</PackageTags>
