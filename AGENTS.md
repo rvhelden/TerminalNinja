@@ -341,13 +341,26 @@ await Assert.That(text).Contains("substring");
 
 ## Git Workflow
 
-- **Branch naming**: `feature/description`, `bugfix/issue-name`, `refactor/component`
-- **Commit messages**: Use conventional commits format
-  - `feat: add Grid control with row/column support`
-  - `fix: handle null content in Border rendering`
+This repo uses [Versionize](https://github.com/versionize/versionize) to compute semver bumps and generate the changelog, so every commit and PR title MUST follow Conventional Commits.
+
+- **Branch naming**: `feature/<slug>`, `fix/<slug>`, `refactor/<component>`
+- **Commit format**: `<type>(<optional-scope>): <imperative lowercase summary>`
+- **Types and version impact**:
+  - `feat` → minor bump
+  - `fix` → patch bump
+  - `perf` → patch bump
+  - `refactor`, `docs`, `test`, `build`, `ci`, `chore`, `style` → no bump
+- **Breaking changes**: append `!` after type/scope and add a `BREAKING CHANGE:` footer
+- **PR titles** follow the same shape — the merged/squashed commit is what Versionize sees
+- **`chore(release):`** commits are emitted by `versionize run` during release, never written by hand
+
+Examples:
+  - `feat(grid): add Grid control with row/column support`
+  - `fix(border): handle null content in Border rendering`
   - `refactor: rename Element to Control for WPF alignment`
-  - `test: add tests for StaticResource resolution`
+  - `test(xaml): add tests for StaticResource resolution`
   - `docs: update AGENTS.md with current project state`
+  - `feat(databinding)!: rename BindingMode.Default to BindingMode.OneWay`
 
 ## Important Notes
 

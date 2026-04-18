@@ -155,6 +155,14 @@ TerminalNinja follows WPF conventions closely. If you're new to XAML, data bindi
 
 Most WPF concepts (dependency properties, `{Binding}`, styles, `Grid`/`StackPanel` layout) translate directly to TerminalNinja.
 
+## For AI coding assistants
+
+If you're using Claude Code, Copilot, Cursor, or another AI assistant to build on TerminalNinja:
+
+- **[AGENTS.md](AGENTS.md)** — architecture, conventions, DP patterns, theming checklist, test patterns
+- **[docs/llms.txt](https://rvhelden.github.io/TerminalNinja/llms.txt)** — curated link index for AI ingestion
+- **[Sample/](Sample/)** — 24 control demos; point your AI at these as ground-truth usage examples
+
 ## Requirements
 
 - .NET 10.0 SDK

@@ -1,0 +1,50 @@
+# TerminalNinja
+
+> A WPF-inspired terminal UI framework for .NET 10, built native AOT-first. Declarative XAML layouts, dependency properties, data binding, theming, and 30+ controls. ~20ms startup, <18MB memory, zero-allocation rendering.
+
+TerminalNinja follows WPF conventions closely: dependency properties with metadata and callbacks, `{Binding}` / `RelativeSource` / `IValueConverter`, `ViewModelBase` + `RelayCommand` for MVVM, implicit styles per theme, `Grid` / `StackPanel` layout, and a `ContentControl` / `Panel` / `ItemsControl` taxonomy. Every concept in the WPF docs has a direct counterpart. Source generators replace reflection at compile time so the whole framework is Native AOT-compatible.
+
+## Getting started
+
+- [Home + quickstart](https://rvhelden.github.io/TerminalNinja/): hero, install command, 3-line hello world
+- [Interactive XAML playground](https://rvhelden.github.io/TerminalNinja/playground.html): live WASM editor, load any sample
+- [Sample gallery](https://rvhelden.github.io/TerminalNinja/#samples): one card per control with description and XAML
+- [GitHub repository](https://github.com/rvhelden/TerminalNinja): source, issues, releases
+
+## Agent guides
+
+- [AGENTS.md](https://github.com/rvhelden/TerminalNinja/blob/main/AGENTS.md): architecture overview, DP patterns, theming checklist, test patterns, commit conventions
+- [CLAUDE.md](https://github.com/rvhelden/TerminalNinja/blob/main/CLAUDE.md): Claude-specific developer guide (same content, Claude-formatted)
+- [Sample/](https://github.com/rvhelden/TerminalNinja/tree/main/Sample): 24 runnable demo screens — the canonical ground-truth for how each control is used
+
+## Control samples
+
+- [Button](https://rvhelden.github.io/TerminalNinja/samples/button.html): ICommand binding, hover colors, tab navigation
+- [CheckBox](https://rvhelden.github.io/TerminalNinja/samples/checkbox.html): tri-state, data binding
+- [ColorPicker](https://rvhelden.github.io/TerminalNinja/samples/colorpicker.html): interactive color selection
+- [ComboBox](https://rvhelden.github.io/TerminalNinja/samples/combobox.html): drop-down selection, keyboard navigation
+- [DataBinding](https://rvhelden.github.io/TerminalNinja/samples/data-binding.html): OneWay / TwoWay / converters, animated OKLCH
+- [DataGrid](https://rvhelden.github.io/TerminalNinja/samples/datagrid.html): tabular data, columns, sorting, selection
+- [DatePicker](https://rvhelden.github.io/TerminalNinja/samples/datepicker.html): calendar-based date selection
+- [DateTimePicker](https://rvhelden.github.io/TerminalNinja/samples/datetimepicker.html): combined date + time selection
+- [Dialogs](https://rvhelden.github.io/TerminalNinja/samples/dialogs.html): `ShowDialogAsync`, overlay stack, dimmed background
+- [FilePicker](https://rvhelden.github.io/TerminalNinja/samples/filepicker.html): file browser dialog
+- [FolderPicker](https://rvhelden.github.io/TerminalNinja/samples/folderpicker.html): folder browser dialog
+- [Grid layout](https://rvhelden.github.io/TerminalNinja/samples/grid-layout.html): rows, columns, star / fixed sizing, row / column spans
+- [Image](https://rvhelden.github.io/TerminalNinja/samples/image.html): image rendering in the terminal
+- [ListBox](https://rvhelden.github.io/TerminalNinja/samples/listbox.html): `ObservableCollection`, add / remove, custom `UserControl`
+- [ListView](https://rvhelden.github.io/TerminalNinja/samples/listview.html): multi-column list with custom columns
+- [NumberPicker](https://rvhelden.github.io/TerminalNinja/samples/numberpicker.html): numeric input with increment / decrement
+- [ProgressBar](https://rvhelden.github.io/TerminalNinja/samples/progressbar.html): determinate, indeterminate, custom-character
+- [RadioButton](https://rvhelden.github.io/TerminalNinja/samples/radiobutton.html): grouped selection
+- [ScrollViewer](https://rvhelden.github.io/TerminalNinja/samples/scroll-viewer.html): scrollable content regions
+- [StackPanel layout](https://rvhelden.github.io/TerminalNinja/samples/stack-layout.html): vertical / horizontal, Auto / Fixed / Stretch
+- [TabControl](https://rvhelden.github.io/TerminalNinja/samples/tabcontrol.html): tabbed content, keyboard navigation
+- [TextBox](https://rvhelden.github.io/TerminalNinja/samples/text-box.html): text editing, selection, clipboard
+- [TimePicker](https://rvhelden.github.io/TerminalNinja/samples/timepicker.html): time selection
+- [TreeView](https://rvhelden.github.io/TerminalNinja/samples/treeview.html): hierarchical data, expand / collapse
+
+## Optional
+
+- [XamlClass source generator](https://github.com/rvhelden/TerminalNinja/tree/main/TerminalNinja.Generators): generates AOT-safe property accessors, control factories, and XAML code-behind — no `Activator.CreateInstance` or reflection at runtime
+- [Themes](https://github.com/rvhelden/TerminalNinja/tree/main/TerminalNinja/Themes): `Dark.xaml`, `Dracula.xaml`, `GruvboxDark.xaml` — add a new theme by dropping a XAML file and calling `Application.LoadThemeFromFile`
