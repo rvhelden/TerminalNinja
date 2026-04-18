@@ -26,9 +26,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\TerminalNinja.Generators\TerminalNinja.Generators.csproj"
-                      OutputItemType="Analyzer"
-                      ReferenceOutputAssembly="false" />
+    <ProjectReference Include="..\TerminalNinja.Generators\TerminalNinja.Generators.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
   </ItemGroup>
 
   <!-- Include MSBuild targets in the NuGet package so consuming projects auto-import them -->
@@ -52,8 +50,7 @@
   <!-- Bundle the source generators DLL as an analyzer in the NuGet package -->
   <Target Name="_AddGeneratorToPackage">
     <ItemGroup>
-      <TfmSpecificPackageFile Include="..\TerminalNinja.Generators\bin\$(Configuration)\netstandard2.0\TerminalNinja.Generators.dll"
-                               PackagePath="analyzers/dotnet/cs/" />
+      <TfmSpecificPackageFile Include="..\TerminalNinja.Generators\bin\$(Configuration)\netstandard2.0\TerminalNinja.Generators.dll" PackagePath="analyzers/dotnet/cs/" />
     </ItemGroup>
   </Target>
 
