@@ -25,6 +25,13 @@ public sealed unsafe class CellBuffer : IDisposable
     private Cell* _previous;      // What's currently on screen
     private DirtyRect _dirtyRect;
     private bool _disposed;
+
+    // Per-row grapheme cluster side tables: row index → (column → codepoint sequence).
+    // Each row's dictionary is lazily allocated so ASCII frames pay no allocation cost.
+    // The cell at (x, y) carries CellFlags.HasGrapheme when an entry exists at column x;
+    // its Codepoint stores the cluster's lead codepoint (so width / fallback rendering still work).
+    private Dictionary<int, uint[]>?[] _rowGraphemes;
+    private Dictionary<int, uint[]>?[] _previousRowGraphemes;
     
     /// <summary>Gets the width of the buffer in cells.</summary>
     public int Width { get; private set; }
@@ -50,11 +57,13 @@ public sealed unsafe class CellBuffer : IDisposable
         
         _current = AllocBuffer(Capacity);
         _previous = AllocBuffer(Capacity);
-        
+        _rowGraphemes = new Dictionary<int, uint[]>?[height];
+        _previousRowGraphemes = new Dictionary<int, uint[]>?[height];
+
         // Initialize logical region to Cell.Empty
         FillEmpty(_current, width, height);
         FillEmpty(_previous, width, height);
-        
+
         // Mark the entire buffer dirty so the first Present() flushes everything
         MarkFullDirty();
     }
@@ -70,7 +79,10 @@ public sealed unsafe class CellBuffer : IDisposable
         (uint)x < (uint)Width && (uint)y < (uint)Height;
     
     /// <summary>
-    /// Sets a cell at the specified position.
+    /// Sets a cell at the specified position. When the new cell does not carry
+    /// <see cref="CellFlags.HasGrapheme"/>, any stale row-side grapheme entry at
+    /// (<paramref name="x"/>, <paramref name="y"/>) is cleared so an overwriting
+    /// single-codepoint write doesn't leave a multi-codepoint cluster behind.
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void SetCell(int x, int y, Cell cell)
@@ -88,6 +100,86 @@ public sealed unsafe class CellBuffer : IDisposable
 
         _current[index] = cell;
         _dirtyRect.Expand(x, y);
+
+        // If the new cell isn't a grapheme but the previous cell at this position was,
+        // the row side-table entry is now stale — drop it.
+        if ((cell.Flags & CellFlags.HasGrapheme) == 0)
+        {
+            _rowGraphemes[y]?.Remove(x);
+        }
+    }
+
+    /// <summary>
+    /// Stores a multi-codepoint grapheme cluster at the given position. The lead
+    /// codepoint and styling go on the cell at (<paramref name="x"/>, <paramref name="y"/>)
+    /// with <see cref="CellFlags.HasGrapheme"/> set; the full <paramref name="codepoints"/>
+    /// sequence is kept in the row-side table. If the lead codepoint is wide, a
+    /// <see cref="CellFlags.WideTrail"/> placeholder is written at (<paramref name="x"/> + 1, <paramref name="y"/>).
+    /// </summary>
+    public void SetGrapheme(int x, int y, ReadOnlySpan<uint> codepoints, Color fg, Color bg, TextDecorations decorations)
+    {
+        if (codepoints.IsEmpty || !IsInBounds(x, y))
+        {
+            return;
+        }
+
+        if (bg.IsTransparent)
+        {
+            bg = _current[Index(x, y)].Background;
+        }
+
+        var lead = codepoints[0];
+        var isWide = WidthTable.IsWide(lead);
+
+        if (isWide && x + 1 >= Width)
+        {
+            // No room for the trail — degrade to a space to keep the grid intact.
+            SetCell(x, y, new Cell((uint)' ', fg, bg, decorations));
+            return;
+        }
+
+        // Store the cluster sequence first; SetCell will then see HasGrapheme and skip
+        // its own cleanup of the side-table entry.
+        var row = _rowGraphemes[y] ??= new Dictionary<int, uint[]>();
+        row[x] = codepoints.ToArray();
+
+        var flags = CellFlags.HasGrapheme | (isWide ? CellFlags.WideLead : CellFlags.None);
+        SetCell(x, y, new Cell(lead, fg, bg, decorations, flags));
+
+        // SetCell short-circuits when the Cell-level value is unchanged. That's wrong here
+        // if only the cluster sequence changed (same lead + colors but different combining
+        // marks). Force-mark the row dirty so the diff path visits this cell and the
+        // grapheme-aware comparison can detect the cluster change.
+        _dirtyRect.Expand(x, y);
+
+        if (isWide)
+        {
+            SetCell(x + 1, y, new Cell(0u, fg, bg, decorations, CellFlags.WideTrail));
+        }
+    }
+
+    /// <summary>
+    /// Returns the codepoint sequence stored at (<paramref name="x"/>, <paramref name="y"/>).
+    /// For grapheme cells this is the full multi-codepoint cluster; otherwise it's a
+    /// single-element array containing the cell's <see cref="Cell.Codepoint"/>.
+    /// Out-of-bounds reads return an empty array.
+    /// </summary>
+    public uint[] GetGrapheme(int x, int y)
+    {
+        if (!IsInBounds(x, y))
+        {
+            return [];
+        }
+
+        var cell = _current[Index(x, y)];
+        if ((cell.Flags & CellFlags.HasGrapheme) != 0
+            && _rowGraphemes[y] is { } row
+            && row.TryGetValue(x, out var seq))
+        {
+            return seq;
+        }
+
+        return [cell.Codepoint];
     }
     
     /// <summary>
@@ -204,11 +296,17 @@ public sealed unsafe class CellBuffer : IDisposable
     }
     
     /// <summary>
-    /// Clears the entire buffer to empty cells.
+    /// Clears the entire buffer to empty cells. All row-side grapheme entries are dropped
+    /// (they only make sense alongside a HasGrapheme-flagged cell).
     /// </summary>
     public void Clear()
     {
         FillEmpty(_current, Width, Height);
+        for (var y = 0; y < _rowGraphemes.Length; y++)
+        {
+            _rowGraphemes[y] = null;
+        }
+
         MarkFullDirty();
     }
     
@@ -344,6 +442,11 @@ public sealed unsafe class CellBuffer : IDisposable
         var tmp = _current;
         _current = _previous;
         _previous = tmp;
+
+        // Swap the row grapheme tables in lockstep so the diff path can compare
+        // both frames' cluster sequences alongside the cell pointers.
+        (_rowGraphemes, _previousRowGraphemes) = (_previousRowGraphemes, _rowGraphemes);
+
         _dirtyRect.Reset();
     }
     
@@ -367,36 +470,67 @@ public sealed unsafe class CellBuffer : IDisposable
 
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(newWidth);
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(newHeight);
-        
+
         var newSize = newWidth * newHeight;
         var newCapacity = (int)BitOperations.RoundUpToPowerOf2((uint)newSize);
-        
+
         var oldWidth = Width;
         var oldHeight = Height;
         var copyWidth = Math.Min(oldWidth, newWidth);
         var copyHeight = Math.Min(oldHeight, newHeight);
-        
+
         if (newCapacity > Capacity)
         {
             // Need larger allocation — allocate, copy overlapping region, free old
             _current = ResizeBuffer(_current, oldWidth, newWidth, newHeight, newCapacity, copyWidth, copyHeight);
-            
+
             // _previous: allocate fresh and fill with Cell.Empty (no content preservation)
             NativeMemory.Free(_previous);
             _previous = AllocBuffer(newCapacity);
             FillEmpty(_previous, newWidth, newHeight);
-            
+
             Capacity = newCapacity;
         }
         else
         {
             // Capacity is sufficient — reshuffle rows in-place for _current only
             ReshuffleInPlace(_current, oldWidth, oldHeight, newWidth, newHeight, copyWidth, copyHeight);
-            
+
             // _previous: just reset to Cell.Empty (terminal screen is blank after resize)
             FillEmpty(_previous, newWidth, newHeight);
         }
-        
+
+        // Row-side grapheme tables: drop entries whose column is now out of range, then
+        // reshuffle the per-row arrays. _previousRowGraphemes is wiped because _previous
+        // was reset to Cell.Empty (no clusters survive a resize).
+        var newRowGraphemes = new Dictionary<int, uint[]>?[newHeight];
+        var rowsToCopy = Math.Min(copyHeight, _rowGraphemes.Length);
+        for (var y = 0; y < rowsToCopy; y++)
+        {
+            var oldRow = _rowGraphemes[y];
+            if (oldRow == null)
+            {
+                continue;
+            }
+
+            Dictionary<int, uint[]>? newRow = null;
+            foreach (var (col, seq) in oldRow)
+            {
+                if (col >= newWidth)
+                {
+                    continue;
+                }
+
+                newRow ??= new Dictionary<int, uint[]>();
+                newRow[col] = seq;
+            }
+
+            newRowGraphemes[y] = newRow;
+        }
+
+        _rowGraphemes = newRowGraphemes;
+        _previousRowGraphemes = new Dictionary<int, uint[]>?[newHeight];
+
         Width = newWidth;
         Height = newHeight;
         MarkFullDirty();
@@ -700,6 +834,8 @@ public sealed unsafe class CellBuffer : IDisposable
     {
         private readonly Cell* _current;
         private readonly Cell* _previous;
+        private readonly Dictionary<int, uint[]>?[] _currentGraphemes;
+        private readonly Dictionary<int, uint[]>?[] _previousGraphemes;
         private readonly int _width;
         private readonly Rect _dirtyRegion;
         private int _x;
@@ -709,15 +845,17 @@ public sealed unsafe class CellBuffer : IDisposable
         {
             _current = buffer._current;
             _previous = buffer._previous;
+            _currentGraphemes = buffer._rowGraphemes;
+            _previousGraphemes = buffer._previousRowGraphemes;
             _width = buffer.Width;
-            _dirtyRegion = buffer._dirtyRect.IsDirty 
-                ? buffer._dirtyRect.ToRect() 
+            _dirtyRegion = buffer._dirtyRect.IsDirty
+                ? buffer._dirtyRect.ToRect()
                 : new Rect(0, 0, 0, 0);
             _x = _dirtyRegion.X - 1;
             _y = _dirtyRegion.Y;
             Current = default;
         }
-        
+
         /// <summary>Gets the current cell change.</summary>
         public CellChange Current { get; private set; }
 
@@ -735,7 +873,22 @@ public sealed unsafe class CellBuffer : IDisposable
                 }
 
                 var index = _y * _width + _x;
-                if (_current[index] != _previous[index])
+                var cellChanged = _current[index] != _previous[index];
+
+                // Grapheme cells need an array-level comparison even when the Cell value
+                // matches — the lead codepoint and colors may be identical but the cluster
+                // sequence (combining marks, ZWJ continuation) may have changed.
+                if (!cellChanged && (_current[index].Flags & CellFlags.HasGrapheme) != 0)
+                {
+                    var currSeq = _currentGraphemes[_y]?.GetValueOrDefault(_x);
+                    var prevSeq = _previousGraphemes[_y]?.GetValueOrDefault(_x);
+                    if (!SequencesEqual(currSeq, prevSeq))
+                    {
+                        cellChanged = true;
+                    }
+                }
+
+                if (cellChanged)
                 {
                     // Skip wide-character trailing cells — they're placeholders, and the
                     // leading cell at (x-1, y) carried the actual codepoint and advanced
@@ -751,7 +904,19 @@ public sealed unsafe class CellBuffer : IDisposable
             }
             return false;
         }
-        
+
+        private static bool SequencesEqual(uint[]? a, uint[]? b)
+        {
+            if (ReferenceEquals(a, b)) return true;
+            if (a is null || b is null) return false;
+            if (a.Length != b.Length) return false;
+            for (var i = 0; i < a.Length; i++)
+            {
+                if (a[i] != b[i]) return false;
+            }
+            return true;
+        }
+
         /// <summary>Gets the enumerator (for foreach support).</summary>
         public CellDiffEnumerator GetEnumerator() => this;
     }
