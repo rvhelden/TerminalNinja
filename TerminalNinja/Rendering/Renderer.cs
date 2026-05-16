@@ -12,27 +12,27 @@ namespace TerminalNinja.Rendering;
 public sealed class Renderer : IDisposable
 {
     private readonly CellBuffer _buffer;
-    private readonly AnsiWriter _writer;
+    private readonly ICellSink _sink;
     private readonly TerminalGuard? _guard;
     private readonly ITerminal? _terminal;
     private bool _disposed;
-    
+
     /// <summary>Gets the width of the rendering viewport.</summary>
     public int Width => _buffer.Width;
-    
+
     /// <summary>Gets the height of the rendering viewport.</summary>
     public int Height => _buffer.Height;
-    
+
     /// <summary>Gets the viewport rectangle (full screen).</summary>
     public Rect Viewport => new(0, 0, Width, Height);
-    
+
     /// <summary>
     /// Creates a new renderer using the system terminal (production use).
     /// </summary>
     public Renderer() : this(SystemTerminal.Instance)
     {
     }
-    
+
     /// <summary>
     /// Creates a new renderer with dependency injection for testing.
     /// </summary>
@@ -41,11 +41,26 @@ public sealed class Renderer : IDisposable
     {
         _terminal = terminal;
         var stdout = terminal.OpenOutput();
-        _writer = new AnsiWriter(stdout);
-        _guard = TerminalGuard.Enter(_writer, terminal);
+        var writer = new AnsiWriter(stdout);
+        _sink = writer;
+        _guard = TerminalGuard.Enter(writer, terminal);
         _buffer = new CellBuffer(terminal.Width, terminal.Height);
     }
-    
+
+    /// <summary>
+    /// Creates a renderer that writes to an arbitrary <see cref="ICellSink"/>.
+    /// Used by tests and non-ANSI backends (e.g. a future GPU sink); no terminal interaction.
+    /// </summary>
+    /// <param name="sink">The destination sink for cell writes.</param>
+    /// <param name="width">The viewport width in columns.</param>
+    /// <param name="height">The viewport height in rows.</param>
+    public Renderer(ICellSink sink, int width, int height)
+    {
+        ArgumentNullException.ThrowIfNull(sink);
+        _sink = sink;
+        _buffer = new CellBuffer(width, height);
+    }
+
     /// <summary>
     /// Creates an offscreen renderer that writes ANSI sequences to the given stream.
     /// No terminal interaction (no cursor hide/show, no ANSI mode toggling).
@@ -61,12 +76,13 @@ public sealed class Renderer : IDisposable
     }
 
     /// <summary>
-    /// Creates a renderer with explicit stream and dimensions (no terminal interaction).
+    /// Creates a renderer that writes ANSI sequences to an arbitrary stream with explicit
+    /// dimensions. Used by <see cref="CreateOffscreen"/> and by tests that need to inspect
+    /// the rendered byte stream.
     /// </summary>
     internal Renderer(Stream output, int width, int height)
+        : this(new AnsiWriter(output), width, height)
     {
-        _writer = new AnsiWriter(output);
-        _buffer = new CellBuffer(width, height);
     }
     
     /// <summary>
@@ -112,19 +128,18 @@ public sealed class Renderer : IDisposable
     /// </summary>
     public void Present()
     {
-        // Reset cursor tracking so the first cell in each frame always emits
-        // an absolute cursor position. Without this, stale cursor coordinates
-        // from the previous frame can cause MoveTo() to be incorrectly skipped,
-        // leading to rendering corruption (characters at wrong positions).
-        _writer.ResetCursorTracking();
+        // BeginFrame invalidates per-frame state (e.g. cursor tracking on the ANSI sink)
+        // so the first cell always emits absolute positioning. Without this, stale state
+        // from the previous frame can cause rendering corruption (characters at wrong positions).
+        _sink.BeginFrame();
 
         // Zero-allocation iteration using struct enumerator
         foreach (var change in _buffer.GetChanges())
         {
-            _writer.WriteCell(change.X, change.Y, change.Cell);
+            _sink.WriteCell(change.X, change.Y, change.Cell);
         }
 
-        _writer.Flush();
+        _sink.EndFrame();
         _buffer.SwapBuffers();
     }
     
@@ -141,15 +156,12 @@ public sealed class Renderer : IDisposable
         }
 
         _buffer.Resize(newWidth, newHeight);
-        
-        // Reset SGR attributes before clearing, so \e[2J fills with the
-        // default background (black) instead of whatever color was active
-        // from the previous frame. Without this reset, the clear screen
-        // would paint the entire terminal in the previous frame's last
-        // background color, and the diff-based Present() would not repaint
-        // cells outside the content area (they match _previous = empty).
-        _writer.Reset();
-        _writer.ClearScreen();
+
+        // Resize on the sink resets style state and clears the surface so the
+        // diff-based Present() starts from a known-clean baseline. Without this,
+        // stale SGR attributes from the previous frame would bleed into the new
+        // surface, and unchanged cells outside the content area would not be repainted.
+        _sink.Resize(newWidth, newHeight);
     }
     
     /// <summary>
@@ -179,12 +191,13 @@ public sealed class Renderer : IDisposable
     }
     
     /// <summary>
-    /// Writes an ANSI reset sequence to restore default terminal attributes.
+    /// Resets the sink's style state and flushes any pending output. For the ANSI
+    /// sink this emits the SGR reset sequence; for other sinks it is implementation-defined.
     /// </summary>
     public void WriteReset()
     {
-        _writer.Reset();
-        _writer.Flush();
+        _sink.Reset();
+        _sink.EndFrame();
     }
 
     /// <summary>
@@ -214,9 +227,9 @@ public sealed class Renderer : IDisposable
         }
 
         _disposed = true;
-        
+
         _buffer.Dispose();
         _guard?.Dispose();
-        _writer.Dispose();
+        _sink.Dispose();
     }
 }

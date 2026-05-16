@@ -1,6 +1,7 @@
 using System.Runtime.CompilerServices;
 using System.Text;
 using TerminalNinja.Primitives;
+using TerminalNinja.Rendering;
 
 namespace TerminalNinja.Ansi;
 
@@ -8,7 +9,7 @@ namespace TerminalNinja.Ansi;
 /// Zero-allocation ANSI escape sequence writer that writes directly to a stream.
 /// Uses C# 13's \e escape sequence for clean, safe code.
 /// </summary>
-public sealed class AnsiWriter : IDisposable
+public sealed class AnsiWriter : ICellSink
 {
     private readonly Stream _output;
     private readonly byte[] _buffer;
@@ -291,7 +292,20 @@ public sealed class AnsiWriter : IDisposable
         SetDecorations(cell.Decorations);
         WriteChar(cell.Character);
     }
-    
+
+    /// <inheritdoc />
+    public void BeginFrame() => ResetCursorTracking();
+
+    /// <inheritdoc />
+    public void EndFrame() => Flush();
+
+    /// <inheritdoc />
+    public void Resize(int width, int height)
+    {
+        Reset();
+        ClearScreen();
+    }
+
     /// <summary>
     /// Resets all text attributes to defaults.
     /// </summary>
