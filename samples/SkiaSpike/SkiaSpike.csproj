@@ -1,0 +1,50 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <OutputType>Exe</OutputType>
+        <TargetFramework>net10.0</TargetFramework>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+        <PublishAot>true</PublishAot>
+        <RootNamespace>SkiaSpike</RootNamespace>
+        <AssemblyName>SkiaSpike</AssemblyName>
+        <!--
+            Spike project: standalone AOT canary for the Silk.NET + SkiaSharp + HarfBuzz stack.
+            Deliberately NOT added to TerminalNinja.slnx — its only job is to prove the chosen
+            packages publish cleanly under Native AOT for win-x64 and linux-x64 before we
+            commit to the SkiaCellSink in the main library.
+
+            DO NOT add SkiaSharp.Views.* packages — they are known trim-unsafe.
+        -->
+    </PropertyGroup>
+
+    <ItemGroup>
+        <!-- Windowing + GL bindings -->
+        <PackageReference Include="Silk.NET.Windowing" Version="2.23.0" />
+        <PackageReference Include="Silk.NET.OpenGL" Version="2.23.0" />
+        <PackageReference Include="Silk.NET.Maths" Version="2.23.0" />
+
+        <!-- Skia (raw, no Views) + HarfBuzz shaping -->
+        <PackageReference Include="SkiaSharp" Version="3.119.0" />
+        <PackageReference Include="SkiaSharp.HarfBuzz" Version="3.119.0" />
+        <PackageReference Include="HarfBuzzSharp" Version="8.3.1.1" />
+
+        <!-- Native assets for both target runtimes (PublishAot picks the right one). -->
+        <PackageReference Include="SkiaSharp.NativeAssets.Win32" Version="3.119.0" />
+        <PackageReference Include="SkiaSharp.NativeAssets.Linux.NoDependencies" Version="3.119.0" />
+        <PackageReference Include="HarfBuzzSharp.NativeAssets.Win32" Version="8.3.1.1" />
+        <PackageReference Include="HarfBuzzSharp.NativeAssets.Linux" Version="8.3.1.1" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <!--
+            Silk.NET.Windowing discovers platform implementations (GLFW / SDL2) via
+            Activator.CreateInstance on types pulled from WindowPlatformAttribute.
+            That trips IL2072 because the trimmer can't statically prove the constructor
+            survives trimming. Rooting the GLFW assembly makes the type statically
+            reachable, eliminating the warning under AOT.
+        -->
+        <TrimmerRootAssembly Include="Silk.NET.Windowing.Glfw" />
+    </ItemGroup>
+
+</Project>
