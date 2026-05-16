@@ -2,6 +2,7 @@ using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using TerminalNinja.Primitives;
+using TerminalNinja.Rendering;
 
 namespace TerminalNinja.Buffers;
 
@@ -32,6 +33,15 @@ public sealed unsafe class CellBuffer : IDisposable
     // its Codepoint stores the cluster's lead codepoint (so width / fallback rendering still work).
     private Dictionary<int, uint[]>?[] _rowGraphemes;
     private Dictionary<int, uint[]>?[] _previousRowGraphemes;
+
+    /// <summary>
+    /// The <see cref="ICellSink"/> that will receive cells from this buffer during the
+    /// current Draw call, or <see langword="null"/> when no draw is in progress. Set by
+    /// <see cref="Rendering.Renderer.Draw"/> so controls can detect optional capabilities
+    /// (e.g. <see cref="IShapedRunSink"/>) and emit higher-level operations alongside
+    /// per-cell writes. Cleared at the end of the Draw call.
+    /// </summary>
+    public ICellSink? ActiveSink { get; internal set; }
     
     /// <summary>Gets the width of the buffer in cells.</summary>
     public int Width { get; private set; }

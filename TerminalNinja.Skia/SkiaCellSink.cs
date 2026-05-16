@@ -1,33 +1,37 @@
 using System.Text;
 using SkiaSharp;
+using SkiaSharp.HarfBuzz;
 using TerminalNinja.Primitives;
 using TerminalNinja.Rendering;
 
 namespace TerminalNinja.Skia;
 
 /// <summary>
-/// <see cref="ICellSink"/> backed by SkiaSharp: each cell is rasterized as a background
-/// rectangle followed by its codepoint and any text-decoration primitives. No HarfBuzz
-/// shaping yet — that is Step 7 (<c>IShapedRunSink</c>). Ligatures, complex scripts,
-/// and color emoji therefore render approximately or fall back to font defaults.
+/// <see cref="ICellSink"/> backed by SkiaSharp, with HarfBuzz shaping support via
+/// <see cref="IShapedRunSink"/>. Per-cell <see cref="WriteCell"/> paints background
+/// rectangles, decoration primitives, and (for cells not covered by a queued shaped run)
+/// the single-glyph fallback. Cells covered by a queued run get only the background;
+/// their glyphs are emitted during <see cref="EndFrame"/> via <see cref="SKShaper"/>.
 /// </summary>
 /// <remarks>
 /// <para>
-/// Threading: not thread-safe. <see cref="WriteCell"/> must be called from the thread
-/// that owns the GL context (or, for software-rendered surfaces, the thread driving the host).
+/// Threading: not thread-safe. All calls must come from the thread that owns the GL context
+/// (or, for software-rendered surfaces, the thread driving the host).
 /// </para>
 /// <para>
-/// State: the sink caches the surface, font, and cell metrics — it does NOT own them.
-/// The host (<see cref="SkiaApplication"/>) replaces the surface every frame because the
-/// default framebuffer can be resized; <see cref="SetSurface"/> rotates it without
-/// rebuilding the sink. Reusable <see cref="SKPaint"/> instances live in the sink to
-/// keep the per-cell path allocation-free.
+/// State: the sink caches the surface, font, typeface, shaper, and cell metrics — it does
+/// NOT own the surface. The host (<see cref="SkiaApplication"/>) replaces the surface every
+/// frame because the default framebuffer can be resized; <see cref="SetSurface"/> rotates
+/// it without rebuilding the sink. Reusable <see cref="SKPaint"/> instances and a queue
+/// for shaped runs live in the sink to keep the hot path allocation-free.
 /// </para>
 /// </remarks>
-public sealed class SkiaCellSink : ICellSink
+public sealed class SkiaCellSink : IShapedRunSink
 {
     private SKSurface _surface;
+    private readonly SKTypeface _typeface;
     private readonly SKFont _font;
+    private readonly SKShaper _shaper;
     private readonly int _cellWidth;
     private readonly int _cellHeight;
     private readonly float _textBaseline;
@@ -35,6 +39,12 @@ public sealed class SkiaCellSink : ICellSink
     private readonly SKPaint _bgPaint = new() { IsAntialias = false, Style = SKPaintStyle.Fill };
     private readonly SKPaint _fgPaint = new() { IsAntialias = true, Style = SKPaintStyle.Fill };
     private readonly SKPaint _linePaint = new() { IsAntialias = false, Style = SKPaintStyle.Stroke, StrokeWidth = 1f };
+
+    // Queued runs accumulate during the frame and are drawn in EndFrame. The coverage
+    // map records which (column, row) cells fall under a queued run so WriteCell can
+    // suppress the per-cell glyph fallback for them (the shaped pass owns those glyphs).
+    private readonly List<QueuedRun> _queuedRuns = [];
+    private readonly Dictionary<int, HashSet<int>> _coveredColumnsByRow = [];
 
     /// <summary>Width of a single cell in pixels.</summary>
     public int CellWidth => _cellWidth;
@@ -47,19 +57,23 @@ public sealed class SkiaCellSink : ICellSink
 
     /// <summary>
     /// Creates a sink that paints into <paramref name="surface"/> using <paramref name="font"/>
-    /// at the given fixed cell metrics. The host is responsible for picking a font that
-    /// renders at the given pixel size and for keeping the surface alive at least until
-    /// the next <see cref="SetSurface"/> or <see cref="Dispose"/>.
+    /// at the given fixed cell metrics. <paramref name="typeface"/> is used to construct the
+    /// HarfBuzz shaper; pass <see cref="SKFont.Typeface"/> when in doubt. The host is
+    /// responsible for picking a font that renders at the given pixel size and for keeping
+    /// the surface alive at least until the next <see cref="SetSurface"/> or <see cref="Dispose"/>.
     /// </summary>
-    public SkiaCellSink(SKSurface surface, SKFont font, int cellWidth, int cellHeight)
+    public SkiaCellSink(SKSurface surface, SKFont font, SKTypeface typeface, int cellWidth, int cellHeight)
     {
         ArgumentNullException.ThrowIfNull(surface);
         ArgumentNullException.ThrowIfNull(font);
+        ArgumentNullException.ThrowIfNull(typeface);
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(cellWidth);
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(cellHeight);
 
         _surface = surface;
         _font = font;
+        _typeface = typeface;
+        _shaper = new SKShaper(typeface);
         _cellWidth = cellWidth;
         _cellHeight = cellHeight;
 
@@ -71,6 +85,15 @@ public sealed class SkiaCellSink : ICellSink
         var lineHeight = ascent + descent;
         var lineGap = Math.Max(0f, _cellHeight - lineHeight);
         _textBaseline = ascent + (lineGap / 2f);
+    }
+
+    /// <summary>
+    /// Back-compat overload that derives the typeface from <paramref name="font"/>. Falls
+    /// back to <see cref="SKTypeface.Default"/> if the font has none attached.
+    /// </summary>
+    public SkiaCellSink(SKSurface surface, SKFont font, int cellWidth, int cellHeight)
+        : this(surface, font, font.Typeface ?? SKTypeface.Default, cellWidth, cellHeight)
+    {
     }
 
     /// <summary>
@@ -87,9 +110,44 @@ public sealed class SkiaCellSink : ICellSink
     /// <inheritdoc />
     public void BeginFrame()
     {
-        // The host clears the canvas as part of its per-frame setup; nothing to do here.
-        // If the host stops clearing in a future revision, this is where we'd issue a
-        // canvas.Clear(...) with the default background color.
+        // Reset per-frame state — any runs queued from a previous frame would otherwise
+        // paint over the freshly cleared canvas.
+        _queuedRuns.Clear();
+        _coveredColumnsByRow.Clear();
+    }
+
+    /// <inheritdoc />
+    public void WriteRun(int x, int y, ReadOnlySpan<char> text, Color fg, Color bg, TextDecorations decorations)
+    {
+        if (text.IsEmpty)
+        {
+            return;
+        }
+
+        var widthCells = MeasureRunCellWidth(text);
+        if (widthCells <= 0)
+        {
+            return;
+        }
+
+        _queuedRuns.Add(new QueuedRun(x, y, widthCells, text.ToString(), fg, decorations));
+
+        // Mark every cell the run covers so WriteCell skips its glyph fallback for them.
+        // Background fills still happen via WriteCell; we just claim ownership of the glyphs.
+        if (!_coveredColumnsByRow.TryGetValue(y, out var cols))
+        {
+            cols = [];
+            _coveredColumnsByRow[y] = cols;
+        }
+
+        for (var col = x; col < x + widthCells; col++)
+        {
+            cols.Add(col);
+        }
+
+        // Background and foreground inversion are computed per-cell in WriteCell; we don't
+        // need bg here. Suppress the unused-parameter warning explicitly.
+        _ = bg;
     }
 
     /// <inheritdoc />
@@ -122,9 +180,14 @@ public sealed class SkiaCellSink : ICellSink
         _bgPaint.Color = ToSkColor(bg);
         canvas.DrawRect(px, py, rectW, rectH, _bgPaint);
 
-        // 2. Codepoint. Skip rendering for empty cells (space on a default bg) to keep
-        // the GPU draw call count down; the background rect already covers the visual.
-        if (cell.Codepoint != 0 && cell.Codepoint != ' ')
+        // Cells covered by a queued shaped run have their glyph drawn during EndFrame.
+        // Skip the per-cell glyph fallback for them to avoid double-painting under the
+        // shaped glyph (which can manifest as a doubled / ghosted character).
+        var coveredByShapedRun = _coveredColumnsByRow.TryGetValue(y, out var cols) && cols.Contains(x);
+
+        // 2. Glyph fallback. Skip empty cells (background already covers) and cells claimed
+        // by a queued shaped run.
+        if (!coveredByShapedRun && cell.Codepoint != 0 && cell.Codepoint != ' ')
         {
             _fgPaint.Color = ApplyDimmedAlpha(ToSkColor(fg), cell.Decorations);
             DrawGlyph(canvas, cell.Codepoint, px, py + _textBaseline, _fgPaint);
@@ -135,14 +198,14 @@ public sealed class SkiaCellSink : ICellSink
         // (a follow-up that introduces a font fallback chain can wire them up properly).
         if ((cell.Decorations & TextDecorations.Underline) != 0)
         {
-            _linePaint.Color = _fgPaint.Color;
+            _linePaint.Color = ApplyDimmedAlpha(ToSkColor(fg), cell.Decorations);
             var lineY = py + _textBaseline + 2f;
             canvas.DrawLine(px, lineY, px + rectW, lineY, _linePaint);
         }
 
         if ((cell.Decorations & TextDecorations.Strikethrough) != 0)
         {
-            _linePaint.Color = _fgPaint.Color;
+            _linePaint.Color = ApplyDimmedAlpha(ToSkColor(fg), cell.Decorations);
             var lineY = py + (_cellHeight / 2f);
             canvas.DrawLine(px, lineY, px + rectW, lineY, _linePaint);
         }
@@ -151,10 +214,39 @@ public sealed class SkiaCellSink : ICellSink
     /// <inheritdoc />
     public void EndFrame()
     {
+        if (_queuedRuns.Count > 0)
+        {
+            var canvas = _surface.Canvas;
+            foreach (var run in _queuedRuns)
+            {
+                _fgPaint.Color = ApplyDimmedAlpha(ToSkColor(run.Foreground), run.Decorations);
+                var px = run.X * _cellWidth;
+                var py = (run.Y * _cellHeight) + _textBaseline;
+
+                // DrawShapedText drives HarfBuzz shaping internally and renders ligatures /
+                // complex-script glyphs. The Step 8 row-level diff path will replace this
+                // with cached SKTextBlobs to amortize shaping across frames.
+                canvas.DrawShapedText(_shaper, run.Text, px, py, _font, _fgPaint);
+            }
+        }
+
         // The host owns the GL swap. We just flush the Skia draw queue so the GPU sees
         // every queued operation before the host swaps buffers.
         _surface.Canvas.Flush();
     }
+
+    private static int MeasureRunCellWidth(ReadOnlySpan<char> text)
+    {
+        var w = 0;
+        foreach (var rune in text.EnumerateRunes())
+        {
+            w += WidthTable.IsWide((uint)rune.Value) ? 2 : 1;
+        }
+
+        return w;
+    }
+
+    private readonly record struct QueuedRun(int X, int Y, int CellWidthCount, string Text, Color Foreground, TextDecorations Decorations);
 
     /// <inheritdoc />
     public void Reset()
@@ -178,6 +270,7 @@ public sealed class SkiaCellSink : ICellSink
         _bgPaint.Dispose();
         _fgPaint.Dispose();
         _linePaint.Dispose();
+        _shaper.Dispose();
     }
 
     private void DrawGlyph(SKCanvas canvas, uint codepoint, float x, float baselineY, SKPaint paint)

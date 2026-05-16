@@ -95,11 +95,23 @@ public sealed class Renderer : IDisposable
     
     /// <summary>
     /// Draws a UIElement to the buffer (does not display until Present() is called).
+    /// Exposes the active sink to controls via <see cref="CellBuffer.ActiveSink"/> for the
+    /// duration of the call so capability-aware controls (e.g. <c>TextBlock</c> when an
+    /// <see cref="IShapedRunSink"/> is attached) can emit higher-level operations alongside
+    /// their per-cell writes.
     /// </summary>
     /// <param name="control">The control to draw.</param>
     public void Draw(UIElement control)
     {
-        control.Render(_buffer, Viewport);
+        _buffer.ActiveSink = _sink;
+        try
+        {
+            control.Render(_buffer, Viewport);
+        }
+        finally
+        {
+            _buffer.ActiveSink = null;
+        }
     }
     
     /// <summary>
@@ -119,7 +131,15 @@ public sealed class Renderer : IDisposable
     /// <param name="overlay">The overlay control to draw.</param>
     public void DrawOverlay(UIElement overlay)
     {
-        overlay.Render(_buffer, Viewport);
+        _buffer.ActiveSink = _sink;
+        try
+        {
+            overlay.Render(_buffer, Viewport);
+        }
+        finally
+        {
+            _buffer.ActiveSink = null;
+        }
     }
     
     /// <summary>
