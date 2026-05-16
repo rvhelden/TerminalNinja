@@ -295,11 +295,11 @@ public class ListBoxTests
 
         // Position 0 has the selection indicator '▌'
         var indicator = buffer.GetCell(0, 0);
-        await Assert.That(indicator.Character).IsEqualTo('\u258C');
+        await Assert.That(indicator.Codepoint).IsEqualTo('\u258C');
 
         // The first char of "Test" should be 'T' at position 1 (offset by indicator)
         var cell = buffer.GetCell(1, 0);
-        await Assert.That(cell.Character).IsEqualTo('T');
+        await Assert.That(cell.Codepoint).IsEqualTo('T');
     }
 
     #endregion
@@ -536,8 +536,8 @@ public class ListBoxTests
         listBox.Render(buffer, new Rect(0, 0, 20, 5));
 
         // "Hello" should render as text
-        await Assert.That(buffer.GetCell(0, 0).Character).IsEqualTo('H');
-        await Assert.That(buffer.GetCell(4, 0).Character).IsEqualTo('o');
+        await Assert.That(buffer.GetCell(0, 0).Codepoint).IsEqualTo('H');
+        await Assert.That(buffer.GetCell(4, 0).Codepoint).IsEqualTo('o');
     }
 
     [Test]
@@ -604,13 +604,13 @@ public class ListBoxTests
         listBox.Render(buffer, new Rect(0, 0, 20, 5));
 
         // First item "Hello" — selected, so indicator at 0, text starts at 1
-        await Assert.That(buffer.GetCell(0, 0).Character).IsEqualTo('\u258C'); // ▌ indicator
-        await Assert.That(buffer.GetCell(1, 0).Character).IsEqualTo('H');
-        await Assert.That(buffer.GetCell(5, 0).Character).IsEqualTo('o');
+        await Assert.That(buffer.GetCell(0, 0).Codepoint).IsEqualTo('\u258C'); // ▌ indicator
+        await Assert.That(buffer.GetCell(1, 0).Codepoint).IsEqualTo('H');
+        await Assert.That(buffer.GetCell(5, 0).Codepoint).IsEqualTo('o');
 
         // Second item "World" — not selected, no indicator, text at 0
-        await Assert.That(buffer.GetCell(0, 1).Character).IsEqualTo('W');
-        await Assert.That(buffer.GetCell(4, 1).Character).IsEqualTo('d');
+        await Assert.That(buffer.GetCell(0, 1).Codepoint).IsEqualTo('W');
+        await Assert.That(buffer.GetCell(4, 1).Codepoint).IsEqualTo('d');
     }
 
     #endregion

@@ -101,7 +101,7 @@ public class FolderPickerTests
         var found = false;
         for (var y = 0; y < 18; y++)
         {
-            if (buffer.GetCell(2, y).Character == 's' && buffer.GetCell(3, y).Character == 'e')
+            if (buffer.GetCell(2, y).Codepoint == 's' && buffer.GetCell(3, y).Codepoint == 'e')
                 found = true;
         }
         await Assert.That(found).IsFalse();
@@ -119,7 +119,7 @@ public class FolderPickerTests
         using var buffer = new CellBuffer(60, 18);
         fp.Render(buffer, new Rect(0, 0, 60, 18));
 
-        await Assert.That(buffer.GetCell(0, 0).Character).IsNotEqualTo('\0');
+        await Assert.That(buffer.GetCell(0, 0).Codepoint).IsNotEqualTo('\0');
     }
 
     #endregion
@@ -198,7 +198,7 @@ public class FolderPickerTests
         using var buffer = new CellBuffer(60, 18);
         fp.Render(buffer, new Rect(0, 0, 60, 18));
 
-        await Assert.That(buffer.GetCell(0, 0).Character).IsNotEqualTo('\0');
+        await Assert.That(buffer.GetCell(0, 0).Codepoint).IsNotEqualTo('\0');
     }
 
     #endregion

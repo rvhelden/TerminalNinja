@@ -131,9 +131,9 @@ public class CheckBoxTests
         using var buffer = new CellBuffer(20, 1);
         cb.Render(buffer, new Rect(0, 0, 20, 1));
 
-        await Assert.That(buffer.GetCell(0, 0).Character).IsEqualTo('[');
-        await Assert.That(buffer.GetCell(1, 0).Character).IsEqualTo(' ');
-        await Assert.That(buffer.GetCell(2, 0).Character).IsEqualTo(']');
+        await Assert.That(buffer.GetCell(0, 0).Codepoint).IsEqualTo('[');
+        await Assert.That(buffer.GetCell(1, 0).Codepoint).IsEqualTo(' ');
+        await Assert.That(buffer.GetCell(2, 0).Codepoint).IsEqualTo(']');
     }
 
     [Test]
@@ -144,9 +144,9 @@ public class CheckBoxTests
         using var buffer = new CellBuffer(20, 1);
         cb.Render(buffer, new Rect(0, 0, 20, 1));
 
-        await Assert.That(buffer.GetCell(0, 0).Character).IsEqualTo('[');
-        await Assert.That(buffer.GetCell(1, 0).Character).IsEqualTo('x');
-        await Assert.That(buffer.GetCell(2, 0).Character).IsEqualTo(']');
+        await Assert.That(buffer.GetCell(0, 0).Codepoint).IsEqualTo('[');
+        await Assert.That(buffer.GetCell(1, 0).Codepoint).IsEqualTo('x');
+        await Assert.That(buffer.GetCell(2, 0).Codepoint).IsEqualTo(']');
     }
 
     [Test]
@@ -158,7 +158,7 @@ public class CheckBoxTests
         cb.Render(buffer, new Rect(0, 0, 20, 1));
 
         // Content starts at offset 4 (after "[ ] ")
-        await Assert.That(buffer.GetCell(4, 0).Character).IsEqualTo('T');
+        await Assert.That(buffer.GetCell(4, 0).Codepoint).IsEqualTo('T');
     }
 
     [Test]

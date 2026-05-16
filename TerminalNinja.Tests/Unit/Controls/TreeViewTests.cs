@@ -199,7 +199,7 @@ public class TreeViewTests
         using var buffer = new CellBuffer(30, 10);
         tv.Render(buffer, new Rect(0, 0, 30, 10));
 
-        await Assert.That(buffer.GetCell(0, 0).Character).IsEqualTo('\u25BC'); // ▼
+        await Assert.That(buffer.GetCell(0, 0).Codepoint).IsEqualTo('\u25BC'); // ▼
     }
 
     [Test]
@@ -210,7 +210,7 @@ public class TreeViewTests
         using var buffer = new CellBuffer(30, 10);
         tv.Render(buffer, new Rect(0, 0, 30, 10));
 
-        await Assert.That(buffer.GetCell(0, 0).Character).IsEqualTo('\u25B6'); // ▶
+        await Assert.That(buffer.GetCell(0, 0).Codepoint).IsEqualTo('\u25B6'); // ▶
     }
 
     [Test]
@@ -222,10 +222,10 @@ public class TreeViewTests
         tv.Render(buffer, new Rect(0, 0, 30, 10));
 
         // Root at indent 0, header at x=2
-        await Assert.That(buffer.GetCell(2, 0).Character).IsEqualTo('R'); // "Root"
+        await Assert.That(buffer.GetCell(2, 0).Codepoint).IsEqualTo('R'); // "Root"
 
         // Child at indent 2, header at x=4
-        await Assert.That(buffer.GetCell(4, 1).Character).IsEqualTo('C'); // "Child 1"
+        await Assert.That(buffer.GetCell(4, 1).Codepoint).IsEqualTo('C'); // "Child 1"
     }
 
     [Test]
@@ -262,7 +262,7 @@ public class TreeViewTests
         tv.Render(buffer, new Rect(0, 0, 30, 10));
 
         // No children = no indicator, text at x=2
-        await Assert.That(buffer.GetCell(2, 0).Character).IsEqualTo('T');
+        await Assert.That(buffer.GetCell(2, 0).Codepoint).IsEqualTo('T');
     }
 
     #endregion

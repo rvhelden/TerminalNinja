@@ -435,7 +435,7 @@ public sealed class TextBox : Control
         }
 
         var existing = buffer.GetCell(caretScreenX, caretScreenY);
-        var ch = existing.Character is '\0' or ' ' ? ' ' : existing.Character;
+        var ch = existing.Codepoint is '\0' or ' ' ? ' ' : existing.Codepoint;
         buffer.SetCell(caretScreenX, caretScreenY,
             new Cell(ch, existing.Foreground, existing.Background,
                 existing.Decorations | TextDecorations.Inverse));

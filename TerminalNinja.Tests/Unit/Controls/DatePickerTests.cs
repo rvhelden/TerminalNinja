@@ -297,8 +297,8 @@ public class DatePickerTests
         dp.Render(buffer, new Rect(0, 0, 30, 3));
 
         // Placeholder "Select date..." should appear starting at x=1, y=1
-        await Assert.That(buffer.GetCell(1, 1).Character).IsEqualTo('S');
-        await Assert.That(buffer.GetCell(2, 1).Character).IsEqualTo('e');
+        await Assert.That(buffer.GetCell(1, 1).Codepoint).IsEqualTo('S');
+        await Assert.That(buffer.GetCell(2, 1).Codepoint).IsEqualTo('e');
     }
 
     [Test]
@@ -310,11 +310,11 @@ public class DatePickerTests
         dp.Render(buffer, new Rect(0, 0, 30, 3));
 
         // Date "2026-03-15" should appear starting at x=1, y=1
-        await Assert.That(buffer.GetCell(1, 1).Character).IsEqualTo('2');
-        await Assert.That(buffer.GetCell(2, 1).Character).IsEqualTo('0');
-        await Assert.That(buffer.GetCell(3, 1).Character).IsEqualTo('2');
-        await Assert.That(buffer.GetCell(4, 1).Character).IsEqualTo('6');
-        await Assert.That(buffer.GetCell(5, 1).Character).IsEqualTo('-');
+        await Assert.That(buffer.GetCell(1, 1).Codepoint).IsEqualTo('2');
+        await Assert.That(buffer.GetCell(2, 1).Codepoint).IsEqualTo('0');
+        await Assert.That(buffer.GetCell(3, 1).Codepoint).IsEqualTo('2');
+        await Assert.That(buffer.GetCell(4, 1).Codepoint).IsEqualTo('6');
+        await Assert.That(buffer.GetCell(5, 1).Codepoint).IsEqualTo('-');
     }
 
     [Test]
@@ -326,8 +326,8 @@ public class DatePickerTests
         dp.Render(buffer, new Rect(0, 0, 20, 3));
 
         var corner = buffer.GetCell(0, 0);
-        await Assert.That(corner.Character).IsNotEqualTo(' ');
-        await Assert.That(corner.Character).IsNotEqualTo('\0');
+        await Assert.That(corner.Codepoint).IsNotEqualTo(' ');
+        await Assert.That(corner.Codepoint).IsNotEqualTo('\0');
     }
 
     #endregion

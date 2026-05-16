@@ -286,8 +286,8 @@ public class ItemsPresenterTests
         presenter.Render(buffer, new Rect(0, 0, 20, 5));
 
         // Assert — the text "Hello" should be rendered via the panel
-        await Assert.That(buffer.GetCell(0, 0).Character).IsEqualTo('H');
-        await Assert.That(buffer.GetCell(4, 0).Character).IsEqualTo('o');
+        await Assert.That(buffer.GetCell(0, 0).Codepoint).IsEqualTo('H');
+        await Assert.That(buffer.GetCell(4, 0).Codepoint).IsEqualTo('o');
     }
 
     [Test]
@@ -301,7 +301,7 @@ public class ItemsPresenterTests
         presenter.Render(buffer, new Rect(0, 0, 20, 5));
 
         // Buffer should remain at default (space characters)
-        await Assert.That(buffer.GetCell(0, 0).Character).IsEqualTo(' ');
+        await Assert.That(buffer.GetCell(0, 0).Codepoint).IsEqualTo(' ');
     }
 
     [Test]
@@ -319,10 +319,10 @@ public class ItemsPresenterTests
         presenter.Render(buffer, new Rect(0, 0, 20, 5));
 
         // Assert — "AB" on row 0, "CD" on row 1 (vertical StackPanel default)
-        await Assert.That(buffer.GetCell(0, 0).Character).IsEqualTo('A');
-        await Assert.That(buffer.GetCell(1, 0).Character).IsEqualTo('B');
-        await Assert.That(buffer.GetCell(0, 1).Character).IsEqualTo('C');
-        await Assert.That(buffer.GetCell(1, 1).Character).IsEqualTo('D');
+        await Assert.That(buffer.GetCell(0, 0).Codepoint).IsEqualTo('A');
+        await Assert.That(buffer.GetCell(1, 0).Codepoint).IsEqualTo('B');
+        await Assert.That(buffer.GetCell(0, 1).Codepoint).IsEqualTo('C');
+        await Assert.That(buffer.GetCell(1, 1).Codepoint).IsEqualTo('D');
     }
 
     #endregion

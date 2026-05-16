@@ -125,7 +125,7 @@ public class FilePickerTests
         fp.Render(buffer, new Rect(0, 0, 60, 20));
 
         // Should render without errors
-        await Assert.That(buffer.GetCell(0, 0).Character).IsNotEqualTo('\0');
+        await Assert.That(buffer.GetCell(0, 0).Codepoint).IsNotEqualTo('\0');
     }
 
     #endregion
@@ -291,7 +291,7 @@ public class FilePickerTests
         using var buffer = new CellBuffer(60, 20);
         fp.Render(buffer, new Rect(0, 0, 60, 20));
 
-        await Assert.That(buffer.GetCell(0, 0).Character).IsNotEqualTo('\0');
+        await Assert.That(buffer.GetCell(0, 0).Codepoint).IsNotEqualTo('\0');
     }
 
     #endregion

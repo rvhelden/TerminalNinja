@@ -88,7 +88,7 @@ public class CellBufferTests
         buffer.SetChar(5, 5, 'X', Color.Red, Color.Blue);
         
         var cell = buffer.GetCell(5, 5);
-        await Assert.That(cell.Character).IsEqualTo('X');
+        await Assert.That(cell.Codepoint).IsEqualTo('X');
         await Assert.That(cell.Foreground).IsEqualTo(Color.Red);
         await Assert.That(cell.Background).IsEqualTo(Color.Blue);
     }
@@ -147,10 +147,10 @@ public class CellBufferTests
         buffer.SetCell(5, 7, cellB);
         
         var changes = buffer.GetChanges();
-        var changedCells = new List<(int X, int Y, char Character)>();
+        var changedCells = new List<(int X, int Y, uint Codepoint)>();
         foreach (var change in changes)
         {
-            changedCells.Add((change.X, change.Y, change.Cell.Character));
+            changedCells.Add((change.X, change.Y, change.Cell.Codepoint));
         }
         
         // Should include both modified cells
@@ -234,7 +234,7 @@ public class CellBufferTests
         {
             await Assert.That(changes[i].X).IsEqualTo(i);
             await Assert.That(changes[i].Y).IsEqualTo(0);
-            await Assert.That(changes[i].Cell.Character).IsEqualTo((char)('A' + i));
+            await Assert.That(changes[i].Cell.Codepoint).IsEqualTo((char)('A' + i));
         }
     }
     
@@ -285,12 +285,12 @@ public class CellBufferTests
         // First change: last cell of first row (9, 0)
         await Assert.That(changes[0].X).IsEqualTo(9);
         await Assert.That(changes[0].Y).IsEqualTo(0);
-        await Assert.That(changes[0].Cell.Character).IsEqualTo('Z');
+        await Assert.That(changes[0].Cell.Codepoint).IsEqualTo('Z');
         
         // Second change: first cell of second row (0, 1) - NOT (1, 1)
         await Assert.That(changes[1].X).IsEqualTo(0);
         await Assert.That(changes[1].Y).IsEqualTo(1);
-        await Assert.That(changes[1].Cell.Character).IsEqualTo('A');
+        await Assert.That(changes[1].Cell.Codepoint).IsEqualTo('A');
     }
     
     [Test]
@@ -320,7 +320,7 @@ public class CellBufferTests
         {
             await Assert.That(changes[y].X).IsEqualTo(0);
             await Assert.That(changes[y].Y).IsEqualTo(y);
-            await Assert.That(changes[y].Cell.Character).IsEqualTo((char)('A' + y));
+            await Assert.That(changes[y].Cell.Codepoint).IsEqualTo((char)('A' + y));
         }
     }
     
@@ -361,7 +361,7 @@ public class CellBufferTests
                 await Assert.That(changes[index].Y).IsEqualTo(y);
                 
                 var expectedChar = (char)('A' + (y * 5 + x));
-                await Assert.That(changes[index].Cell.Character).IsEqualTo(expectedChar);
+                await Assert.That(changes[index].Cell.Codepoint).IsEqualTo(expectedChar);
                 
                 index++;
             }
@@ -432,7 +432,7 @@ public class CellBufferTests
         {
             await Assert.That(changes[i].X).IsEqualTo(sortedExpected[i].Item1);
             await Assert.That(changes[i].Y).IsEqualTo(sortedExpected[i].Item2);
-            await Assert.That(changes[i].Cell.Character).IsEqualTo(sortedExpected[i].Item3);
+            await Assert.That(changes[i].Cell.Codepoint).IsEqualTo(sortedExpected[i].Item3);
         }
     }
     
@@ -453,10 +453,10 @@ public class CellBufferTests
         buffer.SetCell(0, 1, new Cell('B', Color.White, Color.Black));
         
         // Collect changes
-        var changes = new List<(int x, int y, char ch)>();
+        var changes = new List<(int x, int y, uint ch)>();
         foreach (var change in buffer.GetChanges())
         {
-            changes.Add((change.X, change.Y, change.Cell.Character));
+            changes.Add((change.X, change.Y, change.Cell.Codepoint));
         }
         
         // Assert
@@ -487,10 +487,10 @@ public class CellBufferTests
         buffer.SetCell(0, 2, new Cell('C', Color.White, Color.Black));
         
         // Collect changes
-        var changes = new List<(int x, int y, char ch)>();
+        var changes = new List<(int x, int y, uint ch)>();
         foreach (var change in buffer.GetChanges())
         {
-            changes.Add((change.X, change.Y, change.Cell.Character));
+            changes.Add((change.X, change.Y, change.Cell.Codepoint));
         }
         
         // Assert - If off-by-one error exists, we might get (0,0), (1,1), (2,2) or skip some
@@ -520,10 +520,10 @@ public class CellBufferTests
         buffer.SetCell(0, 1, new Cell('X', Color.White, Color.Black));
         
         // Collect changes
-        var changes = new List<(int x, int y, char ch)>();
+        var changes = new List<(int x, int y, uint ch)>();
         foreach (var change in buffer.GetChanges())
         {
-            changes.Add((change.X, change.Y, change.Cell.Character));
+            changes.Add((change.X, change.Y, change.Cell.Codepoint));
         }
         
         // This test will reveal if the second row's first cell gets skipped
@@ -618,10 +618,10 @@ public class CellBufferTests
         buffer.Resize(10, 3); // Width grew, height same
         
         // Original content preserved
-        await Assert.That(buffer.GetCell(0, 0).Character).IsEqualTo('A');
-        await Assert.That(buffer.GetCell(4, 0).Character).IsEqualTo('E');
-        await Assert.That(buffer.GetCell(0, 1).Character).IsEqualTo('F');
-        await Assert.That(buffer.GetCell(4, 2).Character).IsEqualTo('O');
+        await Assert.That(buffer.GetCell(0, 0).Codepoint).IsEqualTo('A');
+        await Assert.That(buffer.GetCell(4, 0).Codepoint).IsEqualTo('E');
+        await Assert.That(buffer.GetCell(0, 1).Codepoint).IsEqualTo('F');
+        await Assert.That(buffer.GetCell(4, 2).Codepoint).IsEqualTo('O');
         // New columns are Cell.Empty
         await Assert.That(buffer.GetCell(5, 0)).IsEqualTo(Cell.Empty);
         await Assert.That(buffer.GetCell(9, 2)).IsEqualTo(Cell.Empty);
@@ -642,10 +642,10 @@ public class CellBufferTests
         buffer.Resize(5, 3); // Width shrunk
         
         // First 5 columns preserved
-        await Assert.That(buffer.GetCell(0, 0).Character).IsEqualTo('A');
-        await Assert.That(buffer.GetCell(4, 0).Character).IsEqualTo('E');
-        await Assert.That(buffer.GetCell(0, 1).Character).IsEqualTo('K');
-        await Assert.That(buffer.GetCell(4, 1).Character).IsEqualTo('O');
+        await Assert.That(buffer.GetCell(0, 0).Codepoint).IsEqualTo('A');
+        await Assert.That(buffer.GetCell(4, 0).Codepoint).IsEqualTo('E');
+        await Assert.That(buffer.GetCell(0, 1).Codepoint).IsEqualTo('K');
+        await Assert.That(buffer.GetCell(4, 1).Codepoint).IsEqualTo('O');
         // Columns beyond new width are out of bounds
         await Assert.That(buffer.GetCell(5, 0)).IsEqualTo(Cell.Empty);
         
@@ -719,8 +719,8 @@ public class CellBufferTests
         buffer.SetCell(4, 1, new Cell('Z', Color.White, Color.Black));
         
         var rowLength = buffer.GetRow(1).Length;
-        var firstChar = buffer.GetRow(1)[0].Character;
-        var lastChar = buffer.GetRow(1)[4].Character;
+        var firstChar = buffer.GetRow(1)[0].Codepoint;
+        var lastChar = buffer.GetRow(1)[4].Codepoint;
         
         await Assert.That(rowLength).IsEqualTo(5);
         await Assert.That(firstChar).IsEqualTo('A');
@@ -735,7 +735,7 @@ public class CellBufferTests
         var buffer = new CellBuffer(5, 3);
         buffer.SetCell(2, 1, new Cell('Q', Color.Red, Color.Black));
         
-        var character = buffer[2, 1].Character;
+        var character = buffer[2, 1].Codepoint;
         var foreground = buffer[2, 1].Foreground;
         
         await Assert.That(character).IsEqualTo('Q');
@@ -753,8 +753,8 @@ public class CellBufferTests
         
         buffer.Resize(10, 10); // Same width, more rows
         
-        await Assert.That(buffer.GetCell(0, 0).Character).IsEqualTo('A');
-        await Assert.That(buffer.GetCell(9, 4).Character).IsEqualTo('Z');
+        await Assert.That(buffer.GetCell(0, 0).Codepoint).IsEqualTo('A');
+        await Assert.That(buffer.GetCell(9, 4).Codepoint).IsEqualTo('Z');
         // New rows are empty
         await Assert.That(buffer.GetCell(0, 5)).IsEqualTo(Cell.Empty);
         await Assert.That(buffer.GetCell(9, 9)).IsEqualTo(Cell.Empty);

@@ -68,8 +68,8 @@ public class ScrollViewerTests
         using var buffer = new CellBuffer(20, 5);
         sv.Render(buffer, new Rect(0, 0, 20, 5));
 
-        await Assert.That(buffer.GetCell(0, 0).Character).IsEqualTo('H');
-        await Assert.That(buffer.GetCell(4, 0).Character).IsEqualTo('o');
+        await Assert.That(buffer.GetCell(0, 0).Codepoint).IsEqualTo('H');
+        await Assert.That(buffer.GetCell(4, 0).Codepoint).IsEqualTo('o');
     }
 
     [Test]
@@ -95,8 +95,8 @@ public class ScrollViewerTests
         sv.Render(buffer, new Rect(0, 0, 20, 5));
 
         // First line should show "Line 00"
-        await Assert.That(buffer.GetCell(0, 0).Character).IsEqualTo('L');
-        await Assert.That(buffer.GetCell(5, 0).Character).IsEqualTo('0');
+        await Assert.That(buffer.GetCell(0, 0).Codepoint).IsEqualTo('L');
+        await Assert.That(buffer.GetCell(5, 0).Codepoint).IsEqualTo('0');
     }
 
     [Test]
@@ -122,9 +122,9 @@ public class ScrollViewerTests
         sv.Render(buffer, new Rect(0, 0, 20, 5));
 
         // First visible line should be "Line 05"
-        await Assert.That(buffer.GetCell(0, 0).Character).IsEqualTo('L');
-        await Assert.That(buffer.GetCell(5, 0).Character).IsEqualTo('0');
-        await Assert.That(buffer.GetCell(6, 0).Character).IsEqualTo('5');
+        await Assert.That(buffer.GetCell(0, 0).Codepoint).IsEqualTo('L');
+        await Assert.That(buffer.GetCell(5, 0).Codepoint).IsEqualTo('0');
+        await Assert.That(buffer.GetCell(6, 0).Codepoint).IsEqualTo('5');
     }
 
     [Test]
@@ -367,7 +367,7 @@ public class ScrollViewerTests
 
         // The rightmost column should contain indicator characters
         var trackCell = buffer.GetCell(19, 5);
-        await Assert.That(trackCell.Character == '░' || trackCell.Character == '█').IsTrue();
+        await Assert.That(trackCell.Codepoint == '░' || trackCell.Codepoint == '█').IsTrue();
     }
 
     [Test]
@@ -446,8 +446,8 @@ public class ScrollViewerTests
 
         source.CopyRegionTo(target, new Rect(0, 0, 10, 5), 0, 0);
 
-        await Assert.That(target.GetCell(0, 0).Character).IsEqualTo('A');
-        await Assert.That(target.GetCell(9, 4).Character).IsEqualTo('Z');
+        await Assert.That(target.GetCell(0, 0).Codepoint).IsEqualTo('A');
+        await Assert.That(target.GetCell(9, 4).Codepoint).IsEqualTo('Z');
     }
 
     [Test]
@@ -461,7 +461,7 @@ public class ScrollViewerTests
         source.CopyRegionTo(target, new Rect(2, 2, 5, 5), 0, 0);
 
         // (3,3) in source is at offset (1,1) in the copied region
-        await Assert.That(target.GetCell(1, 1).Character).IsEqualTo('X');
+        await Assert.That(target.GetCell(1, 1).Codepoint).IsEqualTo('X');
     }
 
     [Test]
@@ -476,7 +476,7 @@ public class ScrollViewerTests
         // Copy a large region but target is small — should clip
         source.CopyRegionTo(target, new Rect(0, 0, 10, 10), 0, 0);
 
-        await Assert.That(target.GetCell(0, 0).Character).IsEqualTo('A');
+        await Assert.That(target.GetCell(0, 0).Codepoint).IsEqualTo('A');
         // (9,9) is outside target bounds, should not crash
     }
 

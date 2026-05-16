@@ -389,7 +389,7 @@ public class TextBoxTests
         tb.Render(buffer, new Rect(0, 0, 30, 3));
 
         // Placeholder text starts after border (1 cell)
-        await Assert.That(buffer.GetCell(1, 1).Character).IsEqualTo('E');
+        await Assert.That(buffer.GetCell(1, 1).Codepoint).IsEqualTo('E');
         await Assert.That(buffer.GetCell(1, 1).Foreground).IsEqualTo(Color.DarkGray);
     }
 
@@ -402,8 +402,8 @@ public class TextBoxTests
         tb.Render(buffer, new Rect(0, 0, 20, 3));
 
         // Text starts after border (1 cell)
-        await Assert.That(buffer.GetCell(1, 1).Character).IsEqualTo('H');
-        await Assert.That(buffer.GetCell(5, 1).Character).IsEqualTo('o');
+        await Assert.That(buffer.GetCell(1, 1).Codepoint).IsEqualTo('H');
+        await Assert.That(buffer.GetCell(5, 1).Codepoint).IsEqualTo('o');
     }
 
     [Test]
@@ -465,7 +465,7 @@ public class TextBoxTests
         // The viewport width is 15 - 2 (border) = 13 chars of text
         // The end of text should be visible
         var lastCharCell = buffer.GetCell(13, 1);
-        await Assert.That(lastCharCell.Character).IsNotEqualTo('\0');
+        await Assert.That(lastCharCell.Codepoint).IsNotEqualTo('\0');
     }
 
     [Test]
@@ -478,8 +478,8 @@ public class TextBoxTests
 
         // Top-left corner should be a rounded border character
         var corner = buffer.GetCell(0, 0);
-        await Assert.That(corner.Character).IsNotEqualTo(' ');
-        await Assert.That(corner.Character).IsNotEqualTo('\0');
+        await Assert.That(corner.Codepoint).IsNotEqualTo(' ');
+        await Assert.That(corner.Codepoint).IsNotEqualTo('\0');
     }
 
     #endregion
@@ -547,9 +547,9 @@ public class TextBoxTests
         tb.Render(buffer, new Rect(0, 0, 20, 5));
 
         // Line 1: "AAA" starts at (1, 1)
-        await Assert.That(buffer.GetCell(1, 1).Character).IsEqualTo('A');
+        await Assert.That(buffer.GetCell(1, 1).Codepoint).IsEqualTo('A');
         // Line 2: "BBB" starts at (1, 2)
-        await Assert.That(buffer.GetCell(1, 2).Character).IsEqualTo('B');
+        await Assert.That(buffer.GetCell(1, 2).Codepoint).IsEqualTo('B');
     }
 
     #endregion

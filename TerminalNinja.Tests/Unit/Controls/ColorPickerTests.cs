@@ -117,7 +117,7 @@ public class ColorPickerTests
         cp.Render(buffer, new Rect(0, 0, 20, 3));
 
         var cell = buffer.GetCell(1, 1);
-        await Assert.That(cell.Character).IsEqualTo('\u2588');
+        await Assert.That(cell.Codepoint).IsEqualTo('\u2588');
         await Assert.That(cell.Foreground).IsEqualTo(Color.Red);
     }
 
@@ -129,7 +129,7 @@ public class ColorPickerTests
         using var buffer = new CellBuffer(20, 3);
         cp.Render(buffer, new Rect(0, 0, 20, 3));
 
-        await Assert.That(buffer.GetCell(4, 1).Character).IsEqualTo('#');
+        await Assert.That(buffer.GetCell(4, 1).Codepoint).IsEqualTo('#');
     }
 
     [Test]
@@ -141,8 +141,8 @@ public class ColorPickerTests
         cp.Render(buffer, new Rect(0, 0, 20, 3));
 
         var corner = buffer.GetCell(0, 0);
-        await Assert.That(corner.Character).IsNotEqualTo(' ');
-        await Assert.That(corner.Character).IsNotEqualTo('\0');
+        await Assert.That(corner.Codepoint).IsNotEqualTo(' ');
+        await Assert.That(corner.Codepoint).IsNotEqualTo('\0');
     }
 
     #endregion
@@ -207,7 +207,7 @@ public class ColorPickerTests
         using var buffer = new CellBuffer(40, 16);
         dialog.Render(buffer, new Rect(0, 0, 40, 16));
 
-        await Assert.That(buffer.GetCell(0, 0).Character).IsNotEqualTo('\0');
+        await Assert.That(buffer.GetCell(0, 0).Codepoint).IsNotEqualTo('\0');
     }
 
     #endregion

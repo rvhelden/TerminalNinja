@@ -114,7 +114,7 @@ public class FontIconTests
         icon.Render(_buffer, bounds);
 
         // Assert — U+F00C
-        await Assert.That(_buffer.GetCell(0, 0).Character).IsEqualTo('\uF00C');
+        await Assert.That(_buffer.GetCell(0, 0).Codepoint).IsEqualTo('\uF00C');
     }
 
     [Test]
@@ -128,7 +128,7 @@ public class FontIconTests
         icon.Render(_buffer, bounds);
 
         // Assert
-        await Assert.That(_buffer.GetCell(0, 0).Character).IsEqualTo('\uE702');
+        await Assert.That(_buffer.GetCell(0, 0).Codepoint).IsEqualTo('\uE702');
     }
 
     [Test]
@@ -137,13 +137,13 @@ public class FontIconTests
         // Arrange
         var icon = new FontIcon { Glyph = "" };
         var bounds = new Rect(0, 0, 1, 1);
-        var emptyChar = _buffer.GetCell(0, 0).Character;
+        var emptyChar = _buffer.GetCell(0, 0).Codepoint;
 
         // Act
         icon.Render(_buffer, bounds);
 
         // Assert — cell should remain unchanged
-        await Assert.That(_buffer.GetCell(0, 0).Character).IsEqualTo(emptyChar);
+        await Assert.That(_buffer.GetCell(0, 0).Codepoint).IsEqualTo(emptyChar);
     }
 
     [Test]
@@ -152,13 +152,13 @@ public class FontIconTests
         // Arrange
         var icon = new FontIcon { Symbol = Symbol.None };
         var bounds = new Rect(0, 0, 1, 1);
-        var emptyChar = _buffer.GetCell(0, 0).Character;
+        var emptyChar = _buffer.GetCell(0, 0).Codepoint;
 
         // Act
         icon.Render(_buffer, bounds);
 
         // Assert
-        await Assert.That(_buffer.GetCell(0, 0).Character).IsEqualTo(emptyChar);
+        await Assert.That(_buffer.GetCell(0, 0).Codepoint).IsEqualTo(emptyChar);
     }
 
     #endregion
@@ -220,7 +220,7 @@ public class FontIconTests
         icon.Render(_buffer, bounds);
 
         // Assert — icon should be rendered but background stays Blue
-        await Assert.That(_buffer.GetCell(5, 5).Character).IsEqualTo('\uF00C');
+        await Assert.That(_buffer.GetCell(5, 5).Codepoint).IsEqualTo('\uF00C');
         await Assert.That(_buffer.GetCell(5, 5).Foreground).IsEqualTo(Color.Green);
         await Assert.That(_buffer.GetCell(5, 5).Background).IsEqualTo(Color.Blue);
     }
@@ -299,10 +299,10 @@ public class FontIconTests
         icon.Render(_buffer, bounds);
 
         // Assert — glyph should be centered at x=2
-        await Assert.That(_buffer.GetCell(2, 0).Character).IsEqualTo('\uF005');
+        await Assert.That(_buffer.GetCell(2, 0).Codepoint).IsEqualTo('\uF005');
         // Adjacent cells should not have the glyph
-        await Assert.That(_buffer.GetCell(0, 0).Character).IsNotEqualTo('\uF005');
-        await Assert.That(_buffer.GetCell(4, 0).Character).IsNotEqualTo('\uF005');
+        await Assert.That(_buffer.GetCell(0, 0).Codepoint).IsNotEqualTo('\uF005');
+        await Assert.That(_buffer.GetCell(4, 0).Codepoint).IsNotEqualTo('\uF005');
     }
 
     [Test]
@@ -321,10 +321,10 @@ public class FontIconTests
         icon.Render(_buffer, bounds);
 
         // Assert — glyph should be centered at y=2
-        await Assert.That(_buffer.GetCell(0, 2).Character).IsEqualTo('\uF005');
+        await Assert.That(_buffer.GetCell(0, 2).Codepoint).IsEqualTo('\uF005');
         // Adjacent cells should not have the glyph
-        await Assert.That(_buffer.GetCell(0, 0).Character).IsNotEqualTo('\uF005');
-        await Assert.That(_buffer.GetCell(0, 4).Character).IsNotEqualTo('\uF005');
+        await Assert.That(_buffer.GetCell(0, 0).Codepoint).IsNotEqualTo('\uF005');
+        await Assert.That(_buffer.GetCell(0, 4).Codepoint).IsNotEqualTo('\uF005');
     }
 
     [Test]
@@ -342,7 +342,7 @@ public class FontIconTests
         icon.Render(_buffer, bounds);
 
         // Assert — Auto size is 1x1, aligned to the end of 10-wide area
-        await Assert.That(_buffer.GetCell(9, 0).Character).IsEqualTo('\uF00C');
+        await Assert.That(_buffer.GetCell(9, 0).Codepoint).IsEqualTo('\uF00C');
     }
 
     [Test]
@@ -360,7 +360,7 @@ public class FontIconTests
         icon.Render(_buffer, bounds);
 
         // Assert — centered: (10-1)/2 = 4 (integer division)
-        await Assert.That(_buffer.GetCell(4, 0).Character).IsEqualTo('\uF00C');
+        await Assert.That(_buffer.GetCell(4, 0).Codepoint).IsEqualTo('\uF00C');
     }
 
     [Test]
@@ -378,7 +378,7 @@ public class FontIconTests
         icon.Render(_buffer, bounds);
 
         // Assert — Auto size is 1x1, aligned to end of 10-high area
-        await Assert.That(_buffer.GetCell(0, 9).Character).IsEqualTo('\uF00C');
+        await Assert.That(_buffer.GetCell(0, 9).Codepoint).IsEqualTo('\uF00C');
     }
 
     #endregion
@@ -412,7 +412,7 @@ public class FontIconTests
         }
 
         // Glyph should be centered at (1,1)
-        await Assert.That(_buffer.GetCell(1, 1).Character).IsEqualTo('\uF005');
+        await Assert.That(_buffer.GetCell(1, 1).Codepoint).IsEqualTo('\uF005');
     }
 
     [Test]
@@ -489,7 +489,7 @@ public class FontIconTests
         icon.Render(_buffer, bounds);
 
         // Assert
-        await Assert.That(_buffer.GetCell(BufferWidth - 1, BufferHeight - 1).Character)
+        await Assert.That(_buffer.GetCell(BufferWidth - 1, BufferHeight - 1).Codepoint)
             .IsEqualTo('\uF00C');
     }
 
@@ -533,7 +533,7 @@ public class FontIconTests
         icon.Render(_buffer, bounds);
 
         // Assert — only 'A' should be rendered
-        await Assert.That(_buffer.GetCell(0, 0).Character).IsEqualTo('A');
+        await Assert.That(_buffer.GetCell(0, 0).Codepoint).IsEqualTo('A');
     }
 
     #endregion

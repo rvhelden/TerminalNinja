@@ -189,16 +189,16 @@ public sealed class TreeView : Control
             {
                 if (x >= 0 && x < buffer.Width)
                 {
-                    if (bounds.Y >= 0 && bounds.Y < buffer.Height) { var c = buffer.GetCell(x, bounds.Y); buffer.SetCell(x, bounds.Y, new Cell(c.Character, FocusColor, c.Background)); }
-                    if (bounds.Bottom - 1 >= 0 && bounds.Bottom - 1 < buffer.Height) { var c = buffer.GetCell(x, bounds.Bottom - 1); buffer.SetCell(x, bounds.Bottom - 1, new Cell(c.Character, FocusColor, c.Background)); }
+                    if (bounds.Y >= 0 && bounds.Y < buffer.Height) { var c = buffer.GetCell(x, bounds.Y); buffer.SetCell(x, bounds.Y, new Cell(c.Codepoint, FocusColor, c.Background)); }
+                    if (bounds.Bottom - 1 >= 0 && bounds.Bottom - 1 < buffer.Height) { var c = buffer.GetCell(x, bounds.Bottom - 1); buffer.SetCell(x, bounds.Bottom - 1, new Cell(c.Codepoint, FocusColor, c.Background)); }
                 }
             }
             for (var y = bounds.Y; y < bounds.Bottom; y++)
             {
                 if (y >= 0 && y < buffer.Height)
                 {
-                    if (bounds.X >= 0 && bounds.X < buffer.Width) { var c = buffer.GetCell(bounds.X, y); buffer.SetCell(bounds.X, y, new Cell(c.Character, FocusColor, c.Background)); }
-                    if (bounds.Right - 1 >= 0 && bounds.Right - 1 < buffer.Width) { var c = buffer.GetCell(bounds.Right - 1, y); buffer.SetCell(bounds.Right - 1, y, new Cell(c.Character, FocusColor, c.Background)); }
+                    if (bounds.X >= 0 && bounds.X < buffer.Width) { var c = buffer.GetCell(bounds.X, y); buffer.SetCell(bounds.X, y, new Cell(c.Codepoint, FocusColor, c.Background)); }
+                    if (bounds.Right - 1 >= 0 && bounds.Right - 1 < buffer.Width) { var c = buffer.GetCell(bounds.Right - 1, y); buffer.SetCell(bounds.Right - 1, y, new Cell(c.Codepoint, FocusColor, c.Background)); }
                 }
             }
         }

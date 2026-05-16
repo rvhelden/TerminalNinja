@@ -102,7 +102,7 @@ public class DataGridTests
         // Header should contain ▲ indicator
         var hasIndicator = false;
         for (var x = 0; x < 30; x++)
-            if (buffer.GetCell(x, 0).Character == '\u25B2') hasIndicator = true;
+            if (buffer.GetCell(x, 0).Codepoint == '\u25B2') hasIndicator = true;
         await Assert.That(hasIndicator).IsTrue();
     }
 
@@ -116,7 +116,7 @@ public class DataGridTests
         using var buffer = new CellBuffer(25, 5);
         dg.Render(buffer, new Rect(0, 0, 25, 5));
 
-        await Assert.That(buffer.GetCell(0, 0).Character).IsEqualTo('N');
+        await Assert.That(buffer.GetCell(0, 0).Codepoint).IsEqualTo('N');
     }
 
     [Test]

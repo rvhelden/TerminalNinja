@@ -263,16 +263,16 @@ public sealed class DataGrid : Selector
             {
                 if (fx >= 0 && fx < buffer.Width)
                 {
-                    if (bounds.Y >= 0 && bounds.Y < buffer.Height) { var c = buffer.GetCell(fx, bounds.Y); buffer.SetCell(fx, bounds.Y, new Cell(c.Character, FocusColor, c.Background)); }
-                    if (bounds.Bottom - 1 >= 0 && bounds.Bottom - 1 < buffer.Height) { var c = buffer.GetCell(fx, bounds.Bottom - 1); buffer.SetCell(fx, bounds.Bottom - 1, new Cell(c.Character, FocusColor, c.Background)); }
+                    if (bounds.Y >= 0 && bounds.Y < buffer.Height) { var c = buffer.GetCell(fx, bounds.Y); buffer.SetCell(fx, bounds.Y, new Cell(c.Codepoint, FocusColor, c.Background)); }
+                    if (bounds.Bottom - 1 >= 0 && bounds.Bottom - 1 < buffer.Height) { var c = buffer.GetCell(fx, bounds.Bottom - 1); buffer.SetCell(fx, bounds.Bottom - 1, new Cell(c.Codepoint, FocusColor, c.Background)); }
                 }
             }
             for (var fy = bounds.Y; fy < bounds.Bottom; fy++)
             {
                 if (fy >= 0 && fy < buffer.Height)
                 {
-                    if (bounds.X >= 0 && bounds.X < buffer.Width) { var c = buffer.GetCell(bounds.X, fy); buffer.SetCell(bounds.X, fy, new Cell(c.Character, FocusColor, c.Background)); }
-                    if (bounds.Right - 1 >= 0 && bounds.Right - 1 < buffer.Width) { var c = buffer.GetCell(bounds.Right - 1, fy); buffer.SetCell(bounds.Right - 1, fy, new Cell(c.Character, FocusColor, c.Background)); }
+                    if (bounds.X >= 0 && bounds.X < buffer.Width) { var c = buffer.GetCell(bounds.X, fy); buffer.SetCell(bounds.X, fy, new Cell(c.Codepoint, FocusColor, c.Background)); }
+                    if (bounds.Right - 1 >= 0 && bounds.Right - 1 < buffer.Width) { var c = buffer.GetCell(bounds.Right - 1, fy); buffer.SetCell(bounds.Right - 1, fy, new Cell(c.Codepoint, FocusColor, c.Background)); }
                 }
             }
         }

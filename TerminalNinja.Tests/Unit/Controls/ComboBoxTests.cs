@@ -249,8 +249,8 @@ public class ComboBoxTests
         cb.Render(buffer, new Rect(0, 0, 20, 3));
 
         // Selected text "Hello" starts at (1, 1) — inside border
-        await Assert.That(buffer.GetCell(1, 1).Character).IsEqualTo('H');
-        await Assert.That(buffer.GetCell(5, 1).Character).IsEqualTo('o');
+        await Assert.That(buffer.GetCell(1, 1).Codepoint).IsEqualTo('H');
+        await Assert.That(buffer.GetCell(5, 1).Codepoint).IsEqualTo('o');
     }
 
     [Test]
@@ -264,7 +264,7 @@ public class ComboBoxTests
 
         // Dropdown arrow ▼ at right edge minus 2 (border)
         var arrowCell = buffer.GetCell(18, 1);
-        await Assert.That(arrowCell.Character).IsEqualTo('\u25BC');
+        await Assert.That(arrowCell.Codepoint).IsEqualTo('\u25BC');
     }
 
     [Test]
@@ -276,8 +276,8 @@ public class ComboBoxTests
         cb.Render(buffer, new Rect(0, 0, 20, 3));
 
         var corner = buffer.GetCell(0, 0);
-        await Assert.That(corner.Character).IsNotEqualTo(' ');
-        await Assert.That(corner.Character).IsNotEqualTo('\0');
+        await Assert.That(corner.Codepoint).IsNotEqualTo(' ');
+        await Assert.That(corner.Codepoint).IsNotEqualTo('\0');
     }
 
     [Test]
@@ -289,7 +289,7 @@ public class ComboBoxTests
         cb.Render(buffer, new Rect(0, 0, 20, 3));
 
         // Middle row should have the dropdown arrow but no text
-        await Assert.That(buffer.GetCell(18, 1).Character).IsEqualTo('\u25BC');
+        await Assert.That(buffer.GetCell(18, 1).Codepoint).IsEqualTo('\u25BC');
     }
 
     #endregion

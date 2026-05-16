@@ -57,7 +57,7 @@ public class ImageTests
 
         // Both pixels same color → full block █
         var cell = buffer.GetCell(0, 0);
-        await Assert.That(cell.Character).IsEqualTo('\u2588');
+        await Assert.That(cell.Codepoint).IsEqualTo('\u2588');
         await Assert.That(cell.Foreground).IsEqualTo(Color.Red);
     }
 
@@ -75,7 +75,7 @@ public class ImageTests
         img.Render(buffer, new Rect(0, 0, 5, 3));
 
         var cell = buffer.GetCell(0, 0);
-        await Assert.That(cell.Character).IsEqualTo('\u2580'); // ▀
+        await Assert.That(cell.Codepoint).IsEqualTo('\u2580'); // ▀
         await Assert.That(cell.Foreground).IsEqualTo(Color.Red);    // top pixel
         await Assert.That(cell.Background).IsEqualTo(Color.Blue);   // bottom pixel
     }
@@ -185,7 +185,7 @@ public class ImageTests
         // Only first 2 columns, 1 row should have content
         await Assert.That(buffer.GetCell(0, 0).Foreground).IsEqualTo(Color.Green);
         // Cell (5,0) should be empty (beyond source)
-        await Assert.That(buffer.GetCell(5, 0).Character).IsNotEqualTo('\u2588');
+        await Assert.That(buffer.GetCell(5, 0).Codepoint).IsNotEqualTo('\u2588');
     }
 
     #endregion

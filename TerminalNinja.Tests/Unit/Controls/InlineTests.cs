@@ -554,7 +554,7 @@ public class InlineTests
         run.Render(buffer, new Rect(0, 0, 10, 5));
 
         // Buffer should still be empty cells
-        await Assert.That(buffer.GetCell(0, 0).Character).IsEqualTo(' ');
+        await Assert.That(buffer.GetCell(0, 0).Codepoint).IsEqualTo(' ');
     }
 
     // ─── Inline default DP values ───────────────────────────────────

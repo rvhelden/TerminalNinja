@@ -180,11 +180,11 @@ public class NumberPickerTests
         np.Render(buffer, new Rect(0, 0, 20, 3));
 
         // Left arrow ◀ at (1, 1)
-        await Assert.That(buffer.GetCell(1, 1).Character).IsEqualTo('\u25C0');
+        await Assert.That(buffer.GetCell(1, 1).Codepoint).IsEqualTo('\u25C0');
         // Right arrow ▶ somewhere on row 1
         var hasRightArrow = false;
         for (var x = 0; x < 20; x++)
-            if (buffer.GetCell(x, 1).Character == '\u25B6') hasRightArrow = true;
+            if (buffer.GetCell(x, 1).Codepoint == '\u25B6') hasRightArrow = true;
         await Assert.That(hasRightArrow).IsTrue();
     }
 
@@ -197,8 +197,8 @@ public class NumberPickerTests
         np.Render(buffer, new Rect(0, 0, 20, 3));
 
         var corner = buffer.GetCell(0, 0);
-        await Assert.That(corner.Character).IsNotEqualTo(' ');
-        await Assert.That(corner.Character).IsNotEqualTo('\0');
+        await Assert.That(corner.Codepoint).IsNotEqualTo(' ');
+        await Assert.That(corner.Codepoint).IsNotEqualTo('\0');
     }
 
     #endregion

@@ -208,9 +208,9 @@ public class RadioButtonTests
         using var buffer = new CellBuffer(20, 1);
         rb.Render(buffer, new Rect(0, 0, 20, 1));
 
-        await Assert.That(buffer.GetCell(0, 0).Character).IsEqualTo('(');
-        await Assert.That(buffer.GetCell(1, 0).Character).IsEqualTo(' ');
-        await Assert.That(buffer.GetCell(2, 0).Character).IsEqualTo(')');
+        await Assert.That(buffer.GetCell(0, 0).Codepoint).IsEqualTo('(');
+        await Assert.That(buffer.GetCell(1, 0).Codepoint).IsEqualTo(' ');
+        await Assert.That(buffer.GetCell(2, 0).Codepoint).IsEqualTo(')');
     }
 
     [Test]
@@ -221,9 +221,9 @@ public class RadioButtonTests
         using var buffer = new CellBuffer(20, 1);
         rb.Render(buffer, new Rect(0, 0, 20, 1));
 
-        await Assert.That(buffer.GetCell(0, 0).Character).IsEqualTo('(');
-        await Assert.That(buffer.GetCell(1, 0).Character).IsEqualTo('*');
-        await Assert.That(buffer.GetCell(2, 0).Character).IsEqualTo(')');
+        await Assert.That(buffer.GetCell(0, 0).Codepoint).IsEqualTo('(');
+        await Assert.That(buffer.GetCell(1, 0).Codepoint).IsEqualTo('*');
+        await Assert.That(buffer.GetCell(2, 0).Codepoint).IsEqualTo(')');
     }
 
     [Test]
@@ -234,7 +234,7 @@ public class RadioButtonTests
         using var buffer = new CellBuffer(20, 1);
         rb.Render(buffer, new Rect(0, 0, 20, 1));
 
-        await Assert.That(buffer.GetCell(4, 0).Character).IsEqualTo('T');
+        await Assert.That(buffer.GetCell(4, 0).Codepoint).IsEqualTo('T');
     }
 
     #endregion

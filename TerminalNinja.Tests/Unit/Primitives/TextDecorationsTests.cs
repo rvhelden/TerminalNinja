@@ -42,7 +42,7 @@ public class TextDecorationsTests
     {
         var cell = new Cell('X', Color.Red, Color.Blue, TextDecorations.Bold | TextDecorations.Italic);
 
-        await Assert.That(cell.Character).IsEqualTo('X');
+        await Assert.That(cell.Codepoint).IsEqualTo('X');
         await Assert.That(cell.Foreground).IsEqualTo(Color.Red);
         await Assert.That(cell.Background).IsEqualTo(Color.Blue);
         await Assert.That(cell.Decorations).IsEqualTo(TextDecorations.Bold | TextDecorations.Italic);
@@ -172,7 +172,7 @@ public class TextDecorationsTests
         buffer.SetChar(3, 2, 'X', Color.Red, Color.Blue, TextDecorations.Bold);
 
         var cell = buffer.GetCell(3, 2);
-        await Assert.That(cell.Character).IsEqualTo('X');
+        await Assert.That(cell.Codepoint).IsEqualTo('X');
         await Assert.That(cell.Foreground).IsEqualTo(Color.Red);
         await Assert.That(cell.Background).IsEqualTo(Color.Blue);
         await Assert.That(cell.Decorations).IsEqualTo(TextDecorations.Bold);
@@ -188,7 +188,7 @@ public class TextDecorationsTests
         buffer.SetChar(3, 2, 'Y', Color.Red, Color.Transparent, TextDecorations.Italic);
 
         var cell = buffer.GetCell(3, 2);
-        await Assert.That(cell.Character).IsEqualTo('Y');
+        await Assert.That(cell.Codepoint).IsEqualTo('Y');
         await Assert.That(cell.Background).IsEqualTo(Color.Green); // Preserved
         await Assert.That(cell.Decorations).IsEqualTo(TextDecorations.Italic);
     }

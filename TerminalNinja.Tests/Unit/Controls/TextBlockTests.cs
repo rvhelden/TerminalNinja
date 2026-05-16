@@ -50,11 +50,11 @@ public class TextBlockTests
         label.Render(_buffer, bounds);
 
         // Assert
-        await Assert.That(_buffer.GetCell(0, 0).Character).IsEqualTo('H');
-        await Assert.That(_buffer.GetCell(1, 0).Character).IsEqualTo('e');
-        await Assert.That(_buffer.GetCell(2, 0).Character).IsEqualTo('l');
-        await Assert.That(_buffer.GetCell(3, 0).Character).IsEqualTo('l');
-        await Assert.That(_buffer.GetCell(4, 0).Character).IsEqualTo('o');
+        await Assert.That((char)_buffer.GetCell(0, 0).Codepoint).IsEqualTo('H');
+        await Assert.That((char)_buffer.GetCell(1, 0).Codepoint).IsEqualTo('e');
+        await Assert.That((char)_buffer.GetCell(2, 0).Codepoint).IsEqualTo('l');
+        await Assert.That((char)_buffer.GetCell(3, 0).Codepoint).IsEqualTo('l');
+        await Assert.That((char)_buffer.GetCell(4, 0).Codepoint).IsEqualTo('o');
     }
 
     [Test]
@@ -75,7 +75,7 @@ public class TextBlockTests
 
         // Assert
         await Assert.That(_buffer.GetCell(0, 0).Background).IsEqualTo(Color.Red);
-        await Assert.That(_buffer.GetCell(0, 0).Character).IsEqualTo(' ');
+        await Assert.That((char)_buffer.GetCell(0, 0).Codepoint).IsEqualTo(' ');
     }
 
     [Test]
@@ -121,9 +121,9 @@ public class TextBlockTests
         label.Render(_buffer, bounds);
 
         // Assert
-        await Assert.That(_buffer.GetCell(0, 0).Character).IsEqualTo('H');
-        await Assert.That(_buffer.GetCell(1, 0).Character).IsEqualTo('i');
-        await Assert.That(_buffer.GetCell(2, 0).Character).IsEqualTo(' ');
+        await Assert.That((char)_buffer.GetCell(0, 0).Codepoint).IsEqualTo('H');
+        await Assert.That((char)_buffer.GetCell(1, 0).Codepoint).IsEqualTo('i');
+        await Assert.That((char)_buffer.GetCell(2, 0).Codepoint).IsEqualTo(' ');
     }
 
     [Test]
@@ -143,8 +143,8 @@ public class TextBlockTests
         label.Render(_buffer, bounds);
 
         // Assert - "Hi" (2 chars) in 10 width should be at position 4 (10-2)/2
-        await Assert.That(_buffer.GetCell(4, 0).Character).IsEqualTo('H');
-        await Assert.That(_buffer.GetCell(5, 0).Character).IsEqualTo('i');
+        await Assert.That((char)_buffer.GetCell(4, 0).Codepoint).IsEqualTo('H');
+        await Assert.That((char)_buffer.GetCell(5, 0).Codepoint).IsEqualTo('i');
     }
 
     [Test]
@@ -164,8 +164,8 @@ public class TextBlockTests
         label.Render(_buffer, bounds);
 
         // Assert - "Hi" (2 chars) in 10 width should be at position 8 (10-2)
-        await Assert.That(_buffer.GetCell(8, 0).Character).IsEqualTo('H');
-        await Assert.That(_buffer.GetCell(9, 0).Character).IsEqualTo('i');
+        await Assert.That((char)_buffer.GetCell(8, 0).Codepoint).IsEqualTo('H');
+        await Assert.That((char)_buffer.GetCell(9, 0).Codepoint).IsEqualTo('i');
     }
 
     #endregion
@@ -189,7 +189,7 @@ public class TextBlockTests
         label.Render(_buffer, bounds);
 
         // Assert
-        await Assert.That(_buffer.GetCell(0, 0).Character).IsEqualTo('T');
+        await Assert.That((char)_buffer.GetCell(0, 0).Codepoint).IsEqualTo('T');
     }
 
     [Test]
@@ -209,7 +209,7 @@ public class TextBlockTests
         label.Render(_buffer, bounds);
 
         // Assert - 1 line in 5 height should be at row 2 (5-1)/2
-        await Assert.That(_buffer.GetCell(0, 2).Character).IsEqualTo('T');
+        await Assert.That((char)_buffer.GetCell(0, 2).Codepoint).IsEqualTo('T');
     }
 
     [Test]
@@ -229,7 +229,7 @@ public class TextBlockTests
         label.Render(_buffer, bounds);
 
         // Assert - 1 line in 5 height should be at row 4 (5-1)
-        await Assert.That(_buffer.GetCell(0, 4).Character).IsEqualTo('T');
+        await Assert.That((char)_buffer.GetCell(0, 4).Codepoint).IsEqualTo('T');
     }
 
     #endregion
@@ -253,9 +253,9 @@ public class TextBlockTests
         label.Render(_buffer, bounds);
 
         // Assert - Only first 10 characters should be visible on row 0
-        await Assert.That(_buffer.GetCell(0, 0).Character).IsEqualTo('T');
-        await Assert.That(_buffer.GetCell(9, 0).Character).IsEqualTo(' ');
-        await Assert.That(_buffer.GetCell(0, 1).Character).IsEqualTo(' '); // Row 1 should be empty
+        await Assert.That((char)_buffer.GetCell(0, 0).Codepoint).IsEqualTo('T');
+        await Assert.That((char)_buffer.GetCell(9, 0).Codepoint).IsEqualTo(' ');
+        await Assert.That((char)_buffer.GetCell(0, 1).Codepoint).IsEqualTo(' '); // Row 1 should be empty
     }
 
     [Test]
@@ -276,20 +276,20 @@ public class TextBlockTests
 
         // Assert - "Hello" on line 1, "world" on line 2, "test" on line 3
         var line1 = new string(new[] { 
-            _buffer.GetCell(0, 0).Character, 
-            _buffer.GetCell(1, 0).Character,
-            _buffer.GetCell(2, 0).Character,
-            _buffer.GetCell(3, 0).Character,
-            _buffer.GetCell(4, 0).Character
+            (char)_buffer.GetCell(0, 0).Codepoint, 
+            (char)_buffer.GetCell(1, 0).Codepoint,
+            (char)_buffer.GetCell(2, 0).Codepoint,
+            (char)_buffer.GetCell(3, 0).Codepoint,
+            (char)_buffer.GetCell(4, 0).Codepoint
         });
         await Assert.That(line1).IsEqualTo("Hello");
         
         var line2 = new string(new[] { 
-            _buffer.GetCell(0, 1).Character, 
-            _buffer.GetCell(1, 1).Character,
-            _buffer.GetCell(2, 1).Character,
-            _buffer.GetCell(3, 1).Character,
-            _buffer.GetCell(4, 1).Character
+            (char)_buffer.GetCell(0, 1).Codepoint, 
+            (char)_buffer.GetCell(1, 1).Codepoint,
+            (char)_buffer.GetCell(2, 1).Codepoint,
+            (char)_buffer.GetCell(3, 1).Codepoint,
+            (char)_buffer.GetCell(4, 1).Codepoint
         });
         await Assert.That(line2).IsEqualTo("world");
     }
@@ -316,14 +316,14 @@ public class TextBlockTests
 
         // Assert - First 8 characters
         var rendered = new string(new[] {
-            _buffer.GetCell(0, 0).Character,
-            _buffer.GetCell(1, 0).Character,
-            _buffer.GetCell(2, 0).Character,
-            _buffer.GetCell(3, 0).Character,
-            _buffer.GetCell(4, 0).Character,
-            _buffer.GetCell(5, 0).Character,
-            _buffer.GetCell(6, 0).Character,
-            _buffer.GetCell(7, 0).Character
+            (char)_buffer.GetCell(0, 0).Codepoint,
+            (char)_buffer.GetCell(1, 0).Codepoint,
+            (char)_buffer.GetCell(2, 0).Codepoint,
+            (char)_buffer.GetCell(3, 0).Codepoint,
+            (char)_buffer.GetCell(4, 0).Codepoint,
+            (char)_buffer.GetCell(5, 0).Codepoint,
+            (char)_buffer.GetCell(6, 0).Codepoint,
+            (char)_buffer.GetCell(7, 0).Codepoint
         });
         await Assert.That(rendered).IsEqualTo("VeryLong");
     }
@@ -346,14 +346,14 @@ public class TextBlockTests
 
         // Assert - First 5 chars + "..."
         var rendered = new string(new[] {
-            _buffer.GetCell(0, 0).Character,
-            _buffer.GetCell(1, 0).Character,
-            _buffer.GetCell(2, 0).Character,
-            _buffer.GetCell(3, 0).Character,
-            _buffer.GetCell(4, 0).Character,
-            _buffer.GetCell(5, 0).Character,
-            _buffer.GetCell(6, 0).Character,
-            _buffer.GetCell(7, 0).Character
+            (char)_buffer.GetCell(0, 0).Codepoint,
+            (char)_buffer.GetCell(1, 0).Codepoint,
+            (char)_buffer.GetCell(2, 0).Codepoint,
+            (char)_buffer.GetCell(3, 0).Codepoint,
+            (char)_buffer.GetCell(4, 0).Codepoint,
+            (char)_buffer.GetCell(5, 0).Codepoint,
+            (char)_buffer.GetCell(6, 0).Codepoint,
+            (char)_buffer.GetCell(7, 0).Codepoint
         });
         await Assert.That(rendered).IsEqualTo("VeryL...");
     }
@@ -379,9 +379,9 @@ public class TextBlockTests
         label.Render(_buffer, bounds);
 
         // Assert - Text should start at (2, 1) due to padding
-        await Assert.That(_buffer.GetCell(0, 0).Character).IsEqualTo(' '); // Padding area
-        await Assert.That(_buffer.GetCell(2, 1).Character).IsEqualTo('H'); // Text starts here
-        await Assert.That(_buffer.GetCell(3, 1).Character).IsEqualTo('i');
+        await Assert.That((char)_buffer.GetCell(0, 0).Codepoint).IsEqualTo(' '); // Padding area
+        await Assert.That((char)_buffer.GetCell(2, 1).Codepoint).IsEqualTo('H'); // Text starts here
+        await Assert.That((char)_buffer.GetCell(3, 1).Codepoint).IsEqualTo('i');
     }
 
     [Test]
@@ -440,7 +440,7 @@ public class TextBlockTests
 
         // Act & Assert - Should not throw
         label.Render(_buffer, bounds);
-        await Assert.That(_buffer.GetCell(0, 0).Character).IsEqualTo(' ');
+        await Assert.That((char)_buffer.GetCell(0, 0).Codepoint).IsEqualTo(' ');
     }
 
     [Test]
@@ -479,7 +479,7 @@ public class TextBlockTests
         label.Render(_buffer, bounds);
 
         // Assert - Only background should be filled, no text
-        await Assert.That(_buffer.GetCell(0, 0).Character).IsEqualTo(' ');
+        await Assert.That((char)_buffer.GetCell(0, 0).Codepoint).IsEqualTo(' ');
     }
 
     [Test]

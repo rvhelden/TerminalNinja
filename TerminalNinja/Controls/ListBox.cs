@@ -347,12 +347,12 @@ public class ListBox : Selector
                 if (bounds.Y >= 0 && bounds.Y < buffer.Height)
                 {
                     var cell = buffer.GetCell(x, bounds.Y);
-                    buffer.SetCell(x, bounds.Y, new Cell(cell.Character, color, cell.Background));
+                    buffer.SetCell(x, bounds.Y, new Cell(cell.Codepoint, color, cell.Background));
                 }
                 if (bounds.Bottom - 1 >= 0 && bounds.Bottom - 1 < buffer.Height)
                 {
                     var cell = buffer.GetCell(x, bounds.Bottom - 1);
-                    buffer.SetCell(x, bounds.Bottom - 1, new Cell(cell.Character, color, cell.Background));
+                    buffer.SetCell(x, bounds.Bottom - 1, new Cell(cell.Codepoint, color, cell.Background));
                 }
             }
         }
@@ -365,12 +365,12 @@ public class ListBox : Selector
                 if (bounds.X >= 0 && bounds.X < buffer.Width)
                 {
                     var cell = buffer.GetCell(bounds.X, y);
-                    buffer.SetCell(bounds.X, y, new Cell(cell.Character, color, cell.Background));
+                    buffer.SetCell(bounds.X, y, new Cell(cell.Codepoint, color, cell.Background));
                 }
                 if (bounds.Right - 1 >= 0 && bounds.Right - 1 < buffer.Width)
                 {
                     var cell = buffer.GetCell(bounds.Right - 1, y);
-                    buffer.SetCell(bounds.Right - 1, y, new Cell(cell.Character, color, cell.Background));
+                    buffer.SetCell(bounds.Right - 1, y, new Cell(cell.Codepoint, color, cell.Background));
                 }
             }
         }

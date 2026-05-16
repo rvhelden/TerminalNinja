@@ -639,8 +639,8 @@ public class DeferredBindingTests
         clone.Render(buffer, new Rect(0, 0, 20, 1));
 
         // Assert — first character of "Rendered" should appear in the buffer
-        await Assert.That(buffer.GetCell(0, 0).Character).IsEqualTo('R');
-        await Assert.That(buffer.GetCell(1, 0).Character).IsEqualTo('e');
+        await Assert.That(buffer.GetCell(0, 0).Codepoint).IsEqualTo('R');
+        await Assert.That(buffer.GetCell(1, 0).Codepoint).IsEqualTo('e');
     }
 
     // ─── Part 14: XAML-loaded DataTemplate with bindings in Resources ────

@@ -7,7 +7,7 @@ public class CellTests
     {
         var cell = new Cell('A', Color.Red, Color.Blue);
         
-        await Assert.That(cell.Character).IsEqualTo('A');
+        await Assert.That(cell.Codepoint).IsEqualTo('A');
         await Assert.That(cell.Foreground).IsEqualTo(Color.Red);
         await Assert.That(cell.Background).IsEqualTo(Color.Blue);
     }
@@ -17,7 +17,7 @@ public class CellTests
     {
         var cell = Cell.Empty;
         
-        await Assert.That(cell.Character).IsEqualTo(' ');
+        await Assert.That(cell.Codepoint).IsEqualTo(' ');
         await Assert.That(cell.Foreground).IsEqualTo(Color.White);
         await Assert.That(cell.Background).IsEqualTo(Color.Black);
     }

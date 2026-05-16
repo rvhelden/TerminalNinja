@@ -187,7 +187,7 @@ public class TabControlTests
         tc.Render(buffer, new Rect(0, 0, 40, 10));
 
         // First tab header text starts at (1, 0)
-        await Assert.That(buffer.GetCell(1, 0).Character).IsEqualTo('T');
+        await Assert.That(buffer.GetCell(1, 0).Codepoint).IsEqualTo('T');
     }
 
     [Test]
@@ -204,7 +204,7 @@ public class TabControlTests
         tc.Render(buffer, new Rect(0, 0, 30, 8));
 
         // Content starts at row 3 (header + underline + separator)
-        await Assert.That(buffer.GetCell(0, 3).Character).IsEqualTo('H');
+        await Assert.That(buffer.GetCell(0, 3).Codepoint).IsEqualTo('H');
     }
 
     [Test]
@@ -232,11 +232,11 @@ public class TabControlTests
 
         tc.SelectedIndex = 0;
         tc.Render(buffer, new Rect(0, 0, 30, 8));
-        await Assert.That(buffer.GetCell(0, 3).Character).IsEqualTo('A');
+        await Assert.That(buffer.GetCell(0, 3).Codepoint).IsEqualTo('A');
 
         tc.SelectedIndex = 1;
         tc.Render(buffer, new Rect(0, 0, 30, 8));
-        await Assert.That(buffer.GetCell(0, 3).Character).IsEqualTo('B');
+        await Assert.That(buffer.GetCell(0, 3).Codepoint).IsEqualTo('B');
     }
 
     #endregion

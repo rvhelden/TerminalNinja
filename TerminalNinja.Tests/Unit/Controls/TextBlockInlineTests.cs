@@ -36,7 +36,7 @@ public class TextBlockInlineTests
         using var buffer = new CellBuffer(20, 5);
         tb.Render(buffer, new Rect(0, 0, 20, 5));
 
-        await Assert.That(buffer.GetCell(0, 0).Character).IsEqualTo('H');
+        await Assert.That(buffer.GetCell(0, 0).Codepoint).IsEqualTo('H');
     }
 
     [Test]
@@ -52,9 +52,9 @@ public class TextBlockInlineTests
 
         tb.Render(_buffer, new Rect(0, 0, 40, 10));
 
-        await Assert.That(_buffer.GetCell(0, 0).Character).IsEqualTo('I');
-        await Assert.That(_buffer.GetCell(1, 0).Character).IsEqualTo('n');
-        await Assert.That(_buffer.GetCell(7, 0).Character).IsEqualTo('w');
+        await Assert.That(_buffer.GetCell(0, 0).Codepoint).IsEqualTo('I');
+        await Assert.That(_buffer.GetCell(1, 0).Codepoint).IsEqualTo('n');
+        await Assert.That(_buffer.GetCell(7, 0).Codepoint).IsEqualTo('w');
     }
 
     // ─── Basic inline rendering ─────────────────────────────────────
@@ -71,11 +71,11 @@ public class TextBlockInlineTests
 
         tb.Render(_buffer, new Rect(0, 0, 40, 10));
 
-        await Assert.That(_buffer.GetCell(0, 0).Character).IsEqualTo('H');
-        await Assert.That(_buffer.GetCell(1, 0).Character).IsEqualTo('e');
-        await Assert.That(_buffer.GetCell(2, 0).Character).IsEqualTo('l');
-        await Assert.That(_buffer.GetCell(3, 0).Character).IsEqualTo('l');
-        await Assert.That(_buffer.GetCell(4, 0).Character).IsEqualTo('o');
+        await Assert.That(_buffer.GetCell(0, 0).Codepoint).IsEqualTo('H');
+        await Assert.That(_buffer.GetCell(1, 0).Codepoint).IsEqualTo('e');
+        await Assert.That(_buffer.GetCell(2, 0).Codepoint).IsEqualTo('l');
+        await Assert.That(_buffer.GetCell(3, 0).Codepoint).IsEqualTo('l');
+        await Assert.That(_buffer.GetCell(4, 0).Codepoint).IsEqualTo('o');
     }
 
     [Test]
@@ -91,8 +91,8 @@ public class TextBlockInlineTests
 
         tb.Render(_buffer, new Rect(0, 0, 40, 10));
 
-        await Assert.That(_buffer.GetCell(0, 0).Character).IsEqualTo('H');
-        await Assert.That(_buffer.GetCell(4, 0).Character).IsEqualTo('o');
+        await Assert.That(_buffer.GetCell(0, 0).Codepoint).IsEqualTo('H');
+        await Assert.That(_buffer.GetCell(4, 0).Codepoint).IsEqualTo('o');
     }
 
     [Test]
@@ -109,9 +109,9 @@ public class TextBlockInlineTests
 
         tb.Render(_buffer, new Rect(0, 0, 40, 10));
 
-        await Assert.That(_buffer.GetCell(0, 0).Character).IsEqualTo('A');
+        await Assert.That(_buffer.GetCell(0, 0).Codepoint).IsEqualTo('A');
         await Assert.That(_buffer.GetCell(0, 0).Foreground).IsEqualTo(Color.Red);
-        await Assert.That(_buffer.GetCell(1, 0).Character).IsEqualTo('B');
+        await Assert.That(_buffer.GetCell(1, 0).Codepoint).IsEqualTo('B');
         await Assert.That(_buffer.GetCell(1, 0).Foreground).IsEqualTo(Color.White);
     }
 
@@ -142,7 +142,7 @@ public class TextBlockInlineTests
 
         tb.Render(_buffer, new Rect(0, 0, 40, 10));
 
-        await Assert.That(_buffer.GetCell(0, 0).Character).IsEqualTo('B');
+        await Assert.That(_buffer.GetCell(0, 0).Codepoint).IsEqualTo('B');
         await Assert.That(_buffer.GetCell(0, 0).Decorations).IsEqualTo(TextDecorations.Bold);
     }
 
@@ -196,9 +196,9 @@ public class TextBlockInlineTests
 
         tb.Render(_buffer, new Rect(0, 0, 40, 10));
 
-        await Assert.That(_buffer.GetCell(0, 0).Character).IsEqualTo('A');
+        await Assert.That(_buffer.GetCell(0, 0).Codepoint).IsEqualTo('A');
         await Assert.That(_buffer.GetCell(0, 0).Foreground).IsEqualTo(Color.Red);
-        await Assert.That(_buffer.GetCell(2, 0).Character).IsEqualTo('C');
+        await Assert.That(_buffer.GetCell(2, 0).Codepoint).IsEqualTo('C');
         await Assert.That(_buffer.GetCell(2, 0).Foreground).IsEqualTo(Color.Red);
     }
 
@@ -219,11 +219,11 @@ public class TextBlockInlineTests
 
         tb.Render(_buffer, new Rect(0, 0, 40, 10));
 
-        await Assert.That(_buffer.GetCell(0, 0).Character).IsEqualTo('A');
+        await Assert.That(_buffer.GetCell(0, 0).Codepoint).IsEqualTo('A');
         await Assert.That(_buffer.GetCell(0, 0).Foreground).IsEqualTo(Color.White);
-        await Assert.That(_buffer.GetCell(1, 0).Character).IsEqualTo('B');
+        await Assert.That(_buffer.GetCell(1, 0).Codepoint).IsEqualTo('B');
         await Assert.That(_buffer.GetCell(1, 0).Foreground).IsEqualTo(Color.Green);
-        await Assert.That(_buffer.GetCell(2, 0).Character).IsEqualTo('C');
+        await Assert.That(_buffer.GetCell(2, 0).Codepoint).IsEqualTo('C');
         await Assert.That(_buffer.GetCell(2, 0).Foreground).IsEqualTo(Color.White);
     }
 
@@ -241,10 +241,10 @@ public class TextBlockInlineTests
 
         tb.Render(_buffer, new Rect(0, 0, 40, 10));
 
-        await Assert.That(_buffer.GetCell(0, 0).Character).IsEqualTo('H');
-        await Assert.That(_buffer.GetCell(4, 0).Character).IsEqualTo('o');
+        await Assert.That(_buffer.GetCell(0, 0).Codepoint).IsEqualTo('H');
+        await Assert.That(_buffer.GetCell(4, 0).Codepoint).IsEqualTo('o');
         // Character at position 5 should still be empty space (not 'W')
-        await Assert.That(_buffer.GetCell(5, 0).Character).IsEqualTo(' ');
+        await Assert.That(_buffer.GetCell(5, 0).Codepoint).IsEqualTo(' ');
     }
 
     [Test]
@@ -261,11 +261,11 @@ public class TextBlockInlineTests
         tb.Render(_buffer, new Rect(0, 0, 40, 10));
 
         // First 5 chars then "..."
-        await Assert.That(_buffer.GetCell(0, 0).Character).IsEqualTo('H');
-        await Assert.That(_buffer.GetCell(4, 0).Character).IsEqualTo('o');
-        await Assert.That(_buffer.GetCell(5, 0).Character).IsEqualTo('.');
-        await Assert.That(_buffer.GetCell(6, 0).Character).IsEqualTo('.');
-        await Assert.That(_buffer.GetCell(7, 0).Character).IsEqualTo('.');
+        await Assert.That(_buffer.GetCell(0, 0).Codepoint).IsEqualTo('H');
+        await Assert.That(_buffer.GetCell(4, 0).Codepoint).IsEqualTo('o');
+        await Assert.That(_buffer.GetCell(5, 0).Codepoint).IsEqualTo('.');
+        await Assert.That(_buffer.GetCell(6, 0).Codepoint).IsEqualTo('.');
+        await Assert.That(_buffer.GetCell(7, 0).Codepoint).IsEqualTo('.');
     }
 
     // ─── Alignment with inlines ─────────────────────────────────────
@@ -283,8 +283,8 @@ public class TextBlockInlineTests
 
         tb.Render(_buffer, new Rect(0, 0, 40, 10));
 
-        await Assert.That(_buffer.GetCell(4, 0).Character).IsEqualTo('H');
-        await Assert.That(_buffer.GetCell(5, 0).Character).IsEqualTo('i');
+        await Assert.That(_buffer.GetCell(4, 0).Codepoint).IsEqualTo('H');
+        await Assert.That(_buffer.GetCell(5, 0).Codepoint).IsEqualTo('i');
     }
 
     [Test]
@@ -300,8 +300,8 @@ public class TextBlockInlineTests
 
         tb.Render(_buffer, new Rect(0, 0, 40, 10));
 
-        await Assert.That(_buffer.GetCell(8, 0).Character).IsEqualTo('H');
-        await Assert.That(_buffer.GetCell(9, 0).Character).IsEqualTo('i');
+        await Assert.That(_buffer.GetCell(8, 0).Codepoint).IsEqualTo('H');
+        await Assert.That(_buffer.GetCell(9, 0).Codepoint).IsEqualTo('i');
     }
 
     // ─── Wrap mode with inlines ─────────────────────────────────────
@@ -320,11 +320,11 @@ public class TextBlockInlineTests
         tb.Render(_buffer, new Rect(0, 0, 40, 10));
 
         // First line
-        await Assert.That(_buffer.GetCell(0, 0).Character).IsEqualTo('A');
-        await Assert.That(_buffer.GetCell(4, 0).Character).IsEqualTo('E');
+        await Assert.That(_buffer.GetCell(0, 0).Codepoint).IsEqualTo('A');
+        await Assert.That(_buffer.GetCell(4, 0).Codepoint).IsEqualTo('E');
         // Second line
-        await Assert.That(_buffer.GetCell(0, 1).Character).IsEqualTo('F');
-        await Assert.That(_buffer.GetCell(2, 1).Character).IsEqualTo('H');
+        await Assert.That(_buffer.GetCell(0, 1).Codepoint).IsEqualTo('F');
+        await Assert.That(_buffer.GetCell(2, 1).Codepoint).IsEqualTo('H');
     }
 
     [Test]
@@ -348,7 +348,7 @@ public class TextBlockInlineTests
         await Assert.That(_buffer.GetCell(1, 0).Foreground).IsEqualTo(Color.Red);
         await Assert.That(_buffer.GetCell(2, 0).Foreground).IsEqualTo(Color.Blue);
         // Line 2: D=Blue
-        await Assert.That(_buffer.GetCell(0, 1).Character).IsEqualTo('D');
+        await Assert.That(_buffer.GetCell(0, 1).Codepoint).IsEqualTo('D');
         await Assert.That(_buffer.GetCell(0, 1).Foreground).IsEqualTo(Color.Blue);
     }
 
@@ -425,7 +425,7 @@ public class TextBlockInlineTests
 
         tb.Render(_buffer, new Rect(0, 0, 40, 10));
 
-        await Assert.That(_buffer.GetCell(0, 0).Character).IsEqualTo('B');
+        await Assert.That(_buffer.GetCell(0, 0).Codepoint).IsEqualTo('B');
         await Assert.That(_buffer.GetCell(0, 0).Decorations).IsEqualTo(TextDecorations.Bold);
         await Assert.That(_buffer.GetCell(1, 0).Decorations).IsEqualTo(TextDecorations.Bold);
     }
@@ -623,9 +623,9 @@ public class TextBlockInlineTests
         var tb = TerminalXaml.Load<TextBlock>(xaml);
         tb.Render(_buffer, new Rect(0, 0, 40, 10));
 
-        await Assert.That(_buffer.GetCell(0, 0).Character).IsEqualTo('H');
+        await Assert.That(_buffer.GetCell(0, 0).Codepoint).IsEqualTo('H');
         await Assert.That(_buffer.GetCell(0, 0).Foreground).IsEqualTo(Color.Red);
-        await Assert.That(_buffer.GetCell(1, 0).Character).IsEqualTo('i');
+        await Assert.That(_buffer.GetCell(1, 0).Codepoint).IsEqualTo('i');
         await Assert.That(_buffer.GetCell(1, 0).Foreground).IsEqualTo(Color.Red);
     }
 
@@ -645,7 +645,7 @@ public class TextBlockInlineTests
         tb.Render(_buffer, new Rect(0, 0, 40, 10));
 
         // Buffer should still be default empty cells
-        await Assert.That(_buffer.GetCell(0, 0).Character).IsEqualTo(' ');
+        await Assert.That(_buffer.GetCell(0, 0).Codepoint).IsEqualTo(' ');
     }
 
     [Test]
@@ -660,7 +660,7 @@ public class TextBlockInlineTests
 
         tb.Render(_buffer, new Rect(0, 0, 40, 10));
 
-        await Assert.That(_buffer.GetCell(0, 0).Character).IsEqualTo(' ');
+        await Assert.That(_buffer.GetCell(0, 0).Codepoint).IsEqualTo(' ');
     }
 
     // ─── Vertical alignment with inlines ────────────────────────────
@@ -678,7 +678,7 @@ public class TextBlockInlineTests
 
         tb.Render(_buffer, new Rect(0, 0, 40, 10));
 
-        await Assert.That(_buffer.GetCell(0, 2).Character).IsEqualTo('X');
+        await Assert.That(_buffer.GetCell(0, 2).Codepoint).IsEqualTo('X');
     }
 
     [Test]
@@ -694,6 +694,6 @@ public class TextBlockInlineTests
 
         tb.Render(_buffer, new Rect(0, 0, 40, 10));
 
-        await Assert.That(_buffer.GetCell(0, 4).Character).IsEqualTo('X');
+        await Assert.That(_buffer.GetCell(0, 4).Codepoint).IsEqualTo('X');
     }
 }

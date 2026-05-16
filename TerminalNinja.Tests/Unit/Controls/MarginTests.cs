@@ -106,10 +106,10 @@ public class MarginTests
         tb.Render(buffer, new Rect(0, 0, 20, 5));
 
         // Text starts at (3, 1) due to margin
-        await Assert.That(buffer.GetCell(3, 1).Character).IsEqualTo('H');
-        await Assert.That(buffer.GetCell(4, 1).Character).IsEqualTo('i');
+        await Assert.That(buffer.GetCell(3, 1).Codepoint).IsEqualTo('H');
+        await Assert.That(buffer.GetCell(4, 1).Codepoint).IsEqualTo('i');
         // Position (0, 0) should be empty
-        await Assert.That(buffer.GetCell(0, 0).Character).IsNotEqualTo('H');
+        await Assert.That(buffer.GetCell(0, 0).Codepoint).IsNotEqualTo('H');
     }
 
     #endregion

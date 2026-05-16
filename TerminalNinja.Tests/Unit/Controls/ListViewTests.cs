@@ -171,8 +171,8 @@ public class ListViewTests
         lv.Render(buffer, new Rect(0, 0, 40, 10));
 
         // First column header "Name" starts at x=0
-        await Assert.That(buffer.GetCell(0, 0).Character).IsEqualTo('N');
-        await Assert.That(buffer.GetCell(3, 0).Character).IsEqualTo('e');
+        await Assert.That(buffer.GetCell(0, 0).Codepoint).IsEqualTo('N');
+        await Assert.That(buffer.GetCell(3, 0).Codepoint).IsEqualTo('e');
     }
 
     [Test]
@@ -184,7 +184,7 @@ public class ListViewTests
         lv.Render(buffer, new Rect(0, 0, 40, 10));
 
         // Row 1 is separator
-        await Assert.That(buffer.GetCell(0, 1).Character).IsEqualTo('─');
+        await Assert.That(buffer.GetCell(0, 1).Codepoint).IsEqualTo('─');
     }
 
     [Test]
@@ -199,7 +199,7 @@ public class ListViewTests
         lv.Render(buffer, new Rect(0, 0, 20, 5));
 
         // Column separator at x=5
-        await Assert.That(buffer.GetCell(5, 0).Character).IsEqualTo('│');
+        await Assert.That(buffer.GetCell(5, 0).Codepoint).IsEqualTo('│');
     }
 
     [Test]
@@ -211,7 +211,7 @@ public class ListViewTests
         using var buffer = new CellBuffer(20, 5);
         lv.Render(buffer, new Rect(0, 0, 20, 5));
 
-        await Assert.That(buffer.GetCell(0, 0).Character).IsEqualTo('C');
+        await Assert.That(buffer.GetCell(0, 0).Codepoint).IsEqualTo('C');
     }
 
     [Test]

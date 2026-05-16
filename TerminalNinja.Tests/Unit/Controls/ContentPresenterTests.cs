@@ -29,8 +29,8 @@ public class ContentPresenterTests
         cp.Render(buffer, new Rect(0, 0, 20, 5));
 
         // Assert — 'H' should appear at (0,0)
-        await Assert.That(buffer.GetCell(0, 0).Character).IsEqualTo('H');
-        await Assert.That(buffer.GetCell(4, 0).Character).IsEqualTo('o');
+        await Assert.That(buffer.GetCell(0, 0).Codepoint).IsEqualTo('H');
+        await Assert.That(buffer.GetCell(4, 0).Codepoint).IsEqualTo('o');
     }
 
     [Test]
@@ -117,8 +117,8 @@ public class ContentPresenterTests
         cp.Render(buffer, new Rect(0, 0, 20, 5));
 
         // Assert — 'H' should appear at (0,0)
-        await Assert.That(buffer.GetCell(0, 0).Character).IsEqualTo('H');
-        await Assert.That(buffer.GetCell(4, 0).Character).IsEqualTo('o');
+        await Assert.That(buffer.GetCell(0, 0).Codepoint).IsEqualTo('H');
+        await Assert.That(buffer.GetCell(4, 0).Codepoint).IsEqualTo('o');
     }
 
     [Test]
@@ -179,8 +179,8 @@ public class ContentPresenterTests
         cp.Render(buffer, new Rect(0, 0, 20, 5));
 
         // Assert
-        await Assert.That(buffer.GetCell(0, 0).Character).IsEqualTo('4');
-        await Assert.That(buffer.GetCell(1, 0).Character).IsEqualTo('2');
+        await Assert.That(buffer.GetCell(0, 0).Codepoint).IsEqualTo('4');
+        await Assert.That(buffer.GetCell(1, 0).Codepoint).IsEqualTo('2');
     }
 
     [Test]
@@ -347,7 +347,7 @@ public class ContentPresenterTests
         cp.Render(buffer, new Rect(0, 0, 10, 5));
 
         // Buffer should still have marker cells
-        await Assert.That(buffer.GetCell(0, 0).Character).IsEqualTo('Z');
+        await Assert.That(buffer.GetCell(0, 0).Codepoint).IsEqualTo('Z');
     }
 
     [Test]
@@ -418,8 +418,8 @@ public class ContentPresenterTests
         using var buffer = new CellBuffer(20, 5);
         cc.Render(buffer, new Rect(0, 0, 20, 5));
 
-        await Assert.That(buffer.GetCell(0, 0).Character).IsEqualTo('H');
-        await Assert.That(buffer.GetCell(7, 0).Character).IsEqualTo('C');
+        await Assert.That(buffer.GetCell(0, 0).Codepoint).IsEqualTo('H');
+        await Assert.That(buffer.GetCell(7, 0).Codepoint).IsEqualTo('C');
     }
 
     [Test]
@@ -431,9 +431,9 @@ public class ContentPresenterTests
         using var buffer = new CellBuffer(20, 5);
         cc.Render(buffer, new Rect(0, 0, 20, 5));
 
-        await Assert.That(buffer.GetCell(0, 0).Character).IsEqualTo('U');
-        await Assert.That(buffer.GetCell(1, 0).Character).IsEqualTo('I');
-        await Assert.That(buffer.GetCell(2, 0).Character).IsEqualTo('E');
+        await Assert.That(buffer.GetCell(0, 0).Codepoint).IsEqualTo('U');
+        await Assert.That(buffer.GetCell(1, 0).Codepoint).IsEqualTo('I');
+        await Assert.That(buffer.GetCell(2, 0).Codepoint).IsEqualTo('E');
     }
 
     [Test]
@@ -449,7 +449,7 @@ public class ContentPresenterTests
         using var buffer = new CellBuffer(20, 5);
         cc.Render(buffer, new Rect(0, 0, 20, 5));
 
-        await Assert.That(buffer.GetCell(0, 0).Character).IsEqualTo('F');
+        await Assert.That(buffer.GetCell(0, 0).Codepoint).IsEqualTo('F');
     }
 
     [Test]
@@ -495,7 +495,7 @@ public class ContentPresenterTests
         using var buffer = new CellBuffer(20, 5);
         window.Render(buffer, new Rect(0, 0, 20, 5));
 
-        await Assert.That(buffer.GetCell(0, 0).Character).IsEqualTo('W');
+        await Assert.That(buffer.GetCell(0, 0).Codepoint).IsEqualTo('W');
     }
 
     [Test]
@@ -507,8 +507,8 @@ public class ContentPresenterTests
         using var buffer = new CellBuffer(20, 5);
         window.Render(buffer, new Rect(0, 0, 20, 5));
 
-        await Assert.That(buffer.GetCell(0, 0).Character).IsEqualTo('W');
-        await Assert.That(buffer.GetCell(4, 0).Character).IsEqualTo('I');
+        await Assert.That(buffer.GetCell(0, 0).Codepoint).IsEqualTo('W');
+        await Assert.That(buffer.GetCell(4, 0).Codepoint).IsEqualTo('I');
     }
 
     #endregion
@@ -524,8 +524,8 @@ public class ContentPresenterTests
         using var buffer = new CellBuffer(20, 3);
         lbi.Render(buffer, new Rect(0, 0, 20, 1));
 
-        await Assert.That(buffer.GetCell(0, 0).Character).IsEqualTo('I');
-        await Assert.That(buffer.GetCell(3, 0).Character).IsEqualTo('m');
+        await Assert.That(buffer.GetCell(0, 0).Codepoint).IsEqualTo('I');
+        await Assert.That(buffer.GetCell(3, 0).Codepoint).IsEqualTo('m');
     }
 
     [Test]
@@ -544,13 +544,13 @@ public class ContentPresenterTests
 
         // Position 0 has the selection indicator '▌'
         var indicatorCell = buffer.GetCell(0, 0);
-        await Assert.That(indicatorCell.Character).IsEqualTo('\u258C'); // ▌
+        await Assert.That(indicatorCell.Codepoint).IsEqualTo('\u258C'); // ▌
         await Assert.That(indicatorCell.Foreground).IsEqualTo(Color.Green);
         await Assert.That(indicatorCell.Background).IsEqualTo(Color.Red);
 
         // The text content starts at position 1 (offset by the indicator)
         var cell = buffer.GetCell(1, 0);
-        await Assert.That(cell.Character).IsEqualTo('X');
+        await Assert.That(cell.Codepoint).IsEqualTo('X');
         await Assert.That(cell.Foreground).IsEqualTo(Color.Green);
         await Assert.That(cell.Background).IsEqualTo(Color.Red);
     }

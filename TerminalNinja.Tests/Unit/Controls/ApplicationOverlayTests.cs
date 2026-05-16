@@ -158,7 +158,7 @@ public class ApplicationOverlayTests
         var overlay = new TextBlock { Text = "Hi", Foreground = Color.Green };
         overlay.Render(buffer, viewport);
         var overlayCell = buffer.GetCell(0, 0);
-        await Assert.That(overlayCell.Character).IsEqualTo('H');
+        await Assert.That(overlayCell.Codepoint).IsEqualTo('H');
         await Assert.That(overlayCell.Foreground).IsEqualTo(Color.Green);
     }
 

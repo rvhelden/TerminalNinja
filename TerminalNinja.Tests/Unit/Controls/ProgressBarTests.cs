@@ -60,7 +60,7 @@ public class ProgressBarTests
         for (var x = 0; x < 10; x++)
         {
             var cell = _buffer.GetCell(x, 0);
-            await Assert.That(cell.Character).IsEqualTo(TrackDot);
+            await Assert.That(cell.Codepoint).IsEqualTo(TrackDot);
             await Assert.That(cell.Foreground).IsEqualTo(pb.TrackForeground);
         }
     }
@@ -87,7 +87,7 @@ public class ProgressBarTests
         for (var x = 0; x < 10; x++)
         {
             var cell = _buffer.GetCell(x, 0);
-            await Assert.That(cell.Character).IsEqualTo(FullBlock);
+            await Assert.That(cell.Codepoint).IsEqualTo(FullBlock);
             await Assert.That(cell.Foreground).IsEqualTo(cell.Background);
         }
     }
@@ -113,12 +113,12 @@ public class ProgressBarTests
         for (var x = 0; x < 5; x++)
         {
             var cell = _buffer.GetCell(x, 0);
-            await Assert.That(cell.Character).IsEqualTo(FullBlock);
+            await Assert.That(cell.Codepoint).IsEqualTo(FullBlock);
             await Assert.That(cell.Foreground).IsEqualTo(cell.Background);
         }
         for (var x = 5; x < 10; x++)
         {
-            await Assert.That(_buffer.GetCell(x, 0).Character).IsEqualTo(TrackDot);
+            await Assert.That((char)_buffer.GetCell(x, 0).Codepoint).IsEqualTo(TrackDot);
         }
     }
 
@@ -143,16 +143,16 @@ public class ProgressBarTests
         for (var x = 0; x < 2; x++)
         {
             var cell = _buffer.GetCell(x, 0);
-            await Assert.That(cell.Character).IsEqualTo(FullBlock);
+            await Assert.That(cell.Codepoint).IsEqualTo(FullBlock);
             await Assert.That(cell.Foreground).IsEqualTo(cell.Background);
         }
 
         var boundary = _buffer.GetCell(2, 0);
-        await Assert.That(boundary.Character).IsEqualTo(LeftHalfBlock);
+        await Assert.That(boundary.Codepoint).IsEqualTo(LeftHalfBlock);
 
         for (var x = 3; x < 10; x++)
         {
-            await Assert.That(_buffer.GetCell(x, 0).Character).IsEqualTo(TrackDot);
+            await Assert.That((char)_buffer.GetCell(x, 0).Codepoint).IsEqualTo(TrackDot);
         }
     }
 
@@ -176,11 +176,11 @@ public class ProgressBarTests
         // Assert — no half-block character; filled are full blocks, track are dots
         for (var x = 0; x < 5; x++)
         {
-            await Assert.That(_buffer.GetCell(x, 0).Character).IsEqualTo(FullBlock);
+            await Assert.That((char)_buffer.GetCell(x, 0).Codepoint).IsEqualTo(FullBlock);
         }
         for (var x = 5; x < 10; x++)
         {
-            await Assert.That(_buffer.GetCell(x, 0).Character).IsEqualTo(TrackDot);
+            await Assert.That((char)_buffer.GetCell(x, 0).Codepoint).IsEqualTo(TrackDot);
         }
     }
 
@@ -235,7 +235,7 @@ public class ProgressBarTests
         for (var x = 0; x < 5; x++)
         {
             var cell = _buffer.GetCell(x, 0);
-            await Assert.That(cell.Character).IsEqualTo(FullBlock);
+            await Assert.That(cell.Codepoint).IsEqualTo(FullBlock);
             await Assert.That(cell.Foreground).IsEqualTo(cell.Background);
         }
         // First cell should be exact Foreground
@@ -264,7 +264,7 @@ public class ProgressBarTests
         for (var x = 0; x < 5; x++)
         {
             var cell = _buffer.GetCell(x, 0);
-            await Assert.That(cell.Character).IsEqualTo(TrackDot);
+            await Assert.That(cell.Codepoint).IsEqualTo(TrackDot);
             await Assert.That(cell.Foreground).IsEqualTo(Color.Red);
         }
     }
@@ -336,7 +336,7 @@ public class ProgressBarTests
             for (var x = 0; x < 10; x++)
             {
                 var cell = _buffer.GetCell(x, y);
-                await Assert.That(cell.Character).IsEqualTo(FullBlock);
+                await Assert.That(cell.Codepoint).IsEqualTo(FullBlock);
                 await Assert.That(cell.Foreground).IsEqualTo(cell.Background);
             }
         }
@@ -362,11 +362,11 @@ public class ProgressBarTests
         // Assert — 50% fill = 5 filled blocks, 5 track dots
         for (var x = 0; x < 5; x++)
         {
-            await Assert.That(_buffer.GetCell(x, 0).Character).IsEqualTo(FullBlock);
+            await Assert.That((char)_buffer.GetCell(x, 0).Codepoint).IsEqualTo(FullBlock);
         }
         for (var x = 5; x < 10; x++)
         {
-            await Assert.That(_buffer.GetCell(x, 0).Character).IsEqualTo(TrackDot);
+            await Assert.That((char)_buffer.GetCell(x, 0).Codepoint).IsEqualTo(TrackDot);
         }
     }
 
@@ -398,7 +398,7 @@ public class ProgressBarTests
         for (var y = 0; y < 10; y++)
         {
             var cell = _buffer.GetCell(0, y);
-            await Assert.That(cell.Character).IsEqualTo(TrackDot);
+            await Assert.That(cell.Codepoint).IsEqualTo(TrackDot);
             await Assert.That(cell.Foreground).IsEqualTo(pb.TrackForeground);
         }
     }
@@ -425,7 +425,7 @@ public class ProgressBarTests
         for (var y = 0; y < 10; y++)
         {
             var cell = _buffer.GetCell(0, y);
-            await Assert.That(cell.Character).IsEqualTo(FullBlock);
+            await Assert.That(cell.Codepoint).IsEqualTo(FullBlock);
             await Assert.That(cell.Foreground).IsEqualTo(cell.Background);
         }
     }
@@ -451,12 +451,12 @@ public class ProgressBarTests
         // Assert — top 5 rows are track dots, bottom 5 rows are filled blocks
         for (var y = 0; y < 5; y++)
         {
-            await Assert.That(_buffer.GetCell(0, y).Character).IsEqualTo(TrackDot);
+            await Assert.That((char)_buffer.GetCell(0, y).Codepoint).IsEqualTo(TrackDot);
         }
         for (var y = 5; y < 10; y++)
         {
             var cell = _buffer.GetCell(0, y);
-            await Assert.That(cell.Character).IsEqualTo(FullBlock);
+            await Assert.That(cell.Codepoint).IsEqualTo(FullBlock);
             await Assert.That(cell.Foreground).IsEqualTo(cell.Background);
         }
     }
@@ -482,16 +482,16 @@ public class ProgressBarTests
         // Assert — top 7 rows track dots, row 7 boundary, bottom 2 filled
         for (var y = 0; y < 7; y++)
         {
-            await Assert.That(_buffer.GetCell(0, y).Character).IsEqualTo(TrackDot);
+            await Assert.That((char)_buffer.GetCell(0, y).Codepoint).IsEqualTo(TrackDot);
         }
 
         var boundary = _buffer.GetCell(0, 7);
-        await Assert.That(boundary.Character).IsEqualTo(LowerHalfBlock);
+        await Assert.That(boundary.Codepoint).IsEqualTo(LowerHalfBlock);
 
         for (var y = 8; y < 10; y++)
         {
             var cell = _buffer.GetCell(0, y);
-            await Assert.That(cell.Character).IsEqualTo(FullBlock);
+            await Assert.That(cell.Codepoint).IsEqualTo(FullBlock);
             await Assert.That(cell.Foreground).IsEqualTo(cell.Background);
         }
     }
@@ -639,7 +639,7 @@ public class ProgressBarTests
 
         // Assert — find "50%" somewhere in the rendered row
         var rendered = new string(Enumerable.Range(0, 20)
-            .Select(x => _buffer.GetCell(x, 0).Character).ToArray());
+            .Select(x => (char)_buffer.GetCell(x, 0).Codepoint).ToArray());
         await Assert.That(rendered).Contains("50%");
     }
 
@@ -663,7 +663,7 @@ public class ProgressBarTests
 
         // Assert — should NOT contain any percentage text
         var rendered = new string(Enumerable.Range(0, 20)
-            .Select(x => _buffer.GetCell(x, 0).Character).ToArray());
+            .Select(x => (char)_buffer.GetCell(x, 0).Codepoint).ToArray());
         await Assert.That(rendered).DoesNotContain("50%");
     }
 
@@ -687,7 +687,7 @@ public class ProgressBarTests
 
         // Assert
         var rendered = new string(Enumerable.Range(0, 20)
-            .Select(x => _buffer.GetCell(x, 0).Character).ToArray());
+            .Select(x => (char)_buffer.GetCell(x, 0).Codepoint).ToArray());
         await Assert.That(rendered).Contains("0%");
     }
 
@@ -711,7 +711,7 @@ public class ProgressBarTests
 
         // Assert
         var rendered = new string(Enumerable.Range(0, 20)
-            .Select(x => _buffer.GetCell(x, 0).Character).ToArray());
+            .Select(x => (char)_buffer.GetCell(x, 0).Codepoint).ToArray());
         await Assert.That(rendered).Contains("100%");
     }
 
@@ -742,8 +742,8 @@ public class ProgressBarTests
         for (var x = 0; x < 20; x++)
         {
             var cell = _buffer.GetCell(x, 0);
-            if (cell.Character == FullBlock && cell.Foreground != pb.TrackForeground) hasBlock = true;
-            if (cell.Character == TrackDot) hasDot = true;
+            if (cell.Codepoint == FullBlock && cell.Foreground != pb.TrackForeground) hasBlock = true;
+            if (cell.Codepoint == TrackDot) hasDot = true;
         }
 
         await Assert.That(hasBlock).IsTrue();
@@ -775,8 +775,8 @@ public class ProgressBarTests
         for (var y = 0; y < 20; y++)
         {
             var cell = _buffer.GetCell(0, y);
-            if (cell.Character == FullBlock && cell.Foreground != pb.TrackForeground) hasBlock = true;
-            if (cell.Character == TrackDot) hasDot = true;
+            if (cell.Codepoint == FullBlock && cell.Foreground != pb.TrackForeground) hasBlock = true;
+            if (cell.Codepoint == TrackDot) hasDot = true;
         }
 
         await Assert.That(hasBlock).IsTrue();
@@ -802,7 +802,7 @@ public class ProgressBarTests
         pb.Render(_buffer, new Rect(0, 0, BufferWidth, BufferHeight));
 
         var cell = _buffer.GetCell(0, 0);
-        await Assert.That(cell.Character).IsEqualTo(FullBlock);
+        await Assert.That(cell.Codepoint).IsEqualTo(FullBlock);
         await Assert.That(cell.Foreground).IsEqualTo(pb.Foreground);
 
         // Cleanup
@@ -1055,7 +1055,7 @@ public class ProgressBarTests
         for (var x = 0; x < 10; x++)
         {
             var cell = _buffer.GetCell(x, 0);
-            await Assert.That(cell.Character).IsEqualTo(TrackDot);
+            await Assert.That(cell.Codepoint).IsEqualTo(TrackDot);
             await Assert.That(cell.Foreground).IsEqualTo(pb.TrackForeground);
         }
     }
@@ -1096,7 +1096,7 @@ public class ProgressBarTests
         for (var x = 75; x < 80; x++)
         {
             var cell = _buffer.GetCell(x, 0);
-            await Assert.That(cell.Character).IsEqualTo(FullBlock);
+            await Assert.That(cell.Codepoint).IsEqualTo(FullBlock);
             await Assert.That(cell.Foreground).IsEqualTo(cell.Background);
         }
     }
@@ -1158,7 +1158,7 @@ public class ProgressBarTests
         pb.Render(_buffer, new Rect(0, 0, BufferWidth, BufferHeight));
 
         var cell = _buffer.GetCell(0, 0);
-        await Assert.That(cell.Character).IsEqualTo(FullBlock);
+        await Assert.That(cell.Codepoint).IsEqualTo(FullBlock);
         await Assert.That(cell.Foreground).IsEqualTo(pb.Foreground);
     }
 

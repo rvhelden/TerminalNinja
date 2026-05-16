@@ -382,11 +382,12 @@ public sealed class TextBlock : FrameworkElement
             return;
         }
 
-        // Build the full text and a parallel array of style info per character
+        // Total length is the rendered cell width across all runs (each rune counts as 1 or 2
+        // cells depending on its East Asian Width category).
         var totalLength = 0;
         foreach (var run in runs)
         {
-            totalLength += run.Text.Length;
+            totalLength += GetCellWidth(run.Text);
         }
 
         if (totalLength == 0)
@@ -437,11 +438,13 @@ public sealed class TextBlock : FrameworkElement
         };
         startX = Math.Max(x, Math.Min(startX, x + width - 1));
 
-        // Render character by character across runs
+        // Render rune-by-rune across runs. Wide East Asian / emoji codepoints advance the
+        // cell index by 2; everything else by 1. The CellBuffer writes the WideTrail placeholder
+        // at charIndex+1 for us — we just need to step over it.
         var charIndex = 0;
         foreach (var run in runs)
         {
-            for (var i = 0; i < run.Text.Length; i++)
+            foreach (var rune in run.Text.EnumerateRunes())
             {
                 if (charIndex >= width)
                 {
@@ -454,6 +457,9 @@ public sealed class TextBlock : FrameworkElement
                     return;
                 }
 
+                var codepoint = (uint)rune.Value;
+                var advance = WidthTable.IsWide(codepoint) ? 2 : 1;
+
                 if (charX >= 0 && charX < buffer.Width)
                 {
                     if (needsEllipsis && charIndex >= ellipsisStart)
@@ -463,13 +469,29 @@ public sealed class TextBlock : FrameworkElement
                     }
                     else
                     {
-                        buffer.SetChar(charX, lineY, run.Text[i], run.Foreground, run.Background, run.Decorations);
+                        buffer.SetChar(charX, lineY, codepoint, run.Foreground, run.Background, run.Decorations);
                     }
                 }
 
-                charIndex++;
+                charIndex += advance;
             }
         }
+    }
+
+    /// <summary>
+    /// Returns the rendered cell width of <paramref name="text"/>, accounting for wide
+    /// East Asian / emoji codepoints (which occupy two cells) and surrogate-pair runes
+    /// (one rune = one or two cells, not two UTF-16 code units).
+    /// </summary>
+    private static int GetCellWidth(string text)
+    {
+        var w = 0;
+        foreach (var rune in text.EnumerateRunes())
+        {
+            w += WidthTable.IsWide((uint)rune.Value) ? 2 : 1;
+        }
+
+        return w;
     }
 
     /// <summary>
@@ -567,7 +589,7 @@ public sealed class TextBlock : FrameworkElement
         var total = 0;
         foreach (var run in runs)
         {
-            total += run.Text.Length;
+            total += GetCellWidth(run.Text);
         }
 
         return total;

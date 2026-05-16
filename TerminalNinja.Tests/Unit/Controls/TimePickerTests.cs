@@ -243,8 +243,8 @@ public class TimePickerTests
         tp.Render(buffer, new Rect(0, 0, 20, 3));
 
         // Placeholder "Select time..." starts at x=1, y=1
-        await Assert.That(buffer.GetCell(1, 1).Character).IsEqualTo('S');
-        await Assert.That(buffer.GetCell(2, 1).Character).IsEqualTo('e');
+        await Assert.That(buffer.GetCell(1, 1).Codepoint).IsEqualTo('S');
+        await Assert.That(buffer.GetCell(2, 1).Codepoint).IsEqualTo('e');
     }
 
     [Test]
@@ -256,11 +256,11 @@ public class TimePickerTests
         tp.Render(buffer, new Rect(0, 0, 20, 3));
 
         // "14:30" starting at x=1, y=1
-        await Assert.That(buffer.GetCell(1, 1).Character).IsEqualTo('1');
-        await Assert.That(buffer.GetCell(2, 1).Character).IsEqualTo('4');
-        await Assert.That(buffer.GetCell(3, 1).Character).IsEqualTo(':');
-        await Assert.That(buffer.GetCell(4, 1).Character).IsEqualTo('3');
-        await Assert.That(buffer.GetCell(5, 1).Character).IsEqualTo('0');
+        await Assert.That(buffer.GetCell(1, 1).Codepoint).IsEqualTo('1');
+        await Assert.That(buffer.GetCell(2, 1).Codepoint).IsEqualTo('4');
+        await Assert.That(buffer.GetCell(3, 1).Codepoint).IsEqualTo(':');
+        await Assert.That(buffer.GetCell(4, 1).Codepoint).IsEqualTo('3');
+        await Assert.That(buffer.GetCell(5, 1).Codepoint).IsEqualTo('0');
     }
 
     [Test]
@@ -272,8 +272,8 @@ public class TimePickerTests
         tp.Render(buffer, new Rect(0, 0, 20, 3));
 
         var corner = buffer.GetCell(0, 0);
-        await Assert.That(corner.Character).IsNotEqualTo(' ');
-        await Assert.That(corner.Character).IsNotEqualTo('\0');
+        await Assert.That(corner.Codepoint).IsNotEqualTo(' ');
+        await Assert.That(corner.Codepoint).IsNotEqualTo('\0');
     }
 
     #endregion

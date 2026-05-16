@@ -255,42 +255,59 @@ public sealed class AnsiWriter : ICellSink
     }
     
     /// <summary>
-    /// Writes a single character to the output.
+    /// Writes a single BMP character to the output (UTF-8 encoded).
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public void WriteChar(char c)
+    public void WriteChar(char c) => WriteCodepoint(c);
+
+    /// <summary>
+    /// Writes a Unicode scalar value to the output, UTF-8 encoded (1–4 bytes).
+    /// Advances the tracked cursor by 2 for wide East Asian / emoji codepoints, otherwise by 1.
+    /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public void WriteCodepoint(uint codepoint)
     {
-        // Fast path for ASCII (most terminal characters)
-        if (c < 128)
+        // Fast path for ASCII (the vast majority of terminal output)
+        if (codepoint < 128)
         {
             EnsureCapacity(1);
-            _buffer[_position++] = (byte)c;
+            _buffer[_position++] = (byte)codepoint;
+            _cursorX++;
+            return;
         }
-        else
+
+        if (Rune.TryCreate(codepoint, out var rune))
         {
-            // UTF-8 encode non-ASCII characters (box drawing, emoji, etc.)
-            Span<char> chars = stackalloc char[1] { c };
             Span<byte> bytes = stackalloc byte[4];
-            var written = Encoding.UTF8.GetBytes(chars, bytes);
+            var written = rune.EncodeToUtf8(bytes);
             EnsureCapacity(written);
             bytes[..written].CopyTo(_buffer.AsSpan(_position));
             _position += written;
+            _cursorX += WidthTable.IsWide(codepoint) ? 2 : 1;
         }
-        
-        _cursorX++;
+        // Malformed codepoint (surrogates, > U+10FFFF): silently drop, matching
+        // the previous char-only behavior. Cursor does not advance.
     }
-    
+
     /// <summary>
-    /// Writes a complete cell (position, colors, decorations, and character) in one operation.
+    /// Writes a complete cell (position, colors, decorations, and codepoint) in one operation.
+    /// Skips trailing wide cells (their leading cell already emitted the codepoint).
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void WriteCell(int x, int y, Cell cell)
     {
+        // WideTrail cells are placeholders; the WideLead cell at (x-1, y) carried the codepoint
+        // and advanced the cursor by 2. Emitting anything here would corrupt cursor tracking.
+        if ((cell.Flags & CellFlags.WideTrail) != 0)
+        {
+            return;
+        }
+
         MoveTo(x, y);
         SetForeground(cell.Foreground);
         SetBackground(cell.Background);
         SetDecorations(cell.Decorations);
-        WriteChar(cell.Character);
+        WriteCodepoint(cell.Codepoint);
     }
 
     /// <inheritdoc />

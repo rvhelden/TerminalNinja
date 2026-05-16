@@ -35,7 +35,7 @@ public class CellBufferDimTests
 
         // Assert — each channel should be halved (bit shift right 1)
         var dimmed = _buffer.GetCell(0, 0);
-        await Assert.That(dimmed.Character).IsEqualTo('A');
+        await Assert.That(dimmed.Codepoint).IsEqualTo('A');
         await Assert.That(dimmed.Foreground.R).IsEqualTo((byte)100);
         await Assert.That(dimmed.Foreground.G).IsEqualTo((byte)50);
         await Assert.That(dimmed.Foreground.B).IsEqualTo((byte)25);

@@ -203,7 +203,7 @@ public class BorderTests
         // Check center cell has correct background
         var cell = _buffer.GetCell(2, 1);
         await Assert.That(cell.Background).IsEqualTo(Color.Blue);
-        await Assert.That(cell.Character).IsEqualTo(' ');
+        await Assert.That(cell.Codepoint).IsEqualTo(' ');
     }
 
     [Test]
@@ -244,10 +244,10 @@ public class BorderTests
 
         rect.Render(_buffer, new Rect(0, 0, BufferWidth, BufferHeight));
 
-        await Assert.That(_buffer.GetCell(0, 0).Character).IsEqualTo('┌');
-        await Assert.That(_buffer.GetCell(9, 0).Character).IsEqualTo('┐');
-        await Assert.That(_buffer.GetCell(0, 4).Character).IsEqualTo('└');
-        await Assert.That(_buffer.GetCell(9, 4).Character).IsEqualTo('┘');
+        await Assert.That(_buffer.GetCell(0, 0).Codepoint).IsEqualTo('┌');
+        await Assert.That(_buffer.GetCell(9, 0).Codepoint).IsEqualTo('┐');
+        await Assert.That(_buffer.GetCell(0, 4).Codepoint).IsEqualTo('└');
+        await Assert.That(_buffer.GetCell(9, 4).Codepoint).IsEqualTo('┘');
     }
 
     [Test]
@@ -263,13 +263,13 @@ public class BorderTests
         rect.Render(_buffer, new Rect(0, 0, BufferWidth, BufferHeight));
 
         // Top edge
-        await Assert.That(_buffer.GetCell(5, 0).Character).IsEqualTo('─');
+        await Assert.That(_buffer.GetCell(5, 0).Codepoint).IsEqualTo('─');
         // Bottom edge
-        await Assert.That(_buffer.GetCell(5, 4).Character).IsEqualTo('─');
+        await Assert.That(_buffer.GetCell(5, 4).Codepoint).IsEqualTo('─');
         // Left edge
-        await Assert.That(_buffer.GetCell(0, 2).Character).IsEqualTo('│');
+        await Assert.That(_buffer.GetCell(0, 2).Codepoint).IsEqualTo('│');
         // Right edge
-        await Assert.That(_buffer.GetCell(9, 2).Character).IsEqualTo('│');
+        await Assert.That(_buffer.GetCell(9, 2).Codepoint).IsEqualTo('│');
     }
 
     [Test]
@@ -286,7 +286,7 @@ public class BorderTests
 
         rect.Render(_buffer, new Rect(0, 0, BufferWidth, BufferHeight));
 
-        await Assert.That(_buffer.GetCell(0, 0).Character).IsEqualTo(expectedCorner);
+        await Assert.That(_buffer.GetCell(0, 0).Codepoint).IsEqualTo(expectedCorner);
     }
 
     public static IEnumerable<(global::TerminalNinja.Styling.BorderStyle, char)> GetBorderStyleCases()
@@ -311,7 +311,7 @@ public class BorderTests
         rect.Render(_buffer, new Rect(0, 0, BufferWidth, BufferHeight));
 
         // Corner should be a space (background fill), not a border character
-        await Assert.That(_buffer.GetCell(0, 0).Character).IsEqualTo(' ');
+        await Assert.That(_buffer.GetCell(0, 0).Codepoint).IsEqualTo(' ');
         await Assert.That(_buffer.GetCell(0, 0).Background).IsEqualTo(Color.Blue);
     }
 
@@ -352,17 +352,17 @@ public class BorderTests
 
         // Border characters should use BorderBrush (Magenta), not BorderStyle.Color (White)
         var cornerCell = _buffer.GetCell(0, 0);
-        await Assert.That(cornerCell.Character).IsEqualTo('┌');
+        await Assert.That(cornerCell.Codepoint).IsEqualTo('┌');
         await Assert.That(cornerCell.Foreground).IsEqualTo(Color.Magenta);
 
         // Horizontal edge
         var edgeCell = _buffer.GetCell(1, 0);
-        await Assert.That(edgeCell.Character).IsEqualTo('─');
+        await Assert.That(edgeCell.Codepoint).IsEqualTo('─');
         await Assert.That(edgeCell.Foreground).IsEqualTo(Color.Magenta);
 
         // Vertical edge
         var vertCell = _buffer.GetCell(0, 1);
-        await Assert.That(vertCell.Character).IsEqualTo('│');
+        await Assert.That(vertCell.Codepoint).IsEqualTo('│');
         await Assert.That(vertCell.Foreground).IsEqualTo(Color.Magenta);
     }
 
@@ -424,10 +424,10 @@ public class BorderTests
 
         rect.Render(_buffer, new Rect(0, 0, BufferWidth, BufferHeight));
 
-        await Assert.That(_buffer.GetCell(0, 0).Character).IsEqualTo('┌');
-        await Assert.That(_buffer.GetCell(1, 0).Character).IsEqualTo('┐');
-        await Assert.That(_buffer.GetCell(0, 1).Character).IsEqualTo('└');
-        await Assert.That(_buffer.GetCell(1, 1).Character).IsEqualTo('┘');
+        await Assert.That(_buffer.GetCell(0, 0).Codepoint).IsEqualTo('┌');
+        await Assert.That(_buffer.GetCell(1, 0).Codepoint).IsEqualTo('┐');
+        await Assert.That(_buffer.GetCell(0, 1).Codepoint).IsEqualTo('└');
+        await Assert.That(_buffer.GetCell(1, 1).Codepoint).IsEqualTo('┘');
     }
 
     [Test]
@@ -445,7 +445,7 @@ public class BorderTests
         rect.Render(_buffer, new Rect(0, 0, BufferWidth, BufferHeight));
 
         // Should just fill background, no border
-        await Assert.That(_buffer.GetCell(0, 0).Character).IsEqualTo(' ');
+        await Assert.That(_buffer.GetCell(0, 0).Codepoint).IsEqualTo(' ');
         await Assert.That(_buffer.GetCell(0, 0).Background).IsEqualTo(Color.Blue);
     }
 
@@ -521,7 +521,7 @@ public class BorderTests
         // Render and verify
         rect.Render(_buffer, parent);
         
-        await Assert.That(_buffer.GetCell(40, 20).Character).IsEqualTo('┌');
+        await Assert.That(_buffer.GetCell(40, 20).Codepoint).IsEqualTo('┌');
         await Assert.That(_buffer.GetCell(41, 21).Background).IsEqualTo(Color.Blue);
     }
 
@@ -586,10 +586,10 @@ public class BorderTests
         rect.Render(_buffer, new Rect(0, 0, BufferWidth, BufferHeight));
 
         // Verify label text is rendered
-        await Assert.That(_buffer.GetCell(0, 0).Character).IsEqualTo('T');
-        await Assert.That(_buffer.GetCell(1, 0).Character).IsEqualTo('e');
-        await Assert.That(_buffer.GetCell(2, 0).Character).IsEqualTo('s');
-        await Assert.That(_buffer.GetCell(3, 0).Character).IsEqualTo('t');
+        await Assert.That(_buffer.GetCell(0, 0).Codepoint).IsEqualTo('T');
+        await Assert.That(_buffer.GetCell(1, 0).Codepoint).IsEqualTo('e');
+        await Assert.That(_buffer.GetCell(2, 0).Codepoint).IsEqualTo('s');
+        await Assert.That(_buffer.GetCell(3, 0).Codepoint).IsEqualTo('t');
     }
 
     [Test]
@@ -613,15 +613,15 @@ public class BorderTests
         rect.Render(_buffer, new Rect(0, 0, BufferWidth, BufferHeight));
 
         // Border characters should be at edges
-        await Assert.That(_buffer.GetCell(0, 0).Character).IsEqualTo('┌');
-        await Assert.That(_buffer.GetCell(4, 0).Character).IsEqualTo('┐');
+        await Assert.That(_buffer.GetCell(0, 0).Codepoint).IsEqualTo('┌');
+        await Assert.That(_buffer.GetCell(4, 0).Codepoint).IsEqualTo('┐');
         
         // TextBlock should render inside border (at position 1,1 instead of 0,0)
-        await Assert.That(_buffer.GetCell(1, 1).Character).IsEqualTo('X');
+        await Assert.That(_buffer.GetCell(1, 1).Codepoint).IsEqualTo('X');
         
         // Border edges should not be overwritten by label
-        await Assert.That(_buffer.GetCell(0, 1).Character).IsEqualTo('│');
-        await Assert.That(_buffer.GetCell(4, 1).Character).IsEqualTo('│');
+        await Assert.That(_buffer.GetCell(0, 1).Codepoint).IsEqualTo('│');
+        await Assert.That(_buffer.GetCell(4, 1).Codepoint).IsEqualTo('│');
     }
 
     [Test]
@@ -645,9 +645,9 @@ public class BorderTests
         rect.Render(_buffer, new Rect(0, 0, BufferWidth, BufferHeight));
 
         // TextBlock should start at (0,0) - full bounds
-        await Assert.That(_buffer.GetCell(0, 0).Character).IsEqualTo('A');
-        await Assert.That(_buffer.GetCell(1, 0).Character).IsEqualTo('B');
-        await Assert.That(_buffer.GetCell(2, 0).Character).IsEqualTo('C');
+        await Assert.That(_buffer.GetCell(0, 0).Codepoint).IsEqualTo('A');
+        await Assert.That(_buffer.GetCell(1, 0).Codepoint).IsEqualTo('B');
+        await Assert.That(_buffer.GetCell(2, 0).Codepoint).IsEqualTo('C');
     }
 
     [Test]
@@ -679,16 +679,16 @@ public class BorderTests
         outerRect.Render(_buffer, new Rect(0, 0, BufferWidth, BufferHeight));
 
         // Outer border (double)
-        await Assert.That(_buffer.GetCell(0, 0).Character).IsEqualTo('╔');
-        await Assert.That(_buffer.GetCell(14, 0).Character).IsEqualTo('╗');
+        await Assert.That(_buffer.GetCell(0, 0).Codepoint).IsEqualTo('╔');
+        await Assert.That(_buffer.GetCell(14, 0).Codepoint).IsEqualTo('╗');
         
         // Inner rect starts at (1,1) because of outer border
         // Inner border (single) at (1,1)
-        await Assert.That(_buffer.GetCell(1, 1).Character).IsEqualTo('┌');
+        await Assert.That(_buffer.GetCell(1, 1).Codepoint).IsEqualTo('┌');
         
         // Inner label text starts at (2,2) because of both borders
-        await Assert.That(_buffer.GetCell(2, 2).Character).IsEqualTo('I');
-        await Assert.That(_buffer.GetCell(3, 2).Character).IsEqualTo('n');
+        await Assert.That(_buffer.GetCell(2, 2).Codepoint).IsEqualTo('I');
+        await Assert.That(_buffer.GetCell(3, 2).Codepoint).IsEqualTo('n');
     }
 
     [Test]
@@ -716,8 +716,8 @@ public class BorderTests
         // Border takes up edges, inner is 8x3
         // "Hi" (2 chars) centered in 8 width = (8-2)/2 + 1 (border offset) = 4
         // Centered in 3 height = (3-1)/2 + 1 (border offset) = 2
-        await Assert.That(_buffer.GetCell(4, 2).Character).IsEqualTo('H');
-        await Assert.That(_buffer.GetCell(5, 2).Character).IsEqualTo('i');
+        await Assert.That(_buffer.GetCell(4, 2).Codepoint).IsEqualTo('H');
+        await Assert.That(_buffer.GetCell(5, 2).Codepoint).IsEqualTo('i');
     }
 
     [Test]
@@ -741,7 +741,7 @@ public class BorderTests
         // Border is 1x1, which is too small for border (needs 2x2 minimum)
         // Border is skipped, background fills, but child would get 1x1 bounds
         // TextBlock should still attempt to render in the 1x1 space
-        await Assert.That(_buffer.GetCell(0, 0).Character).IsEqualTo('X');
+        await Assert.That(_buffer.GetCell(0, 0).Codepoint).IsEqualTo('X');
     }
 
     [Test]
@@ -766,8 +766,8 @@ public class BorderTests
 
         // 2x2 rectangle with border leaves 0x0 inner space
         // Border should render
-        await Assert.That(_buffer.GetCell(0, 0).Character).IsEqualTo('┌');
-        await Assert.That(_buffer.GetCell(1, 1).Character).IsEqualTo('┘');
+        await Assert.That(_buffer.GetCell(0, 0).Codepoint).IsEqualTo('┌');
+        await Assert.That(_buffer.GetCell(1, 1).Codepoint).IsEqualTo('┘');
         
         // Child gets bounds of (1, 1, 0, 0) - should not render anything
         // No label text should be visible
@@ -809,13 +809,13 @@ public class BorderTests
         rect.Render(_buffer, new Rect(0, 0, BufferWidth, BufferHeight));
 
         // Verify all three labels are rendered
-        await Assert.That(_buffer.GetCell(0, 0).Character).IsEqualTo('A');
+        await Assert.That(_buffer.GetCell(0, 0).Codepoint).IsEqualTo('A');
         await Assert.That(_buffer.GetCell(0, 0).Foreground).IsEqualTo(Color.Red);
         
-        await Assert.That(_buffer.GetCell(5, 0).Character).IsEqualTo('B');
+        await Assert.That(_buffer.GetCell(5, 0).Codepoint).IsEqualTo('B');
         await Assert.That(_buffer.GetCell(5, 0).Foreground).IsEqualTo(Color.Green);
         
-        await Assert.That(_buffer.GetCell(10, 0).Character).IsEqualTo('C');
+        await Assert.That(_buffer.GetCell(10, 0).Codepoint).IsEqualTo('C');
         await Assert.That(_buffer.GetCell(10, 0).Foreground).IsEqualTo(Color.Blue);
     }
 
@@ -847,7 +847,7 @@ public class BorderTests
         rect.Render(_buffer, new Rect(0, 0, BufferWidth, BufferHeight));
 
         // Left label should be at x=0, width=4
-        await Assert.That(_buffer.GetCell(0, 0).Character).IsEqualTo('L');
+        await Assert.That(_buffer.GetCell(0, 0).Codepoint).IsEqualTo('L');
         await Assert.That(_buffer.GetCell(0, 0).Background).IsEqualTo(Color.Red);
         await Assert.That(_buffer.GetCell(3, 0).Background).IsEqualTo(Color.Red);
         
@@ -856,7 +856,7 @@ public class BorderTests
         await Assert.That(_buffer.GetCell(14, 0).Background).IsEqualTo(Color.Green);
         
         // Right label should be at x=15, width=5
-        await Assert.That(_buffer.GetCell(15, 0).Character).IsEqualTo('R');
+        await Assert.That(_buffer.GetCell(15, 0).Codepoint).IsEqualTo('R');
         await Assert.That(_buffer.GetCell(15, 0).Background).IsEqualTo(Color.Blue);
         await Assert.That(_buffer.GetCell(19, 0).Background).IsEqualTo(Color.Blue);
     }
@@ -910,19 +910,19 @@ public class BorderTests
         outerRect.Render(_buffer, new Rect(0, 0, BufferWidth, BufferHeight));
 
         // Outer border should be double-line
-        await Assert.That(_buffer.GetCell(0, 0).Character).IsEqualTo('╔');
-        await Assert.That(_buffer.GetCell(19, 0).Character).IsEqualTo('╗');
+        await Assert.That(_buffer.GetCell(0, 0).Codepoint).IsEqualTo('╔');
+        await Assert.That(_buffer.GetCell(19, 0).Codepoint).IsEqualTo('╗');
 
         // Left rectangle (inside outer border, at x=1, width=5)
-        await Assert.That(_buffer.GetCell(1, 1).Character).IsEqualTo('┌');
+        await Assert.That(_buffer.GetCell(1, 1).Codepoint).IsEqualTo('┌');
         await Assert.That(_buffer.GetCell(1, 1).Foreground).IsEqualTo(Color.Red);
 
         // Center rectangle should start at x=6 (1 + 5) with stretch width
-        await Assert.That(_buffer.GetCell(6, 1).Character).IsEqualTo('┌');
+        await Assert.That(_buffer.GetCell(6, 1).Codepoint).IsEqualTo('┌');
         await Assert.That(_buffer.GetCell(6, 1).Foreground).IsEqualTo(Color.Green);
 
         // Right rectangle should be at x=14 (20 - 1 - 5 = 14), width=5
-        await Assert.That(_buffer.GetCell(14, 1).Character).IsEqualTo('┌');
+        await Assert.That(_buffer.GetCell(14, 1).Codepoint).IsEqualTo('┌');
         await Assert.That(_buffer.GetCell(14, 1).Foreground).IsEqualTo(Color.Blue);
     }
 
@@ -957,18 +957,18 @@ public class BorderTests
         rect.Render(_buffer, new Rect(0, 0, BufferWidth, BufferHeight));
 
         // Border should be at edges
-        await Assert.That(_buffer.GetCell(0, 0).Character).IsEqualTo('┌');
-        await Assert.That(_buffer.GetCell(9, 0).Character).IsEqualTo('┐');
+        await Assert.That(_buffer.GetCell(0, 0).Codepoint).IsEqualTo('┌');
+        await Assert.That(_buffer.GetCell(9, 0).Codepoint).IsEqualTo('┐');
 
         // TextBlock text should start at x=1, y=1 (inside border)
-        await Assert.That(_buffer.GetCell(1, 1).Character).IsEqualTo('T');
-        await Assert.That(_buffer.GetCell(2, 1).Character).IsEqualTo('e');
-        await Assert.That(_buffer.GetCell(3, 1).Character).IsEqualTo('s');
-        await Assert.That(_buffer.GetCell(4, 1).Character).IsEqualTo('t');
+        await Assert.That(_buffer.GetCell(1, 1).Codepoint).IsEqualTo('T');
+        await Assert.That(_buffer.GetCell(2, 1).Codepoint).IsEqualTo('e');
+        await Assert.That(_buffer.GetCell(3, 1).Codepoint).IsEqualTo('s');
+        await Assert.That(_buffer.GetCell(4, 1).Codepoint).IsEqualTo('t');
 
         // Border edges should not be overwritten
-        await Assert.That(_buffer.GetCell(0, 1).Character).IsEqualTo('│');
-        await Assert.That(_buffer.GetCell(9, 1).Character).IsEqualTo('│');
+        await Assert.That(_buffer.GetCell(0, 1).Codepoint).IsEqualTo('│');
+        await Assert.That(_buffer.GetCell(9, 1).Codepoint).IsEqualTo('│');
     }
 
     #endregion

@@ -138,31 +138,69 @@ public sealed unsafe class CellBuffer : IDisposable
     }
     
     /// <summary>
-    /// Sets a cell with individual character and colors.
+    /// Sets a cell with the given Unicode codepoint and colors.
     /// When <paramref name="bg"/> is transparent the existing cell's background is preserved.
+    /// Wide East Asian / emoji codepoints automatically occupy two cells:
+    /// a leading cell flagged <see cref="CellFlags.WideLead"/> at <c>(x, y)</c> and a
+    /// trailing placeholder flagged <see cref="CellFlags.WideTrail"/> at <c>(x + 1, y)</c>.
+    /// </summary>
+    public void SetChar(int x, int y, uint codepoint, Color fg, Color bg)
+    {
+        if (bg.IsTransparent && IsInBounds(x, y))
+        {
+            bg = _current[Index(x, y)].Background;
+        }
+
+        SetCharCore(x, y, codepoint, fg, bg, TextDecorations.None);
+    }
+
+    /// <summary>
+    /// Sets a cell with the given Unicode codepoint, colors, and text decorations.
+    /// See <see cref="SetChar(int, int, uint, Color, Color)"/> for wide-character handling.
+    /// </summary>
+    public void SetChar(int x, int y, uint codepoint, Color fg, Color bg, TextDecorations decorations)
+    {
+        if (bg.IsTransparent && IsInBounds(x, y))
+        {
+            bg = _current[Index(x, y)].Background;
+        }
+
+        SetCharCore(x, y, codepoint, fg, bg, decorations);
+    }
+
+    /// <summary>
+    /// Convenience overload for BMP <see cref="char"/> input. Forwards to the
+    /// <see cref="uint"/> overload via implicit widening.
     /// </summary>
     public void SetChar(int x, int y, char c, Color fg, Color bg)
-    {
-        if (bg.IsTransparent && IsInBounds(x, y))
-        {
-            bg = _current[Index(x, y)].Background;
-        }
+        => SetChar(x, y, (uint)c, fg, bg);
 
-        SetCell(x, y, new Cell(c, fg, bg));
-    }
-    
     /// <summary>
-    /// Sets a cell with individual character, colors, and text decorations.
-    /// When <paramref name="bg"/> is transparent the existing cell's background is preserved.
+    /// Convenience overload for BMP <see cref="char"/> input with decorations.
     /// </summary>
     public void SetChar(int x, int y, char c, Color fg, Color bg, TextDecorations decorations)
-    {
-        if (bg.IsTransparent && IsInBounds(x, y))
-        {
-            bg = _current[Index(x, y)].Background;
-        }
+        => SetChar(x, y, (uint)c, fg, bg, decorations);
 
-        SetCell(x, y, new Cell(c, fg, bg, decorations));
+    private void SetCharCore(int x, int y, uint codepoint, Color fg, Color bg, TextDecorations deco)
+    {
+        if (WidthTable.IsWide(codepoint))
+        {
+            // Wide characters occupy two cells. If the trail would land outside the buffer
+            // we drop back to a space — rendering a partial wide glyph corrupts the grid.
+            if (x + 1 < Width)
+            {
+                SetCell(x, y, new Cell(codepoint, fg, bg, deco, CellFlags.WideLead));
+                SetCell(x + 1, y, new Cell(0u, fg, bg, deco, CellFlags.WideTrail));
+            }
+            else
+            {
+                SetCell(x, y, new Cell((uint)' ', fg, bg, deco));
+            }
+        }
+        else
+        {
+            SetCell(x, y, new Cell(codepoint, fg, bg, deco));
+        }
     }
     
     /// <summary>
@@ -217,7 +255,7 @@ public sealed unsafe class CellBuffer : IDisposable
                 var cell = _current[index];
                 var dimmedFg = DimColor(cell.Foreground);
                 var dimmedBg = DimColor(cell.Background);
-                var dimmed = new Cell(cell.Character, dimmedFg, dimmedBg, cell.Decorations);
+                var dimmed = new Cell(cell.Codepoint, dimmedFg, dimmedBg, cell.Decorations);
                 if (_current[index] != dimmed)
                 {
                     _current[index] = dimmed;
@@ -389,15 +427,22 @@ public sealed unsafe class CellBuffer : IDisposable
             for (var x = 0; x < Width; x++)
             {
                 var cell = GetCell(x, y);
-                var ch = cell.Character;
-                
+                var ch = cell.Codepoint;
+
                 // Make certain control characters visible
                 if (ch is '\0' or < ' ')
                 {
                     ch = '\u00B7'; // Middle dot for empty/control chars
                 }
 
-                sb.Append(ch);
+                if (System.Text.Rune.TryCreate(ch, out var rune))
+                {
+                    sb.Append(rune.ToString());
+                }
+                else
+                {
+                    sb.Append('?');
+                }
             }
             
             sb.AppendLine("|");
@@ -418,7 +463,7 @@ public sealed unsafe class CellBuffer : IDisposable
                 var cell = GetCell(x, y);
                 
                 // Skip cells with default colors (white on black) and empty characters
-                if (cell.Character == ' ' && cell.Foreground == Color.White && cell.Background == Color.Black)
+                if (cell.Codepoint == ' ' && cell.Foreground == Color.White && cell.Background == Color.Black)
                 {
                     continue;
                 }
@@ -433,7 +478,8 @@ public sealed unsafe class CellBuffer : IDisposable
                 var colorName = GetColorName(cell.Foreground);
                 var bgColorName = GetColorName(cell.Background);
                     
-                sb.AppendLine($"  [{x,3},{y,3}] '{cell.Character}' " +
+                var displayChar = System.Text.Rune.TryCreate(cell.Codepoint, out var r) ? r.ToString() : "?";
+                sb.AppendLine($"  [{x,3},{y,3}] '{displayChar}' " +
                               $"FG:{colorName} BG:{bgColorName}");
             }
         }
@@ -687,10 +733,18 @@ public sealed unsafe class CellBuffer : IDisposable
                     _y++;
                     continue;
                 }
-                
+
                 var index = _y * _width + _x;
                 if (_current[index] != _previous[index])
                 {
+                    // Skip wide-character trailing cells — they're placeholders, and the
+                    // leading cell at (x-1, y) carried the actual codepoint and advanced
+                    // the cursor by 2 already. Emitting them would corrupt the grid.
+                    if ((_current[index].Flags & CellFlags.WideTrail) != 0)
+                    {
+                        continue;
+                    }
+
                     Current = new CellChange(_x, _y, _current[index]);
                     return true;
                 }
