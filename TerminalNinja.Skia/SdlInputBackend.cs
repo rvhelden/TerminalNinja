@@ -36,6 +36,8 @@ public sealed class SdlInputBackend : IInputBackend
     /// </summary>
     public bool QuitRequested { get; private set; }
 
+    private bool _displayScaleChanged;
+
     /// <summary>
     /// Creates a backend that converts mouse pixel coordinates to cell coordinates using
     /// <paramref name="cellWidth"/> and <paramref name="cellHeight"/>, and resize events
@@ -94,6 +96,21 @@ public sealed class SdlInputBackend : IInputBackend
         _mouseTrackingEnabled = false;
     }
 
+    /// <summary>
+    /// Returns true if a display-scale-changed event has been seen since the last call to
+    /// this method, then clears the flag. The host calls this once per frame and rebuilds
+    /// scale-dependent resources when it returns true.
+    /// </summary>
+    public bool ConsumeDisplayScaleChange()
+    {
+        var was = _displayScaleChanged;
+        _displayScaleChanged = false;
+        return was;
+    }
+
+    /// <summary>Test hook: sets the display-scale-changed flag without needing a real SDL event.</summary>
+    internal void SetDisplayScaleChangedForTesting() => _displayScaleChanged = true;
+
     /// <inheritdoc />
     public void Dispose() => _disposed = true;
 
@@ -138,6 +155,13 @@ public sealed class SdlInputBackend : IInputBackend
                 var cellsWide = Math.Max(1, win.data1 / _cellWidth);
                 var cellsTall = Math.Max(1, win.data2 / _cellHeight);
                 return new ResizeEvent(cellsWide, cellsTall);
+            }
+            case Sdl3.SDL_EVENT_WINDOW_DISPLAY_SCALE_CHANGED:
+            {
+                // Host-specific handling — set a flag the SkiaApplication polls between
+                // input drains. Returning null keeps this out of the InputEvent stream.
+                _displayScaleChanged = true;
+                return null;
             }
             case Sdl3.SDL_EVENT_QUIT:
             {

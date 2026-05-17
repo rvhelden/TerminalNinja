@@ -861,6 +861,24 @@ public sealed unsafe class CellBuffer : IDisposable
     }
 
     /// <summary>
+    /// Resets the <em>previous</em>-frame buffer to <see cref="Cell.Empty"/> and marks the
+    /// entire buffer dirty. The next <see cref="GetChanges"/> iteration will therefore yield
+    /// every non-empty cell as a change. Used by the host after recreating a persistent
+    /// rendering surface (e.g. on display-scale change) so the renderer repaints from
+    /// scratch into the fresh surface.
+    /// </summary>
+    public void InvalidatePreviousFrame()
+    {
+        FillEmpty(_previous, Width, Height);
+        for (var y = 0; y < _previousRowGraphemes.Length; y++)
+        {
+            _previousRowGraphemes[y] = null;
+        }
+
+        MarkFullDirty();
+    }
+
+    /// <summary>
     /// Zero-allocation enumerator over the dirty row range.
     /// </summary>
     public ref struct DirtyRowEnumerator

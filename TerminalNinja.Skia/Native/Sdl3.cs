@@ -48,8 +48,12 @@ internal static partial class Sdl3
     public const uint SDL_EVENT_MOUSE_BUTTON_DOWN = 0x401;
     public const uint SDL_EVENT_MOUSE_BUTTON_UP = 0x402;
     public const uint SDL_EVENT_MOUSE_WHEEL = 0x403;
-    public const uint SDL_EVENT_WINDOW_RESIZED = 0x204;
-    public const uint SDL_EVENT_WINDOW_PIXEL_SIZE_CHANGED = 0x205;
+    // Window event values per SDL3 SDL_events.h (counting from SDL_EVENT_WINDOW_SHOWN = 0x202).
+    // Earlier work used 0x204 / 0x205 which actually correspond to EXPOSED and MOVED — the
+    // resize path was misfiring on those events instead of the real RESIZED / PIXEL_SIZE_CHANGED.
+    public const uint SDL_EVENT_WINDOW_RESIZED = 0x206;
+    public const uint SDL_EVENT_WINDOW_PIXEL_SIZE_CHANGED = 0x207;
+    public const uint SDL_EVENT_WINDOW_DISPLAY_SCALE_CHANGED = 0x214;
 
     // Key modifiers (SDL_keycode.h)
     public const ushort SDL_KMOD_LSHIFT = 0x0001;
@@ -114,6 +118,17 @@ internal static partial class Sdl3
 
     [LibraryImport(Lib)]
     public static partial int SDL_GetWindowSizeInPixels(IntPtr window, out int w, out int h);
+
+    [LibraryImport(Lib)]
+    public static partial int SDL_SetWindowSize(IntPtr window, int w, int h);
+
+    /// <summary>
+    /// Returns the content scale of the display the window is on (1.0 = 100% / unscaled,
+    /// 1.5 = 150%, 2.0 = 200%, etc.). Used to size cells and fonts so text renders crisply
+    /// on HiDPI displays. Returns 1.0 if the value can't be queried.
+    /// </summary>
+    [LibraryImport(Lib)]
+    public static partial float SDL_GetWindowDisplayScale(IntPtr window);
 
     [LibraryImport(Lib)]
     public static partial int SDL_GL_SetAttribute(int attr, int value);

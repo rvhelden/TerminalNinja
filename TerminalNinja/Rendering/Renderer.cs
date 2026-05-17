@@ -377,6 +377,17 @@ public sealed class Renderer : IDisposable
     }
     
     /// <summary>
+    /// Invalidates the cached "what the sink last drew" state so the next <see cref="Present"/>
+    /// re-emits every non-empty cell. Used by GUI hosts after recreating a persistent rendering
+    /// surface (display-scale change, fullscreen toggle, etc.) where the sink's pixels were
+    /// reset but the cell buffer still holds the same content.
+    /// </summary>
+    public void InvalidateDisplayCache()
+    {
+        _buffer.InvalidatePreviousFrame();
+    }
+
+    /// <summary>
     /// Resizes the renderer to the specified dimensions.
     /// </summary>
     /// <param name="newWidth">The new width in columns.</param>

@@ -8,10 +8,16 @@ public sealed class SkiaApplicationOptions
     /// <summary>Window title shown in the OS chrome.</summary>
     public string Title { get; init; } = "TerminalNinja";
 
-    /// <summary>Pixel width of a single terminal cell. Multiplied by <see cref="CellsWide"/> to size the window.</summary>
+    /// <summary>
+    /// Base pixel width of a single terminal cell at 100% display scale. The host multiplies
+    /// this by the queried display scale (when <see cref="AutoScale"/> is true) and rounds
+    /// to the nearest integer to keep cell origins on the pixel grid.
+    /// </summary>
     public int CellWidth { get; init; } = 9;
 
-    /// <summary>Pixel height of a single terminal cell. Multiplied by <see cref="CellsTall"/> to size the window.</summary>
+    /// <summary>
+    /// Base pixel height of a single terminal cell at 100% display scale. See <see cref="CellWidth"/>.
+    /// </summary>
     public int CellHeight { get; init; } = 18;
 
     /// <summary>Initial cell-grid width.</summary>
@@ -20,8 +26,21 @@ public sealed class SkiaApplicationOptions
     /// <summary>Initial cell-grid height.</summary>
     public int CellsTall { get; init; } = 24;
 
-    /// <summary>Font pixel size. Should match <see cref="CellHeight"/> minus line-gap room.</summary>
+    /// <summary>
+    /// Base font pixel size at 100% display scale. Scaled and rounded to integer pixels
+    /// alongside <see cref="CellWidth"/> / <see cref="CellHeight"/> when <see cref="AutoScale"/>
+    /// is true. Should match <see cref="CellHeight"/> minus line-gap room.
+    /// </summary>
     public float FontPixelSize { get; init; } = 14f;
+
+    /// <summary>
+    /// When true (default) the host queries the window's display scale via
+    /// <c>SDL_GetWindowDisplayScale</c> and applies it to cell metrics + font size so text
+    /// renders crisply on HiDPI displays (1.5×, 2.0×, etc.) and re-renders cleanly when the
+    /// window moves to a display with different scale. Set false for hand-tuned setups
+    /// that already provide post-scale pixel values.
+    /// </summary>
+    public bool AutoScale { get; init; } = true;
 
     /// <summary>
     /// Family name of the font to load. Resolved by Skia's font manager; passing null
