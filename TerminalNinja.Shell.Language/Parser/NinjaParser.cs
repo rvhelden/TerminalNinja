@@ -25,6 +25,19 @@ public static class NinjaParser
         return expr;
     }
 
+    /// <summary>
+    /// Parse <paramref name="source"/> as a sequence of zero or more top-level forms
+    /// (let-statements, source-statements, or bare expressions) separated by newlines.
+    /// Used by script files and the <c>-c</c> one-shot to support multi-line input.
+    /// </summary>
+    public static System.Collections.Immutable.ImmutableArray<Expr> ParseScript(string source)
+    {
+        ArgumentNullException.ThrowIfNull(source);
+        var tokens = NinjaLexer.Tokenize(source);
+        var p = new State(tokens);
+        return p.ParseAllForms();
+    }
+
     private sealed class State
     {
         private readonly IReadOnlyList<Token> _tokens;
@@ -78,6 +91,19 @@ public static class NinjaParser
                 throw new ParserException(
                     $"unexpected trailing token {Current.Kind}('{Current.Text}')",
                     Current.Line, Current.Column, isIncomplete: false);
+        }
+
+        /// <summary>Parse every top-level form in the token stream, separated by newlines.</summary>
+        public System.Collections.Immutable.ImmutableArray<Expr> ParseAllForms()
+        {
+            var b = System.Collections.Immutable.ImmutableArray.CreateBuilder<Expr>();
+            SkipNewlines();
+            while (!IsAtEnd)
+            {
+                b.Add(ParseTopLevel());
+                SkipNewlines();
+            }
+            return b.ToImmutable();
         }
 
         public Expr ParseTopLevel()

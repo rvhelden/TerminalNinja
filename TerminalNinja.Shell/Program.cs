@@ -43,7 +43,7 @@ internal static class Program
         if (PwshBridge.IsAvailable) env = PwshBridge.Install(env);
         try
         {
-            var v = NinjaEvaluator.EvalSource(source, env).Value;
+            var v = NinjaEvaluator.EvalScript(source, env).Value;
             var rendered = Printer.Format(v);
             if (!string.IsNullOrEmpty(rendered)) Console.WriteLine(rendered);
             return 0;

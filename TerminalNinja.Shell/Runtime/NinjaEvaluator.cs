@@ -18,6 +18,8 @@ public static class NinjaEvaluator
     /// Parse + evaluate a NinjaShell source string against <paramref name="env"/>.
     /// Top-level <c>let NAME = VALUE</c> (without an <c>in</c> clause) extends
     /// the returned environment; otherwise the environment passes through.
+    /// Restricted to a single top-level form; use <see cref="EvalScript"/> for
+    /// multi-form scripts.
     /// </summary>
     public static EvalResult EvalSource(string source, Env env)
     {
@@ -26,6 +28,31 @@ public static class NinjaEvaluator
 
         var expr = NinjaParser.ParseExpression(source);
         return EvalTop(expr, env);
+    }
+
+    /// <summary>
+    /// Parse + evaluate <paramref name="source"/> as a sequence of zero or more
+    /// top-level forms. Each form is evaluated via <see cref="EvalTop"/>, so
+    /// let-statements extend the environment that subsequent forms see. The
+    /// returned <see cref="EvalResult.Value"/> is the last form's value (or
+    /// <see cref="NUnit.Instance"/> for an empty script).
+    /// </summary>
+    public static EvalResult EvalScript(string source, Env env)
+    {
+        ArgumentNullException.ThrowIfNull(source);
+        ArgumentNullException.ThrowIfNull(env);
+
+        var forms = NinjaParser.ParseScript(source);
+        if (forms.Length == 0) return new EvalResult(NUnit.Instance, env);
+
+        NValue last = NUnit.Instance;
+        foreach (var form in forms)
+        {
+            var r = EvalTop(form, env);
+            env = r.Env;
+            last = r.Value;
+        }
+        return new EvalResult(last, env);
     }
 
     /// <summary>
