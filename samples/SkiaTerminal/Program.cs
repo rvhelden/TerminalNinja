@@ -20,8 +20,8 @@ internal static class Program
         using var app = new SkiaApplication(new SkiaApplicationOptions
         {
             Title = "TerminalNinja.Skia — Terminal",
-            CellsWide = ShellViewModel.Cols + 2,
-            CellsTall = ShellViewModel.Rows + 3,
+            CellsWide = ShellViewModel.Cols + 20,
+            CellsTall = ShellViewModel.Rows + 20,
             // FiraCode Nerd Font Mono = ligatures (!= => -> <= >=) AND the Nerd Font
             // icon glyphs nushell / starship / oh-my-posh / lsd emit. Note this is the
             // FAMILY name, not the face name — Skia's SKTypeface.FromFamilyName matches

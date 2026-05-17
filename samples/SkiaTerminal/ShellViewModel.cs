@@ -12,7 +12,7 @@ namespace SkiaTerminal;
 public sealed class ShellViewModel : ViewModelBase, IDisposable
 {
     public const int Rows = 24;
-    public const int Cols = 80;
+    public const int Cols = 120;
 
     private ITerminalBackend? _backend;
     private bool _disposed;
