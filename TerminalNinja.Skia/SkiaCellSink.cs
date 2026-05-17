@@ -40,16 +40,22 @@ public sealed class SkiaCellSink : IShapedRunSink
     private readonly SKPaint _fgPaint = new() { IsAntialias = true, Style = SKPaintStyle.Fill };
     private readonly SKPaint _linePaint = new() { IsAntialias = false, Style = SKPaintStyle.Stroke, StrokeWidth = 1f };
 
-    // SKTextBlob cache keyed by run text. HarfBuzz shaping is by far the hottest cost on the
-    // GPU path; caching the shaped+positioned blob means subsequent frames that re-render
-    // the same string skip the shape step entirely. The font/typeface is stable for the
-    // lifetime of the sink, so text alone is a sufficient cache key.
+    // Bold / italic font variants are loaded lazily by matching the base typeface's family
+    // name against SKFontStyle.{Bold, Italic, BoldItalic}. Each variant has its own SKShaper
+    // (HarfBuzz needs the typeface up front) and SKFont (same pixel size as the regular font).
+    // If the family doesn't have a true variant available, we fall back to the regular font
+    // — the alternative would be synthetic faking via SKPaint, which doesn't shape correctly.
+    private readonly Dictionary<byte, StyledFont> _styledFonts = new();
+
+    // SKTextBlob cache keyed by (text, style-bits). HarfBuzz shaping is the hottest cost on
+    // the GPU path; caching the shaped+positioned blob means subsequent frames that re-render
+    // the same string + style skip the shape step entirely.
     //
-    // LRU eviction keeps the cache bounded: an LinkedList tracks insertion order, and the
+    // LRU eviction keeps the cache bounded: a LinkedList tracks insertion order, and the
     // oldest entry is evicted when we hit the cap. The cap is intentionally generous —
     // typical TUI content has a few hundred distinct strings, well under 1024.
     private const int ShapeCacheCap = 1024;
-    private readonly Dictionary<string, LinkedListNode<CacheEntry>> _blobCache = new(capacity: ShapeCacheCap);
+    private readonly Dictionary<BlobKey, LinkedListNode<CacheEntry>> _blobCache = new(capacity: ShapeCacheCap);
     private readonly LinkedList<CacheEntry> _blobLruOrder = new();
 
     /// <summary>Width of a single cell in pixels.</summary>
@@ -182,11 +188,12 @@ public sealed class SkiaCellSink : IShapedRunSink
         _bgPaint.Color = ToSkColor(displayBg);
         canvas.DrawRect(px, py, rectW, rectH, _bgPaint);
 
-        // 2. Shape + draw glyphs. We cache the shaped + positioned SKTextBlob keyed by run text
-        // so subsequent frames re-rendering the same string skip HarfBuzz entirely. The font
-        // is fixed for the sink's lifetime, so text alone is sufficient as a key.
+        // 2. Shape + draw glyphs. Pick the typeface variant matching bold/italic decorations,
+        // shape (via HarfBuzz) once and cache the positioned SKTextBlob keyed by (text, style).
+        // Subsequent frames re-rendering the same string + style skip HarfBuzz entirely.
         _fgPaint.Color = ApplyDimmedAlpha(ToSkColor(displayFg), decorations);
-        var blob = GetOrBuildBlob(text);
+        var styled = GetStyledFont(decorations);
+        var blob = GetOrBuildBlob(text, decorations);
         if (blob is not null)
         {
             canvas.DrawText(blob, px, py + _textBaseline, _fgPaint);
@@ -194,12 +201,13 @@ public sealed class SkiaCellSink : IShapedRunSink
         else
         {
             // Fallback for edge cases where SKShaper / SKTextBlobBuilder doesn't produce a
-            // blob (e.g. empty text after shaping). DrawShapedText reshapes inline.
-            canvas.DrawShapedText(_shaper, text.ToString(), px, py + _textBaseline, _font, _fgPaint);
+            // blob (e.g. empty text after shaping). DrawShapedText reshapes inline using the
+            // style-matched shaper.
+            canvas.DrawShapedText(styled.Shaper, text.ToString(), px, py + _textBaseline, styled.Font, _fgPaint);
         }
 
-        // 3. Decorations as separate primitives. Bold/italic would require switching typeface;
-        // ignore for now (a font fallback chain in a follow-up wires them up properly).
+        // 3. Decorations that aren't carried by the font (under/strikethrough). Bold/italic
+        // are baked into the chosen styled font above.
         if ((decorations & TextDecorations.Underline) != 0)
         {
             _linePaint.Color = _fgPaint.Color;
@@ -287,20 +295,21 @@ public sealed class SkiaCellSink : IShapedRunSink
         return w;
     }
 
-    private SKTextBlob? GetOrBuildBlob(ReadOnlySpan<char> text)
+    private SKTextBlob? GetOrBuildBlob(ReadOnlySpan<char> text, TextDecorations decorations)
     {
-        // Look up by content; the lookup needs a string key, so convert once. Hot path will
-        // be a cache hit, so the allocation only matters on cold misses (rare in steady state).
-        var key = text.ToString();
+        var styleKey = StyleKeyFromDecorations(decorations);
+        var keyStr = text.ToString();
+        var key = new BlobKey(keyStr, styleKey);
+
         if (_blobCache.TryGetValue(key, out var existing))
         {
-            // Move to back of LRU order without re-allocating the node.
             _blobLruOrder.Remove(existing);
             _blobLruOrder.AddLast(existing);
             return existing.Value.Blob;
         }
 
-        var blob = BuildBlob(key);
+        var styled = GetStyledFont(decorations);
+        var blob = BuildBlob(keyStr, styled.Font, styled.Shaper);
         if (blob is null)
         {
             return null;
@@ -321,11 +330,11 @@ public sealed class SkiaCellSink : IShapedRunSink
         return blob;
     }
 
-    private SKTextBlob? BuildBlob(string text)
+    private static SKTextBlob? BuildBlob(string text, SKFont font, SKShaper shaper)
     {
         // Shape the text at (0, 0) — we apply the actual draw origin at DrawText time so the
         // same shaped result can be reused across cells/frames at different positions.
-        var result = _shaper.Shape(text, 0, 0, _font);
+        var result = shaper.Shape(text, 0, 0, font);
         if (result.Codepoints is null || result.Codepoints.Length == 0)
         {
             return null;
@@ -335,7 +344,7 @@ public sealed class SkiaCellSink : IShapedRunSink
         // glyph span is ushort. Narrow on copy — codepoints from HarfBuzz are glyph indices,
         // which fit in 16 bits for every font we'll realistically use.
         using var builder = new SKTextBlobBuilder();
-        var run = builder.AllocatePositionedRun(_font, result.Codepoints.Length);
+        var run = builder.AllocatePositionedRun(font, result.Codepoints.Length);
         var glyphs = run.Glyphs;
         for (var i = 0; i < result.Codepoints.Length; i++)
         {
@@ -344,6 +353,60 @@ public sealed class SkiaCellSink : IShapedRunSink
 
         result.Points.AsSpan().CopyTo(run.Positions);
         return builder.Build();
+    }
+
+    /// <summary>
+    /// Returns the (font, shaper) pair matching the bold/italic decoration bits, lazily
+    /// loading a typeface variant on first request. Falls back to the base font/shaper when
+    /// the typeface family doesn't have a true variant (e.g. SKTypeface.Default may not).
+    /// </summary>
+    private StyledFont GetStyledFont(TextDecorations decorations)
+    {
+        var key = StyleKeyFromDecorations(decorations);
+        if (key == 0)
+        {
+            return new StyledFont(_font, _shaper);
+        }
+
+        if (_styledFonts.TryGetValue(key, out var cached))
+        {
+            return cached;
+        }
+
+        var style = (key & 1) switch
+        {
+            1 when (key & 2) != 0 => SKFontStyle.BoldItalic,
+            1 => SKFontStyle.Bold,
+            _ => SKFontStyle.Italic, // key & 2 must be set when we reach here
+        };
+
+        var family = _typeface.FamilyName ?? string.Empty;
+        var variantTypeface = family.Length > 0 ? SKTypeface.FromFamilyName(family, style) : null;
+
+        StyledFont entry;
+        if (variantTypeface is null || ReferenceEquals(variantTypeface, _typeface))
+        {
+            // No real variant available — use the regular font/shaper. Synthetic bold via
+            // SKPaint stroke would render but bypass the shaper, breaking ligatures.
+            variantTypeface?.Dispose();
+            entry = new StyledFont(_font, _shaper);
+        }
+        else
+        {
+            var variantFont = new SKFont(variantTypeface, _font.Size);
+            var variantShaper = new SKShaper(variantTypeface);
+            entry = new StyledFont(variantFont, variantShaper);
+        }
+
+        _styledFonts[key] = entry;
+        return entry;
+    }
+
+    private static byte StyleKeyFromDecorations(TextDecorations decorations)
+    {
+        var bold = (decorations & TextDecorations.Bold) != 0 ? 1 : 0;
+        var italic = (decorations & TextDecorations.Italic) != 0 ? 2 : 0;
+        return (byte)(bold | italic);
     }
 
     /// <summary>Discards the SKTextBlob shape cache. Useful when font / cell metrics change.</summary>
@@ -358,7 +421,12 @@ public sealed class SkiaCellSink : IShapedRunSink
         _blobCache.Clear();
     }
 
-    private readonly record struct CacheEntry(string Key, SKTextBlob Blob);
+    private readonly record struct BlobKey(string Text, byte StyleKey);
+
+    private readonly record struct CacheEntry(BlobKey Key, SKTextBlob Blob);
+
+    /// <summary>A typeface variant: paired SKFont (sized) and SKShaper (HarfBuzz-bound to the typeface).</summary>
+    private readonly record struct StyledFont(SKFont Font, SKShaper Shaper);
 
     /// <inheritdoc />
     public void Reset()
@@ -380,6 +448,24 @@ public sealed class SkiaCellSink : IShapedRunSink
     public void Dispose()
     {
         ClearShapeCache();
+
+        // Dispose any lazily-loaded typeface variants we created. The base font/shaper
+        // were either constructed in our own ctor (we dispose) or passed in (caller owns —
+        // we don't dispose the SKFont). We DO own _shaper either way (created in ctor).
+        foreach (var styled in _styledFonts.Values)
+        {
+            if (!ReferenceEquals(styled.Font, _font))
+            {
+                styled.Font.Dispose();
+            }
+
+            if (!ReferenceEquals(styled.Shaper, _shaper))
+            {
+                styled.Shaper.Dispose();
+            }
+        }
+
+        _styledFonts.Clear();
         _bgPaint.Dispose();
         _fgPaint.Dispose();
         _linePaint.Dispose();
