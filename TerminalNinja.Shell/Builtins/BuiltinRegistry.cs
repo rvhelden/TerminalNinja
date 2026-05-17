@@ -27,6 +27,7 @@ public static class BuiltinRegistry
         Fs.Register(b);
         ObjModule.Register(b);
         EnvModule.Register(b);
+        ProcModule.Register(b);
         return b.ToImmutable();
     }
 
