@@ -282,6 +282,13 @@ public sealed class SkiaApplication : IDisposable
 
         Sdl3.SDL_GetWindowSizeInPixels(_window, out _pixelWidth, out _pixelHeight);
 
+        // Enable SDL3 text input so SDL_EVENT_TEXT_INPUT events flow. Without this, the only
+        // source of typed characters is SDL_EVENT_KEY_DOWN's logical keycode — which is
+        // unreliable for shifted symbols, dead keys, IME composition, and non-US layouts.
+        // The TerminalView and TextBox controls receive the resulting characters via the
+        // KeyEvent stream from SdlInputBackend.
+        Sdl3.SDL_StartTextInput(_window);
+
         _font = new SKFont(_typeface, _scaledFontSize);
 
         CreateSurfaces(_pixelWidth, _pixelHeight);

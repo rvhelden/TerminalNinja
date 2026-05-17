@@ -162,6 +162,19 @@ internal static partial class Sdl3
     [return: MarshalAs(UnmanagedType.U1)]
     public static partial bool SDL_PollEvent(out SDL_Event evt);
 
+    // SDL3 text input: must be enabled per-window before SDL_EVENT_TEXT_INPUT events flow.
+    // Without these, KEY_DOWN's keycode is the only source of typed characters, and SDL3's
+    // logical keycode is unreliable for shifted symbols, dead keys, IME-composed text, and
+    // non-US layouts. SDL_StartTextInput / SDL_StopTextInput are the canonical SDL3 API for
+    // text input.
+    [LibraryImport(Lib)]
+    [return: MarshalAs(UnmanagedType.U1)]
+    public static partial bool SDL_StartTextInput(IntPtr window);
+
+    [LibraryImport(Lib)]
+    [return: MarshalAs(UnmanagedType.U1)]
+    public static partial bool SDL_StopTextInput(IntPtr window);
+
     /// <summary>
     /// SDL3 event union. Variants are reinterpreted via <see cref="System.Runtime.CompilerServices.Unsafe.As{TFrom, TTo}(ref TFrom)"/>
     /// once <see cref="type"/> identifies which variant SDL3 wrote.
@@ -256,5 +269,20 @@ internal static partial class Sdl3
         public uint windowID;
         public int data1;
         public int data2;
+    }
+
+    /// <summary>
+    /// SDL_TextInputEvent layout (SDL_events.h). The <c>text</c> field is a pointer to a
+    /// UTF-8 string that SDL3 owns and invalidates after the next <c>SDL_PollEvent</c>.
+    /// Callers must copy the string out before the next poll.
+    /// </summary>
+    [StructLayout(LayoutKind.Sequential)]
+    public struct SDL_TextInputEvent
+    {
+        public uint type;
+        public uint reserved;
+        public ulong timestamp;
+        public uint windowID;
+        public IntPtr text;
     }
 }
