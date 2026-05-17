@@ -55,10 +55,15 @@ public static class NinjaEvaluator
         return new EvalResult(last, env);
     }
 
+    /// <summary>Maximum nesting depth for <c>source(...)</c> includes.</summary>
+    public const int MaxSourceDepth = 32;
+
+    [ThreadStatic] private static int _sourceDepth;
+
     /// <summary>
-    /// Evaluate a parsed top-level expression. <see cref="LetStatement"/> nodes
-    /// extend the environment for subsequent calls; everything else returns the
-    /// same <see cref="Env"/>.
+    /// Evaluate a parsed top-level expression. <see cref="LetStatement"/> and
+    /// <see cref="SourceStatement"/> nodes extend the environment for subsequent
+    /// calls; everything else returns the same <see cref="Env"/>.
     /// </summary>
     public static EvalResult EvalTop(Expr expr, Env env)
     {
@@ -71,7 +76,61 @@ public static class NinjaEvaluator
             slot.Value = Eval(ls.Value, newEnv);
             return new EvalResult(slot.Value, newEnv);
         }
+        if (expr is SourceStatement src)
+        {
+            return EvalSourceStatement(src, env);
+        }
         return new EvalResult(Eval(expr, env), env);
+    }
+
+    private static EvalResult EvalSourceStatement(SourceStatement src, Env env)
+    {
+        var pathVal = Eval(src.Path, env);
+        if (pathVal is not NString s)
+            throw new EvaluatorException("source: path must evaluate to a string");
+        var full = Path.GetFullPath(s.Value);
+        if (!File.Exists(full))
+            throw new EvaluatorException($"source: file not found: {full}");
+
+        _sourceDepth++;
+        try
+        {
+            if (_sourceDepth > MaxSourceDepth)
+                throw new EvaluatorException($"source: maximum nesting depth ({MaxSourceDepth}) exceeded — recursive include from '{full}'?");
+
+            string content;
+            try
+            {
+                content = File.ReadAllText(full);
+            }
+            catch (Exception ex)
+            {
+                throw new EvaluatorException($"source: could not read '{full}': {ex.Message}", ex);
+            }
+
+            ImmutableArray<Expr> forms;
+            try
+            {
+                forms = NinjaParser.ParseScript(content);
+            }
+            catch (Exception ex)
+            {
+                throw new EvaluatorException($"source: parse error in '{full}': {ex.Message}", ex);
+            }
+
+            NValue last = NUnit.Instance;
+            foreach (var form in forms)
+            {
+                var r = EvalTop(form, env);
+                env = r.Env;
+                last = r.Value;
+            }
+            return new EvalResult(last, env);
+        }
+        finally
+        {
+            _sourceDepth--;
+        }
     }
 
     /// <summary>Evaluate <paramref name="expr"/> against <paramref name="env"/>, producing an <see cref="NValue"/>.</summary>

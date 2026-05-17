@@ -26,6 +26,8 @@ public enum TokenKind
     KwTrue,
     /// <summary>The <c>false</c> boolean literal.</summary>
     KwFalse,
+    /// <summary>The <c>source</c> keyword that introduces a <c>source(path)</c> top-level statement.</summary>
+    KwSource,
 
     // String interpolation — $"prefix{hole1}mid{hole2}suffix"
     /// <summary>Opening of an interpolated string — the literal <c>$"</c>.</summary>

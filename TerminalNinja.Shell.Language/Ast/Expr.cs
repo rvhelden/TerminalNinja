@@ -27,6 +27,14 @@ public sealed record Let(string Name, Expr Value, Expr Body) : Expr;
 /// </summary>
 public sealed record LetStatement(string Name, Expr Value) : Expr;
 
+/// <summary>
+/// Top-level <c>source("path")</c> form. Reads the file, parses it as a script,
+/// and evaluates each form in the current scope — bindings persist back to the
+/// caller. Only valid at the top level of a script; in expression position the
+/// parser raises a syntax error.
+/// </summary>
+public sealed record SourceStatement(Expr Path) : Expr;
+
 /// <summary>A lambda — <c>(p1, p2) =&gt; body</c> or single-param <c>p =&gt; body</c>.</summary>
 public sealed record Lambda(ImmutableArray<string> Parameters, Expr Body) : Expr;
 

@@ -109,11 +109,26 @@ public static class NinjaParser
         public Expr ParseTopLevel()
         {
             SkipNewlines();
+            if (Check(TokenKind.KwSource))
+            {
+                return ParseSourceStatement();
+            }
             if (Check(TokenKind.KwLet) && IsTopLevelLetStatement())
             {
                 return ParseLetStatementOrLetIn();
             }
             return ParseExpr();
+        }
+
+        private Expr ParseSourceStatement()
+        {
+            Expect(TokenKind.KwSource, "'source'");
+            Expect(TokenKind.LParen, "'(' after 'source'");
+            SkipNewlines();
+            var path = ParseExpr();
+            SkipNewlines();
+            Expect(TokenKind.RParen, "')' to close source statement");
+            return new SourceStatement(path);
         }
 
         /// <summary>
@@ -462,6 +477,10 @@ public static class NinjaParser
                     return ParseInterpolation();
                 case TokenKind.KwPwsh:
                     return ParsePwshExpr();
+                case TokenKind.KwSource:
+                    throw new ParserException(
+                        "'source' may only appear at the top level of a script",
+                        t.Line, t.Column, isIncomplete: false);
                 default:
                     throw new ParserException(
                         $"unexpected token {t.Kind}('{t.Text}')",

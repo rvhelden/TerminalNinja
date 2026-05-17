@@ -35,6 +35,11 @@ public static class AstPrinter
                 Write(sb, let.Body);
                 sb.Append(')');
                 break;
+            case SourceStatement src:
+                sb.Append("(source ");
+                Write(sb, src.Path);
+                sb.Append(')');
+                break;
             case LetStatement letStmt:
                 sb.Append("(let ").Append(letStmt.Name).Append(" = ");
                 Write(sb, letStmt.Value);

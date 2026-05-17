@@ -19,6 +19,7 @@ public static class NinjaLexer
         ["pwsh"] = TokenKind.KwPwsh,
         ["true"] = TokenKind.KwTrue,
         ["false"] = TokenKind.KwFalse,
+        ["source"] = TokenKind.KwSource,
     };
 
     /// <summary>Tokenize a complete source string into a flat token list ending in <see cref="TokenKind.Eof"/>.</summary>
