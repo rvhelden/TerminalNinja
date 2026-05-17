@@ -42,11 +42,60 @@ internal static partial class Sdl3
     // Event types (SDL_events.h)
     public const uint SDL_EVENT_QUIT = 0x100;
     public const uint SDL_EVENT_KEY_DOWN = 0x300;
+    public const uint SDL_EVENT_KEY_UP = 0x301;
+    public const uint SDL_EVENT_TEXT_INPUT = 0x303;
+    public const uint SDL_EVENT_MOUSE_MOTION = 0x400;
+    public const uint SDL_EVENT_MOUSE_BUTTON_DOWN = 0x401;
+    public const uint SDL_EVENT_MOUSE_BUTTON_UP = 0x402;
+    public const uint SDL_EVENT_MOUSE_WHEEL = 0x403;
     public const uint SDL_EVENT_WINDOW_RESIZED = 0x204;
     public const uint SDL_EVENT_WINDOW_PIXEL_SIZE_CHANGED = 0x205;
 
-    // Common keycodes used by the host (SDL_keycode.h)
+    // Key modifiers (SDL_keycode.h)
+    public const ushort SDL_KMOD_LSHIFT = 0x0001;
+    public const ushort SDL_KMOD_RSHIFT = 0x0002;
+    public const ushort SDL_KMOD_LCTRL = 0x0040;
+    public const ushort SDL_KMOD_RCTRL = 0x0080;
+    public const ushort SDL_KMOD_LALT = 0x0100;
+    public const ushort SDL_KMOD_RALT = 0x0200;
+    public const ushort SDL_KMOD_SHIFT = SDL_KMOD_LSHIFT | SDL_KMOD_RSHIFT;
+    public const ushort SDL_KMOD_CTRL = SDL_KMOD_LCTRL | SDL_KMOD_RCTRL;
+    public const ushort SDL_KMOD_ALT = SDL_KMOD_LALT | SDL_KMOD_RALT;
+
+    // Mouse buttons (SDL_mouse.h)
+    public const byte SDL_BUTTON_LEFT = 1;
+    public const byte SDL_BUTTON_MIDDLE = 2;
+    public const byte SDL_BUTTON_RIGHT = 3;
+
+    // Keycodes used by the host (SDL_keycode.h). SDL3 mixes ASCII for printable codepoints
+    // with 0x40000000 + scancode for non-printables; we map the ones the controls care about.
     public const uint SDLK_ESCAPE = 0x1B;
+    public const uint SDLK_RETURN = 0x0D;
+    public const uint SDLK_BACKSPACE = 0x08;
+    public const uint SDLK_TAB = 0x09;
+    public const uint SDLK_SPACE = 0x20;
+    public const uint SDLK_DELETE = 0x7F;
+    public const uint SDLK_LEFT = 0x40000050;
+    public const uint SDLK_RIGHT = 0x4000004F;
+    public const uint SDLK_UP = 0x40000052;
+    public const uint SDLK_DOWN = 0x40000051;
+    public const uint SDLK_HOME = 0x4000004A;
+    public const uint SDLK_END = 0x4000004D;
+    public const uint SDLK_PAGEUP = 0x4000004B;
+    public const uint SDLK_PAGEDOWN = 0x4000004E;
+    public const uint SDLK_INSERT = 0x40000049;
+    public const uint SDLK_F1 = 0x4000003A;
+    public const uint SDLK_F2 = 0x4000003B;
+    public const uint SDLK_F3 = 0x4000003C;
+    public const uint SDLK_F4 = 0x4000003D;
+    public const uint SDLK_F5 = 0x4000003E;
+    public const uint SDLK_F6 = 0x4000003F;
+    public const uint SDLK_F7 = 0x40000040;
+    public const uint SDLK_F8 = 0x40000041;
+    public const uint SDLK_F9 = 0x40000042;
+    public const uint SDLK_F10 = 0x40000043;
+    public const uint SDLK_F11 = 0x40000044;
+    public const uint SDLK_F12 = 0x40000045;
 
     [LibraryImport(Lib)]
     public static partial int SDL_Init(uint flags);
@@ -121,5 +170,68 @@ internal static partial class Sdl3
         public ushort raw;
         [MarshalAs(UnmanagedType.U1)] public bool down;
         [MarshalAs(UnmanagedType.U1)] public bool repeat;
+    }
+
+    /// <summary>SDL_MouseMotionEvent layout (SDL_events.h).</summary>
+    [StructLayout(LayoutKind.Sequential)]
+    public struct SDL_MouseMotionEvent
+    {
+        public uint type;
+        public uint reserved;
+        public ulong timestamp;
+        public uint windowID;
+        public uint which;
+        public uint state;
+        public float x;
+        public float y;
+        public float xrel;
+        public float yrel;
+    }
+
+    /// <summary>SDL_MouseButtonEvent layout (SDL_events.h).</summary>
+    [StructLayout(LayoutKind.Sequential)]
+    public struct SDL_MouseButtonEvent
+    {
+        public uint type;
+        public uint reserved;
+        public ulong timestamp;
+        public uint windowID;
+        public uint which;
+        public byte button;
+        [MarshalAs(UnmanagedType.U1)] public bool down;
+        public byte clicks;
+        public byte padding;
+        public float x;
+        public float y;
+    }
+
+    /// <summary>SDL_MouseWheelEvent layout (SDL_events.h).</summary>
+    [StructLayout(LayoutKind.Sequential)]
+    public struct SDL_MouseWheelEvent
+    {
+        public uint type;
+        public uint reserved;
+        public ulong timestamp;
+        public uint windowID;
+        public uint which;
+        public float x;
+        public float y;
+        public uint direction;
+        public float mouse_x;
+        public float mouse_y;
+        public int integer_x;
+        public int integer_y;
+    }
+
+    /// <summary>SDL_WindowEvent layout (SDL_events.h) — covers resize and pixel-size-change.</summary>
+    [StructLayout(LayoutKind.Sequential)]
+    public struct SDL_WindowEvent
+    {
+        public uint type;
+        public uint reserved;
+        public ulong timestamp;
+        public uint windowID;
+        public int data1;
+        public int data2;
     }
 }

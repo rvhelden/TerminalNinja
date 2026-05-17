@@ -1,7 +1,8 @@
-using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using SkiaSharp;
 using TerminalNinja.Controls;
+using TerminalNinja.Input;
+using TerminalNinja.Primitives;
 using TerminalNinja.Rendering;
 using TerminalNinja.Skia.Native;
 
@@ -10,19 +11,13 @@ namespace TerminalNinja.Skia;
 /// <summary>
 /// SDL3-backed host for driving a TerminalNinja control tree through <see cref="SkiaCellSink"/>.
 /// Opens a window with an OpenGL context, binds a SkiaSharp <see cref="GRContext"/> over it,
-/// constructs a <see cref="Renderer"/> wired to the sink, and pumps an event loop that
+/// constructs a <see cref="Renderer"/> wired to the sink, drains SDL events through a
+/// <see cref="SdlInputBackend"/>, dispatches them via a <see cref="FocusManager"/>, and
 /// re-renders each frame.
 /// </summary>
 /// <remarks>
-/// <para>
-/// This is the Step 6 deliverable: per-cell rasterization with no HarfBuzz shaping yet,
-/// and minimal input (window-close + Escape-to-quit). Full input integration with
-/// TerminalNinja's <c>IInputBackend</c> is Step 9.
-/// </para>
-/// <para>
 /// Native dependency: <c>SDL3.dll</c> on Windows, <c>libSDL3.so.0</c> on Linux must be on
 /// the dynamic-library search path. Packaging that as a NuGet runtime asset is a separate task.
-/// </para>
 /// </remarks>
 public sealed class SkiaApplication : IDisposable
 {
@@ -36,6 +31,7 @@ public sealed class SkiaApplication : IDisposable
     private SKFont? _font;
     private SkiaCellSink? _sink;
     private Renderer? _renderer;
+    private SdlInputBackend? _input;
     private UIElement? _root;
     private bool _running;
     private bool _disposed;
@@ -47,6 +43,18 @@ public sealed class SkiaApplication : IDisposable
 
     /// <summary>The Skia sink the renderer drives. Available after <see cref="Run"/> starts.</summary>
     public SkiaCellSink Sink => _sink ?? throw new InvalidOperationException("Sink is not available until Run() has initialized the host.");
+
+    /// <summary>The input backend draining SDL events for the run loop. Toggleable mouse tracking lives here.</summary>
+    public SdlInputBackend Input => _input ?? throw new InvalidOperationException("Input backend is not available until Run() has initialized the host.");
+
+    /// <summary>Manages keyboard focus and mouse hover for the active control tree.</summary>
+    public FocusManager FocusManager { get; } = new();
+
+    /// <summary>Raised after every <see cref="KeyEvent"/> the host receives, before <see cref="FocusManager"/> dispatch.</summary>
+    public event Action<KeyEvent>? KeyDown;
+
+    /// <summary>Raised after every <see cref="MouseEvent"/> the host receives, before <see cref="FocusManager"/> dispatch.</summary>
+    public event Action<MouseEvent>? MouseInput;
 
     /// <summary>Creates a host with the given options. Initialization happens on the first call to <see cref="Run"/>.</summary>
     public SkiaApplication(SkiaApplicationOptions options)
@@ -143,8 +151,13 @@ public sealed class SkiaApplication : IDisposable
         Sdl3.SDL_GetWindowSizeInPixels(_window, out _pixelWidth, out _pixelHeight);
 
         _surface = CreateSurface(_pixelWidth, _pixelHeight);
-        _sink = new SkiaCellSink(_surface, _font, _options.CellWidth, _options.CellHeight);
+        _sink = new SkiaCellSink(_surface, _font, _typeface, _options.CellWidth, _options.CellHeight);
         _renderer = new Renderer(_sink, _options.CellsWide, _options.CellsTall);
+        _input = new SdlInputBackend(_options.CellWidth, _options.CellHeight);
+        if (!_options.EnableMouseTracking)
+        {
+            _input.DisableMouseTracking();
+        }
     }
 
     private SKSurface CreateSurface(int width, int height)
@@ -158,25 +171,64 @@ public sealed class SkiaApplication : IDisposable
 
     private bool PumpEvents()
     {
-        while (Sdl3.SDL_PollEvent(out var evt) == 1)
+        var events = _input!.TryRead();
+        if (_input.QuitRequested)
         {
-            if (evt.type == Sdl3.SDL_EVENT_QUIT)
-            {
-                return false;
-            }
+            return false;
+        }
 
-            if (evt.type == Sdl3.SDL_EVENT_KEY_DOWN)
-            {
-                ref var key = ref Unsafe.As<Sdl3.SDL_Event, Sdl3.SDL_KeyboardEvent>(ref evt);
-                if (key.key == Sdl3.SDLK_ESCAPE)
-                {
-                    return false;
-                }
-            }
+        if (events is null)
+        {
+            return true;
+        }
 
-            if (evt.type == Sdl3.SDL_EVENT_WINDOW_PIXEL_SIZE_CHANGED)
+        foreach (var evt in events)
+        {
+            switch (evt)
             {
-                HandleResize();
+                case KeyEvent key:
+                    KeyDown?.Invoke(key);
+
+                    if (_options.EscapeQuits && key.Key == ConsoleKey.Escape)
+                    {
+                        return false;
+                    }
+
+                    if (_options.EnableTabNavigation && _root is not null && key.Key == ConsoleKey.Tab)
+                    {
+                        var bounds = new Rect(0, 0, _renderer!.Width, _renderer.Height);
+                        if (key.Shift)
+                        {
+                            FocusManager.FocusPrevious(_root, bounds);
+                        }
+                        else
+                        {
+                            FocusManager.FocusNext(_root, bounds);
+                        }
+
+                        break;
+                    }
+
+                    FocusManager.HandleKeyEvent(key);
+                    break;
+
+                case MouseEvent mouse:
+                    MouseInput?.Invoke(mouse);
+                    if (_root is not null)
+                    {
+                        var bounds = new Rect(0, 0, _renderer!.Width, _renderer.Height);
+                        FocusManager.HandleMouseEvent(_root, bounds, mouse);
+                    }
+
+                    break;
+
+                case ResizeEvent:
+                    // SDL3 also emits SDL_EVENT_WINDOW_PIXEL_SIZE_CHANGED through TryRead's
+                    // internal poll, but the cell-grid resize uses the framebuffer pixel size
+                    // queried directly from SDL — more reliable on HiDPI than the resize event's
+                    // logical-units payload.
+                    HandleResize();
+                    break;
             }
         }
 
@@ -222,6 +274,7 @@ public sealed class SkiaApplication : IDisposable
 
     private void Shutdown()
     {
+        _input?.Dispose();
         _renderer?.Dispose();
         _sink?.Dispose();
         _surface?.Dispose();
@@ -251,6 +304,7 @@ public sealed class SkiaApplication : IDisposable
         _typeface = null;
         _grContext = null;
         _grGlInterface = null;
+        _input = null;
     }
 
     private static string GetSdlError()

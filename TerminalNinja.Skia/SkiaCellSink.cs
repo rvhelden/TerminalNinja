@@ -40,6 +40,18 @@ public sealed class SkiaCellSink : IShapedRunSink
     private readonly SKPaint _fgPaint = new() { IsAntialias = true, Style = SKPaintStyle.Fill };
     private readonly SKPaint _linePaint = new() { IsAntialias = false, Style = SKPaintStyle.Stroke, StrokeWidth = 1f };
 
+    // SKTextBlob cache keyed by run text. HarfBuzz shaping is by far the hottest cost on the
+    // GPU path; caching the shaped+positioned blob means subsequent frames that re-render
+    // the same string skip the shape step entirely. The font/typeface is stable for the
+    // lifetime of the sink, so text alone is a sufficient cache key.
+    //
+    // LRU eviction keeps the cache bounded: an LinkedList tracks insertion order, and the
+    // oldest entry is evicted when we hit the cap. The cap is intentionally generous —
+    // typical TUI content has a few hundred distinct strings, well under 1024.
+    private const int ShapeCacheCap = 1024;
+    private readonly Dictionary<string, LinkedListNode<CacheEntry>> _blobCache = new(capacity: ShapeCacheCap);
+    private readonly LinkedList<CacheEntry> _blobLruOrder = new();
+
     /// <summary>Width of a single cell in pixels.</summary>
     public int CellWidth => _cellWidth;
 
@@ -140,12 +152,21 @@ public sealed class SkiaCellSink : IShapedRunSink
         _bgPaint.Color = ToSkColor(displayBg);
         canvas.DrawRect(px, py, rectW, rectH, _bgPaint);
 
-        // 2. Shape + draw glyphs. DrawShapedText drives HarfBuzz internally so ligatures,
-        // complex scripts, and color emoji render correctly. The current API only accepts
-        // string, so we allocate once per run; a follow-up that caches SKTextBlob by text
-        // can eliminate this in the steady state.
+        // 2. Shape + draw glyphs. We cache the shaped + positioned SKTextBlob keyed by run text
+        // so subsequent frames re-rendering the same string skip HarfBuzz entirely. The font
+        // is fixed for the sink's lifetime, so text alone is sufficient as a key.
         _fgPaint.Color = ApplyDimmedAlpha(ToSkColor(displayFg), decorations);
-        canvas.DrawShapedText(_shaper, text.ToString(), px, py + _textBaseline, _font, _fgPaint);
+        var blob = GetOrBuildBlob(text);
+        if (blob is not null)
+        {
+            canvas.DrawText(blob, px, py + _textBaseline, _fgPaint);
+        }
+        else
+        {
+            // Fallback for edge cases where SKShaper / SKTextBlobBuilder doesn't produce a
+            // blob (e.g. empty text after shaping). DrawShapedText reshapes inline.
+            canvas.DrawShapedText(_shaper, text.ToString(), px, py + _textBaseline, _font, _fgPaint);
+        }
 
         // 3. Decorations as separate primitives. Bold/italic would require switching typeface;
         // ignore for now (a font fallback chain in a follow-up wires them up properly).
@@ -236,6 +257,79 @@ public sealed class SkiaCellSink : IShapedRunSink
         return w;
     }
 
+    private SKTextBlob? GetOrBuildBlob(ReadOnlySpan<char> text)
+    {
+        // Look up by content; the lookup needs a string key, so convert once. Hot path will
+        // be a cache hit, so the allocation only matters on cold misses (rare in steady state).
+        var key = text.ToString();
+        if (_blobCache.TryGetValue(key, out var existing))
+        {
+            // Move to back of LRU order without re-allocating the node.
+            _blobLruOrder.Remove(existing);
+            _blobLruOrder.AddLast(existing);
+            return existing.Value.Blob;
+        }
+
+        var blob = BuildBlob(key);
+        if (blob is null)
+        {
+            return null;
+        }
+
+        // Evict the oldest entry if we're at capacity.
+        if (_blobCache.Count >= ShapeCacheCap && _blobLruOrder.First is { } oldest)
+        {
+            _blobLruOrder.RemoveFirst();
+            if (_blobCache.Remove(oldest.Value.Key))
+            {
+                oldest.Value.Blob.Dispose();
+            }
+        }
+
+        var node = _blobLruOrder.AddLast(new CacheEntry(key, blob));
+        _blobCache[key] = node;
+        return blob;
+    }
+
+    private SKTextBlob? BuildBlob(string text)
+    {
+        // Shape the text at (0, 0) — we apply the actual draw origin at DrawText time so the
+        // same shaped result can be reused across cells/frames at different positions.
+        var result = _shaper.Shape(text, 0, 0, _font);
+        if (result.Codepoints is null || result.Codepoints.Length == 0)
+        {
+            return null;
+        }
+
+        // SKShaper.Result.Codepoints is uint[] in 3.119.x; SKTextBlobBuilder's positioned-run
+        // glyph span is ushort. Narrow on copy — codepoints from HarfBuzz are glyph indices,
+        // which fit in 16 bits for every font we'll realistically use.
+        using var builder = new SKTextBlobBuilder();
+        var run = builder.AllocatePositionedRun(_font, result.Codepoints.Length);
+        var glyphs = run.Glyphs;
+        for (var i = 0; i < result.Codepoints.Length; i++)
+        {
+            glyphs[i] = (ushort)result.Codepoints[i];
+        }
+
+        result.Points.AsSpan().CopyTo(run.Positions);
+        return builder.Build();
+    }
+
+    /// <summary>Discards the SKTextBlob shape cache. Useful when font / cell metrics change.</summary>
+    private void ClearShapeCache()
+    {
+        foreach (var node in _blobLruOrder)
+        {
+            node.Blob.Dispose();
+        }
+
+        _blobLruOrder.Clear();
+        _blobCache.Clear();
+    }
+
+    private readonly record struct CacheEntry(string Key, SKTextBlob Blob);
+
     /// <inheritdoc />
     public void Reset()
     {
@@ -255,6 +349,7 @@ public sealed class SkiaCellSink : IShapedRunSink
     /// <inheritdoc />
     public void Dispose()
     {
+        ClearShapeCache();
         _bgPaint.Dispose();
         _fgPaint.Dispose();
         _linePaint.Dispose();

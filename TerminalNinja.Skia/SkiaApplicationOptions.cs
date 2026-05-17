@@ -31,4 +31,23 @@ public sealed class SkiaApplicationOptions
 
     /// <summary>Enable VSync via SDL_GL_SetSwapInterval(1). Default true.</summary>
     public bool VSync { get; init; } = true;
+
+    /// <summary>
+    /// When true, pressing Escape exits the run loop. Convenient for samples and debugging;
+    /// disable in production apps that need Escape to reach focused controls.
+    /// </summary>
+    public bool EscapeQuits { get; init; } = true;
+
+    /// <summary>
+    /// When true, mouse tracking is enabled at startup. Toggleable at runtime via the
+    /// host's input backend.
+    /// </summary>
+    public bool EnableMouseTracking { get; init; } = true;
+
+    /// <summary>
+    /// When true, Tab / Shift+Tab is intercepted by the host to advance focus via
+    /// <see cref="Input.FocusManager"/>. Set false when focused controls need raw Tab
+    /// (e.g. a TextBox that inserts tab characters).
+    /// </summary>
+    public bool EnableTabNavigation { get; init; } = true;
 }
