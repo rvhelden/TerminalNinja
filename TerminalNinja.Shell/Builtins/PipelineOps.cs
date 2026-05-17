@@ -26,7 +26,8 @@ public static class PipelineOps
         b["take"] = NFunc2("take", Take);
         b["skip"] = NFunc2("skip", Skip);
         b["count"] = NFunc1("count", Count);
-        b["sort"] = NFunc1("sort", Sort);
+        b["sort"] = new NFunc(SortDispatch, -1);
+        b["reverse"] = NFunc1("reverse", Reverse);
         b["distinct"] = NFunc1("distinct", Distinct);
         b["head"] = NFunc1("head", Head);
         b["tail"] = NFunc1("tail", Tail);
@@ -165,11 +166,55 @@ public static class PipelineOps
         return new NInt(n);
     }
 
-    private static NValue Sort(NValue seq)
+    private static NValue SortDispatch(NValue[] args)
     {
-        var arr = AsEnumerable(seq, "sort").ToArray();
-        Array.Sort(arr, NValueOps.Compare);
-        return new NList(ImmutableArray.Create(arr));
+        if (args.Length is < 1 or > 2)
+            throw new EvaluatorException($"sort expects 1 or 2 arguments, got {args.Length}");
+        var source = AsEnumerable(args[0], "sort");
+
+        NFunc? key = null;
+        bool descending = false;
+        if (args.Length == 2)
+        {
+            if (args[1] is not NRecord opts) throw new EvaluatorException("sort options must be a record");
+            if (opts.Fields.TryGetValue("by", out var byVal))
+            {
+                if (byVal is not NFunc fn) throw new EvaluatorException("sort 'by' option must be a function");
+                key = fn;
+            }
+            if (opts.Fields.TryGetValue("desc", out var descVal))
+            {
+                if (descVal is not NBool db) throw new EvaluatorException("sort 'desc' option must be a bool");
+                descending = db.Value;
+            }
+        }
+
+        var items = source.ToArray();
+        if (key == null)
+        {
+            Array.Sort(items, NValueOps.Compare);
+        }
+        else
+        {
+            var keys = new NValue[items.Length];
+            for (int i = 0; i < items.Length; i++) keys[i] = key.Apply(new[] { items[i] });
+            Array.Sort(keys, items, NValueComparer.Instance);
+        }
+        if (descending) Array.Reverse(items);
+        return new NList(ImmutableArray.Create(items));
+    }
+
+    private static NValue Reverse(NValue seq)
+    {
+        var items = AsEnumerable(seq, "reverse").ToArray();
+        Array.Reverse(items);
+        return new NList(ImmutableArray.Create(items));
+    }
+
+    private sealed class NValueComparer : IComparer<NValue>
+    {
+        public static readonly NValueComparer Instance = new();
+        public int Compare(NValue x, NValue y) => NValueOps.Compare(x, y);
     }
 
     private static NValue Distinct(NValue seq)
