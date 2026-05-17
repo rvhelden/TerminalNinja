@@ -1,0 +1,21 @@
+<Border xmlns="http://schemas.terminalninja.dev/xaml"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        BorderStyle="Rounded">
+    <StackPanel Orientation="Vertical">
+        <TextBlock StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1"
+                   Text=" TerminalView" Padding="2,0,0,0" />
+
+        <TextBlock StackPanel.SizeMode="Fixed" StackPanel.FixedSize="2"
+                   Text="  Embeds a real PTY shell inside a TerminalNinja control. Bytes from the child drive the screen buffer; keystrokes are encoded and sent back."
+                   Padding="2,0,0,0" VerticalTextAlignment="Center" />
+
+        <TextBlock StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1"
+                   Text="{Binding StatusMessage}" Padding="2,0,0,0" />
+
+        <TextBlock StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1" Text="" />
+
+        <Border StackPanel.SizeMode="Stretch" BorderStyle="Single" Padding="0">
+            <ContentControl Content="{Binding Terminal}" />
+        </Border>
+    </StackPanel>
+</Border>

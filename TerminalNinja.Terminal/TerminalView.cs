@@ -1,3 +1,6 @@
+using System;
+using System.Collections.Generic;
+using System.Threading.Tasks;
 using TerminalNinja.Buffers;
 using TerminalNinja.Controls;
 using TerminalNinja.Input;

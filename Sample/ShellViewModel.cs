@@ -10,6 +10,7 @@ using Sample.Samples.DataBinding;
 using Sample.Samples.Lists;
 using Sample.Samples.TextInput;
 using Sample.Samples.ListView;
+using Sample.Samples.Terminal;
 using ComboBoxSample = Sample.Samples.ComboBox;
 
 namespace Sample;
@@ -103,6 +104,7 @@ public class ShellViewModel : ViewModelBase, IDisposable
             "StackPanel Layout" => TerminalXaml.Load<Border>(XamlLayouts.StackLayoutScreen),
             "Data Binding" => TerminalXaml.Load<Border>(XamlLayouts.DataBindingScreen, new DataBindingViewModel()),
             "Dialogs" => TerminalXaml.Load<Border>(XamlLayouts.DialogsScreen, new DialogsViewModel()),
+            "Terminal" => TerminalXaml.Load<Border>(XamlLayouts.TerminalScreen, new TerminalSampleViewModel()),
             _ => throw new ArgumentException($"Unknown sample: {sampleName}")
         };
 

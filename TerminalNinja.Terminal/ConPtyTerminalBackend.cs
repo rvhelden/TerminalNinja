@@ -1,7 +1,11 @@
+using System;
 using System.Buffers;
+using System.Collections.Generic;
 using System.ComponentModel;
 using System.Runtime.InteropServices;
 using System.Text;
+using System.Threading;
+using System.Threading.Tasks;
 using TerminalNinja.Terminal.Native;
 
 namespace TerminalNinja.Terminal;
@@ -178,9 +182,18 @@ public sealed class ConPtyTerminalBackend : ITerminalBackend
         // Signal background threads.
         _shutdownCts?.Cancel();
 
-        // Close the pseudoconsole — this is the canonical way to terminate the child cleanly.
-        // ClosePseudoConsole signals EOF on the child's stdin and (after a grace period that
-        // ConPTY manages internally) terminates the process if it didn't exit on its own.
+        // Terminate the child before tearing down the pseudoconsole. Interactive shells
+        // (cmd, powershell, bash) never exit on their own when we shut down — they're sitting
+        // at a prompt waiting for user input. Without TerminateProcess the read thread stays
+        // blocked in ReadFile (the child still holds the pipe's write end via the conpty)
+        // and the exit watcher stays blocked in WaitForSingleObject(INFINITE). The Join()
+        // calls in DisposeAsync then time out and CleanupHandles closes the process handle
+        // out from under the watcher thread.
+        //
+        // Microsoft's ConPTY guidance is explicit: "ClosePseudoConsole must not be called
+        // before all client processes have exited". So we kill first, close second.
+        TerminateChildIfAlive();
+
         if (_pseudoConsole != IntPtr.Zero)
         {
             ConPtyNative.ClosePseudoConsole(_pseudoConsole);
@@ -205,7 +218,12 @@ public sealed class ConPtyTerminalBackend : ITerminalBackend
             IsRunning = false;
             _shutdownCts?.Cancel();
 
-            // Best-effort: close pseudoconsole first so reads unblock.
+            // Kill the child first so the read thread's ReadFile sees EOF and the exit
+            // watcher's WaitForSingleObject returns. Without this, CleanupHandles would
+            // close the process / pipe handles while background threads are still using
+            // them. See the matching comment in CloseAsync.
+            TerminateChildIfAlive();
+
             if (_pseudoConsole != IntPtr.Zero)
             {
                 ConPtyNative.ClosePseudoConsole(_pseudoConsole);
@@ -320,9 +338,9 @@ public sealed class ConPtyTerminalBackend : ITerminalBackend
         {
             StartupInfo = new ConPtyNative.STARTUPINFOW
             {
-                cb = (uint)Marshal.SizeOf<ConPtyNative.STARTUPINFOEXW>(),
+                cb = (uint)Marshal.SizeOf<ConPtyNative.STARTUPINFOEXW>()
             },
-            lpAttributeList = _attributeList,
+            lpAttributeList = _attributeList
         };
 
         var commandLine = BuildCommandLine(_options.Shell, _options.Arguments);
@@ -473,6 +491,38 @@ public sealed class ConPtyTerminalBackend : ITerminalBackend
 
             offset += (int)written;
         }
+    }
+
+    /// <summary>
+    /// If <see cref="_processHandle"/> still refers to a live process, ends it with
+    /// <c>TerminateProcess</c> and waits briefly for the kernel to mark it as exited.
+    /// Safe to call when the process has already exited naturally — the initial
+    /// <c>WaitForSingleObject</c> with a zero timeout returns <c>WAIT_OBJECT_0</c> and we
+    /// take the no-op path.
+    /// </summary>
+    private void TerminateChildIfAlive()
+    {
+        if (_processHandle == IntPtr.Zero)
+        {
+            return;
+        }
+
+        var waitResult = ConPtyNative.WaitForSingleObject(_processHandle, 0);
+        if (waitResult == ConPtyNative.WAIT_OBJECT_0)
+        {
+            // Already exited — natural exit path (cmd /c exit 7, whoami, etc.).
+            return;
+        }
+
+        // Ignore the BOOL — if TerminateProcess fails the child is already dead or in an
+        // unrecoverable state. Either way, we still want to proceed with teardown.
+        _ = ConPtyNative.TerminateProcess(_processHandle, 1);
+
+        // Give the kernel a brief moment to actually transition the process to "exited"
+        // so the exit watcher's WaitForSingleObject(INFINITE) returns before we close the
+        // handle. 1s is well over the empirically measured ~10–50 ms it takes for
+        // TerminateProcess to settle.
+        ConPtyNative.WaitForSingleObject(_processHandle, 1000);
     }
 
     private void CleanupHandles()

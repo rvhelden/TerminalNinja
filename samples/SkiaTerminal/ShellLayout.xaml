@@ -1,0 +1,25 @@
+<Border xmlns="http://schemas.terminalninja.dev/xaml"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:s="clr-namespace:SkiaTerminal"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        mc:Ignorable="d"
+        d:DataContext="{d:DesignInstance Type=s:ShellViewModel}"
+        Background="#1E1E2E"
+        BorderBrush="#CDD6F4"
+        Padding="1,0,1,0">
+    <StackPanel Orientation="Vertical">
+        <TextBlock StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1"
+                   Text="TerminalNinja.Skia — TerminalView demo"
+                   Foreground="#F9E2AF"
+                   Background="#1E1E2E"
+                   TextDecorations="Bold" />
+
+        <TextBlock StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1"
+                   Text="{Binding StatusText}"
+                   Foreground="#A6E3A1"
+                   Background="#1E1E2E" />
+
+        <ContentControl StackPanel.SizeMode="Stretch" Content="{Binding Terminal}" />
+    </StackPanel>
+</Border>

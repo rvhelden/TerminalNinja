@@ -1,3 +1,5 @@
+using System;
+using System.Collections.Generic;
 using System.Runtime.CompilerServices;
 using TerminalNinja.Input;
 using TerminalNinja.Skia.Native;
@@ -60,7 +62,7 @@ public sealed class SdlInputBackend : IInputBackend
         ObjectDisposedException.ThrowIf(_disposed, this);
 
         _scratch.Clear();
-        while (Sdl3.SDL_PollEvent(out var evt) == 1)
+        while (Sdl3.SDL_PollEvent(out var evt))
         {
             var converted = Convert(evt);
             if (converted is not null)

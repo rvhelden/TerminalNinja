@@ -1,3 +1,4 @@
+using System;
 using System.Runtime.InteropServices;
 
 namespace TerminalNinja.Skia.Native;
@@ -101,8 +102,13 @@ internal static partial class Sdl3
     public const uint SDLK_F11 = 0x40000044;
     public const uint SDLK_F12 = 0x40000045;
 
+    // SDL3's SDL_Init returns C99 `bool` (1 byte) — must be marshalled as U1, not as int,
+    // because the x64 ABI doesn't guarantee the high bytes of the return register are
+    // zero-extended when the function returns a bool. Marshalling as int can read garbage
+    // upper bytes and make a successful init look like failure.
     [LibraryImport(Lib)]
-    public static partial int SDL_Init(uint flags);
+    [return: MarshalAs(UnmanagedType.U1)]
+    public static partial bool SDL_Init(uint flags);
 
     [LibraryImport(Lib)]
     public static partial void SDL_Quit();
@@ -151,8 +157,10 @@ internal static partial class Sdl3
     [LibraryImport(Lib, StringMarshalling = StringMarshalling.Utf8)]
     public static partial IntPtr SDL_GL_GetProcAddress(string proc);
 
+    // SDL_PollEvent also returns C99 `bool` in SDL3 — same U1 marshalling requirement.
     [LibraryImport(Lib)]
-    public static partial int SDL_PollEvent(out SDL_Event evt);
+    [return: MarshalAs(UnmanagedType.U1)]
+    public static partial bool SDL_PollEvent(out SDL_Event evt);
 
     /// <summary>
     /// SDL3 event union. Variants are reinterpreted via <see cref="System.Runtime.CompilerServices.Unsafe.As{TFrom, TTo}(ref TFrom)"/>

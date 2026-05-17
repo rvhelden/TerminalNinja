@@ -1,3 +1,4 @@
+using System;
 using System.Runtime.InteropServices;
 using SkiaSharp;
 using TerminalNinja.App;
@@ -32,6 +33,9 @@ namespace TerminalNinja.Skia;
 public sealed class SkiaApplication : IDisposable
 {
     private readonly SkiaApplicationOptions _options;
+    private UIElement? _pendingRoot;
+    private string? _pendingThemeName;
+    private Action<KeyEvent, KeyEventArgs>? _pendingKeyDown;
     private IntPtr _window;
     private IntPtr _glContext;
     private GRContext? _grContext;
@@ -80,17 +84,64 @@ public sealed class SkiaApplication : IDisposable
     public ResourceDictionary Resources => Application.Resources;
 
     /// <summary>Active theme name. Pass-through to <see cref="Application.ThemeName"/>.</summary>
+    /// <remarks>
+    /// Safe to set before <see cref="Run"/>: the value is queued and applied once
+    /// <see cref="Initialize"/> has built the inner <see cref="App.Application"/>.
+    /// </remarks>
     public string? ThemeName
     {
-        get => Application.ThemeName;
-        set => Application.ThemeName = value;
+        get => _app is null ? _pendingThemeName : _app.ThemeName;
+        set
+        {
+            if (_app is null)
+            {
+                _pendingThemeName = value;
+            }
+            else
+            {
+                _app.ThemeName = value;
+            }
+        }
     }
 
+    /// <summary>
+    /// Raised once after the inner <see cref="App.Application"/>, renderer, and input backend
+    /// have been built, but before the first <c>ProcessTick</c>. Use it to set initial focus,
+    /// adjust resources, or wire any state that requires the live Application.
+    /// </summary>
+    public event Action? Initialized;
+
     /// <summary>Raised after every <see cref="KeyEvent"/> the underlying application handles.</summary>
+    /// <remarks>
+    /// Subscriptions added before <see cref="Run"/> are forwarded to
+    /// <see cref="App.Application.KeyDown"/> once the inner application exists.
+    /// </remarks>
     public event Action<KeyEvent, KeyEventArgs>? KeyDown
     {
-        add => Application.KeyDown += value;
-        remove => Application.KeyDown -= value;
+        add
+        {
+            if (value is null) return;
+            if (_app is null)
+            {
+                _pendingKeyDown += value;
+            }
+            else
+            {
+                _app.KeyDown += value;
+            }
+        }
+        remove
+        {
+            if (value is null) return;
+            if (_app is null)
+            {
+                _pendingKeyDown -= value;
+            }
+            else
+            {
+                _app.KeyDown -= value;
+            }
+        }
     }
 
     /// <summary>Creates a host with the given options. Initialization happens on the first call to <see cref="Run"/>.</summary>
@@ -101,10 +152,21 @@ public sealed class SkiaApplication : IDisposable
     }
 
     /// <summary>Sets the root <see cref="UIElement"/> the host draws each frame.</summary>
+    /// <remarks>
+    /// Safe to call before <see cref="Run"/>: the value is queued and applied once
+    /// <see cref="Initialize"/> has built the inner <see cref="App.Application"/>.
+    /// </remarks>
     public void SetRoot(UIElement root)
     {
         ArgumentNullException.ThrowIfNull(root);
-        Application.RootControl = root;
+        if (_app is null)
+        {
+            _pendingRoot = root;
+        }
+        else
+        {
+            _app.RootControl = root;
+        }
     }
 
     /// <summary>
@@ -161,7 +223,7 @@ public sealed class SkiaApplication : IDisposable
 
     private void Initialize()
     {
-        if (Sdl3.SDL_Init(Sdl3.SDL_INIT_VIDEO | Sdl3.SDL_INIT_EVENTS) != 1)
+        if (!Sdl3.SDL_Init(Sdl3.SDL_INIT_VIDEO | Sdl3.SDL_INIT_EVENTS))
         {
             throw new InvalidOperationException($"SDL_Init failed: {GetSdlError()}");
         }
@@ -251,6 +313,25 @@ public sealed class SkiaApplication : IDisposable
         // sees a ResizeEvent. The console renderer's HandleResize is a no-op for our
         // sink-backed Renderer, so we do the SDL3-specific rebuild ourselves here.
         _app.Resize += _ => HandleSdlResize();
+
+        // Flush anything that was configured before Run(): theme, root, KeyDown subscribers.
+        if (_pendingThemeName is not null)
+        {
+            _app.ThemeName = _pendingThemeName;
+            _pendingThemeName = null;
+        }
+        if (_pendingRoot is not null)
+        {
+            _app.RootControl = _pendingRoot;
+            _pendingRoot = null;
+        }
+        if (_pendingKeyDown is not null)
+        {
+            _app.KeyDown += _pendingKeyDown;
+            _pendingKeyDown = null;
+        }
+
+        Initialized?.Invoke();
     }
 
     /// <summary>

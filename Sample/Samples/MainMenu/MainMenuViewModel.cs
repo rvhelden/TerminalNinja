@@ -30,7 +30,8 @@ public class MainMenuViewModel : ViewModelBase
         "Grid Layout",
         "StackPanel Layout",
         "Data Binding",
-        "Dialogs"
+        "Dialogs",
+        "Terminal"
     ];
 
     public string? SelectedSample

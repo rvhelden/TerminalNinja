@@ -1,3 +1,4 @@
+using System;
 using TerminalNinja.Input;
 
 namespace TerminalNinja.Terminal;

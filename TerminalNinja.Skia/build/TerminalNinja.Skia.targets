@@ -24,7 +24,17 @@
     <_TnSkiaSdl3MacName>libSDL3.dylib</_TnSkiaSdl3MacName>
   </PropertyGroup>
 
-  <Target Name="_TerminalNinjaSkiaCopySdl3" BeforeTargets="Build" Condition="'$(TerminalNinjaSkiaSkipSdl3Probe)' != 'true'">
+  <!--
+    Only run when the consumer actually references TerminalNinja.Skia. This makes the
+    targets file safe to import unconditionally (e.g. from a repo-level
+    Directory.Build.targets) without emitting TNSKIA001 in projects that don't touch SDL3.
+    ResolveReferences runs as part of Build's dep chain, so @(ReferencePath) is populated
+    by the time this BeforeTargets="Build" target fires.
+  -->
+  <Target Name="_TerminalNinjaSkiaCopySdl3"
+          BeforeTargets="Build"
+          DependsOnTargets="ResolveReferences"
+          Condition="'$(TerminalNinjaSkiaSkipSdl3Probe)' != 'true' AND '@(ReferencePath->WithMetadataValue('FileName','TerminalNinja.Skia'))' != ''">
 
     <ItemGroup>
       <!-- Conventional runtimes/<rid>/native/ layout next to the csproj -->
