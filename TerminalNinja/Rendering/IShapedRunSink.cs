@@ -39,4 +39,28 @@ public interface IShapedRunSink : ICellSink
     /// here so the shaped path can recover the run's style for caching purposes.</param>
     /// <param name="decorations">Underline / strikethrough / inverse / etc. Applied alongside the shaped glyphs.</param>
     void WriteRun(int x, int y, ReadOnlySpan<char> text, Color fg, Color bg, TextDecorations decorations);
+
+    /// <summary>
+    /// Wipes a rectangular region of cells back to the sink's default background. Called
+    /// by the renderer before re-emitting runs on sinks whose surfaces are <em>persistent</em>
+    /// across frames (e.g. a GPU FBO whose pixels survive between frames). The renderer
+    /// then redraws only the runs that intersect this region — non-intersecting runs keep
+    /// their previous-frame pixels.
+    /// </summary>
+    /// <remarks>
+    /// Default implementation is a no-op so sinks whose surface is cleared by the host every
+    /// frame (or test sinks that record calls only) keep working unchanged. SkiaCellSink
+    /// overrides this when paired with a persistent surface.
+    /// </remarks>
+    /// <param name="cellX">Leading cell column.</param>
+    /// <param name="cellY">Top cell row.</param>
+    /// <param name="cellWidth">Width in cells (must be ≥ 0).</param>
+    /// <param name="cellHeight">Height in cells (must be ≥ 0).</param>
+    void ClearRegion(int cellX, int cellY, int cellWidth, int cellHeight)
+    {
+        _ = cellX;
+        _ = cellY;
+        _ = cellWidth;
+        _ = cellHeight;
+    }
 }

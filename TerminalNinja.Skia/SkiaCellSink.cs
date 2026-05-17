@@ -121,6 +121,36 @@ public sealed class SkiaCellSink : IShapedRunSink
     }
 
     /// <inheritdoc />
+    public void ClearRegion(int cellX, int cellY, int cellWidth, int cellHeight)
+    {
+        if (cellWidth <= 0 || cellHeight <= 0)
+        {
+            return;
+        }
+
+        // Wipe a cell rectangle back to the default background (Color.Black). The renderer
+        // calls this on persistent surfaces before re-emitting runs in a dirty region so
+        // cells that became empty don't show stale pixels from a previous frame.
+        _bgPaint.Color = ToSkColor(Color.Black);
+        _surface.Canvas.DrawRect(
+            cellX * _cellWidth,
+            cellY * _cellHeight,
+            cellWidth * _cellWidth,
+            cellHeight * _cellHeight,
+            _bgPaint);
+    }
+
+    /// <summary>
+    /// Wipes the entire surface back to the default background. Used by the host when first
+    /// creating the persistent surface or after a resize, so subsequent dirty-only repaints
+    /// start from a known-clean baseline.
+    /// </summary>
+    public void ClearAll(int cellsWide, int cellsTall)
+    {
+        ClearRegion(0, 0, cellsWide, cellsTall);
+    }
+
+    /// <inheritdoc />
     public void WriteRun(int x, int y, ReadOnlySpan<char> text, Color fg, Color bg, TextDecorations decorations)
     {
         if (text.IsEmpty)

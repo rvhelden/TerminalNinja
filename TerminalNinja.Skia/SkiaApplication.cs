@@ -26,7 +26,8 @@ public sealed class SkiaApplication : IDisposable
     private IntPtr _glContext;
     private GRContext? _grContext;
     private GRGlInterface? _grGlInterface;
-    private SKSurface? _surface;
+    private SKSurface? _persistentSurface;
+    private SKSurface? _screenSurface;
     private SKTypeface? _typeface;
     private SKFont? _font;
     private SkiaCellSink? _sink;
@@ -150,8 +151,9 @@ public sealed class SkiaApplication : IDisposable
         // Get the actual framebuffer size (HiDPI may make it larger than the logical size).
         Sdl3.SDL_GetWindowSizeInPixels(_window, out _pixelWidth, out _pixelHeight);
 
-        _surface = CreateSurface(_pixelWidth, _pixelHeight);
-        _sink = new SkiaCellSink(_surface, _font, _typeface, _options.CellWidth, _options.CellHeight);
+        CreateSurfaces(_pixelWidth, _pixelHeight);
+        _sink = new SkiaCellSink(_persistentSurface!, _font, _typeface, _options.CellWidth, _options.CellHeight);
+        _sink.ClearAll(_options.CellsWide, _options.CellsTall); // wipe initial undefined GPU texture state to default bg
         _renderer = new Renderer(_sink, _options.CellsWide, _options.CellsTall);
         _input = new SdlInputBackend(_options.CellWidth, _options.CellHeight);
         if (!_options.EnableMouseTracking)
@@ -160,13 +162,21 @@ public sealed class SkiaApplication : IDisposable
         }
     }
 
-    private SKSurface CreateSurface(int width, int height)
+    private void CreateSurfaces(int width, int height)
     {
-        // Default framebuffer (id 0) wrapped as a Skia render target. GL_RGBA8 = 0x8058.
-        var glFbInfo = new GRGlFramebufferInfo(fboId: 0, format: 0x8058u);
+        // Two surfaces. The persistent surface is a Skia-allocated GPU texture that survives
+        // between frames — the sink paints only the dirty region into it each frame, so
+        // non-changing pixels are preserved without a per-frame full clear. The screen surface
+        // wraps the default GL framebuffer (fboId=0); we copy the persistent surface onto it
+        // before each SDL_GL_SwapWindow so the user sees the current state.
+        var info = new SKImageInfo(width, height, SKColorType.Rgba8888, SKAlphaType.Premul);
+        _persistentSurface = SKSurface.Create(_grContext!, budgeted: false, info)
+            ?? throw new InvalidOperationException("SKSurface.Create (persistent) returned null.");
+
+        var glFbInfo = new GRGlFramebufferInfo(fboId: 0, format: 0x8058u /* GL_RGBA8 */);
         var renderTarget = new GRBackendRenderTarget(width, height, sampleCount: 0, stencilBits: 8, glFbInfo);
-        return SKSurface.Create(_grContext!, renderTarget, GRSurfaceOrigin.BottomLeft, SKColorType.Rgba8888)
-            ?? throw new InvalidOperationException("SKSurface.Create returned null — Skia could not wrap the framebuffer.");
+        _screenSurface = SKSurface.Create(_grContext!, renderTarget, GRSurfaceOrigin.BottomLeft, SKColorType.Rgba8888)
+            ?? throw new InvalidOperationException("SKSurface.Create (screen) returned null — Skia could not wrap the framebuffer.");
     }
 
     private bool PumpEvents()
@@ -246,12 +256,14 @@ public sealed class SkiaApplication : IDisposable
         _pixelWidth = newPxWidth;
         _pixelHeight = newPxHeight;
 
-        _surface?.Dispose();
-        _surface = CreateSurface(_pixelWidth, _pixelHeight);
-        _sink!.SetSurface(_surface);
+        _persistentSurface?.Dispose();
+        _screenSurface?.Dispose();
+        CreateSurfaces(_pixelWidth, _pixelHeight);
+        _sink!.SetSurface(_persistentSurface!);
 
         var newCellsWide = Math.Max(1, _pixelWidth / _options.CellWidth);
         var newCellsTall = Math.Max(1, _pixelHeight / _options.CellHeight);
+        _sink.ClearAll(newCellsWide, newCellsTall); // fresh GPU texture has undefined contents
         _renderer!.Resize(newCellsWide, newCellsTall);
     }
 
@@ -262,14 +274,19 @@ public sealed class SkiaApplication : IDisposable
             return;
         }
 
-        // Clear the surface to a neutral background before drawing the cell grid. The cell
-        // sink paints solid background rectangles per cell, so this only shows through if
-        // the grid is shorter than the surface (e.g. fractional cell sizes at the bottom).
-        _surface!.Canvas.Clear(new SKColor(0x12, 0x12, 0x1A));
-
+        // Persistent-surface model: the cell sink paints only the dirty region of the
+        // persistent surface each frame, so we deliberately do NOT canvas.Clear() it here.
+        // Non-changing pixels stay intact from previous frames. Initial clear happens at
+        // surface creation; subsequent frames trust the renderer's dirty-region drawing.
         _renderer!.Clear();
         _renderer.Draw(_root);
         _renderer.Present();
+
+        // Blit the persistent surface onto the GL default framebuffer so SDL_GL_SwapWindow
+        // shows the current state. Snapshot on a GPU surface is cheap (texture reference).
+        using var snapshot = _persistentSurface!.Snapshot();
+        _screenSurface!.Canvas.DrawImage(snapshot, 0, 0);
+        _screenSurface.Canvas.Flush();
     }
 
     private void Shutdown()
@@ -277,7 +294,8 @@ public sealed class SkiaApplication : IDisposable
         _input?.Dispose();
         _renderer?.Dispose();
         _sink?.Dispose();
-        _surface?.Dispose();
+        _persistentSurface?.Dispose();
+        _screenSurface?.Dispose();
         _font?.Dispose();
         _typeface?.Dispose();
         _grContext?.Dispose();
@@ -299,7 +317,8 @@ public sealed class SkiaApplication : IDisposable
 
         _renderer = null;
         _sink = null;
-        _surface = null;
+        _persistentSurface = null;
+        _screenSurface = null;
         _font = null;
         _typeface = null;
         _grContext = null;

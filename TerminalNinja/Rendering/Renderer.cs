@@ -191,109 +191,156 @@ public sealed class Renderer : IDisposable
 
     private void PresentShaped(IShapedRunSink shaped)
     {
-        // Per-frame stack-allocated text buffer reused across runs. Sized generously to
-        // accommodate multi-codepoint grapheme clusters; max codepoints per cell is a small
-        // constant, so width × 8 covers virtually all realistic content. Truncated runs are
-        // emitted as far as they fit, with the rest of the style group skipped to avoid spin.
+        // First pass: compute the tight bounding box of cells that genuinely changed since
+        // the last frame. We can't just trust _buffer.TryGetDirtyRect because Renderer.Clear
+        // marks the whole buffer dirty, so a frame that re-draws identical content still has
+        // a full-screen "loose" dirty rect. GetChanges walks the loose rect and only yields
+        // cells where _current != _previous, giving us the rect that actually needs repaint.
+        if (!ComputeChangeBoundingBox(out var dirty))
+        {
+            return;
+        }
+
+        var dirtyMinX = dirty.X;
+        var dirtyMaxX = dirty.X + dirty.Width - 1;
+        var dirtyMinY = dirty.Y;
+        var dirtyMaxY = dirty.Y + dirty.Height - 1;
+
+        // Wipe the dirty pixel region back to the sink's default background. Skia sinks
+        // that paint into a persistent surface need this so cells that became empty (and
+        // therefore aren't covered by any run we emit below) don't show stale pixels from
+        // a previous frame. Non-persistent sinks (and test sinks) use the default no-op.
+        shaped.ClearRegion(dirty.X, dirty.Y, dirty.Width, dirty.Height);
+
         const int InlineCharCap = 1024;
         Span<char> textBuf = stackalloc char[InlineCharCap];
 
-        foreach (var y in _buffer.GetDirtyRows())
+        for (var y = dirtyMinY; y <= dirtyMaxY; y++)
         {
             var x = 0;
             while (x < _buffer.Width)
             {
                 var leadCell = _buffer.GetCell(x, y);
 
-                // Skip empty cells (default-coloured spaces). They don't need shaping;
-                // they fall to the surface's clear color via the host's per-frame Clear().
+                if ((leadCell.Flags & CellFlags.WideTrail) != 0)
+                {
+                    x++;
+                    continue;
+                }
+
                 if (IsEmptyCell(leadCell))
                 {
                     x++;
                     continue;
                 }
 
-                // Walk forward while style matches; this defines the run's extent.
+                // Walk forward while style matches; this defines the run's extent. We always
+                // find the full run (it may extend outside the dirty rect on either side) so
+                // shaping has the right context — ligatures span the whole run.
                 var runStartX = x;
                 var fg = leadCell.Foreground;
                 var bg = leadCell.Background;
                 var deco = leadCell.Decorations;
 
-                var textLen = 0;
-                var truncated = false;
-
-                while (x < _buffer.Width)
+                var runEndX = runStartX;
+                while (runEndX < _buffer.Width)
                 {
-                    var cell = _buffer.GetCell(x, y);
-
-                    // WideTrail belongs to its lead cell; advance past it without contributing text.
-                    if ((cell.Flags & CellFlags.WideTrail) != 0)
+                    var c = _buffer.GetCell(runEndX, y);
+                    if ((c.Flags & CellFlags.WideTrail) != 0)
                     {
-                        x++;
+                        runEndX++;
                         continue;
                     }
 
-                    // Default-colored empty cells (Cell.Empty: white/black space) end the run.
-                    // Their backgrounds are indistinguishable from the surface clear, so emitting
-                    // a shaped run that covers them is wasted work.
-                    if (IsEmptyCell(cell))
+                    if (IsEmptyCell(c))
                     {
                         break;
                     }
 
-                    // Style break ends the run.
-                    if (cell.Foreground != fg || cell.Background != bg || cell.Decorations != deco)
+                    if (c.Foreground != fg || c.Background != bg || c.Decorations != deco)
                     {
                         break;
                     }
 
-                    if ((cell.Flags & CellFlags.HasGrapheme) != 0)
+                    runEndX++;
+                }
+
+                // Only re-emit runs that intersect the dirty bounding box. Runs entirely
+                // outside it keep their pixels from the previous frame's draw (persistent
+                // surface), so re-emitting them is wasted work.
+                var runIntersectsDirty = runStartX <= dirtyMaxX && (runEndX - 1) >= dirtyMinX;
+                if (runIntersectsDirty)
+                {
+                    var textLen = 0;
+                    var truncated = false;
+                    for (var i = runStartX; i < runEndX; i++)
                     {
-                        var grapheme = _buffer.GetGrapheme(x, y);
-                        foreach (var cp in grapheme)
+                        var cell = _buffer.GetCell(i, y);
+                        if ((cell.Flags & CellFlags.WideTrail) != 0)
                         {
-                            if (!AppendCodepoint(textBuf, ref textLen, cp))
+                            continue;
+                        }
+
+                        if ((cell.Flags & CellFlags.HasGrapheme) != 0)
+                        {
+                            var grapheme = _buffer.GetGrapheme(i, y);
+                            foreach (var cp in grapheme)
+                            {
+                                if (!AppendCodepoint(textBuf, ref textLen, cp))
+                                {
+                                    truncated = true;
+                                    break;
+                                }
+                            }
+
+                            if (truncated) break;
+                        }
+                        else if (cell.Codepoint != 0)
+                        {
+                            if (!AppendCodepoint(textBuf, ref textLen, cell.Codepoint))
                             {
                                 truncated = true;
                                 break;
                             }
                         }
-
-                        if (truncated) break;
                     }
-                    else if (cell.Codepoint != 0)
+
+                    if (textLen > 0)
                     {
-                        if (!AppendCodepoint(textBuf, ref textLen, cell.Codepoint))
-                        {
-                            truncated = true;
-                            break;
-                        }
-                    }
-
-                    x += (cell.Flags & CellFlags.WideLead) != 0 ? 2 : 1;
-                }
-
-                if (textLen > 0)
-                {
-                    shaped.WriteRun(runStartX, y, textBuf[..textLen], fg, bg, deco);
-                }
-
-                // If we truncated mid-run, skip the rest of this style group so we don't loop forever.
-                if (truncated)
-                {
-                    while (x < _buffer.Width)
-                    {
-                        var cell = _buffer.GetCell(x, y);
-                        if (cell.Foreground != fg || cell.Background != bg || cell.Decorations != deco)
-                        {
-                            break;
-                        }
-
-                        x++;
+                        shaped.WriteRun(runStartX, y, textBuf[..textLen], fg, bg, deco);
                     }
                 }
+
+                x = runEndX;
             }
         }
+    }
+
+    private bool ComputeChangeBoundingBox(out Rect bbox)
+    {
+        var minX = int.MaxValue;
+        var minY = int.MaxValue;
+        var maxX = int.MinValue;
+        var maxY = int.MinValue;
+        var hasChanges = false;
+
+        foreach (var change in _buffer.GetChanges())
+        {
+            hasChanges = true;
+            if (change.X < minX) minX = change.X;
+            if (change.X > maxX) maxX = change.X;
+            if (change.Y < minY) minY = change.Y;
+            if (change.Y > maxY) maxY = change.Y;
+        }
+
+        if (!hasChanges)
+        {
+            bbox = default;
+            return false;
+        }
+
+        bbox = new Rect(minX, minY, maxX - minX + 1, maxY - minY + 1);
+        return true;
     }
 
     private static bool IsEmptyCell(Cell cell) =>

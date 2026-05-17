@@ -844,6 +844,23 @@ public sealed unsafe class CellBuffer : IDisposable
     public DirtyRowEnumerator GetDirtyRows() => new(_dirtyRect);
 
     /// <summary>
+    /// Reads the current dirty rectangle in cell coordinates. Returns <see langword="false"/>
+    /// and writes <see langword="default"/> when no cells have been marked dirty.
+    /// </summary>
+    /// <param name="rect">Receives the dirty region as an inclusive-min, exclusive-max <see cref="Rect"/>.</param>
+    public bool TryGetDirtyRect(out Rect rect)
+    {
+        if (!_dirtyRect.IsDirty)
+        {
+            rect = default;
+            return false;
+        }
+
+        rect = _dirtyRect.ToRect();
+        return true;
+    }
+
+    /// <summary>
     /// Zero-allocation enumerator over the dirty row range.
     /// </summary>
     public ref struct DirtyRowEnumerator
