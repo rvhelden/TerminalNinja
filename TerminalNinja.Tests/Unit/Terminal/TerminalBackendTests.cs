@@ -121,18 +121,27 @@ public class TerminalBackendTests
     }
 
     [Test]
-    public async Task ConPtyBackend_StartAsync_Throws_NotImplementedForNow()
+    public async Task ConPtyBackend_OnNonWindows_StartAsyncThrowsPlatformNotSupported()
     {
-        // Step 11 lands the contract; the real ConPTY implementation arrives in a
-        // follow-up. The test pins the stub behaviour so changes show up loudly.
+        // The ConPTY backend's real implementation needs kernel32.dll. On non-Windows
+        // platforms StartAsync should fail fast with a clear PlatformNotSupportedException
+        // rather than a DllNotFoundException when the first P/Invoke fires.
+        if (OperatingSystem.IsWindows())
+        {
+            // On Windows this case doesn't apply; we have full ConPTY tests elsewhere.
+            return;
+        }
+
         using var backend = new ConPtyTerminalBackend(ValidOptions());
         await Assert.That(() => backend.StartAsync().AsTask())
-            .ThrowsExactly<NotImplementedException>();
+            .ThrowsExactly<PlatformNotSupportedException>();
     }
 
     [Test]
     public async Task UnixBackend_StartAsync_Throws_NotImplementedForNow()
     {
+        // POSIX implementation still pending; pinned here so the follow-up commit's
+        // behaviour shift fails the test loudly.
         using var backend = new UnixTerminalBackend(ValidOptions());
         await Assert.That(() => backend.StartAsync().AsTask())
             .ThrowsExactly<NotImplementedException>();
