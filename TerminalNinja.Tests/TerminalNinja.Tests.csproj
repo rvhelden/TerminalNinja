@@ -14,6 +14,7 @@
   <ItemGroup>
     <ProjectReference Include="..\TerminalNinja\TerminalNinja.csproj" />
     <ProjectReference Include="..\TerminalNinja.Skia\TerminalNinja.Skia.csproj" />
+    <ProjectReference Include="..\TerminalNinja.Terminal\TerminalNinja.Terminal.csproj" />
     <ProjectReference Include="..\TerminalNinja.Generators\TerminalNinja.Generators.csproj"
                       OutputItemType="Analyzer"
                       ReferenceOutputAssembly="false" />
