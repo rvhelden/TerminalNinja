@@ -24,7 +24,7 @@ public static class BuiltinRegistry
         var b = ImmutableDictionary.CreateBuilder<string, NValue>(StringComparer.Ordinal);
         PipelineOps.Register(b);
         Io.Register(b);
-        Fs.Register(b);
+        FsModule.Register(b);
         ObjModule.Register(b);
         EnvModule.Register(b);
         ProcModule.Register(b);
