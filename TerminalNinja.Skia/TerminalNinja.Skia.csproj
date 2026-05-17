@@ -42,4 +42,16 @@
     <InternalsVisibleTo Include="TerminalNinja.Tests" />
   </ItemGroup>
 
+  <!--
+    Ship the MSBuild .targets file in the NuGet package so consumers automatically get
+    the SDL3 native-binary resolution / copy-to-output behavior. NuGet auto-imports any
+    .targets file under build/<PackageId>.targets when the package is referenced.
+    Including the same file under buildTransitive/ makes it apply through transitive
+    references too (e.g. an app that references a library that references TerminalNinja.Skia).
+  -->
+  <ItemGroup>
+    <None Include="build\TerminalNinja.Skia.targets" Pack="true" PackagePath="build\" />
+    <None Include="build\TerminalNinja.Skia.targets" Pack="true" PackagePath="buildTransitive\" />
+  </ItemGroup>
+
 </Project>

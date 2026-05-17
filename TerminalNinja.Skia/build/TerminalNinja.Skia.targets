@@ -1,0 +1,63 @@
+<Project>
+
+  <!--
+    SDL3 native binary resolution.
+
+    TerminalNinja.Skia drives windowing via SDL3 P/Invoke. The native library must be on
+    the dynamic loader's search path at runtime — typically next to the application
+    executable. This target looks for SDL3 in conventional locations and copies it to
+    the output directory; if it can't find one, it emits a clear warning at build time
+    so consumers don't get a confusing DllNotFoundException at app startup.
+
+    Search order (first match wins):
+      1. $(ProjectDir)runtimes/$(RuntimeIdentifier)/native/   — the NuGet runtimes layout
+      2. $(ProjectDir)                                         — beside the consumer's csproj
+      3. $(MSBuildThisFileDirectory)../runtimes/.../native/    — inside our package itself (future)
+
+    Set TerminalNinjaSkiaSkipSdl3Probe=true to disable this target if you ship SDL3 some
+    other way (e.g. a system-wide install via apt/winget/brew).
+  -->
+
+  <PropertyGroup>
+    <_TnSkiaSdl3WindowsName>SDL3.dll</_TnSkiaSdl3WindowsName>
+    <_TnSkiaSdl3LinuxName>libSDL3.so.0</_TnSkiaSdl3LinuxName>
+    <_TnSkiaSdl3MacName>libSDL3.dylib</_TnSkiaSdl3MacName>
+  </PropertyGroup>
+
+  <Target Name="_TerminalNinjaSkiaCopySdl3" BeforeTargets="Build" Condition="'$(TerminalNinjaSkiaSkipSdl3Probe)' != 'true'">
+
+    <ItemGroup>
+      <!-- Conventional runtimes/<rid>/native/ layout next to the csproj -->
+      <_TnSkiaSdl3Candidates Include="$(ProjectDir)runtimes\$(RuntimeIdentifier)\native\$(_TnSkiaSdl3WindowsName)" />
+      <_TnSkiaSdl3Candidates Include="$(ProjectDir)runtimes\$(RuntimeIdentifier)\native\$(_TnSkiaSdl3LinuxName)" />
+      <_TnSkiaSdl3Candidates Include="$(ProjectDir)runtimes\$(RuntimeIdentifier)\native\$(_TnSkiaSdl3MacName)" />
+
+      <!-- Loose copy beside the consumer's project -->
+      <_TnSkiaSdl3Candidates Include="$(ProjectDir)$(_TnSkiaSdl3WindowsName)" />
+      <_TnSkiaSdl3Candidates Include="$(ProjectDir)$(_TnSkiaSdl3LinuxName)" />
+      <_TnSkiaSdl3Candidates Include="$(ProjectDir)$(_TnSkiaSdl3MacName)" />
+
+      <!-- Inside this package's own runtimes/ (populated by a future build pipeline) -->
+      <_TnSkiaSdl3Candidates Include="$(MSBuildThisFileDirectory)..\runtimes\$(RuntimeIdentifier)\native\$(_TnSkiaSdl3WindowsName)" />
+      <_TnSkiaSdl3Candidates Include="$(MSBuildThisFileDirectory)..\runtimes\$(RuntimeIdentifier)\native\$(_TnSkiaSdl3LinuxName)" />
+      <_TnSkiaSdl3Candidates Include="$(MSBuildThisFileDirectory)..\runtimes\$(RuntimeIdentifier)\native\$(_TnSkiaSdl3MacName)" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <_TnSkiaSdl3Found Include="@(_TnSkiaSdl3Candidates)" Condition="Exists('%(Identity)')" />
+    </ItemGroup>
+
+    <Warning
+      Code="TNSKIA001"
+      Text="TerminalNinja.Skia could not find an SDL3 native binary in any of the conventional locations. The app will throw DllNotFoundException at runtime when SkiaApplication.Initialize calls SDL_Init. See TerminalNinja.Skia/README.md or run scripts/get-sdl3.ps1 (Windows) / scripts/get-sdl3.sh (Linux/macOS)."
+      Condition="'@(_TnSkiaSdl3Found)' == ''" />
+
+    <Copy
+      SourceFiles="@(_TnSkiaSdl3Found)"
+      DestinationFolder="$(OutDir)"
+      SkipUnchangedFiles="true"
+      Condition="'@(_TnSkiaSdl3Found)' != ''" />
+
+  </Target>
+
+</Project>
