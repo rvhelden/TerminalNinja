@@ -27,29 +27,39 @@ public static class Printer
         return NValueOps.FormatForDisplay(v);
     }
 
-    /// <summary>True when <paramref name="list"/> is a non-empty list of records sharing the same key set.</summary>
+    /// <summary>
+    /// True when <paramref name="list"/> is a non-empty list whose items are all
+    /// records. Key sets are NOT required to match — ragged tables render fine
+    /// with blanks for absent cells.
+    /// </summary>
     public static bool IsTableShaped(NList list)
     {
         if (list.Items.Length == 0) return false;
-        if (list.Items[0] is not NRecord first) return false;
-        var keys = first.Fields.Keys;
-        for (int i = 1; i < list.Items.Length; i++)
-        {
-            if (list.Items[i] is not NRecord rec) return false;
-            if (rec.Fields.Count != first.Fields.Count) return false;
-            foreach (var k in keys)
-                if (!rec.Fields.ContainsKey(k)) return false;
-        }
+        for (int i = 0; i < list.Items.Length; i++)
+            if (list.Items[i] is not NRecord) return false;
         return true;
     }
 
-    /// <summary>Format a list of records as an aligned ASCII table.</summary>
+    /// <summary>
+    /// Format a list of records as an aligned ASCII table. Header order is the
+    /// union of every record's keys (preserving first-seen order). Cells whose
+    /// value is missing or <see cref="NUnit"/> render as a blank string.
+    /// </summary>
     public static string FormatRecordTable(NList list)
     {
         if (list.Items.Length == 0) return "(empty)";
-        if (list.Items[0] is not NRecord first) return NValueOps.FormatForDisplay(list);
+        if (list.Items[0] is not NRecord) return NValueOps.FormatForDisplay(list);
 
-        var keys = first.Fields.Keys.ToArray();
+        // Union of keys across all records, first-seen order preserved.
+        var keysOrder = new List<string>();
+        var seen = new HashSet<string>(StringComparer.Ordinal);
+        for (int r = 0; r < list.Items.Length; r++)
+        {
+            if (list.Items[r] is not NRecord rec) continue;
+            foreach (var k in rec.Fields.Keys)
+                if (seen.Add(k)) keysOrder.Add(k);
+        }
+        var keys = keysOrder.ToArray();
         int colCount = keys.Length;
         var widths = new int[colCount];
         for (int c = 0; c < colCount; c++) widths[c] = keys[c].Length;
@@ -57,20 +67,23 @@ public static class Printer
         var rows = new string[list.Items.Length][];
         for (int r = 0; r < list.Items.Length; r++)
         {
+            rows[r] = new string[colCount];
             if (list.Items[r] is not NRecord rec)
             {
-                rows[r] = new string[colCount];
                 for (int c = 0; c < colCount; c++) rows[r][c] = "?";
-                continue;
             }
-            rows[r] = new string[colCount];
-            for (int c = 0; c < colCount; c++)
+            else
             {
-                rows[r][c] = rec.Fields.TryGetValue(keys[c], out var v)
-                    ? NValueOps.FormatForInterpolation(v)
-                    : string.Empty;
-                if (rows[r][c].Length > widths[c]) widths[c] = rows[r][c].Length;
+                for (int c = 0; c < colCount; c++)
+                {
+                    if (rec.Fields.TryGetValue(keys[c], out var v) && v is not NUnit)
+                        rows[r][c] = NValueOps.FormatForInterpolation(v);
+                    else
+                        rows[r][c] = string.Empty;
+                }
             }
+            for (int c = 0; c < colCount; c++)
+                if (rows[r][c].Length > widths[c]) widths[c] = rows[r][c].Length;
         }
 
         var sb = new StringBuilder();

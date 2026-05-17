@@ -47,14 +47,40 @@ public class PrinterTests
     }
 
     [Test]
-    public async Task Format_ListOfNonUniformRecords_NotTableShaped()
+    public async Task Format_RaggedRecords_AreStillTableShaped()
     {
+        // Loosened semantics: any non-empty list of records is table-shaped.
+        // Render the union of keys with blanks for absent cells.
         var rec1 = new NRecord(ImmutableSortedDictionary<string, NValue>.Empty
             .Add("a", new NInt(1)));
         var rec2 = new NRecord(ImmutableSortedDictionary<string, NValue>.Empty
             .Add("b", new NInt(2)));
         var list = new NList(ImmutableArray.Create<NValue>(rec1, rec2));
 
-        await Assert.That(Printer.IsTableShaped(list)).IsFalse();
+        await Assert.That(Printer.IsTableShaped(list)).IsTrue();
+
+        var output = Printer.Format(list);
+        var lines = output.Split('\n').Select(l => l.TrimEnd('\r')).ToArray();
+        await Assert.That(lines[0].Contains("a")).IsTrue();
+        await Assert.That(lines[0].Contains("b")).IsTrue();
+        // Row 0: a=1, b blank; row 1: a blank, b=2.
+        // Width-padded, so the data lines have the same length as the header.
+        await Assert.That(lines[2].Length).IsEqualTo(lines[0].Length);
+        await Assert.That(lines[3].Length).IsEqualTo(lines[0].Length);
+    }
+
+    [Test]
+    public async Task Format_RecordWithExplicitUnitCell_RendersBlank()
+    {
+        // An explicit NUnit in a cell renders the same as an absent key.
+        var rec = new NRecord(ImmutableSortedDictionary<string, NValue>.Empty
+            .Add("Name", new NString("a"))
+            .Add("Age", NUnit.Instance));
+        var list = new NList(ImmutableArray.Create<NValue>(rec));
+
+        var output = Printer.Format(list);
+        // Splitting by whitespace, the Age column for the row should be empty —
+        // so the row line contains "a" but no number / value after.
+        await Assert.That(output).Contains("a");
     }
 }

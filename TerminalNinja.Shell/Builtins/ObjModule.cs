@@ -28,7 +28,8 @@ public static class ObjModule
             ("from_rows", Fn1("obj.from_rows", FromRows)),
             ("to_rows", Fn1("obj.to_rows", ToRows)),
             ("columns", Fn1("obj.columns", Columns)),
-            ("from_columns", Fn1("obj.from_columns", FromColumns)));
+            ("from_columns", Fn1("obj.from_columns", FromColumns)),
+            ("normalize", new NFunc(Normalize, -1)));
     }
 
     private static NValue Fn1(string name, Func<NValue, NValue> f)
@@ -310,7 +311,7 @@ public static class ObjModule
         var items = MaterialiseList(v, "obj.to_rows");
         if (items.Length == 0) return new NList(ImmutableArray<NValue>.Empty);
 
-        var headers = ExpectUniformRecordKeys(items, "obj.to_rows");
+        var headers = CollectKeyUnion(items, "obj.to_rows");
         var rows = ImmutableArray.CreateBuilder<NValue>(items.Length + 1);
 
         var headerRow = ImmutableArray.CreateBuilder<NValue>(headers.Length);
@@ -319,9 +320,10 @@ public static class ObjModule
 
         foreach (var item in items)
         {
-            if (item is not NRecord rec) throw new EvaluatorException("obj.to_rows: non-record item slipped past uniformity check");
+            if (item is not NRecord rec) throw new EvaluatorException("obj.to_rows: items must be records");
             var row = ImmutableArray.CreateBuilder<NValue>(headers.Length);
-            foreach (var h in headers) row.Add(rec.Fields[h]);
+            foreach (var h in headers)
+                row.Add(rec.Fields.TryGetValue(h, out var val) ? val : NUnit.Instance);
             rows.Add(new NList(row.MoveToImmutable()));
         }
         return new NList(rows.MoveToImmutable());
@@ -332,19 +334,70 @@ public static class ObjModule
         var items = MaterialiseList(v, "obj.columns");
         if (items.Length == 0) return new NRecord(ImmutableSortedDictionary<string, NValue>.Empty.WithComparers(StringComparer.Ordinal));
 
-        var headers = ExpectUniformRecordKeys(items, "obj.columns");
+        var headers = CollectKeyUnion(items, "obj.columns");
         var columns = ImmutableSortedDictionary.CreateBuilder<string, NValue>(StringComparer.Ordinal);
         foreach (var h in headers)
         {
             var col = ImmutableArray.CreateBuilder<NValue>(items.Length);
             foreach (var item in items)
             {
-                if (item is not NRecord rec) throw new EvaluatorException("obj.columns: non-record item slipped past uniformity check");
-                col.Add(rec.Fields[h]);
+                if (item is not NRecord rec) throw new EvaluatorException("obj.columns: items must be records");
+                col.Add(rec.Fields.TryGetValue(h, out var val) ? val : NUnit.Instance);
             }
             columns[h] = new NList(col.MoveToImmutable());
         }
         return new NRecord(columns.ToImmutable());
+    }
+
+    private static NValue Normalize(NValue[] args)
+    {
+        if (args.Length is < 1 or > 2)
+            throw new EvaluatorException($"obj.normalize expects 1 or 2 arguments, got {args.Length}");
+
+        var items = MaterialiseList(args[0], "obj.normalize");
+        if (items.Length == 0) return new NList(ImmutableArray<NValue>.Empty);
+
+        NRecord? defaults = null;
+        if (args.Length == 2)
+        {
+            if (args[1] is not NRecord d)
+                throw new EvaluatorException("obj.normalize: defaults must be a record");
+            defaults = d;
+        }
+
+        // Schema = union of observed keys + defaults keys (defaults first if provided
+        // so synthesised columns appear in the user-specified order, then any extras
+        // in first-seen order).
+        var schema = new List<string>();
+        var seen = new HashSet<string>(StringComparer.Ordinal);
+        if (defaults != null)
+            foreach (var k in defaults.Fields.Keys)
+                if (seen.Add(k)) schema.Add(k);
+        for (int i = 0; i < items.Length; i++)
+        {
+            if (items[i] is not NRecord rec)
+                throw new EvaluatorException($"obj.normalize: item {i} is not a record");
+            foreach (var k in rec.Fields.Keys)
+                if (seen.Add(k)) schema.Add(k);
+        }
+
+        var rows = ImmutableArray.CreateBuilder<NValue>(items.Length);
+        foreach (var item in items)
+        {
+            if (item is not NRecord rec) throw new EvaluatorException("obj.normalize: non-record item slipped past type check");
+            var b = ImmutableSortedDictionary.CreateBuilder<string, NValue>(StringComparer.Ordinal);
+            foreach (var col in schema)
+            {
+                NValue value = NUnit.Instance;
+                if (rec.Fields.TryGetValue(col, out var existing) && existing is not NUnit)
+                    value = existing;
+                else if (defaults != null && defaults.Fields.TryGetValue(col, out var dflt))
+                    value = dflt;
+                b[col] = value;
+            }
+            rows.Add(new NRecord(b.ToImmutable()));
+        }
+        return new NList(rows.MoveToImmutable());
     }
 
     private static NValue FromColumns(NValue v)
@@ -390,19 +443,21 @@ public static class ObjModule
         throw new EvaluatorException($"{op} requires a list or sequence, got {TypeName(v)}");
     }
 
-    private static string[] ExpectUniformRecordKeys(ImmutableArray<NValue> items, string op)
+    /// <summary>
+    /// Compute the union of record keys across <paramref name="items"/>, preserving
+    /// first-seen order. Throws if any item is not a record.
+    /// </summary>
+    private static string[] CollectKeyUnion(ImmutableArray<NValue> items, string op)
     {
-        if (items[0] is not NRecord first)
-            throw new EvaluatorException($"{op}: items must be records, item 0 is {TypeName(items[0])}");
-        var headers = first.Fields.Keys.ToArray();
-        var headerSet = new HashSet<string>(headers, StringComparer.Ordinal);
-        for (int i = 1; i < items.Length; i++)
+        var order = new List<string>();
+        var seen = new HashSet<string>(StringComparer.Ordinal);
+        for (int i = 0; i < items.Length; i++)
         {
             if (items[i] is not NRecord rec)
                 throw new EvaluatorException($"{op}: items must be records, item {i} is {TypeName(items[i])}");
-            if (rec.Fields.Count != headers.Length || !headerSet.SetEquals(rec.Fields.Keys))
-                throw new EvaluatorException($"{op}: item {i} has a different key set than item 0 (not a uniform table)");
+            foreach (var k in rec.Fields.Keys)
+                if (seen.Add(k)) order.Add(k);
         }
-        return headers;
+        return order.ToArray();
     }
 }
