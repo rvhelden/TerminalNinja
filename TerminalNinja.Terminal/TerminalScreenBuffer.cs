@@ -38,6 +38,17 @@ public sealed class TerminalScreenBuffer : IVtParserHandler
     private Color _currentBg;
     private TextDecorations _currentDeco;
 
+    // DECSC / DECRC (ESC 7 / ESC 8) and ANSI save-cursor (CSI s / CSI u) saved state. cmd.exe
+    // and PowerShell wrap prompt-rendering output in save/restore pairs to redraw the line
+    // without losing the user's cursor position — ignoring these caused the cursor to drift
+    // away from where the shell thinks it is.
+    private int _savedCursorRow;
+    private int _savedCursorCol;
+    private Color _savedFg;
+    private Color _savedBg;
+    private TextDecorations _savedDeco;
+    private bool _hasSavedCursor;
+
     /// <summary>Cells wide.</summary>
     public int Cols => _cols;
 
@@ -226,8 +237,23 @@ public sealed class TerminalScreenBuffer : IVtParserHandler
             case (byte)'l': // RM / DECRST
                 if (isPrivate) ApplyDecPrivateMode(parameters, set: false);
                 break;
+            case (byte)'s': // ANSI save cursor (same effect as DECSC)
+                SaveCursor();
+                break;
+            case (byte)'u': // ANSI restore cursor (same effect as DECRC)
+                RestoreCursor();
+                break;
+            case (byte)'X': // ECH — erase n characters at cursor (no cursor movement)
+                EraseCharacters(P(parameters, 0, 1));
+                break;
+            case (byte)'@': // ICH — insert n blank characters at cursor (shift right)
+                InsertCharacters(P(parameters, 0, 1));
+                break;
+            case (byte)'P': // DCH — delete n characters at cursor (shift left)
+                DeleteCharacters(P(parameters, 0, 1));
+                break;
                 // Unhandled CSI finals: ignored in MVP. Follow-up commits add r (DECSTBM),
-                // S/T (scroll), L/M (insert/delete line), s/u (save/restore), etc.
+                // S/T (scroll), L/M (insert/delete line), etc.
         }
 
         _ = intermediates; // not used in the MVP
@@ -240,6 +266,12 @@ public sealed class TerminalScreenBuffer : IVtParserHandler
         {
             case (byte)'c': // RIS — hard reset
                 Reset();
+                break;
+            case (byte)'7': // DECSC — save cursor position, attributes
+                SaveCursor();
+                break;
+            case (byte)'8': // DECRC — restore cursor position, attributes
+                RestoreCursor();
                 break;
                 // Other ESC dispatches (charset, IND, RI, etc.) deferred.
         }
@@ -288,6 +320,7 @@ public sealed class TerminalScreenBuffer : IVtParserHandler
         _cursorRow = 0;
         _cursorCol = 0;
         CursorVisible = true;
+        _hasSavedCursor = false;
         if (!string.IsNullOrEmpty(Title))
         {
             Title = string.Empty;
@@ -299,6 +332,77 @@ public sealed class TerminalScreenBuffer : IVtParserHandler
     {
         _cursorRow = Math.Clamp(row, 0, _rows - 1);
         _cursorCol = Math.Clamp(col, 0, _cols - 1);
+    }
+
+    private void SaveCursor()
+    {
+        _savedCursorRow = _cursorRow;
+        _savedCursorCol = _cursorCol;
+        _savedFg = _currentFg;
+        _savedBg = _currentBg;
+        _savedDeco = _currentDeco;
+        _hasSavedCursor = true;
+    }
+
+    private void RestoreCursor()
+    {
+        if (!_hasSavedCursor)
+        {
+            // No saved state: clamp cursor to home, matching xterm's behavior on first DECRC.
+            _cursorRow = 0;
+            _cursorCol = 0;
+            return;
+        }
+
+        _cursorRow = Math.Clamp(_savedCursorRow, 0, _rows - 1);
+        _cursorCol = Math.Clamp(_savedCursorCol, 0, _cols - 1);
+        _currentFg = _savedFg;
+        _currentBg = _savedBg;
+        _currentDeco = _savedDeco;
+    }
+
+    private void EraseCharacters(int count)
+    {
+        if (count < 1) count = 1;
+        var end = Math.Min(_cols, _cursorCol + count);
+        var rowOffset = _cursorRow * _cols;
+        for (var c = _cursorCol; c < end; c++)
+        {
+            _cells[rowOffset + c] = Cell.Empty;
+        }
+    }
+
+    private void InsertCharacters(int count)
+    {
+        if (count < 1) count = 1;
+        var maxInsert = _cols - _cursorCol;
+        if (maxInsert <= 0) return;
+        count = Math.Min(count, maxInsert);
+
+        // Shift cells right by `count`, dropping the rightmost cells off the line.
+        var row = _cells.AsSpan(_cursorRow * _cols, _cols);
+        var src = row[_cursorCol..(_cols - count)];
+        var dst = row[(_cursorCol + count)..];
+        src.CopyTo(dst);
+
+        var blank = Cell.Empty;
+        row.Slice(_cursorCol, count).Fill(blank);
+    }
+
+    private void DeleteCharacters(int count)
+    {
+        if (count < 1) count = 1;
+        var maxDelete = _cols - _cursorCol;
+        if (maxDelete <= 0) return;
+        count = Math.Min(count, maxDelete);
+
+        // Shift cells left by `count` from the cursor; fill the vacated tail with blanks.
+        var row = _cells.AsSpan(_cursorRow * _cols, _cols);
+        var src = row[(_cursorCol + count).._cols];
+        var dst = row[_cursorCol..(_cols - count)];
+        src.CopyTo(dst);
+
+        row[(_cols - count)..].Fill(Cell.Empty);
     }
 
     private void LineFeed()
