@@ -34,19 +34,22 @@ public class ConPtyTerminalBackendTests
             return;
         }
 
-        // Use whoami.exe rather than cmd /c echo: cmd's /c short-circuit can race the
-        // pseudoconsole's output buffer flush at exit, dropping the command output. whoami
-        // is a plain console subsystem program that prints its result to stdout and exits
-        // cleanly — the pseudoconsole reliably forwards the bytes.
+        // Spawn `cmd /c echo <marker>` and verify the marker bytes arrive via DataReceived.
+        // The marker is a fixed string we control, so a true regression where cmd inherits
+        // parent stdio (output going to the test runner's console instead of the
+        // pseudoconsole's pipe) fails this test — looking only for "any letter" used to pass
+        // even in that broken state because ConPTY's own init sequence
+        // (e.g. ESC[?9001h ESC[?1004h) contains letters.
+        const string Marker = "MAGIC_PTY_HOOKUP_OK";
         var options = new TerminalBackendOptions(
-            Shell: Environment.ExpandEnvironmentVariables("%SystemRoot%\\System32\\whoami.exe"),
-            Arguments: [],
+            Shell: Environment.ExpandEnvironmentVariables("%SystemRoot%\\System32\\cmd.exe"),
+            Arguments: ["/c", "echo " + Marker],
             InitialCols: 80,
             InitialRows: 24);
 
         var captured = new MemoryStream();
         var dataLock = new object();
-        var receivedNonInitData = new TaskCompletionSource();
+        var sawMarker = new TaskCompletionSource();
 
         await using var backend = new ConPtyTerminalBackend(options);
         backend.DataReceived += data =>
@@ -54,17 +57,9 @@ public class ConPtyTerminalBackendTests
             lock (dataLock)
             {
                 captured.Write(data.Span);
-
-                // Anything past the initial CSI / OSC stream from ConPTY itself is real
-                // program output. We signal once we see a printable letter (whoami's domain
-                // / user name contains at least one alpha character).
-                foreach (var b in data.Span)
+                if (Encoding.UTF8.GetString(captured.ToArray()).Contains(Marker, StringComparison.Ordinal))
                 {
-                    if ((b >= (byte)'a' && b <= (byte)'z') || (b >= (byte)'A' && b <= (byte)'Z'))
-                    {
-                        receivedNonInitData.TrySetResult();
-                        break;
-                    }
+                    sawMarker.TrySetResult();
                 }
             }
         };
@@ -73,12 +68,8 @@ public class ConPtyTerminalBackendTests
         await Assert.That(backend.IsRunning).IsTrue();
         await Assert.That(backend.ProcessId).IsGreaterThan(0);
 
-        await Task.WhenAny(receivedNonInitData.Task, Task.Delay(TestTimeoutMs));
-        await Assert.That(receivedNonInitData.Task.IsCompleted).IsTrue();
-
-        var text = Encoding.UTF8.GetString(captured.ToArray());
-        // whoami output should contain at least one letter — typically the domain or user name.
-        await Assert.That(text.Length).IsGreaterThan(0);
+        await Task.WhenAny(sawMarker.Task, Task.Delay(TestTimeoutMs));
+        await Assert.That(sawMarker.Task.IsCompleted).IsTrue();
     }
 
     [Test]
