@@ -23,6 +23,8 @@ public static class BuiltinRegistry
     {
         var b = ImmutableDictionary.CreateBuilder<string, NValue>(StringComparer.Ordinal);
         PipelineOps.Register(b);
+        Io.Register(b);
+        Fs.Register(b);
         return b.ToImmutable();
     }
 }
