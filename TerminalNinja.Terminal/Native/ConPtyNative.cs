@@ -20,6 +20,8 @@ internal static partial class ConPtyNative
 
     // STARTUPINFO flags
     public const uint EXTENDED_STARTUPINFO_PRESENT = 0x00080000;
+    public const uint STARTF_USESTDHANDLES = 0x00000100;
+    public static readonly IntPtr INVALID_HANDLE_VALUE = new(-1);
 
     // PROC_THREAD_ATTRIBUTE_PSEUDOCONSOLE_HANDLE — passed to UpdateProcThreadAttribute so the
     // child process inherits our pseudoconsole rather than the parent's normal console.

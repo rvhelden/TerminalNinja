@@ -334,11 +334,23 @@ public sealed class ConPtyTerminalBackend : ITerminalBackend
 
     private void SpawnChild()
     {
+        // STARTF_USESTDHANDLES + INVALID_HANDLE_VALUE for hStdInput/Output/Error is the
+        // documented "I'm specifying stdio explicitly, but with no inherited handles" pattern.
+        // Without it, even with PROC_THREAD_ATTRIBUTE_PSEUDOCONSOLE_HANDLE the kernel still
+        // hands the child our parent's stdio handles for non-console APIs (WriteFile etc.),
+        // so cmd.exe's prompt and `cmd /c <anything>` output leak to the dotnet console
+        // instead of flowing through the pseudoconsole's output pipe. The pseudoconsole
+        // attribute then overwrites these sentinel handles with the conhost pipes for both
+        // console and file-handle stdio.
         var startupInfo = new ConPtyNative.STARTUPINFOEXW
         {
             StartupInfo = new ConPtyNative.STARTUPINFOW
             {
-                cb = (uint)Marshal.SizeOf<ConPtyNative.STARTUPINFOEXW>()
+                cb = (uint)Marshal.SizeOf<ConPtyNative.STARTUPINFOEXW>(),
+                dwFlags = ConPtyNative.STARTF_USESTDHANDLES,
+                hStdInput = ConPtyNative.INVALID_HANDLE_VALUE,
+                hStdOutput = ConPtyNative.INVALID_HANDLE_VALUE,
+                hStdError = ConPtyNative.INVALID_HANDLE_VALUE,
             },
             lpAttributeList = _attributeList
         };
