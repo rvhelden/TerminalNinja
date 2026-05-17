@@ -143,9 +143,29 @@ public sealed class Renderer : IDisposable
     }
     
     /// <summary>
-    /// Presents the rendered frame to the terminal with zero-allocation diffing.
-    /// Only changed cells are transmitted to the terminal.
+    /// Presents the rendered frame to the sink with diffing.
     /// </summary>
+    /// <remarks>
+    /// Two paths depending on the sink's capabilities:
+    /// <list type="bullet">
+    /// <item>
+    /// <description>
+    /// <see cref="IShapedRunSink"/> — walks dirty rows, groups contiguous cells with matching
+    /// style into runs, and calls <c>WriteRun</c> per run. The sink does the entire job
+    /// (background + glyph shaping + decorations) per run; <c>WriteCell</c> is not invoked.
+    /// This is the path the GPU backend takes so HarfBuzz can shape whole runs and produce
+    /// ligatures the per-cell path can't.
+    /// </description>
+    /// </item>
+    /// <item>
+    /// <description>
+    /// Plain <see cref="ICellSink"/> — the original per-cell diff loop. Optimal for byte-stream
+    /// output (<see cref="Ansi.AnsiWriter"/>) where minimal cell emission matters more than
+    /// per-row grouping.
+    /// </description>
+    /// </item>
+    /// </list>
+    /// </remarks>
     public void Present()
     {
         // BeginFrame invalidates per-frame state (e.g. cursor tracking on the ANSI sink)
@@ -153,14 +173,160 @@ public sealed class Renderer : IDisposable
         // from the previous frame can cause rendering corruption (characters at wrong positions).
         _sink.BeginFrame();
 
-        // Zero-allocation iteration using struct enumerator
-        foreach (var change in _buffer.GetChanges())
+        if (_sink is IShapedRunSink shaped)
         {
-            _sink.WriteCell(change.X, change.Y, change.Cell);
+            PresentShaped(shaped);
+        }
+        else
+        {
+            foreach (var change in _buffer.GetChanges())
+            {
+                _sink.WriteCell(change.X, change.Y, change.Cell);
+            }
         }
 
         _sink.EndFrame();
         _buffer.SwapBuffers();
+    }
+
+    private void PresentShaped(IShapedRunSink shaped)
+    {
+        // Per-frame stack-allocated text buffer reused across runs. Sized generously to
+        // accommodate multi-codepoint grapheme clusters; max codepoints per cell is a small
+        // constant, so width × 8 covers virtually all realistic content. Truncated runs are
+        // emitted as far as they fit, with the rest of the style group skipped to avoid spin.
+        const int InlineCharCap = 1024;
+        Span<char> textBuf = stackalloc char[InlineCharCap];
+
+        foreach (var y in _buffer.GetDirtyRows())
+        {
+            var x = 0;
+            while (x < _buffer.Width)
+            {
+                var leadCell = _buffer.GetCell(x, y);
+
+                // Skip empty cells (default-coloured spaces). They don't need shaping;
+                // they fall to the surface's clear color via the host's per-frame Clear().
+                if (IsEmptyCell(leadCell))
+                {
+                    x++;
+                    continue;
+                }
+
+                // Walk forward while style matches; this defines the run's extent.
+                var runStartX = x;
+                var fg = leadCell.Foreground;
+                var bg = leadCell.Background;
+                var deco = leadCell.Decorations;
+
+                var textLen = 0;
+                var truncated = false;
+
+                while (x < _buffer.Width)
+                {
+                    var cell = _buffer.GetCell(x, y);
+
+                    // WideTrail belongs to its lead cell; advance past it without contributing text.
+                    if ((cell.Flags & CellFlags.WideTrail) != 0)
+                    {
+                        x++;
+                        continue;
+                    }
+
+                    // Default-colored empty cells (Cell.Empty: white/black space) end the run.
+                    // Their backgrounds are indistinguishable from the surface clear, so emitting
+                    // a shaped run that covers them is wasted work.
+                    if (IsEmptyCell(cell))
+                    {
+                        break;
+                    }
+
+                    // Style break ends the run.
+                    if (cell.Foreground != fg || cell.Background != bg || cell.Decorations != deco)
+                    {
+                        break;
+                    }
+
+                    if ((cell.Flags & CellFlags.HasGrapheme) != 0)
+                    {
+                        var grapheme = _buffer.GetGrapheme(x, y);
+                        foreach (var cp in grapheme)
+                        {
+                            if (!AppendCodepoint(textBuf, ref textLen, cp))
+                            {
+                                truncated = true;
+                                break;
+                            }
+                        }
+
+                        if (truncated) break;
+                    }
+                    else if (cell.Codepoint != 0)
+                    {
+                        if (!AppendCodepoint(textBuf, ref textLen, cell.Codepoint))
+                        {
+                            truncated = true;
+                            break;
+                        }
+                    }
+
+                    x += (cell.Flags & CellFlags.WideLead) != 0 ? 2 : 1;
+                }
+
+                if (textLen > 0)
+                {
+                    shaped.WriteRun(runStartX, y, textBuf[..textLen], fg, bg, deco);
+                }
+
+                // If we truncated mid-run, skip the rest of this style group so we don't loop forever.
+                if (truncated)
+                {
+                    while (x < _buffer.Width)
+                    {
+                        var cell = _buffer.GetCell(x, y);
+                        if (cell.Foreground != fg || cell.Background != bg || cell.Decorations != deco)
+                        {
+                            break;
+                        }
+
+                        x++;
+                    }
+                }
+            }
+        }
+    }
+
+    private static bool IsEmptyCell(Cell cell) =>
+        cell.Codepoint is 0 or (uint)' '
+        && cell.Foreground == Color.White
+        && cell.Background == Color.Black
+        && cell.Decorations == TextDecorations.None
+        && (cell.Flags & ~CellFlags.None) == 0;
+
+    private static bool AppendCodepoint(Span<char> buffer, ref int length, uint codepoint)
+    {
+        // Rune.EncodeToUtf16 may write 1 or 2 chars. Surrogate pairs need both.
+        if (System.Text.Rune.TryCreate(codepoint, out var rune))
+        {
+            var needed = rune.Utf16SequenceLength;
+            if (length + needed > buffer.Length)
+            {
+                return false;
+            }
+
+            rune.EncodeToUtf16(buffer[length..]);
+            length += needed;
+            return true;
+        }
+
+        // Unknown codepoint — emit U+FFFD if there's room, otherwise truncate.
+        if (length + 1 > buffer.Length)
+        {
+            return false;
+        }
+
+        buffer[length++] = '�';
+        return true;
     }
     
     /// <summary>

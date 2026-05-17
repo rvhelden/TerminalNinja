@@ -337,16 +337,11 @@ public sealed class TextBlock : FrameworkElement
 
             startX = Math.Max(x, Math.Min(startX, x + width - 1));
 
-            // Queue the line for shaped rendering when an IShapedRunSink is attached and
-            // the line fits without ellipsis truncation. The per-cell SetChar loop below
-            // still runs (writing occupancy cells for cursor / dirty tracking / ANSI fallback).
+            // Render characters. Step 7 dispatched shaped runs from here; Step 8 moved that
+            // to Renderer.Present so it works for every control that writes cells, not just
+            // TextBlock. We just write per-cell cells and the renderer reconstructs runs
+            // from contiguous same-style cells on the shaped path.
             var renderLength = Math.Min(effectiveLength, width);
-            if (buffer.ActiveSink is IShapedRunSink shapedSink && !needsEllipsis && lineSpan.Length <= width)
-            {
-                shapedSink.WriteRun(startX, lineY, lineSpan, Foreground, Background, decorations);
-            }
-
-            // Render characters
             for (var j = 0; j < renderLength && startX + j < x + width; j++)
             {
                 var charX = startX + j;
@@ -451,36 +446,13 @@ public sealed class TextBlock : FrameworkElement
         // cell index by 2; everything else by 1. The CellBuffer writes the WideTrail placeholder
         // at charIndex+1 for us — we just need to step over it.
         //
-        // When the renderer's sink is an IShapedRunSink (e.g. SkiaCellSink with HarfBuzz),
-        // we additionally queue each InlineRun for shaped rendering so ligatures and complex
-        // scripts render correctly. The per-cell SetChar loop below still runs — it writes
-        // occupancy cells so cursor tracking, dirty-rect diffing, and ANSI fallback all work.
-        // We only call WriteRun when the entire run fits in the visible cell range without
-        // ellipsis truncation — partially clipped or ellipsized runs fall back to per-cell.
-        var shapedSink = buffer.ActiveSink as IShapedRunSink;
+        // Shaped rendering (HarfBuzz ligatures, complex scripts) is driven by Renderer.Present
+        // reconstructing runs from contiguous same-style cells, not by this control. That keeps
+        // the dispatch logic in one place and benefits every control that writes cells.
         var charIndex = 0;
 
         foreach (var run in runs)
         {
-            if (shapedSink is not null && !string.IsNullOrEmpty(run.Text))
-            {
-                var runCellWidth = GetCellWidth(run.Text);
-                var runEndIndex = charIndex + runCellWidth;
-                var runFitsCleanly = runEndIndex <= width
-                    && (!needsEllipsis || runEndIndex <= ellipsisStart);
-
-                if (runFitsCleanly)
-                {
-                    shapedSink.WriteRun(
-                        startX + charIndex,
-                        lineY,
-                        run.Text.AsSpan(),
-                        run.Foreground,
-                        run.Background,
-                        run.Decorations);
-                }
-            }
-
             foreach (var rune in run.Text.EnumerateRunes())
             {
                 if (charIndex >= width)

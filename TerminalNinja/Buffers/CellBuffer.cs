@@ -837,6 +837,65 @@ public sealed unsafe class CellBuffer : IDisposable
     }
     
     /// <summary>
+    /// Enumerates the row indices that intersect the buffer's dirty rectangle.
+    /// Used by the renderer's row-level shaped path (<see cref="IShapedRunSink"/>) to walk
+    /// only the rows that may need re-rendering. Returns nothing when nothing is dirty.
+    /// </summary>
+    public DirtyRowEnumerator GetDirtyRows() => new(_dirtyRect);
+
+    /// <summary>
+    /// Zero-allocation enumerator over the dirty row range.
+    /// </summary>
+    public ref struct DirtyRowEnumerator
+    {
+        private readonly int _maxY;
+        private readonly bool _empty;
+        private int _y;
+
+        internal DirtyRowEnumerator(DirtyRect rect)
+        {
+            if (!rect.IsDirty)
+            {
+                _empty = true;
+                _maxY = 0;
+                _y = 0;
+            }
+            else
+            {
+                _empty = false;
+                _maxY = rect.MaxY;
+                _y = rect.MinY - 1;
+            }
+
+            Current = 0;
+        }
+
+        /// <summary>The current dirty row index.</summary>
+        public int Current { get; private set; }
+
+        /// <summary>Advances to the next dirty row; returns false past the dirty range.</summary>
+        public bool MoveNext()
+        {
+            if (_empty)
+            {
+                return false;
+            }
+
+            _y++;
+            if (_y > _maxY)
+            {
+                return false;
+            }
+
+            Current = _y;
+            return true;
+        }
+
+        /// <summary>Enables foreach.</summary>
+        public DirtyRowEnumerator GetEnumerator() => this;
+    }
+
+    /// <summary>
     /// Zero-allocation struct enumerator for cell differences.
     /// Uses unmanaged pointers confined within this ref struct.
     /// </summary>

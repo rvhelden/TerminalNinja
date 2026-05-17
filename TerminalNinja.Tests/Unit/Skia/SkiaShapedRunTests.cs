@@ -45,104 +45,56 @@ public class SkiaShapedRunTests
     }
 
     [Test]
-    public async Task WriteRun_FollowedByWriteCell_SuppressesPerCellGlyph()
+    public async Task WriteRun_PaintsBackgroundItself()
     {
-        // The sink is supposed to paint backgrounds via WriteCell but defer glyph rendering
-        // to EndFrame for cells covered by a queued run. We can't easily assert "no glyph drawn"
-        // pixel-by-pixel without a known font, so we check the behaviour indirectly: the cell's
-        // background colour survives unobscured at the cell centre.
-        var (sink, surface, font, typeface) = CreateSink(4, 1);
-        try
-        {
-            var fg = new Color(0xFF, 0x00, 0x00);
-            var bg = new Color(0x00, 0xC8, 0x00);
-
-            sink.BeginFrame();
-            sink.WriteRun(0, 0, "fi".AsSpan(), fg, bg, TextDecorations.None);
-            sink.WriteCell(0, 0, new Cell((uint)'f', fg, bg));
-            sink.WriteCell(1, 0, new Cell((uint)'i', fg, bg));
-            sink.EndFrame();
-
-            // The cell-background green should be intact at the corners (least likely to be
-            // covered by glyph pixels regardless of font). The shaped run draws on top via
-            // DrawShapedText in EndFrame — that's the path being exercised even though we
-            // can't easily verify the final glyph pixels in a font-portable way.
-            using var snapshot = surface.Snapshot();
-            using var pixmap = snapshot.PeekPixels();
-
-            var topLeft = pixmap.GetPixelColor(1, 1);
-            await Assert.That(topLeft.Green).IsEqualTo((byte)0xC8);
-            await Assert.That(topLeft.Red).IsEqualTo((byte)0x00);
-        }
-        finally
-        {
-            sink.Dispose();
-            surface.Dispose();
-            font.Dispose();
-            typeface.Dispose();
-        }
-    }
-
-    [Test]
-    public async Task WriteRun_BeginFrame_ResetsQueue()
-    {
-        // Calling WriteRun then BeginFrame should drop the queued run — otherwise the next
-        // frame would paint stale shaped glyphs over freshly cleared pixels.
-        var (sink, surface, font, typeface) = CreateSink(4, 1);
-        try
-        {
-            sink.BeginFrame();
-            sink.WriteRun(0, 0, "test".AsSpan(), Color.White, Color.Black, TextDecorations.None);
-            // Don't call EndFrame; just start a new frame.
-            sink.BeginFrame();
-
-            // Cell (0, 0) now has a red background; we'd see foreground glyph pixels only if
-            // the previous frame's queued run leaked through. With the queue cleared in
-            // BeginFrame, the cell shows pure red.
-            sink.WriteCell(0, 0, new Cell((uint)'X', Color.White, new Color(0xFF, 0x00, 0x00)));
-            sink.EndFrame();
-
-            using var snapshot = surface.Snapshot();
-            using var pixmap = snapshot.PeekPixels();
-
-            // The corner of cell (0, 0) should be pure red — the per-cell glyph for 'X' is
-            // drawn (queue was cleared so no coverage), but the corner is unlikely to be
-            // covered by 'X' glyph pixels for typical fonts.
-            var corner = pixmap.GetPixelColor(1, 1);
-            await Assert.That(corner.Red).IsEqualTo((byte)0xFF);
-            await Assert.That(corner.Green).IsEqualTo((byte)0x00);
-        }
-        finally
-        {
-            sink.Dispose();
-            surface.Dispose();
-            font.Dispose();
-            typeface.Dispose();
-        }
-    }
-
-    [Test]
-    public async Task WriteRun_PaintsBackgroundsViaWriteCell()
-    {
-        // Backgrounds are owned by WriteCell, not WriteRun. Without per-cell WriteCell calls,
-        // the canvas behind the shaped run stays cleared. The Renderer always emits
-        // WriteCell for every dirty cell, but the sink should not paint backgrounds itself
-        // in WriteRun.
+        // Step 8 contract: WriteRun is self-contained. The renderer routes IShapedRunSinks
+        // exclusively through WriteRun (no WriteCell pre-calls). So WriteRun must paint the
+        // run's background rectangle itself — a single WriteRun call with a magenta bg
+        // should leave the corner of the covered cell magenta.
         var (sink, surface, font, typeface) = CreateSink(2, 1);
         try
         {
             sink.BeginFrame();
             sink.WriteRun(0, 0, "ab".AsSpan(), Color.White, new Color(0xFF, 0x00, 0xFF), TextDecorations.None);
-            // Deliberately skip WriteCell — assert background did NOT appear.
             sink.EndFrame();
 
             using var snapshot = surface.Snapshot();
             using var pixmap = snapshot.PeekPixels();
 
+            // Top-left corner of cell (0, 0) should be magenta — covered by the run's bg rect
+            // and unlikely to be obscured by glyph pixels regardless of font choice.
             var corner = pixmap.GetPixelColor(1, 1);
-            // SKSurface.Create starts cleared to (0,0,0,0) on Premul. Magenta from WriteRun
-            // should not appear because WriteRun does not paint background.
-            await Assert.That(corner.Red).IsNotEqualTo((byte)0xFF);
+            await Assert.That(corner.Red).IsEqualTo((byte)0xFF);
+            await Assert.That(corner.Blue).IsEqualTo((byte)0xFF);
+        }
+        finally
+        {
+            sink.Dispose();
+            surface.Dispose();
+            font.Dispose();
+            typeface.Dispose();
+        }
+    }
+
+    [Test]
+    public async Task WriteRun_Inverse_SwapsForegroundAndBackground()
+    {
+        var (sink, surface, font, typeface) = CreateSink(2, 1);
+        try
+        {
+            var fg = new Color(0xFF, 0x00, 0x00); // red fg
+            var bg = new Color(0x00, 0xFF, 0x00); // green bg
+            sink.BeginFrame();
+            sink.WriteRun(0, 0, "ab".AsSpan(), fg, bg, TextDecorations.Inverse);
+            sink.EndFrame();
+
+            using var snapshot = surface.Snapshot();
+            using var pixmap = snapshot.PeekPixels();
+
+            // After inverse swap the background fill should be red (the original fg).
+            var corner = pixmap.GetPixelColor(1, 1);
+            await Assert.That(corner.Red).IsEqualTo((byte)0xFF);
+            await Assert.That(corner.Green).IsEqualTo((byte)0x00);
         }
         finally
         {

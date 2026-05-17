@@ -40,12 +40,6 @@ public sealed class SkiaCellSink : IShapedRunSink
     private readonly SKPaint _fgPaint = new() { IsAntialias = true, Style = SKPaintStyle.Fill };
     private readonly SKPaint _linePaint = new() { IsAntialias = false, Style = SKPaintStyle.Stroke, StrokeWidth = 1f };
 
-    // Queued runs accumulate during the frame and are drawn in EndFrame. The coverage
-    // map records which (column, row) cells fall under a queued run so WriteCell can
-    // suppress the per-cell glyph fallback for them (the shaped pass owns those glyphs).
-    private readonly List<QueuedRun> _queuedRuns = [];
-    private readonly Dictionary<int, HashSet<int>> _coveredColumnsByRow = [];
-
     /// <summary>Width of a single cell in pixels.</summary>
     public int CellWidth => _cellWidth;
 
@@ -110,10 +104,8 @@ public sealed class SkiaCellSink : IShapedRunSink
     /// <inheritdoc />
     public void BeginFrame()
     {
-        // Reset per-frame state — any runs queued from a previous frame would otherwise
-        // paint over the freshly cleared canvas.
-        _queuedRuns.Clear();
-        _coveredColumnsByRow.Clear();
+        // Step 8 makes WriteRun self-contained — no per-frame queue to reset. Reserved for
+        // future state caches (e.g. an LRU glyph atlas) that may need invalidation hooks.
     }
 
     /// <inheritdoc />
@@ -130,32 +122,57 @@ public sealed class SkiaCellSink : IShapedRunSink
             return;
         }
 
-        _queuedRuns.Add(new QueuedRun(x, y, widthCells, text.ToString(), fg, decorations));
+        var canvas = _surface.Canvas;
+        var px = x * _cellWidth;
+        var py = y * _cellHeight;
+        var rectW = widthCells * _cellWidth;
+        var rectH = _cellHeight;
 
-        // Mark every cell the run covers so WriteCell skips its glyph fallback for them.
-        // Background fills still happen via WriteCell; we just claim ownership of the glyphs.
-        if (!_coveredColumnsByRow.TryGetValue(y, out var cols))
+        // Inverse decoration swaps fg/bg before any painting.
+        var displayFg = fg;
+        var displayBg = bg;
+        if ((decorations & TextDecorations.Inverse) != 0)
         {
-            cols = [];
-            _coveredColumnsByRow[y] = cols;
+            (displayFg, displayBg) = (displayBg, displayFg);
         }
 
-        for (var col = x; col < x + widthCells; col++)
+        // 1. Background fill spanning the entire run.
+        _bgPaint.Color = ToSkColor(displayBg);
+        canvas.DrawRect(px, py, rectW, rectH, _bgPaint);
+
+        // 2. Shape + draw glyphs. DrawShapedText drives HarfBuzz internally so ligatures,
+        // complex scripts, and color emoji render correctly. The current API only accepts
+        // string, so we allocate once per run; a follow-up that caches SKTextBlob by text
+        // can eliminate this in the steady state.
+        _fgPaint.Color = ApplyDimmedAlpha(ToSkColor(displayFg), decorations);
+        canvas.DrawShapedText(_shaper, text.ToString(), px, py + _textBaseline, _font, _fgPaint);
+
+        // 3. Decorations as separate primitives. Bold/italic would require switching typeface;
+        // ignore for now (a font fallback chain in a follow-up wires them up properly).
+        if ((decorations & TextDecorations.Underline) != 0)
         {
-            cols.Add(col);
+            _linePaint.Color = _fgPaint.Color;
+            var lineY = py + _textBaseline + 2f;
+            canvas.DrawLine(px, lineY, px + rectW, lineY, _linePaint);
         }
 
-        // Background and foreground inversion are computed per-cell in WriteCell; we don't
-        // need bg here. Suppress the unused-parameter warning explicitly.
-        _ = bg;
+        if ((decorations & TextDecorations.Strikethrough) != 0)
+        {
+            _linePaint.Color = _fgPaint.Color;
+            var lineY = py + (_cellHeight / 2f);
+            canvas.DrawLine(px, lineY, px + rectW, lineY, _linePaint);
+        }
     }
 
     /// <inheritdoc />
+    /// <remarks>
+    /// In Step 8 the renderer routes shaped sinks through <see cref="WriteRun"/> and does
+    /// not call <see cref="WriteCell"/>. This method remains because the <see cref="ICellSink"/>
+    /// contract requires it and direct callers (tests, or future controls that bypass the
+    /// renderer's row-level path) still need single-cell rendering.
+    /// </remarks>
     public void WriteCell(int x, int y, Cell cell)
     {
-        // WideTrail cells are placeholders. The leading cell at (x - 1, y) already drew
-        // the codepoint and (importantly) chose a 2-cell-wide background rectangle for it,
-        // so painting the trail would double-fill and could overwrite glyph pixels.
         if ((cell.Flags & CellFlags.WideTrail) != 0)
         {
             return;
@@ -169,7 +186,6 @@ public sealed class SkiaCellSink : IShapedRunSink
 
         var canvas = _surface.Canvas;
 
-        // 1. Background fill. Inverse decoration swaps fg/bg before painting.
         var fg = cell.Foreground;
         var bg = cell.Background;
         if ((cell.Decorations & TextDecorations.Inverse) != 0)
@@ -180,22 +196,12 @@ public sealed class SkiaCellSink : IShapedRunSink
         _bgPaint.Color = ToSkColor(bg);
         canvas.DrawRect(px, py, rectW, rectH, _bgPaint);
 
-        // Cells covered by a queued shaped run have their glyph drawn during EndFrame.
-        // Skip the per-cell glyph fallback for them to avoid double-painting under the
-        // shaped glyph (which can manifest as a doubled / ghosted character).
-        var coveredByShapedRun = _coveredColumnsByRow.TryGetValue(y, out var cols) && cols.Contains(x);
-
-        // 2. Glyph fallback. Skip empty cells (background already covers) and cells claimed
-        // by a queued shaped run.
-        if (!coveredByShapedRun && cell.Codepoint != 0 && cell.Codepoint != ' ')
+        if (cell.Codepoint != 0 && cell.Codepoint != ' ')
         {
             _fgPaint.Color = ApplyDimmedAlpha(ToSkColor(fg), cell.Decorations);
             DrawGlyph(canvas, cell.Codepoint, px, py + _textBaseline, _fgPaint);
         }
 
-        // 3. Decorations as separate primitives. Bold/italic are font-style hints that
-        // would normally require switching SKTypeface — for v1 we ignore them at this layer
-        // (a follow-up that introduces a font fallback chain can wire them up properly).
         if ((cell.Decorations & TextDecorations.Underline) != 0)
         {
             _linePaint.Color = ApplyDimmedAlpha(ToSkColor(fg), cell.Decorations);
@@ -214,22 +220,6 @@ public sealed class SkiaCellSink : IShapedRunSink
     /// <inheritdoc />
     public void EndFrame()
     {
-        if (_queuedRuns.Count > 0)
-        {
-            var canvas = _surface.Canvas;
-            foreach (var run in _queuedRuns)
-            {
-                _fgPaint.Color = ApplyDimmedAlpha(ToSkColor(run.Foreground), run.Decorations);
-                var px = run.X * _cellWidth;
-                var py = (run.Y * _cellHeight) + _textBaseline;
-
-                // DrawShapedText drives HarfBuzz shaping internally and renders ligatures /
-                // complex-script glyphs. The Step 8 row-level diff path will replace this
-                // with cached SKTextBlobs to amortize shaping across frames.
-                canvas.DrawShapedText(_shaper, run.Text, px, py, _font, _fgPaint);
-            }
-        }
-
         // The host owns the GL swap. We just flush the Skia draw queue so the GPU sees
         // every queued operation before the host swaps buffers.
         _surface.Canvas.Flush();
@@ -245,8 +235,6 @@ public sealed class SkiaCellSink : IShapedRunSink
 
         return w;
     }
-
-    private readonly record struct QueuedRun(int X, int Y, int CellWidthCount, string Text, Color Foreground, TextDecorations Decorations);
 
     /// <inheritdoc />
     public void Reset()
