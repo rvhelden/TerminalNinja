@@ -39,6 +39,7 @@
 
   <ItemGroup>
     <InternalsVisibleTo Include="TerminalNinja.Tests" />
+    <InternalsVisibleTo Include="TerminalNinja.Skia" />
   </ItemGroup>
 
   <ItemGroup>

@@ -24,8 +24,11 @@ namespace TerminalNinja.Skia;
 /// </remarks>
 public sealed class SdlInputBackend : IInputBackend
 {
-    private readonly int _cellWidth;
-    private readonly int _cellHeight;
+    // Not readonly: hosts that handle display-scale changes call SetCellMetrics to update
+    // pixel→cell conversion without disposing and recreating the backend (which would also
+    // tear down the QuitRequested / DisplayScaleChanged flag state).
+    private int _cellWidth;
+    private int _cellHeight;
     private readonly List<InputEvent> _scratch = [];
     private bool _disposed;
     private bool _mouseTrackingEnabled = true;
@@ -110,6 +113,19 @@ public sealed class SdlInputBackend : IInputBackend
 
     /// <summary>Test hook: sets the display-scale-changed flag without needing a real SDL event.</summary>
     internal void SetDisplayScaleChangedForTesting() => _displayScaleChanged = true;
+
+    /// <summary>
+    /// Updates the cell metrics used for pixel→cell coordinate conversion in subsequent
+    /// mouse events. Used by the host after a display-scale change.
+    /// </summary>
+    public void SetCellMetrics(int cellWidth, int cellHeight)
+    {
+        ObjectDisposedException.ThrowIf(_disposed, this);
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(cellWidth);
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(cellHeight);
+        _cellWidth = cellWidth;
+        _cellHeight = cellHeight;
+    }
 
     /// <inheritdoc />
     public void Dispose() => _disposed = true;

@@ -62,4 +62,22 @@ public sealed class ApplicationOptions
     /// Use this for testing or WASM scenarios where events are injected externally.
     /// </summary>
     public TerminalNinja.Input.IInputBackend? InputBackend { get; init; }
+
+    /// <summary>
+    /// Optional renderer to use instead of the default terminal renderer. Set this when
+    /// hosting the application in a non-terminal context (e.g. a GPU window) so the
+    /// control tree renders through a custom <see cref="Rendering.ICellSink"/>. When set,
+    /// the Application skips the per-platform terminal renderer construction and bypasses
+    /// console-specific setup (output encoding, Ctrl+C handler).
+    /// </summary>
+    public Rendering.Renderer? RendererOverride { get; init; }
+
+    /// <summary>
+    /// When true, suppress console-specific setup that doesn't apply to a non-terminal
+    /// host: <c>Console.OutputEncoding</c>, <c>Console.InputEncoding</c>, the
+    /// <c>CancelKeyPress</c> safety handler, and the debug-time hot-reload auto-attach.
+    /// Set automatically alongside <see cref="RendererOverride"/>; can also be set on its
+    /// own for embedded scenarios.
+    /// </summary>
+    public bool SuppressConsoleSetup { get; init; }
 }

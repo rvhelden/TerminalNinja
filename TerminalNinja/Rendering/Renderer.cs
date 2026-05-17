@@ -12,7 +12,10 @@ namespace TerminalNinja.Rendering;
 public sealed class Renderer : IDisposable
 {
     private readonly CellBuffer _buffer;
-    private readonly ICellSink _sink;
+    // Not readonly: GUI hosts may swap the sink at runtime via SwapSink (e.g. display-scale
+    // change rebuilds the sink with new cell metrics). The renderer itself stays alive across
+    // such swaps because Application owns it.
+    private ICellSink _sink;
     private readonly TerminalGuard? _guard;
     private readonly ITerminal? _terminal;
     private bool _disposed;
@@ -385,6 +388,19 @@ public sealed class Renderer : IDisposable
     public void InvalidateDisplayCache()
     {
         _buffer.InvalidatePreviousFrame();
+    }
+
+    /// <summary>
+    /// Replaces the renderer's <see cref="ICellSink"/> at runtime. The caller takes
+    /// responsibility for disposing the previous sink — <see cref="Dispose"/> only releases
+    /// whichever sink is current at that moment. Used by GUI hosts after a display-scale
+    /// change where the sink must be rebuilt with new cell metrics but the renderer itself
+    /// stays alive (Application owns it).
+    /// </summary>
+    internal void SwapSink(ICellSink newSink)
+    {
+        ArgumentNullException.ThrowIfNull(newSink);
+        _sink = newSink;
     }
 
     /// <summary>

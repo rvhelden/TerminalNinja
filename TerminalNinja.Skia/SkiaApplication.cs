@@ -1,23 +1,33 @@
 using System.Runtime.InteropServices;
 using SkiaSharp;
+using TerminalNinja.App;
 using TerminalNinja.Controls;
 using TerminalNinja.Input;
-using TerminalNinja.Primitives;
 using TerminalNinja.Rendering;
+using TerminalNinja.Resources;
 using TerminalNinja.Skia.Native;
 
 namespace TerminalNinja.Skia;
 
 /// <summary>
 /// SDL3-backed host for driving a TerminalNinja control tree through <see cref="SkiaCellSink"/>.
-/// Opens a window with an OpenGL context, binds a SkiaSharp <see cref="GRContext"/> over it,
-/// constructs a <see cref="Renderer"/> wired to the sink, drains SDL events through a
-/// <see cref="SdlInputBackend"/>, dispatches them via a <see cref="FocusManager"/>, and
-/// re-renders each frame.
 /// </summary>
 /// <remarks>
+/// <para>
+/// <see cref="SkiaApplication"/> wraps a regular <see cref="TerminalNinja.App.Application"/>
+/// internally with our renderer + input backend injected via
+/// <see cref="ApplicationOptions.RendererOverride"/>. Setting up the inner application also
+/// publishes <see cref="TerminalNinja.App.Application.Current"/>, which controls like
+/// <c>Window</c>, <c>Popup</c>, <c>RadioButton</c>, and the <c>FrameworkElement</c> resource
+/// lookup chain depend on. From the consumer's view, <see cref="SkiaApplication"/> exposes
+/// the same surface (Renderer, FocusManager, Resources, theme, overlays) as
+/// <see cref="TerminalNinja.App.Application"/>; the GL/SDL3 specifics stay inside.
+/// </para>
+/// <para>
 /// Native dependency: <c>SDL3.dll</c> on Windows, <c>libSDL3.so.0</c> on Linux must be on
-/// the dynamic-library search path. Packaging that as a NuGet runtime asset is a separate task.
+/// the dynamic-library search path. See the NuGet package's <c>build/TerminalNinja.Skia.targets</c>
+/// for the recommended layout.
+/// </para>
 /// </remarks>
 public sealed class SkiaApplication : IDisposable
 {
@@ -33,7 +43,7 @@ public sealed class SkiaApplication : IDisposable
     private SkiaCellSink? _sink;
     private Renderer? _renderer;
     private SdlInputBackend? _input;
-    private UIElement? _root;
+    private Application? _app;
     private bool _running;
     private bool _disposed;
     private int _pixelWidth;
@@ -60,14 +70,28 @@ public sealed class SkiaApplication : IDisposable
     /// <summary>The input backend draining SDL events for the run loop. Toggleable mouse tracking lives here.</summary>
     public SdlInputBackend Input => _input ?? throw new InvalidOperationException("Input backend is not available until Run() has initialized the host.");
 
-    /// <summary>Manages keyboard focus and mouse hover for the active control tree.</summary>
-    public FocusManager FocusManager { get; } = new();
+    /// <summary>The underlying <see cref="TerminalNinja.App.Application"/> instance that backs this host.</summary>
+    public Application Application => _app ?? throw new InvalidOperationException("Application is not available until Run() has initialized the host.");
 
-    /// <summary>Raised after every <see cref="KeyEvent"/> the host receives, before <see cref="FocusManager"/> dispatch.</summary>
-    public event Action<KeyEvent>? KeyDown;
+    /// <summary>The focus manager owned by the underlying <see cref="Application"/>.</summary>
+    public FocusManager FocusManager => Application.FocusManager;
 
-    /// <summary>Raised after every <see cref="MouseEvent"/> the host receives, before <see cref="FocusManager"/> dispatch.</summary>
-    public event Action<MouseEvent>? MouseInput;
+    /// <summary>Application-level resource dictionary (shared with the inner Application).</summary>
+    public ResourceDictionary Resources => Application.Resources;
+
+    /// <summary>Active theme name. Pass-through to <see cref="Application.ThemeName"/>.</summary>
+    public string? ThemeName
+    {
+        get => Application.ThemeName;
+        set => Application.ThemeName = value;
+    }
+
+    /// <summary>Raised after every <see cref="KeyEvent"/> the underlying application handles.</summary>
+    public event Action<KeyEvent, KeyEventArgs>? KeyDown
+    {
+        add => Application.KeyDown += value;
+        remove => Application.KeyDown -= value;
+    }
 
     /// <summary>Creates a host with the given options. Initialization happens on the first call to <see cref="Run"/>.</summary>
     public SkiaApplication(SkiaApplicationOptions options)
@@ -80,12 +104,12 @@ public sealed class SkiaApplication : IDisposable
     public void SetRoot(UIElement root)
     {
         ArgumentNullException.ThrowIfNull(root);
-        _root = root;
+        Application.RootControl = root;
     }
 
     /// <summary>
-    /// Initializes SDL3 + GL + Skia and runs the event/render loop until <see cref="Stop"/>
-    /// is called or the user closes the window.
+    /// Initializes SDL3 + GL + Skia + the underlying <see cref="App.Application"/> and runs
+    /// the event/render loop until <see cref="Stop"/> is called or the user closes the window.
     /// </summary>
     public void Run()
     {
@@ -97,12 +121,28 @@ public sealed class SkiaApplication : IDisposable
         {
             while (_running)
             {
-                if (!PumpEvents())
+                // SDL3-specific: handle scale change before the Application sees the frame
+                // so the rebuilt sink + font are in place when controls render.
+                if (_input!.ConsumeDisplayScaleChange())
+                {
+                    HandleDisplayScaleChange();
+                }
+
+                // Hand off to Application: pump input, dispatch to controls, draw into our
+                // persistent Skia surface. Application does not call SDL_GL_SwapWindow —
+                // we own that after the blit below.
+                _app!.ProcessTick();
+
+                if (_input.QuitRequested || !_running)
                 {
                     break;
                 }
 
-                RenderFrame();
+                // Blit the persistent surface onto the GL default framebuffer so the swap
+                // shows the current state. Snapshot on a GPU surface is cheap.
+                using var snapshot = _persistentSurface!.Snapshot();
+                _screenSurface!.Canvas.DrawImage(snapshot, 0, 0);
+                _screenSurface.Canvas.Flush();
                 Sdl3.SDL_GL_SwapWindow(_window);
             }
         }
@@ -113,7 +153,11 @@ public sealed class SkiaApplication : IDisposable
     }
 
     /// <summary>Signals the event loop to exit at the start of the next iteration.</summary>
-    public void Stop() => _running = false;
+    public void Stop()
+    {
+        _running = false;
+        _app?.Exit();
+    }
 
     private void Initialize()
     {
@@ -187,6 +231,26 @@ public sealed class SkiaApplication : IDisposable
         {
             _input.DisableMouseTracking();
         }
+
+        // Wrap a TerminalNinja.App.Application around our renderer + input. This sets
+        // Application.Current (controls like Window.Show / Popup / RadioButton focus
+        // require it), wires the FrameworkElement resource lookup, and gives us
+        // ProcessTick to drive the standard input + render flow without duplicating it.
+        _app = new Application(new ApplicationOptions
+        {
+            RendererOverride = _renderer,
+            InputBackend = _input,
+            EnableMouseTracking = _options.EnableMouseTracking,
+            EnableTabNavigation = _options.EnableTabNavigation,
+            // VSync paces the loop; bypass Application's Thread.Sleep frame limiter.
+            TargetFps = 1000,
+            SuppressConsoleSetup = true,
+        });
+
+        // Application.HandleResizeEvent fires our Resize subscriber after the input pump
+        // sees a ResizeEvent. The console renderer's HandleResize is a no-op for our
+        // sink-backed Renderer, so we do the SDL3-specific rebuild ourselves here.
+        _app.Resize += _ => HandleSdlResize();
     }
 
     /// <summary>
@@ -236,83 +300,11 @@ public sealed class SkiaApplication : IDisposable
             ?? throw new InvalidOperationException("SKSurface.Create (screen) returned null — Skia could not wrap the framebuffer.");
     }
 
-    private bool PumpEvents()
+    private void HandleSdlResize()
     {
-        // Peek SDL events for the display-scale-changed case before the input backend drains
-        // them. The scale change is host-specific (resources to rebuild) and doesn't have a
-        // clean equivalent in TerminalNinja's InputEvent records. We use SDL_PeepEvents-style
-        // logic via the input backend's own state — see SdlInputBackend.ConsumeDisplayScaleChange.
-        if (_input!.ConsumeDisplayScaleChange())
-        {
-            HandleDisplayScaleChange();
-        }
-
-        var events = _input.TryRead();
-        if (_input.QuitRequested)
-        {
-            return false;
-        }
-
-        if (events is null)
-        {
-            return true;
-        }
-
-        foreach (var evt in events)
-        {
-            switch (evt)
-            {
-                case KeyEvent key:
-                    KeyDown?.Invoke(key);
-
-                    if (_options.EscapeQuits && key.Key == ConsoleKey.Escape)
-                    {
-                        return false;
-                    }
-
-                    if (_options.EnableTabNavigation && _root is not null && key.Key == ConsoleKey.Tab)
-                    {
-                        var bounds = new Rect(0, 0, _renderer!.Width, _renderer.Height);
-                        if (key.Shift)
-                        {
-                            FocusManager.FocusPrevious(_root, bounds);
-                        }
-                        else
-                        {
-                            FocusManager.FocusNext(_root, bounds);
-                        }
-
-                        break;
-                    }
-
-                    FocusManager.HandleKeyEvent(key);
-                    break;
-
-                case MouseEvent mouse:
-                    MouseInput?.Invoke(mouse);
-                    if (_root is not null)
-                    {
-                        var bounds = new Rect(0, 0, _renderer!.Width, _renderer.Height);
-                        FocusManager.HandleMouseEvent(_root, bounds, mouse);
-                    }
-
-                    break;
-
-                case ResizeEvent:
-                    // SDL3 also emits SDL_EVENT_WINDOW_PIXEL_SIZE_CHANGED through TryRead's
-                    // internal poll, but the cell-grid resize uses the framebuffer pixel size
-                    // queried directly from SDL — more reliable on HiDPI than the resize event's
-                    // logical-units payload.
-                    HandleResize();
-                    break;
-            }
-        }
-
-        return true;
-    }
-
-    private void HandleResize()
-    {
+        // Called from Application.Resize after the input pump sees a SDL3-originated
+        // ResizeEvent. The console renderer's HandleResize is a no-op for our sink-backed
+        // Renderer, so we own the actual GL surface rebuild here.
         Sdl3.SDL_GetWindowSizeInPixels(_window, out var newPxWidth, out var newPxHeight);
         if (newPxWidth == _pixelWidth && newPxHeight == _pixelHeight)
         {
@@ -327,9 +319,9 @@ public sealed class SkiaApplication : IDisposable
         CreateSurfaces(_pixelWidth, _pixelHeight);
         _sink!.SetSurface(_persistentSurface!);
 
-        // Cell counts are derived from the post-scale cell metrics so the grid stays
-        // sized correctly under HiDPI: resizing on a 2× display gives e.g. 100 cells of
-        // 18px each rather than 200 cells of 9px each.
+        // Cell counts derive from the post-scale cell metrics so a resize on a HiDPI
+        // display gives the expected cell-grid size (e.g. 100 cells of 18px at 2× rather
+        // than 200 cells of 9px).
         var newCellsWide = Math.Max(1, _pixelWidth / _scaledCellWidth);
         var newCellsTall = Math.Max(1, _pixelHeight / _scaledCellHeight);
         _sink.ClearAll(newCellsWide, newCellsTall);
@@ -344,12 +336,15 @@ public sealed class SkiaApplication : IDisposable
             return;
         }
 
-        // Recompute scaled metrics from the new scale, then rebuild every host-owned
-        // resource that depends on them: font, sink (different cell pixel sizes; the
-        // SKTextBlob cache it owns is also implicitly flushed via Dispose), surfaces
-        // (different pixel dimensions), and input backend (different pixel→cell
-        // conversion). The renderer's cell grid stays the same — the control tree was
-        // designed in cell units, not pixels.
+        // Rebuild every host-owned resource whose pixel dimensions depend on scale:
+        // font, sink (different cell pixel sizes; SKTextBlob cache flushes via Dispose),
+        // surfaces (different pixel dimensions). The renderer and input backend stay alive —
+        // they're owned by the inner Application and we hot-swap their state instead:
+        //   • Renderer.SwapSink replaces the sink reference; the buffer + dirty tracking
+        //     keep their cell-grid identity.
+        //   • SdlInputBackend.SetCellMetrics updates pixel→cell conversion in place.
+        // The cell grid (cellsWide / cellsTall) is unchanged — the control tree was designed
+        // in cell units, not pixels.
         UpdateScaledMetrics(newScale);
 
         var newPxWidth = _scaledCellWidth * _options.CellsWide;
@@ -357,54 +352,35 @@ public sealed class SkiaApplication : IDisposable
         Sdl3.SDL_SetWindowSize(_window, newPxWidth, newPxHeight);
         Sdl3.SDL_GetWindowSizeInPixels(_window, out _pixelWidth, out _pixelHeight);
 
-        _sink?.Dispose();
-        _font?.Dispose();
+        var oldSink = _sink;
+        var oldFont = _font;
         _persistentSurface?.Dispose();
         _screenSurface?.Dispose();
-        _input?.Dispose();
 
         _font = new SKFont(_typeface!, _scaledFontSize);
         CreateSurfaces(_pixelWidth, _pixelHeight);
         _sink = new SkiaCellSink(_persistentSurface!, _font, _typeface!, _scaledCellWidth, _scaledCellHeight);
         _sink.ClearAll(_options.CellsWide, _options.CellsTall);
-        _input = new SdlInputBackend(_scaledCellWidth, _scaledCellHeight);
-        if (!_options.EnableMouseTracking)
-        {
-            _input.DisableMouseTracking();
-        }
+        _renderer!.SwapSink(_sink);
+        _input!.SetCellMetrics(_scaledCellWidth, _scaledCellHeight);
+
+        // Dispose old resources after the swap so the renderer never sees a disposed sink.
+        oldSink?.Dispose();
+        oldFont?.Dispose();
 
         // Force a full repaint into the freshly cleared persistent surface — _previous in
         // the cell buffer must be empty so the renderer's diff yields every non-empty cell.
-        _renderer!.InvalidateDisplayCache();
-    }
-
-    private void RenderFrame()
-    {
-        if (_root is null)
-        {
-            return;
-        }
-
-        // Persistent-surface model: the cell sink paints only the dirty region of the
-        // persistent surface each frame, so we deliberately do NOT canvas.Clear() it here.
-        // Non-changing pixels stay intact from previous frames. Initial clear happens at
-        // surface creation; subsequent frames trust the renderer's dirty-region drawing.
-        _renderer!.Clear();
-        _renderer.Draw(_root);
-        _renderer.Present();
-
-        // Blit the persistent surface onto the GL default framebuffer so SDL_GL_SwapWindow
-        // shows the current state. Snapshot on a GPU surface is cheap (texture reference).
-        using var snapshot = _persistentSurface!.Snapshot();
-        _screenSurface!.Canvas.DrawImage(snapshot, 0, 0);
-        _screenSurface.Canvas.Flush();
+        _renderer.InvalidateDisplayCache();
+        _app!.Invalidate();
     }
 
     private void Shutdown()
     {
-        _input?.Dispose();
-        _renderer?.Dispose();
-        _sink?.Dispose();
+        // Dispose the inner Application first — it owns the renderer + input backend (via
+        // RendererOverride / InputBackend injection) and releases them through its own
+        // disposer. The renderer's current sink is also disposed there.
+        _app?.Dispose();
+
         _persistentSurface?.Dispose();
         _screenSurface?.Dispose();
         _font?.Dispose();
@@ -426,6 +402,7 @@ public sealed class SkiaApplication : IDisposable
 
         Sdl3.SDL_Quit();
 
+        _app = null;
         _renderer = null;
         _sink = null;
         _persistentSurface = null;

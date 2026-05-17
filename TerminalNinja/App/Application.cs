@@ -346,27 +346,36 @@ public sealed class Application : IDisposable
 
         _options = options;
 
-        if (options.Headless)
+        // Three configurations:
+        //   1. RendererOverride set — embedded host (e.g. TerminalNinja.Skia). Use the
+        //      caller's renderer and input backend; skip all console-specific setup.
+        //   2. Headless — no real terminal, offscreen renderer. Used by tests and WASM.
+        //   3. Production — real terminal. Console encoding + CancelKeyPress hook.
+        var suppressConsole = options.SuppressConsoleSetup || options.RendererOverride is not null;
+
+        if (options.RendererOverride is not null)
         {
-            // Headless mode: no-op input backend and offscreen renderer.
-            // Used for unit testing and CI environments without a real console.
+            Renderer = options.RendererOverride;
+            _inputReader = new InputReader(options.InputBackend ?? new NullInputBackend());
+        }
+        else if (options.Headless)
+        {
             Renderer = Renderer.CreateOffscreen(options.HeadlessOutputStream ?? Stream.Null, options.HeadlessWidth, options.HeadlessHeight);
             _inputReader = new InputReader(options.InputBackend ?? new NullInputBackend());
         }
         else
         {
-            // Production mode: real terminal
             System.Console.OutputEncoding = Encoding.UTF8;
             System.Console.InputEncoding = Encoding.UTF8;
             Renderer = new Renderer();
             _inputReader = new InputReader();
-            
+
             // Safety net: if Ctrl+C somehow gets delivered as a POSIX signal
             // (e.g. TreatControlCAsInput wasn't effective), cancel the default
             // process termination and request a graceful exit instead.
             System.Console.CancelKeyPress += OnCancelKeyPress;
         }
-        
+
         FocusManager = new FocusManager();
 
         if (_options.EnableMouseTracking)
@@ -374,8 +383,9 @@ public sealed class Application : IDisposable
             _inputReader.EnableMouseTracking();
         }
 
-        // Auto-enable hot reload when a debugger is attached
-        if (!options.Headless)
+        // Auto-enable hot reload when a debugger is attached and we're attached to a real
+        // terminal. Embedded / headless hosts opt out via SuppressConsoleSetup / Headless.
+        if (!options.Headless && !suppressConsole)
         {
             TryAutoEnableHotReload();
         }
