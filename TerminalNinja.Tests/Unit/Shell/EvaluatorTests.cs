@@ -121,19 +121,21 @@ public class EvaluatorTests
     [Test]
     public async Task Eval_RangeLiteral_Inclusive()
     {
+        // Ranges are lazy — they evaluate to NSeq. Materialise here to inspect.
         var v = Run("1..5");
-        if (v is not NList list) throw new InvalidOperationException($"expected NList, got {v.GetType().Name}");
-        await Assert.That(list.Items.Length).IsEqualTo(5);
-        await Assert.That(list.Items[0]).IsEqualTo((NValue)new NInt(1));
-        await Assert.That(list.Items[4]).IsEqualTo((NValue)new NInt(5));
+        if (v is not NSeq seq) throw new InvalidOperationException($"expected NSeq, got {v.GetType().Name}");
+        var items = seq.Items.ToList();
+        await Assert.That(items.Count).IsEqualTo(5);
+        await Assert.That(items[0]).IsEqualTo((NValue)new NInt(1));
+        await Assert.That(items[4]).IsEqualTo((NValue)new NInt(5));
     }
 
     [Test]
     public async Task Eval_RangeLiteral_EmptyWhenLoGreaterThanHi()
     {
         var v = Run("5..1");
-        if (v is not NList list) throw new InvalidOperationException($"expected NList, got {v.GetType().Name}");
-        await Assert.That(list.Items.Length).IsEqualTo(0);
+        if (v is not NSeq seq) throw new InvalidOperationException($"expected NSeq, got {v.GetType().Name}");
+        await Assert.That(seq.Items.Any()).IsFalse();
     }
 
     [Test]

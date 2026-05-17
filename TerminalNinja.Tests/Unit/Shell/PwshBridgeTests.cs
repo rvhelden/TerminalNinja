@@ -105,10 +105,17 @@ public class PwshBridgeTests
             "pwsh { @( @{N=1; Name='a'}, @{N=5; Name='b'}, @{N=3; Name='c'} ) | ForEach-Object { [pscustomobject]$_ } } | where(r => r.N > 2) | select(r => r.Name)",
             EnvWithBridge()).Value;
 
-        if (v is not NList list) throw new InvalidOperationException($"expected NList, got {v.GetType().Name}");
-        await Assert.That(list.Items.Length).IsEqualTo(2);
-        await Assert.That(list.Items).Contains((NValue)new NString("b"));
-        await Assert.That(list.Items).Contains((NValue)new NString("c"));
+        // The pipeline `pwsh { ... } | where(...) | select(...)` produces an NSeq —
+        // materialise to inspect.
+        var items = v switch
+        {
+            NList l => l.Items,
+            NSeq s => System.Collections.Immutable.ImmutableArray.CreateRange(s.Items),
+            _ => throw new InvalidOperationException($"expected NList or NSeq, got {v.GetType().Name}")
+        };
+        await Assert.That(items.Length).IsEqualTo(2);
+        await Assert.That(items).Contains((NValue)new NString("b"));
+        await Assert.That(items).Contains((NValue)new NString("c"));
     }
 
     [Test]

@@ -5,9 +5,14 @@ using TerminalNinja.Shell.Values;
 namespace TerminalNinja.Shell.Builtins;
 
 /// <summary>
-/// First-order pipeline builtins. Every operation takes the sequence as its
-/// first argument so it composes with the <c>|</c> operator without any
-/// special-casing in the parser.
+/// First-order pipeline builtins. Streaming ops (<c>where</c>, <c>select</c>,
+/// <c>take</c>, <c>skip</c>, <c>head</c>) return <see cref="NSeq"/> backed by
+/// yield-generators — they pull from the input on demand. Sinks
+/// (<c>count</c>, <c>fold</c>, <c>sort</c>, <c>distinct</c>, <c>tail</c>,
+/// <c>each</c>) consume the input fully. The <c>materialize</c> builtin
+/// forces an <see cref="NSeq"/> back to an <see cref="NList"/>.
+/// Every op takes the sequence as its first argument so it composes with
+/// the <c>|</c> operator.
 /// </summary>
 public static class PipelineOps
 {
@@ -25,6 +30,7 @@ public static class PipelineOps
         b["distinct"] = NFunc1("distinct", Distinct);
         b["head"] = NFunc1("head", Head);
         b["tail"] = NFunc1("tail", Tail);
+        b["materialize"] = NFunc1("materialize", Materialize);
     }
 
     private static NValue NFunc1(string name, Func<NValue, NValue> f)
@@ -48,10 +54,15 @@ public static class PipelineOps
             return f(args[0], args[1], args[2]);
         }, 3);
 
-    private static ImmutableArray<NValue> Items(NValue seq, string op)
+    /// <summary>
+    /// Pull items from <paramref name="v"/> regardless of whether it's an
+    /// already-materialised <see cref="NList"/> or a lazy <see cref="NSeq"/>.
+    /// </summary>
+    internal static IEnumerable<NValue> AsEnumerable(NValue v, string op)
     {
-        if (seq is NList l) return l.Items;
-        throw new EvaluatorException($"'{op}' requires a list, got {DescribeShort(seq)}");
+        if (v is NList l) return l.Items;
+        if (v is NSeq s) return s.Items;
+        throw new EvaluatorException($"'{op}' requires a list or sequence, got {DescribeShort(v)}");
     }
 
     private static NFunc AsFn(NValue v, string op)
@@ -62,88 +73,110 @@ public static class PipelineOps
 
     private static NValue Where(NValue seq, NValue predicate)
     {
-        var items = Items(seq, "where");
+        var source = AsEnumerable(seq, "where");
         var pred = AsFn(predicate, "where");
-        var b = ImmutableArray.CreateBuilder<NValue>();
-        foreach (var item in items)
+        return new NSeq(WhereImpl(source, pred));
+    }
+
+    private static IEnumerable<NValue> WhereImpl(IEnumerable<NValue> source, NFunc pred)
+    {
+        foreach (var item in source)
         {
             var r = pred.Apply(new[] { item });
-            if (r is NBool nb && nb.Value) b.Add(item);
-            else if (r is not NBool) throw new EvaluatorException("'where' predicate must return a bool");
+            if (r is not NBool nb)
+                throw new EvaluatorException("'where' predicate must return a bool");
+            if (nb.Value) yield return item;
         }
-        return new NList(b.ToImmutable());
     }
 
     private static NValue Select(NValue seq, NValue projection)
     {
-        var items = Items(seq, "select");
+        var source = AsEnumerable(seq, "select");
         var proj = AsFn(projection, "select");
-        var b = ImmutableArray.CreateBuilder<NValue>(items.Length);
-        foreach (var item in items)
-            b.Add(proj.Apply(new[] { item }));
-        return new NList(b.MoveToImmutable());
+        return new NSeq(SelectImpl(source, proj));
+    }
+
+    private static IEnumerable<NValue> SelectImpl(IEnumerable<NValue> source, NFunc proj)
+    {
+        foreach (var item in source)
+            yield return proj.Apply(new[] { item });
     }
 
     private static NValue Each(NValue seq, NValue action)
     {
-        var items = Items(seq, "each");
+        var source = AsEnumerable(seq, "each");
         var act = AsFn(action, "each");
-        foreach (var item in items)
+        foreach (var item in source)
             act.Apply(new[] { item });
         return NUnit.Instance;
     }
 
     private static NValue Fold(NValue seq, NValue initial, NValue combiner)
     {
-        var items = Items(seq, "fold");
+        var source = AsEnumerable(seq, "fold");
         var comb = AsFn(combiner, "fold");
         var acc = initial;
-        foreach (var item in items)
+        foreach (var item in source)
             acc = comb.Apply(new[] { acc, item });
         return acc;
     }
 
     private static NValue Take(NValue seq, NValue n)
     {
-        var items = Items(seq, "take");
+        var source = AsEnumerable(seq, "take");
         if (n is not NInt ni) throw new EvaluatorException("'take' count must be int");
-        int count = (int)Math.Max(0, Math.Min(ni.Value, items.Length));
-        if (count == items.Length) return seq;
-        var b = ImmutableArray.CreateBuilder<NValue>(count);
-        for (int i = 0; i < count; i++) b.Add(items[i]);
-        return new NList(b.MoveToImmutable());
+        return new NSeq(TakeImpl(source, ni.Value));
+    }
+
+    private static IEnumerable<NValue> TakeImpl(IEnumerable<NValue> source, long n)
+    {
+        if (n <= 0) yield break;
+        long taken = 0;
+        foreach (var item in source)
+        {
+            yield return item;
+            taken++;
+            if (taken >= n) yield break;
+        }
     }
 
     private static NValue Skip(NValue seq, NValue n)
     {
-        var items = Items(seq, "skip");
+        var source = AsEnumerable(seq, "skip");
         if (n is not NInt ni) throw new EvaluatorException("'skip' count must be int");
-        int skip = (int)Math.Max(0, Math.Min(ni.Value, items.Length));
-        if (skip == 0) return seq;
-        var b = ImmutableArray.CreateBuilder<NValue>(items.Length - skip);
-        for (int i = skip; i < items.Length; i++) b.Add(items[i]);
-        return new NList(b.MoveToImmutable());
+        return new NSeq(SkipImpl(source, ni.Value));
+    }
+
+    private static IEnumerable<NValue> SkipImpl(IEnumerable<NValue> source, long n)
+    {
+        long skipped = 0;
+        foreach (var item in source)
+        {
+            if (skipped < n) { skipped++; continue; }
+            yield return item;
+        }
     }
 
     private static NValue Count(NValue seq)
     {
-        var items = Items(seq, "count");
-        return new NInt(items.Length);
+        var source = AsEnumerable(seq, "count");
+        long n = 0;
+        foreach (var _ in source) n++;
+        return new NInt(n);
     }
 
     private static NValue Sort(NValue seq)
     {
-        var items = Items(seq, "sort");
-        var arr = items.ToArray();
-        Array.Sort(arr, (a, b) => NValueOps.Compare(a, b));
+        var arr = AsEnumerable(seq, "sort").ToArray();
+        Array.Sort(arr, NValueOps.Compare);
         return new NList(ImmutableArray.Create(arr));
     }
 
     private static NValue Distinct(NValue seq)
     {
-        var items = Items(seq, "distinct");
+        var source = AsEnumerable(seq, "distinct");
         var b = ImmutableArray.CreateBuilder<NValue>();
-        foreach (var item in items)
+        foreach (var item in source)
         {
             bool seen = false;
             foreach (var kept in b)
@@ -157,18 +190,30 @@ public static class PipelineOps
 
     private static NValue Head(NValue seq)
     {
-        var items = Items(seq, "head");
-        if (items.Length == 0) throw new EvaluatorException("'head' on empty list");
-        return items[0];
+        foreach (var item in AsEnumerable(seq, "head"))
+            return item;
+        throw new EvaluatorException("'head' on empty sequence");
     }
 
     private static NValue Tail(NValue seq)
     {
-        var items = Items(seq, "tail");
-        if (items.Length == 0) throw new EvaluatorException("'tail' on empty list");
-        var b = ImmutableArray.CreateBuilder<NValue>(items.Length - 1);
-        for (int i = 1; i < items.Length; i++) b.Add(items[i]);
-        return new NList(b.MoveToImmutable());
+        var source = AsEnumerable(seq, "tail");
+        bool sawAny = false;
+        var b = ImmutableArray.CreateBuilder<NValue>();
+        foreach (var item in source)
+        {
+            if (!sawAny) { sawAny = true; continue; }
+            b.Add(item);
+        }
+        if (!sawAny) throw new EvaluatorException("'tail' on empty sequence");
+        return new NList(b.ToImmutable());
+    }
+
+    private static NValue Materialize(NValue v)
+    {
+        if (v is NList l) return l;
+        if (v is NSeq s) return new NList(ImmutableArray.CreateRange(s.Items));
+        throw new EvaluatorException($"'materialize' requires a list or sequence, got {DescribeShort(v)}");
     }
 
     private static string DescribeShort(NValue v) => v switch
@@ -180,6 +225,7 @@ public static class PipelineOps
         NString => "string",
         NList => "list",
         NRecord => "record",
+        NSeq => "seq",
         NFunc => "function",
         _ => v.GetType().Name,
     };

@@ -103,6 +103,21 @@ public static class NValueOps
                     sb.Append(']');
                     return sb.ToString();
                 }
+            case NSeq seq:
+                {
+                    // Materialise to render — display is a sink. For unbounded
+                    // sources the caller is expected to `take(N)` first.
+                    var sb = new StringBuilder("[");
+                    bool firstSeq = true;
+                    foreach (var item in seq.Items)
+                    {
+                        if (!firstSeq) sb.Append(", ");
+                        firstSeq = false;
+                        sb.Append(FormatForDisplay(item));
+                    }
+                    sb.Append(']');
+                    return sb.ToString();
+                }
             case NRecord rec:
                 {
                     var sb = new StringBuilder("{ ");

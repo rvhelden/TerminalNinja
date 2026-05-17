@@ -158,16 +158,15 @@ public static class NinjaEvaluator
         var hi = Eval(range.Hi, env);
         if (lo is NInt li && hi is NInt hh)
         {
-            if (li.Value > hh.Value) return new NList(ImmutableArray<NValue>.Empty);
-            long count = hh.Value - li.Value + 1;
-            if (count > int.MaxValue)
-                throw new EvaluatorException($"range too large: {li.Value}..{hh.Value}");
-            var b = ImmutableArray.CreateBuilder<NValue>((int)count);
-            for (long i = li.Value; i <= hh.Value; i++)
-                b.Add(new NInt(i));
-            return new NList(b.MoveToImmutable());
+            return new NSeq(EnumerateRange(li.Value, hh.Value));
         }
         throw new EvaluatorException("range bounds must be integers");
+    }
+
+    private static IEnumerable<NValue> EnumerateRange(long lo, long hi)
+    {
+        for (long i = lo; i <= hi; i++)
+            yield return new NInt(i);
     }
 
     private static NValue EvalInterp(InterpExpr interp, Env env)

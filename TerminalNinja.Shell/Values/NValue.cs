@@ -37,8 +37,12 @@ public sealed record NRecord(ImmutableSortedDictionary<string, NValue> Fields);
 public sealed record NVariant(string Tag, ImmutableArray<NValue> Items);
 
 /// <summary>
-/// Lazy / streaming sequence of values. Reserved for future use — MVP pipelines
-/// produce <see cref="NList"/>.
+/// Lazy / streaming sequence of values. Produced by range literals and by the
+/// streaming pipeline operators (<c>where</c>, <c>select</c>, <c>take</c>,
+/// <c>skip</c>, <c>head</c>). The backing <see cref="Items"/> is an
+/// <see cref="IEnumerable{T}"/> — each call to <c>GetEnumerator</c> starts a
+/// fresh walk, so the value is safely re-iterable, but the upstream chain is
+/// recomputed per pass. Iterate once for cheap, iterate twice for double cost.
 /// </summary>
 public sealed record NSeq(IEnumerable<NValue> Items);
 

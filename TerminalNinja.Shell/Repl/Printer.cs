@@ -1,3 +1,4 @@
+using System.Collections.Immutable;
 using System.Text;
 using TerminalNinja.Shell.Runtime;
 using TerminalNinja.Shell.Values;
@@ -15,6 +16,14 @@ public static class Printer
     {
         if (v is NUnit) return string.Empty;
         if (v is NList list && IsTableShaped(list)) return FormatRecordTable(list);
+        if (v is NSeq seq)
+        {
+            // Display is a sink — materialise once into an NList so the
+            // table-shape detector can inspect the rows.
+            var materialised = new NList(ImmutableArray.CreateRange(seq.Items));
+            if (IsTableShaped(materialised)) return FormatRecordTable(materialised);
+            return NValueOps.FormatForDisplay(materialised);
+        }
         return NValueOps.FormatForDisplay(v);
     }
 

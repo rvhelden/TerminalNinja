@@ -13,7 +13,8 @@ public class PipelineTests
     private static NList AsList(NValue v)
     {
         if (v is NList l) return l;
-        throw new InvalidOperationException($"expected NList, got {v.GetType().Name}");
+        if (v is NSeq s) return new NList(ImmutableArray.CreateRange(s.Items));
+        throw new InvalidOperationException($"expected NList or NSeq, got {v.GetType().Name}");
     }
 
     [Test]
