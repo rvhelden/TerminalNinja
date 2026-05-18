@@ -1,0 +1,109 @@
+{
+  "$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
+  "name": "NinjaShell",
+  "scopeName": "source.ninja",
+  "patterns": [
+    { "include": "#comments" },
+    { "include": "#pwsh-block" },
+    { "include": "#keywords" },
+    { "include": "#constants" },
+    { "include": "#interpolated-string" },
+    { "include": "#strings" },
+    { "include": "#numbers" },
+    { "include": "#operators" }
+  ],
+  "repository": {
+    "comments": {
+      "patterns": [
+        {
+          "name": "comment.line.double-slash.ninja",
+          "match": "//.*$"
+        },
+        {
+          "name": "comment.block.ninja",
+          "begin": "/\\*",
+          "end": "\\*/"
+        }
+      ]
+    },
+    "keywords": {
+      "patterns": [
+        {
+          "name": "keyword.control.ninja",
+          "match": "\\b(let|in|switch|source)\\b"
+        }
+      ]
+    },
+    "constants": {
+      "patterns": [
+        {
+          "name": "constant.language.boolean.ninja",
+          "match": "\\b(true|false)\\b"
+        }
+      ]
+    },
+    "interpolated-string": {
+      "name": "string.quoted.double.interpolated.ninja",
+      "begin": "\\$\"",
+      "end": "\"",
+      "patterns": [
+        {
+          "name": "constant.character.escape.ninja",
+          "match": "\\\\."
+        },
+        {
+          "name": "meta.template.expression.ninja",
+          "begin": "\\{",
+          "end": "\\}",
+          "patterns": [
+            { "include": "$self" }
+          ]
+        }
+      ]
+    },
+    "strings": {
+      "name": "string.quoted.double.ninja",
+      "begin": "\"",
+      "end": "\"",
+      "patterns": [
+        {
+          "name": "constant.character.escape.ninja",
+          "match": "\\\\."
+        }
+      ]
+    },
+    "numbers": {
+      "patterns": [
+        {
+          "name": "constant.numeric.float.ninja",
+          "match": "\\b\\d+\\.\\d+\\b"
+        },
+        {
+          "name": "constant.numeric.integer.ninja",
+          "match": "\\b\\d+\\b"
+        }
+      ]
+    },
+    "operators": {
+      "patterns": [
+        {
+          "name": "keyword.operator.ninja",
+          "match": "=>|==|!=|<=|>=|&&|\\|\\||\\.\\.|\\||\\+|-|\\*|/|<|>|="
+        }
+      ]
+    },
+    "pwsh-block": {
+      "name": "meta.embedded.block.powershell.ninja",
+      "begin": "\\b(pwsh)\\s*(\\{)",
+      "beginCaptures": {
+        "1": { "name": "keyword.control.ninja" },
+        "2": { "name": "punctuation.section.embedded.begin.ninja" }
+      },
+      "end": "\\}",
+      "endCaptures": {
+        "0": { "name": "punctuation.section.embedded.end.ninja" }
+      },
+      "contentName": "source.powershell"
+    }
+  }
+}
