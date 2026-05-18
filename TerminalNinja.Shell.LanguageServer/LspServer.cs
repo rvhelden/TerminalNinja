@@ -90,6 +90,9 @@ public sealed class LspServer
             case "textDocument/completion":
                 if (hasId) HandleCompletion(idEl, message, writer);
                 break;
+            case "textDocument/signatureHelp":
+                if (hasId) HandleSignatureHelp(idEl, message, writer);
+                break;
             default:
                 // Unknown request → MethodNotFound (-32601). Unknown notification → ignore.
                 if (hasId) writer.WriteError(idEl, -32601, $"method not supported: {method}");
@@ -111,6 +114,13 @@ public sealed class LspServer
             w.WriteStartObject("completionProvider");
             w.WriteStartArray("triggerCharacters");
             w.WriteStringValue(".");
+            w.WriteEndArray();
+            w.WriteEndObject();
+            // Signature help — triggered when the user opens a paren or moves to the next argument.
+            w.WriteStartObject("signatureHelpProvider");
+            w.WriteStartArray("triggerCharacters");
+            w.WriteStringValue("(");
+            w.WriteStringValue(",");
             w.WriteEndArray();
             w.WriteEndObject();
             w.WriteEndObject();
@@ -179,6 +189,32 @@ public sealed class LspServer
         var cursor = new Position(lineEl.GetInt32(), charEl.GetInt32());
         var items = LanguageService.GetCompletions(text, cursor);
         writer.WriteCompletions(id, items);
+    }
+
+    private void HandleSignatureHelp(JsonElement id, JsonElement message, LspWriter writer)
+    {
+        if (!message.TryGetProperty("params", out var p)
+            || !p.TryGetProperty("textDocument", out var td)
+            || !td.TryGetProperty("uri", out var uriEl)
+            || !p.TryGetProperty("position", out var posEl))
+        {
+            writer.WriteSignatureHelp(id, null);
+            return;
+        }
+        var uri = uriEl.GetString();
+        var text = uri is null ? null : _docs.GetText(uri);
+        if (text is null)
+        {
+            writer.WriteSignatureHelp(id, null);
+            return;
+        }
+        if (!posEl.TryGetProperty("line", out var lineEl) || !posEl.TryGetProperty("character", out var charEl))
+        {
+            writer.WriteSignatureHelp(id, null);
+            return;
+        }
+        var cursor = new Position(lineEl.GetInt32(), charEl.GetInt32());
+        writer.WriteSignatureHelp(id, LanguageService.GetSignatureHelp(text, cursor));
     }
 
     private void HandleDocumentSymbol(JsonElement id, JsonElement message, LspWriter writer)

@@ -1,3 +1,4 @@
+using System.Collections.Immutable;
 using System.Text.RegularExpressions;
 using TerminalNinja.Shell.Ast;
 using TerminalNinja.Shell.Lexer;
@@ -224,6 +225,283 @@ public static class LanguageService
             if (prefix.Length == 0 || d.Name.StartsWith(prefix, StringComparison.Ordinal))
                 dest.Add(new CompletionItem(d.Name, d.Kind, d.Detail, null, d.Documentation));
         }
+    }
+
+    // ─── signature help ─────────────────────────────────────────────────────
+
+    /// <summary>
+    /// Resolve the call site that the cursor is currently inside (an unmatched
+    /// <c>(</c> to the left of the cursor) and return its signature with the
+    /// active parameter index. Returns <see langword="null"/> when the cursor
+    /// isn't inside any call, or when the callable can't be resolved through
+    /// <see cref="BuiltinCatalog"/> or <paramref name="scope"/>.
+    /// </summary>
+    public static SignatureHelp? GetSignatureHelp(string source, Position cursor)
+        => GetSignatureHelp(source, cursor, scope: null);
+
+    /// <inheritdoc cref="GetSignatureHelp(string, Position)"/>
+    public static SignatureHelp? GetSignatureHelp(
+        string source,
+        Position cursor,
+        IReadOnlyDictionary<string, NValue>? scope)
+    {
+        ArgumentNullException.ThrowIfNull(source);
+        var prefix = TakeSourceBeforeCursor(source, cursor);
+        if (!TryFindEnclosingCall(prefix, out var callableEnd, out var openParenIndex, out var activeParam))
+            return null;
+
+        var (targetName, memberName) = ExtractCallTarget(prefix, callableEnd);
+        if (targetName is null) return null;
+
+        // Resolve the descriptor: module.member, top-level builtin, or scope NFunc.
+        BuiltinDescriptor? descriptor = null;
+        if (memberName is not null && BuiltinCatalog.Modules.TryGetValue(targetName, out var members))
+        {
+            foreach (var m in members)
+            {
+                if (m.Name == memberName) { descriptor = m; break; }
+            }
+        }
+        else if (memberName is null)
+        {
+            foreach (var d in BuiltinCatalog.TopLevel)
+            {
+                if (d.Name == targetName) { descriptor = d; break; }
+            }
+        }
+
+        if (descriptor is not null)
+        {
+            return BuildSignatureFromDetail(descriptor.Detail, descriptor.Documentation, activeParam);
+        }
+
+        // Scope fallback — user-defined NFunc. We only know arity, not parameter
+        // names, so build a synthetic "name(arg0, arg1, ...)" label.
+        if (memberName is null && scope is not null
+            && scope.TryGetValue(targetName, out var v) && v is NFunc f)
+        {
+            return BuildScopedNFuncSignature(targetName, f.Arity, activeParam);
+        }
+
+        return null;
+    }
+
+    /// <summary>
+    /// Walk left from end-of-string balancing brackets / strings to find an
+    /// unmatched <c>(</c>. Returns the index of that paren, the index just
+    /// before it (where the callable's last char sits), and the active
+    /// parameter index (count of top-level commas between the paren and the
+    /// end of <paramref name="prefix"/>).
+    /// </summary>
+    private static bool TryFindEnclosingCall(
+        string prefix,
+        out int callableEndExclusive,
+        out int openParenIndex,
+        out int activeParameter)
+    {
+        callableEndExclusive = 0;
+        openParenIndex = -1;
+        activeParameter = 0;
+
+        int depthParen = 0, depthBracket = 0, depthBrace = 0;
+        int commaCount = 0;
+        // Track the comma count *at the level where we'll exit* by remembering
+        // the running comma tally per nested-paren-depth and resetting it on
+        // ascent. Simpler: count commas only when depthParen==0 relative to the
+        // search target paren — i.e., on the path down.
+        var commaStack = new Stack<int>();
+        commaStack.Push(0);
+
+        bool inString = false;
+        char stringDelim = '"';
+        for (int i = prefix.Length - 1; i >= 0; i--)
+        {
+            char c = prefix[i];
+            if (inString)
+            {
+                // Walking backwards: end-of-string boundary is the matching opening quote.
+                // We don't try to interpret backslash escapes from the right (too tricky)
+                // — close-enough heuristic: any quote toggles the flag.
+                if (c == stringDelim) inString = false;
+                continue;
+            }
+            switch (c)
+            {
+                case '"':
+                    inString = true; stringDelim = '"';
+                    break;
+                case ')':
+                    depthParen++;
+                    commaStack.Push(0);
+                    break;
+                case '(':
+                    if (depthParen == 0)
+                    {
+                        // Found the unmatched (. Active param = comma count at this level.
+                        openParenIndex = i;
+                        callableEndExclusive = i;
+                        activeParameter = commaStack.Peek();
+                        return true;
+                    }
+                    depthParen--;
+                    if (commaStack.Count > 1) commaStack.Pop();
+                    break;
+                case ']':
+                    depthBracket++;
+                    break;
+                case '[':
+                    if (depthBracket > 0) depthBracket--;
+                    break;
+                case '}':
+                    depthBrace++;
+                    break;
+                case '{':
+                    if (depthBrace > 0) depthBrace--;
+                    break;
+                case ',':
+                    if (depthParen == 0 && depthBracket == 0 && depthBrace == 0)
+                    {
+                        int top = commaStack.Pop();
+                        commaStack.Push(top + 1);
+                    }
+                    break;
+            }
+        }
+
+        _ = commaCount;
+        return false;
+    }
+
+    /// <summary>
+    /// Read the callable expression to the left of <paramref name="callableEndExclusive"/>:
+    /// a bare identifier <c>foo</c> or a member access <c>module.member</c>.
+    /// Returns <c>(targetName, null)</c> for bare and <c>(targetName, memberName)</c> for
+    /// member access. Whitespace between identifier and <c>(</c> is allowed.
+    /// </summary>
+    private static (string? Target, string? Member) ExtractCallTarget(string prefix, int callableEndExclusive)
+    {
+        int i = callableEndExclusive - 1;
+        while (i >= 0 && (prefix[i] == ' ' || prefix[i] == '\t')) i--;
+        if (i < 0) return (null, null);
+
+        int wordEnd = i + 1;
+        while (i >= 0 && IsIdentifierChar(prefix[i])) i--;
+        if (wordEnd - (i + 1) <= 0) return (null, null);
+        string first = prefix.Substring(i + 1, wordEnd - (i + 1));
+
+        if (i >= 0 && prefix[i] == '.')
+        {
+            int dotPos = i;
+            i--;
+            int outerEnd = dotPos;
+            while (i >= 0 && IsIdentifierChar(prefix[i])) i--;
+            if (outerEnd - (i + 1) <= 0) return (first, null);
+            string outer = prefix.Substring(i + 1, outerEnd - (i + 1));
+            return (outer, first);
+        }
+        return (first, null);
+    }
+
+    /// <summary>
+    /// Parse a builtin's <c>name(arg, arg, …)</c> Detail string into a
+    /// <see cref="SignatureHelp"/>, splitting on top-level commas to locate
+    /// each parameter's substring range inside the label.
+    /// </summary>
+    private static SignatureHelp BuildSignatureFromDetail(string detail, string? documentation, int activeParam)
+    {
+        int open = detail.IndexOf('(');
+        int close = detail.LastIndexOf(')');
+        if (open < 0 || close <= open)
+        {
+            return new SignatureHelp(detail, ImmutableArray<SignatureParameter>.Empty, 0, documentation);
+        }
+        string between = detail.Substring(open + 1, close - open - 1);
+        var ranges = SplitTopLevelCommas(between, open + 1);
+        var b = ImmutableArray.CreateBuilder<SignatureParameter>(ranges.Count);
+        foreach (var r in ranges)
+        {
+            var label = detail.Substring(r.Start, r.Length);
+            b.Add(new SignatureParameter(label, r.Start, r.Length, null));
+        }
+        // Don't clamp ActiveParameter to Count-1 — when the user types past the
+        // declared arity, renderers should show no highlight (or "extra argument")
+        // rather than pin to the last param and mislead.
+        return new SignatureHelp(detail, b.ToImmutable(), activeParam, documentation);
+    }
+
+    /// <summary>Synthesise a label and parameter list for a scope-bound NFunc whose param names aren't known.</summary>
+    private static SignatureHelp BuildScopedNFuncSignature(string name, int arity, int activeParam)
+    {
+        var sb = new System.Text.StringBuilder();
+        sb.Append(name).Append('(');
+        var b = ImmutableArray.CreateBuilder<SignatureParameter>(arity);
+        for (int i = 0; i < arity; i++)
+        {
+            if (i > 0) sb.Append(", ");
+            int start = sb.Length;
+            string p = $"arg{i}";
+            sb.Append(p);
+            b.Add(new SignatureParameter(p, start, p.Length, null));
+        }
+        sb.Append(')');
+        return new SignatureHelp(sb.ToString(), b.ToImmutable(), activeParam, $"user-defined function ({arity} arg{(arity == 1 ? "" : "s")})");
+    }
+
+    /// <summary>
+    /// Split <paramref name="between"/> on top-level commas, returning each
+    /// piece's substring range relative to the original Detail string
+    /// (i.e. offset by <paramref name="absoluteStart"/>). Top-level means
+    /// outside <c>()</c>, <c>[]</c>, <c>{}</c>, and string literals.
+    /// </summary>
+    private static List<(int Start, int Length)> SplitTopLevelCommas(string between, int absoluteStart)
+    {
+        var ranges = new List<(int Start, int Length)>();
+        if (between.Length == 0) return ranges;
+        int depthParen = 0, depthBracket = 0, depthBrace = 0;
+        bool inString = false;
+        char stringDelim = '"';
+        int segStart = 0;
+        int i = 0;
+        // Trim leading whitespace on the first segment.
+        while (i < between.Length && (between[i] == ' ' || between[i] == '\t')) { i++; segStart = i; }
+        for (; i < between.Length; i++)
+        {
+            char c = between[i];
+            if (inString)
+            {
+                if (c == '\\' && i + 1 < between.Length) { i++; continue; }
+                if (c == stringDelim) inString = false;
+                continue;
+            }
+            switch (c)
+            {
+                case '"':
+                    inString = true; stringDelim = '"'; break;
+                case '(': depthParen++; break;
+                case ')': if (depthParen > 0) depthParen--; break;
+                case '[': depthBracket++; break;
+                case ']': if (depthBracket > 0) depthBracket--; break;
+                case '{': depthBrace++; break;
+                case '}': if (depthBrace > 0) depthBrace--; break;
+                case ',' when depthParen == 0 && depthBracket == 0 && depthBrace == 0:
+                    {
+                        int end = i;
+                        // Trim trailing whitespace.
+                        while (end > segStart && (between[end - 1] == ' ' || between[end - 1] == '\t')) end--;
+                        ranges.Add((absoluteStart + segStart, end - segStart));
+                        int next = i + 1;
+                        while (next < between.Length && (between[next] == ' ' || between[next] == '\t')) next++;
+                        segStart = next;
+                        i = next - 1; // for-loop will ++
+                        break;
+                    }
+            }
+        }
+        // Tail segment.
+        int tailEnd = between.Length;
+        while (tailEnd > segStart && (between[tailEnd - 1] == ' ' || between[tailEnd - 1] == '\t')) tailEnd--;
+        if (tailEnd > segStart) ranges.Add((absoluteStart + segStart, tailEnd - segStart));
+        return ranges;
     }
 
     // ─── hover ──────────────────────────────────────────────────────────────

@@ -139,9 +139,48 @@ public sealed class LspWriter
                 w.WriteNumber("kind", (int)item.Kind);
                 if (item.Detail is not null) w.WriteString("detail", item.Detail);
                 if (item.InsertText is not null) w.WriteString("insertText", item.InsertText);
+                if (item.Documentation is not null) w.WriteString("documentation", item.Documentation);
                 w.WriteEndObject();
             }
             w.WriteEndArray();
+            w.WriteEndObject();
+        });
+    }
+
+    /// <summary>
+    /// Write a <c>textDocument/signatureHelp</c> response. Sends one signature (the
+    /// one we resolved) with the active parameter index set. LSP allows multiple
+    /// signatures for overloads — NinjaShell builtins aren't overloaded, so we
+    /// always emit exactly one.
+    /// </summary>
+    public void WriteSignatureHelp(JsonElement id, SignatureHelp? help)
+    {
+        WriteResponse(id, w =>
+        {
+            if (help is null) { w.WriteNullValue(); return; }
+            w.WriteStartObject();
+            w.WriteStartArray("signatures");
+            w.WriteStartObject();
+            w.WriteString("label", help.Label);
+            if (help.Documentation is not null) w.WriteString("documentation", help.Documentation);
+            w.WriteStartArray("parameters");
+            foreach (var p in help.Parameters)
+            {
+                w.WriteStartObject();
+                // LSP allows label to be a string or [int, int] range — we send the range
+                // so the client can highlight inside the signature's main label.
+                w.WriteStartArray("label");
+                w.WriteNumberValue(p.LabelStart);
+                w.WriteNumberValue(p.LabelStart + p.LabelLength);
+                w.WriteEndArray();
+                if (p.Documentation is not null) w.WriteString("documentation", p.Documentation);
+                w.WriteEndObject();
+            }
+            w.WriteEndArray();
+            w.WriteEndObject();
+            w.WriteEndArray();
+            w.WriteNumber("activeSignature", 0);
+            w.WriteNumber("activeParameter", help.ActiveParameter);
             w.WriteEndObject();
         });
     }
