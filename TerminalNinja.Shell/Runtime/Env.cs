@@ -57,6 +57,31 @@ public sealed class Env
     public bool Contains(string name) => _bindings.ContainsKey(name);
 
     /// <summary>
+    /// Mutates an existing binding's value in place. Returns <c>false</c> if <paramref name="name"/>
+    /// is not bound. Intended for tooling (REPL inspectors, debuggers) that want to overwrite a
+    /// value the user already named with <c>let</c> — same identity-preserving semantics as
+    /// closures capturing the <see cref="EnvRef"/> by reference, so updates are visible to any
+    /// closure that captured this slot.
+    /// </summary>
+    /// <remarks>
+    /// Does NOT create a new binding. Use <see cref="Extend"/> or evaluate <c>let name = …</c>
+    /// through the parser for that. Use this when you want callers' references to keep
+    /// pointing at the same <see cref="Env"/> instance.
+    /// </remarks>
+    public bool TrySetBindingValue(string name, NValue value)
+    {
+        ArgumentException.ThrowIfNullOrEmpty(name);
+
+        if (!_bindings.TryGetValue(name, out var slot))
+        {
+            return false;
+        }
+
+        slot.Value = value;
+        return true;
+    }
+
+    /// <summary>
     /// Enumerates the currently bound names with their resolved values, in arbitrary order.
     /// Reads through each <see cref="EnvRef"/> at the moment of iteration — recursive bindings
     /// that haven't filled their slot yet surface as <see cref="NUnit.Instance"/>. Intended for
