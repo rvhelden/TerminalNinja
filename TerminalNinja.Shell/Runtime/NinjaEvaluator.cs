@@ -204,9 +204,7 @@ public static class NinjaEvaluator
     {
         if (callable is not NFunc f)
             throw new EvaluatorException($"value of type {NValueDescriber.Describe(callable)} is not callable");
-        var arr = new NValue[args.Length];
-        for (int i = 0; i < args.Length; i++) arr[i] = args[i];
-        return f.Apply(arr);
+        return f.Apply([.. args]);
     }
 
     private static NValue EvalSwitch(Switch sw, Env env)

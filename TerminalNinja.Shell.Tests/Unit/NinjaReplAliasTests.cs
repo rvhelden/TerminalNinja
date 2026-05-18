@@ -57,9 +57,13 @@ public class NinjaReplAliasTests
     [Test]
     public async Task QuotedArg_KeepsSpacesAsSingleArg()
     {
-        // echo (println) called with a single arg containing a space.
-        var (stdout, _) = RunRepl("echo \"two words\"");
-        await Assert.That(stdout.Contains("two words")).IsTrue();
+        // Single quoted token must reach fs.is_dir as ONE arg. A non-existent
+        // directory still parses correctly: arity-OK call returns NBool false.
+        // If the tokenizer split on spaces inside quotes the call would arrive
+        // with 3 args and fs.is_dir would throw "expects 1 argument, got 3".
+        var (stdout, stderr) = RunRepl("alias.set(\"isd\", fs.is_dir)\nisd \"no such dir here\"");
+        await Assert.That(stdout.Contains("false")).IsTrue();
+        await Assert.That(stderr.Contains("got 3")).IsFalse();
     }
 
     [Test]
