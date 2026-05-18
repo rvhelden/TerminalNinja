@@ -181,6 +181,152 @@ public static class LanguageService
         }
     }
 
+    // ─── hover ──────────────────────────────────────────────────────────────
+
+    /// <summary>
+    /// Resolves the identifier or <c>module.member</c> path under the cursor to its
+    /// <see cref="BuiltinCatalog"/> entry and returns its signature/detail. Returns
+    /// <see langword="null"/> when the cursor isn't sitting on an identifier or the
+    /// identifier doesn't match anything in the catalog (user-defined names get no
+    /// hover info for now — the evaluator's <see cref="Env"/> isn't part of this
+    /// pure-function service).
+    /// </summary>
+    public static Hover? GetHover(string source, Position cursor)
+    {
+        ArgumentNullException.ThrowIfNull(source);
+        if (!TryFindWordAtCursor(source, cursor, out var startCol, out var endCol, out var word))
+        {
+            return null;
+        }
+
+        // Look back further: if there's a `.` immediately before this word, treat it as
+        // member access and walk back one more identifier to get the module name.
+        if (startCol > 0 && GetCharAt(source, cursor.Line, startCol - 1) == '.')
+        {
+            if (TryReadIdentifierEndingAt(source, cursor.Line, startCol - 1, out var modStart, out var modName))
+            {
+                if (BuiltinCatalog.Modules.TryGetValue(modName, out var members))
+                {
+                    foreach (var d in members)
+                    {
+                        if (d.Name == word)
+                        {
+                            return Make(d, cursor.Line, startCol, endCol);
+                        }
+                    }
+                }
+                // Fall through: maybe the bare word resolves on its own.
+                _ = modStart;
+            }
+        }
+
+        // Bare identifier: check top-level builtins, keywords, and module names.
+        foreach (var d in BuiltinCatalog.TopLevel)
+        {
+            if (d.Name == word) return Make(d, cursor.Line, startCol, endCol);
+        }
+        foreach (var d in BuiltinCatalog.Keywords)
+        {
+            if (d.Name == word) return Make(d, cursor.Line, startCol, endCol);
+        }
+        if (BuiltinCatalog.Modules.TryGetValue(word, out _))
+        {
+            var members = BuiltinCatalog.Modules[word];
+            var summary = $"module {word}\n\nmembers: {string.Join(", ", members.Select(m => m.Name))}";
+            return new Hover(summary, RangeOnLine(cursor.Line, startCol, endCol));
+        }
+
+        return null;
+
+        static Hover Make(BuiltinDescriptor d, int line, int startCol, int endCol)
+            => new($"{d.Name} — {d.Detail}", RangeOnLine(line, startCol, endCol));
+    }
+
+    /// <summary>
+    /// Finds the identifier the cursor sits in or immediately to the right of. Returns
+    /// the [start, end) column range (0-based) and the identifier text. Mirrors how
+    /// editors typically pick a hover target — if the cursor is at the end of a word,
+    /// we still want that word.
+    /// </summary>
+    private static bool TryFindWordAtCursor(string source, Position cursor, out int startCol, out int endCol, out string word)
+    {
+        startCol = 0;
+        endCol = 0;
+        word = string.Empty;
+        if (cursor.Line < 0 || cursor.Character < 0) return false;
+
+        var line = GetLine(source, cursor.Line);
+        if (line is null) return false;
+
+        var col = Math.Min(cursor.Character, line.Length);
+
+        // Walk left to find the start of an identifier we're sitting in.
+        var s = col;
+        while (s > 0 && IsIdentifierChar(line[s - 1])) s--;
+        // Walk right from `s` to find the end of the identifier.
+        var e = s;
+        while (e < line.Length && IsIdentifierChar(line[e])) e++;
+        if (s == e) return false;
+
+        // Reject pure-numeric tokens — those aren't named symbols.
+        if (line[s] >= '0' && line[s] <= '9') return false;
+
+        startCol = s;
+        endCol = e;
+        word = line.Substring(s, e - s);
+        return true;
+    }
+
+    private static bool TryReadIdentifierEndingAt(string source, int line, int beforeCol, out int startCol, out string ident)
+    {
+        startCol = 0;
+        ident = string.Empty;
+        var lineText = GetLine(source, line);
+        if (lineText is null) return false;
+
+        var e = beforeCol;
+        if (e <= 0 || e > lineText.Length) return false;
+        var s = e;
+        while (s > 0 && IsIdentifierChar(lineText[s - 1])) s--;
+        if (s == e) return false;
+        if (lineText[s] >= '0' && lineText[s] <= '9') return false;
+
+        startCol = s;
+        ident = lineText.Substring(s, e - s);
+        return true;
+    }
+
+    private static char GetCharAt(string source, int line, int col)
+    {
+        var text = GetLine(source, line);
+        if (text is null || col < 0 || col >= text.Length) return '\0';
+        return text[col];
+    }
+
+    private static string? GetLine(string source, int lineIndex)
+    {
+        if (lineIndex < 0) return null;
+        int start = 0;
+        int line = 0;
+        while (line < lineIndex && start < source.Length)
+        {
+            if (source[start] == '\n') line++;
+            start++;
+        }
+        if (line < lineIndex) return null;
+        var end = start;
+        while (end < source.Length && source[end] != '\n') end++;
+        // Drop a trailing '\r' so CRLF line endings don't leak into the returned text.
+        if (end > start && source[end - 1] == '\r') end--;
+        return source.Substring(start, end - start);
+    }
+
+    private static bool IsIdentifierChar(char c)
+        => (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9') || c == '_';
+
+    private static Range RangeOnLine(int line, int startCol, int endCol)
+        => new(new Position(line, startCol), new Position(line, endCol));
+
     /// <summary>
     /// Take source up to (but not past) the given 0-based <paramref name="cursor"/>
     /// position. If the cursor is past end-of-line, clamps to end-of-line. If
