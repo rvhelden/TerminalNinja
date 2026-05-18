@@ -23,6 +23,7 @@ public static class SyntaxHighlighterRegistry
         Register(new NinjaSyntaxHighlighter());
         Register(new JsonSyntaxHighlighter());
         Register(new XmlSyntaxHighlighter());
+        Register(new RecordSyntaxHighlighter());
     }
 
     /// <summary>Adds or replaces the highlighter registered under
