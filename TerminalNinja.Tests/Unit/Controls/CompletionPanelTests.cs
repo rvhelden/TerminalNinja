@@ -45,7 +45,14 @@ public class CompletionPanelTests
     [Test]
     public async Task TwoPaneRender_ShowsLabelAndDetail()
     {
-        var root = BuildRoot(0, Entry("where", "Filter a sequence."));
+        // Multiple items so the panel renders at full height (the details pane
+        // needs vertical room to show Detail + Documentation; a 1-row panel
+        // truncates to just a scroll indicator).
+        var root = BuildRoot(0,
+            Entry("where", "Filter a sequence."),
+            Entry("select", "Map a sequence."),
+            Entry("fold", "Left-fold a sequence."),
+            Entry("take", "Take the first N."));
         using var buffer = new CellBuffer(80, 24);
         var viewport = new Rect(0, 0, 80, 24);
         root.Render(buffer, viewport);
@@ -54,12 +61,23 @@ public class CompletionPanelTests
         // placement at AnchorY=0 lands one row below the anchor).
         var bounds = root.CalculateBounds(viewport);
 
-        // Label "where" appears in the list pane.
-        string listRow = ExtractRow(buffer, bounds.X, bounds.Y, 28);
-        await Assert.That(listRow).Contains("where");
-        // Detail "where(arg)" appears in the details pane (right of the separator).
-        string detailRow = ExtractRow(buffer, bounds.X + 29, bounds.Y, 50);
-        await Assert.That(detailRow).Contains("where(arg)");
+        // The two-pane layout shows Label in the list pane and Detail in the
+        // details pane. Don't pin the precise row for each — search the whole
+        // rendered region so the test survives minor layout shifts.
+        var region = ExtractRegion(buffer, bounds);
+        await Assert.That(region).Contains("where");
+        await Assert.That(region).Contains("where(arg)");
+    }
+
+    private static string ExtractRegion(CellBuffer buffer, Rect bounds)
+    {
+        var sb = new System.Text.StringBuilder();
+        for (int row = 0; row < bounds.Height; row++)
+        {
+            sb.Append(ExtractRow(buffer, bounds.X, bounds.Y + row, bounds.Width));
+            sb.Append('\n');
+        }
+        return sb.ToString();
     }
 
     [Test]

@@ -31,6 +31,15 @@ public sealed class Sdl3Clipboard : IClipboard
     public void SetText(string text)
     {
         ArgumentNullException.ThrowIfNull(text);
-        Sdl3.SDL_SetClipboardText(text);
+        // SDL_SetClipboardText returns SDL_bool (true on success). Failures
+        // used to be silent — surface them as an exception so callers can
+        // log / display the underlying SDL error rather than silently
+        // dropping the user's copy.
+        if (!Sdl3.SDL_SetClipboardText(text))
+        {
+            var errPtr = Sdl3.SDL_GetError();
+            var err = errPtr == IntPtr.Zero ? "unknown error" : Marshal.PtrToStringUTF8(errPtr) ?? "unknown error";
+            throw new InvalidOperationException($"SDL_SetClipboardText failed: {err}");
+        }
     }
 }

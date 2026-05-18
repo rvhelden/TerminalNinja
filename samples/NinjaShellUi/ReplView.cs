@@ -481,13 +481,42 @@ public sealed class ReplView : Control
         InvalidationCallback?.Invoke();
     }
 
-    /// <summary>Copy the current selection to <see cref="TerminalNinja.App.Application.Clipboard"/>.</summary>
-    private void CopyToClipboard()
+    /// <summary>
+    /// Copy the current selection to the OS clipboard via
+    /// <see cref="TerminalNinja.App.Application.Clipboard"/>. On success the
+    /// selection is cleared (so the next keystroke / click doesn't see stale
+    /// highlight). Failures surface as a single output line so the user knows
+    /// why nothing landed on the clipboard.
+    /// </summary>
+    /// <returns><c>true</c> when the clipboard accepted the text.</returns>
+    private bool CopyToClipboard()
     {
-        if (!HasSelection) return;
+        if (!HasSelection) return false;
         var text = BuildSelectionText();
-        if (text.Length == 0) return;
-        TerminalNinja.App.Application.Current?.Clipboard.SetText(text);
+        if (text.Length == 0) return false;
+
+        var clipboard = TerminalNinja.App.Application.Current?.Clipboard;
+        if (clipboard is null)
+        {
+            AppendOutput("copy: clipboard is unavailable (no Application context)");
+            return false;
+        }
+
+        try
+        {
+            clipboard.SetText(text);
+        }
+        catch (Exception ex)
+        {
+            AppendOutput($"copy: failed — {ex.Message}");
+            return false;
+        }
+
+        // Most editors leave the selection visible after Ctrl+C, but in this
+        // REPL the next keystroke is usually a buffer edit (or Esc) — keeping
+        // the highlight around after a successful copy just gets in the way.
+        ClearSelection();
+        return true;
     }
 
     /// <summary>
@@ -846,6 +875,7 @@ public sealed class ReplView : Control
                 // Copy — only handle when there's an active selection so plain
                 // Ctrl+C with no selection falls through to whatever the host
                 // wants (e.g. cancel-current-command in a future revision).
+                // CopyToClipboard clears the selection on success.
                 if (HasSelection) { CopyToClipboard(); return; }
                 break;
             case ConsoleKey.Escape when HasSelection:
@@ -1245,6 +1275,13 @@ public sealed class ReplView : Control
         if (e.Button == MouseButton.Left && e.Action == MouseAction.Press)
         {
             BeginSelection(e);
+            return;
+        }
+        // Right-click — copy the active selection (if any) and clear it. The
+        // press alone is enough; we don't track a drag for right-button.
+        if (e.Button == MouseButton.Right && e.Action == MouseAction.Press)
+        {
+            if (HasSelection) CopyToClipboard();
             return;
         }
         if (_isMouseDragging && e.Action == MouseAction.Move)
