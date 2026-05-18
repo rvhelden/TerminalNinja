@@ -14,21 +14,29 @@ public class BindingTests
         private string _text = "Initial";
         private int _count = 0;
         private ICommand? _command;
-        
+        private int _slotSize = 7;
+
         public string Text
         {
             get => _text;
             set => SetProperty(ref _text, value);
         }
-        
+
         public int Count
         {
             get => _count;
             set => SetProperty(ref _count, value);
         }
-        
+
+        /// <summary>Integer source for binding to attached properties such as StackPanel.FixedSize.</summary>
+        public int SlotSize
+        {
+            get => _slotSize;
+            set => SetProperty(ref _slotSize, value);
+        }
+
         public ICommand TestCommand => _command ??= new RelayCommand(OnCommand);
-        
+
         private void OnCommand()
         {
             Count++;
@@ -170,8 +178,40 @@ public class BindingTests
         
         // Change DataContext — triggers OnDataContextChanged → InvalidateDataContextBindings
         label.DataContext = viewModel2;
-        
+
         // Assert - bound to second VM
         await Assert.That(label.Text).IsEqualTo("VM2");
+    }
+
+    [Test]
+    public async Task Binding_AttachedProperty_OneWay_UpdatesTargetWhenSourceChanges()
+    {
+        // Regression: the XAML loader used to push attached-property values straight into
+        // ConvertValue, which threw FormatException when the value was a markup extension
+        // like "{Binding ...}". Attached-property bindings must route through the same
+        // pending-binding pipeline as regular DPs, but with the owner type carried so the
+        // DP lookup walks the StackPanel hierarchy rather than the target's own hierarchy.
+        var xaml = """
+            <StackPanel xmlns="http://schemas.terminalninja.dev/xaml" Orientation="Horizontal">
+                <Border StackPanel.SizeMode="Fixed"
+                        StackPanel.FixedSize="{Binding SlotSize}" />
+            </StackPanel>
+            """;
+
+        var viewModel = new TestViewModel();
+
+        var stack = TerminalXaml.Load<StackPanel>(xaml, viewModel);
+        var child = stack.Children[0];
+
+        // Initial value flowed through the binding.
+        await Assert.That(StackPanel.GetFixedSize(child)).IsEqualTo(7);
+
+        // Source change propagates.
+        viewModel.SlotSize = 42;
+        await Assert.That(StackPanel.GetFixedSize(child)).IsEqualTo(42);
+
+        // And collapsing to zero still works — used by the toggleable-panels pattern.
+        viewModel.SlotSize = 0;
+        await Assert.That(StackPanel.GetFixedSize(child)).IsEqualTo(0);
     }
 }

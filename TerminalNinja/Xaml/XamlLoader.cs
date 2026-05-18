@@ -432,7 +432,7 @@ internal sealed class XamlLoader
             return base.TryFindResource(key);
         }
 
-        public override void Render(CellBuffer buffer, Rect parentBounds) { }
+        protected override void OnRender(CellBuffer buffer, Rect parentBounds) { }
         public override Rect CalculateBounds(Rect parentBounds) => default;
         public override Size2D GetPreferredSize(Rect parentBounds) => default;
     }
@@ -1054,6 +1054,27 @@ internal sealed class XamlLoader
                 $"Cannot resolve attached property owner type '{ownerTypeName}' for '{dotNotation}'");
         }
 
+        var trimmedValue = value.Trim();
+
+        // Markup extensions on attached properties — same {Binding} / {StaticResource} syntax
+        // as regular properties, just routed against an attached DP (registered on the owner
+        // type, not the target). Without this branch the raw text "{Binding Foo}" hits
+        // ConvertValue and throws a FormatException trying to parse it as the target type.
+        if (trimmedValue.StartsWith("{Binding", StringComparison.Ordinal))
+        {
+            ParseBindingExtension(instance, propertyName, trimmedValue, FindAncestorFe(instance), ownerType);
+            return;
+        }
+
+        if (trimmedValue.StartsWith("{StaticResource", StringComparison.Ordinal))
+        {
+            // Resolve the resource immediately and feed it to the setter — static resources
+            // are a one-shot lookup, not an ongoing binding, so the existing setter path is
+            // fine once we have the resolved value.
+            ParseStaticResourceForAttached(instance, ownerType, propertyName, trimmedValue);
+            return;
+        }
+
         // Look up the setter in the AOT-safe registry
         if (!AttachedPropertySetterRegistry.TryGetSetter(ownerType, propertyName, out var setter))
         {
@@ -1064,6 +1085,39 @@ internal sealed class XamlLoader
         // Convert the string value to the parameter type
         var converted = ConvertValue(value, setter.ParameterType);
         setter.Setter(instance, converted);
+    }
+
+    /// <summary>
+    /// Walks up from <paramref name="instance"/> via <see cref="FrameworkElement.Parent"/> to
+    /// find the nearest <see cref="FrameworkElement"/>, used as the binding context (for
+    /// resolving converters / static resources at activation time).
+    /// </summary>
+    private static FrameworkElement? FindAncestorFe(object instance)
+    {
+        if (instance is FrameworkElement fe) return fe;
+        return null;
+    }
+
+    /// <summary>
+    /// Handles <c>{StaticResource Key}</c> when used as an attached-property value.
+    /// </summary>
+    private void ParseStaticResourceForAttached(object instance, Type ownerType, string propertyName, string markup)
+    {
+        var inner = markup[1..^1].Trim();
+        if (inner.StartsWith("StaticResource", StringComparison.Ordinal))
+        {
+            inner = inner["StaticResource".Length..].Trim();
+        }
+
+        if (!AttachedPropertySetterRegistry.TryGetSetter(ownerType, propertyName, out var setter))
+        {
+            throw new InvalidOperationException(
+                $"Attached property setter '{ownerType.Name}.Set{propertyName}' not found in AttachedPropertySetterRegistry");
+        }
+
+        _pendingStaticResources.Add(new PendingStaticResource(
+            instance, ownerType, propertyName, inner, instance as FrameworkElement));
+        _ = setter; // resolved at activation time
     }
 
     /// <summary>
@@ -1228,7 +1282,7 @@ internal sealed class XamlLoader
     /// Supports: Path, Mode, Converter={StaticResource Key}, ConverterParameter=Value,
     ///           RelativeSource={RelativeSource Self|FindAncestor, AncestorType=TypeName, AncestorLevel=N}
     /// </summary>
-    private void ParseBindingExtension(object target, string targetPropertyName, string markup, FrameworkElement? context)
+    private void ParseBindingExtension(object target, string targetPropertyName, string markup, FrameworkElement? context, Type? attachedOwnerType = null)
     {
         // Strip braces: "{Binding Path=Text}" → "Binding Path=Text"
         var inner = markup[1..^1].Trim();
@@ -1300,7 +1354,8 @@ internal sealed class XamlLoader
         _pendingBindings.Add(new PendingBinding(target, targetPropertyName, path, mode, converter, converterParameter)
         {
             Context = context,
-            RelativeSource = relativeSource
+            RelativeSource = relativeSource,
+            AttachedOwnerType = attachedOwnerType,
         });
     }
 
@@ -1753,8 +1808,12 @@ internal sealed class XamlLoader
                 continue;
             }
 
-            // Look up the DependencyProperty by name, walking the type hierarchy.
-            var dp = DependencyProperty.Find(depObj.GetType(), pb.TargetPropertyName);
+            // Look up the DependencyProperty by name. For attached-property bindings the
+            // DP is registered against the owner type (e.g. StackPanel), not against the
+            // target's own type — so the binding for "StackPanel.FixedSize" needs
+            // Find(StackPanel, FixedSize), not Find(Border, FixedSize).
+            var lookupType = pb.AttachedOwnerType ?? depObj.GetType();
+            var dp = DependencyProperty.Find(lookupType, pb.TargetPropertyName);
 
             if (dp == null)
             {
@@ -1763,7 +1822,7 @@ internal sealed class XamlLoader
                 // CLR-only bindings via a wrapper expression, but WPF itself requires DPs.
                 System.Diagnostics.Debug.WriteLine(
                     $"Binding skipped: no DependencyProperty '{pb.TargetPropertyName}' found on " +
-                    $"'{depObj.GetType().Name}'. Only DP-backed properties support data binding.");
+                    $"'{lookupType.Name}'. Only DP-backed properties support data binding.");
                 continue;
             }
 
@@ -1807,6 +1866,14 @@ internal sealed class XamlLoader
         /// When set, the binding source is determined by the RelativeSource instead of DataContext.
         /// </summary>
         public RelativeSource? RelativeSource { get; init; }
+
+        /// <summary>
+        /// Owner type for an attached-property binding (e.g. <c>StackPanel</c> for
+        /// <c>StackPanel.FixedSize="{Binding …}"</c>). When non-null, <see cref="ActivateBindings"/>
+        /// resolves the <see cref="DependencyProperty"/> via <see cref="DependencyProperty.Find"/>
+        /// on this owner instead of on the target's own type.
+        /// </summary>
+        public Type? AttachedOwnerType { get; init; }
     }
 
     private sealed record PendingStaticResource(
