@@ -40,12 +40,14 @@ public static class Printer
             return displayed;
         }
         if (v is NList list && IsTableShaped(list)) return FormatRecordTable(list);
+        if (v is NList strList && IsStringListShaped(strList)) return FormatStringList(strList);
         if (v is NSeq seq)
         {
             // Display is a sink — materialise once into an NList so the
             // table-shape detector can inspect the rows.
             var materialised = new NList(ImmutableArray.CreateRange(seq.Items));
             if (IsTableShaped(materialised)) return FormatRecordTable(materialised);
+            if (IsStringListShaped(materialised)) return FormatStringList(materialised);
             return NValueOps.FormatForDisplay(materialised);
         }
         // Multi-line strings are treated as pre-formatted output (obj.dump, obj.table,
@@ -96,6 +98,35 @@ public static class Printer
         for (int i = 0; i < list.Items.Length; i++)
             if (list.Items[i] is not NRecord) return false;
         return true;
+    }
+
+    /// <summary>
+    /// True when <paramref name="list"/> is a non-empty list whose items are all
+    /// strings. Used by <see cref="Format"/> and <c>obj.table</c> so a one-column
+    /// projection (<c>fs.ls() | select(x =&gt; $"…{x.Name}")</c>) prints as one
+    /// string per line rather than the bracketed <c>["a", "b"]</c> array form.
+    /// </summary>
+    public static bool IsStringListShaped(NList list)
+    {
+        if (list.Items.Length == 0) return false;
+        for (int i = 0; i < list.Items.Length; i++)
+            if (list.Items[i] is not NString) return false;
+        return true;
+    }
+
+    /// <summary>
+    /// Render a list of strings as one row per element, no brackets, no quotes.
+    /// Caller is expected to have validated via <see cref="IsStringListShaped"/>.
+    /// </summary>
+    public static string FormatStringList(NList list)
+    {
+        var sb = new StringBuilder();
+        for (int i = 0; i < list.Items.Length; i++)
+        {
+            if (i > 0) sb.Append('\n');
+            sb.Append(list.Items[i] is NString s ? s.Value : NValueOps.FormatForInterpolation(list.Items[i]));
+        }
+        return sb.ToString();
     }
 
     /// <summary>
@@ -177,10 +208,12 @@ public static class Printer
         }
 
         var sb = new StringBuilder();
-        AppendRow(sb, keys, widths, rowStyle: null);
-        AppendSeparator(sb, widths);
+        AppendBorderLine(sb, widths, '╭', '┬', '╮');
+        AppendDataLine(sb, keys, widths, rowStyle: null);
+        AppendBorderLine(sb, widths, '├', '┼', '┤');
         for (int r = 0; r < rows.Length; r++)
-            AppendRow(sb, rows[r], widths, rowStyles[r]);
+            AppendDataLine(sb, rows[r], widths, rowStyles[r]);
+        AppendBorderLine(sb, widths, '╰', '┴', '╯');
         return sb.ToString().TrimEnd('\r', '\n');
     }
 
@@ -209,12 +242,37 @@ public static class Printer
         return width;
     }
 
-    private static void AppendRow(StringBuilder sb, string[] cells, int[] widths, string? rowStyle)
+    // Cyan, matching the HoverBox border so the REPL's two framed surfaces read
+    // as a family. Emitted as a 24-bit SGR; AnsiSgr resolves it to a Color, and
+    // \e[39m resets just the foreground so any surrounding state (e.g. a row's
+    // \e[2m dim wrap) survives.
+    private const string BorderColor = "\x1b[38;2;137;220;235m";
+    private const string ResetFg = "\x1b[39m";
+
+    private static void AppendBorderLine(StringBuilder sb, int[] widths, char left, char join, char right)
+    {
+        sb.Append(BorderColor);
+        sb.Append(left);
+        for (int c = 0; c < widths.Length; c++)
+        {
+            if (c > 0) sb.Append(join);
+            // +2 covers the single-space gutter on each side of the cell content
+            // (`│ value │`); the run of '─' fills the entire slot so corners and
+            // T-junctions align with the data rows.
+            sb.Append('─', widths[c] + 2);
+        }
+        sb.Append(right);
+        sb.Append(ResetFg);
+        sb.AppendLine();
+    }
+
+    private static void AppendDataLine(StringBuilder sb, string[] cells, int[] widths, string? rowStyle)
     {
         if (rowStyle == "dim") sb.Append("\x1b[2m");
         for (int c = 0; c < cells.Length; c++)
         {
-            if (c > 0) sb.Append("  ");
+            sb.Append(BorderColor).Append('│').Append(ResetFg);
+            sb.Append(' ');
             // PadRight on visual width: append the cell verbatim (preserving any
             // embedded SGR escapes), then top up with spaces so the column lines
             // up with the rest of its column despite the invisible escape bytes.
@@ -222,18 +280,10 @@ public static class Printer
             sb.Append(cell);
             var pad = widths[c] - VisualWidth(cell);
             if (pad > 0) sb.Append(' ', pad);
+            sb.Append(' ');
         }
+        sb.Append(BorderColor).Append('│').Append(ResetFg);
         if (rowStyle == "dim") sb.Append("\x1b[22m");
-        sb.AppendLine();
-    }
-
-    private static void AppendSeparator(StringBuilder sb, int[] widths)
-    {
-        for (int c = 0; c < widths.Length; c++)
-        {
-            if (c > 0) sb.Append("  ");
-            sb.Append(new string('-', widths[c]));
-        }
         sb.AppendLine();
     }
 }

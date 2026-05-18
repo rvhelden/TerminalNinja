@@ -102,6 +102,28 @@ public class LineEditorKeybindingTests
     }
 
     [Test]
+    public async Task BindCtrlE_EditConfig_InvokesLauncherWithRcPath()
+    {
+        var config = NinjaConfig.Empty();
+        config.BindKey("Ctrl+E", "edit-config");
+        var output = new StringWriter();
+        string? launchedPath = null;
+        var editor = new LineEditor(
+            new FakeKeyReader(
+                Char('a'),
+                Special(ConsoleKey.E, ConsoleModifiers.Control),
+                Char('b'),
+                Special(ConsoleKey.Enter)),
+            output, null, config,
+            openConfigEditor: path => launchedPath = path);
+        var r = editor.ReadLine("> ");
+        // edit-config doesn't break the line — typing continues after the launch.
+        await Assert.That(r.Result).IsEqualTo(LineEditor.ReadResult.EnteredLine);
+        await Assert.That(r.Text).IsEqualTo("ab");
+        await Assert.That(launchedPath).IsEqualTo(RcLoader.DefaultPath());
+    }
+
+    [Test]
     public async Task ShiftOnly_FlowsThroughAsCharInput()
     {
         // Shift+letter is normal capital-letter typing; the chord layer must NOT

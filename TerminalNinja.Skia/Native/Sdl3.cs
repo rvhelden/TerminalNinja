@@ -29,6 +29,13 @@ internal static partial class Sdl3
     public const ulong SDL_WINDOW_RESIZABLE = 0x0000000000000020UL;
     public const ulong SDL_WINDOW_HIGH_PIXEL_DENSITY = 0x0000000000002000UL;
 
+    // SDL_PixelFormat (SDL_pixels.h). The 32-bit enum encodes type / order / layout / bits / bytes
+    // — SDL3 still exposes the same numeric values it did in 3.0.x. We only need one variant for
+    // the window-icon path: ABGR8888 (bytes laid out R, G, B, A) matches what SkiaSharp's
+    // SKColorType.Rgba8888 puts in memory on little-endian platforms, which is the only family
+    // the host targets. That's also what SDL_PIXELFORMAT_RGBA32 aliases to on little-endian.
+    public const uint SDL_PIXELFORMAT_ABGR8888 = 0x16762004u;
+
     // GL attributes (SDL_video.h)
     public const int SDL_GL_RED_SIZE = 0;
     public const int SDL_GL_GREEN_SIZE = 1;
@@ -127,6 +134,28 @@ internal static partial class Sdl3
 
     [LibraryImport(Lib)]
     public static partial int SDL_SetWindowSize(IntPtr window, int w, int h);
+
+    /// <summary>
+    /// Wraps an existing pixel buffer in an <c>SDL_Surface</c> header. SDL3 does NOT copy the
+    /// pixels — the caller must keep the buffer alive (pinned) until the surface is destroyed.
+    /// We use this exclusively for the throwaway icon surface, which is destroyed immediately
+    /// after <see cref="SDL_SetWindowIcon"/> runs (SetWindowIcon copies the image internally).
+    /// </summary>
+    [LibraryImport(Lib)]
+    public static partial IntPtr SDL_CreateSurfaceFrom(int width, int height, uint format, IntPtr pixels, int pitch);
+
+    /// <summary>
+    /// Sets the OS-level window icon (taskbar / window chrome). SDL copies the surface
+    /// internally, so the caller can free the surface (and its backing pixel buffer) once
+    /// this returns.
+    /// </summary>
+    [LibraryImport(Lib)]
+    [return: MarshalAs(UnmanagedType.U1)]
+    public static partial bool SDL_SetWindowIcon(IntPtr window, IntPtr icon);
+
+    /// <summary>Releases an <c>SDL_Surface</c> allocated via <see cref="SDL_CreateSurfaceFrom"/>.</summary>
+    [LibraryImport(Lib)]
+    public static partial void SDL_DestroySurface(IntPtr surface);
 
     /// <summary>
     /// Returns the content scale of the display the window is on (1.0 = 100% / unscaled,

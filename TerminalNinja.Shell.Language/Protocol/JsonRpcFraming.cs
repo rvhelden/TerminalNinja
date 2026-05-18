@@ -2,12 +2,14 @@ using System.Buffers;
 using System.Text;
 using System.Text.Json;
 
-namespace TerminalNinja.Shell.LanguageServer.Protocol;
+namespace TerminalNinja.Shell.Language.Protocol;
 
 /// <summary>
-/// Reader for the LSP base protocol — <c>Content-Length</c>-framed JSON-RPC over a
-/// byte stream. Each message is preceded by ASCII headers terminated by a blank
-/// line; the body is a UTF-8 encoded JSON payload of <c>Content-Length</c> bytes.
+/// Reader for Content-Length-framed JSON-RPC messages over a byte stream — the
+/// transport layer shared by LSP (Language Server Protocol) and DAP (Debug
+/// Adapter Protocol). Each message is preceded by ASCII headers terminated by
+/// a blank line; the body is a UTF-8 encoded JSON payload of
+/// <c>Content-Length</c> bytes.
 /// </summary>
 public sealed class JsonRpcReader
 {
@@ -23,14 +25,20 @@ public sealed class JsonRpcReader
     /// <summary>Read the next message, or return <c>null</c> when the stream is exhausted.</summary>
     public JsonDocument? ReadMessage()
     {
+        // Skip leading blank lines from a peer that hangs up cleanly between frames
+        // (or a smoke test that pipes an empty newline at us). The first non-blank
+        // line is treated as the start of a real header block.
+        string? line;
+        do
+        {
+            line = ReadHeaderLine();
+            if (line is null) return null; // EOF
+        } while (line.Length == 0);
+
         int contentLength = -1;
         while (true)
         {
-            var line = ReadHeaderLine();
-            if (line is null) return null; // EOF before any header
-            if (line.Length == 0) break;    // blank line terminates headers
-
-            var sep = line.IndexOf(':');
+            var sep = line!.IndexOf(':');
             if (sep < 0)
                 throw new InvalidDataException($"malformed header line (no ':'): '{line}'");
             var name = line[..sep].Trim();
@@ -41,6 +49,10 @@ public sealed class JsonRpcReader
                     throw new InvalidDataException($"invalid Content-Length: '{value}'");
             }
             // Content-Type and other headers are accepted but ignored.
+
+            line = ReadHeaderLine();
+            if (line is null) return null; // EOF mid-header — treat as clean shutdown
+            if (line.Length == 0) break;    // blank line terminates headers
         }
 
         if (contentLength < 0)
@@ -78,7 +90,7 @@ public sealed class JsonRpcReader
     }
 }
 
-/// <summary>Writer for LSP base-protocol framed messages over a byte stream.</summary>
+/// <summary>Writer for Content-Length-framed JSON-RPC messages over a byte stream.</summary>
 public sealed class JsonRpcWriter
 {
     private readonly Stream _output;

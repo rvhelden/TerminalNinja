@@ -21,6 +21,14 @@ namespace TerminalNinja.Shell.Repl;
 /// punctuation. If any condition fails, <see cref="TryIntercept"/> returns
 /// <c>false</c> and the caller should hand the line to the parser unchanged.
 /// </remarks>
+/// <remarks>
+/// A top-level (unquoted, single-bar) <c>|</c> splits the line into a shell-mode
+/// head and a pipeline tail: <c>ls | select(x =&gt; x)</c> invokes the <c>ls</c>
+/// alias zero-arg, then pipes the result through <c>select(x =&gt; x)</c>. The tail
+/// is left as the verbatim source string; the caller is expected to evaluate it
+/// against a temporary env that binds the alias result to a fresh name. <c>||</c>
+/// (logical or) is never treated as a split point.
+/// </remarks>
 public static class AliasInterceptor
 {
     /// <summary>
@@ -28,9 +36,16 @@ public static class AliasInterceptor
     /// callable, the alias name, and the parsed args. Every entry in
     /// <see cref="Args"/> is an <see cref="NString"/> — shell-mode interception
     /// never coerces tokens to numbers or other types; pass through to the canonical
-    /// expression syntax if you need typed arguments.
+    /// expression syntax if you need typed arguments. <see cref="PipelineTail"/> is
+    /// non-null when the source line was of the form <c>&lt;alias&gt; [args] | &lt;tail&gt;</c>;
+    /// callers should evaluate the tail as a NinjaShell expression with the alias's
+    /// produced value bound as the input to the pipeline.
     /// </summary>
-    public readonly record struct AliasInvocation(string Name, NValue Func, ImmutableArray<NValue> Args);
+    public readonly record struct AliasInvocation(
+        string Name,
+        NValue Func,
+        ImmutableArray<NValue> Args,
+        string? PipelineTail);
 
     private static readonly char[] ExpressionContextChars = ['(', '.', '=', '[', '{', ':', ','];
 
@@ -69,7 +84,28 @@ public static class AliasInterceptor
         if (peek < line.Length && Array.IndexOf(ExpressionContextChars, line[peek]) >= 0) return false;
 
         var rest = line[i..];
-        if (!ShellArgTokenizer.TryTokenize(rest, out var tokens)) return false;
+
+        // Split a top-level (unquoted, single-bar) `|` off as a pipeline tail so a
+        // shell-mode head can feed an expression-mode pipeline: `ls | select(...)`
+        // becomes alias-call `ls` with no args + tail `select(...)`. `||` (logical
+        // or) is skipped — only a bare single `|` marks the boundary.
+        string? pipelineTail = null;
+        string argsPart = rest;
+        int pipeAt = FindTopLevelPipe(rest);
+        if (pipeAt >= 0)
+        {
+            var tail = rest[(pipeAt + 1)..].Trim();
+            if (tail.Length == 0)
+            {
+                // Dangling pipe with nothing after — let the parser surface this
+                // as a real syntax error rather than silently dropping the pipe.
+                return false;
+            }
+            pipelineTail = tail;
+            argsPart = rest[..pipeAt];
+        }
+
+        if (!ShellArgTokenizer.TryTokenize(argsPart, out var tokens)) return false;
 
         foreach (var t in tokens)
         {
@@ -78,8 +114,43 @@ public static class AliasInterceptor
 
         var args = ImmutableArray.CreateBuilder<NValue>(tokens.Length);
         foreach (var t in tokens) args.Add(new NString(t.Value));
-        invocation = new AliasInvocation(name, callable, args.ToImmutable());
+        invocation = new AliasInvocation(name, callable, args.ToImmutable(), pipelineTail);
         return true;
+    }
+
+    /// <summary>
+    /// Index of the first top-level (unquoted) pipe character in <paramref name="s"/>,
+    /// or -1 if none. <c>||</c> sequences are skipped so the logical-or operator never
+    /// splits an alias line — only a bare single <c>|</c> counts as a pipeline marker.
+    /// Quoted runs use the same <c>\"</c> / <c>\\</c> escape rules as
+    /// <see cref="ShellArgTokenizer"/> so the two scanners agree on what's "inside a string".
+    /// </summary>
+    private static int FindTopLevelPipe(string s)
+    {
+        bool inQuote = false;
+        for (int j = 0; j < s.Length; j++)
+        {
+            char c = s[j];
+            if (inQuote)
+            {
+                if (c == '\\' && j + 1 < s.Length && (s[j + 1] == '"' || s[j + 1] == '\\'))
+                {
+                    j++;
+                    continue;
+                }
+                if (c == '"') inQuote = false;
+                continue;
+            }
+            if (c == '"') { inQuote = true; continue; }
+            if (c == '|')
+            {
+                // `||` is logical-or, not a pipeline split — skip both chars and
+                // keep scanning so a later real `|` still wins.
+                if (j + 1 < s.Length && s[j + 1] == '|') { j++; continue; }
+                return j;
+            }
+        }
+        return -1;
     }
 
     private static bool IsIdentifierStart(char c)

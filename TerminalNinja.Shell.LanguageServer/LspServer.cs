@@ -1,4 +1,5 @@
 using System.Text.Json;
+using TerminalNinja.Shell.Language.Protocol;
 using TerminalNinja.Shell.Language.Services;
 using TerminalNinja.Shell.LanguageServer.Protocol;
 

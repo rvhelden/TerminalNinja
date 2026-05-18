@@ -34,21 +34,47 @@ internal sealed class CompletionController
     /// navigation so empty-input Tab leaves the REPL.
     /// </summary>
     public bool Open(IReadOnlyDictionary<string, NValue>? scope, in ReplLayout layout)
+        => RefreshInternal(scope, layout, resetSelection: true);
+
+    /// <summary>
+    /// Re-query completions at the cursor and update the popup. Called after every
+    /// buffer-mutating edit (printable insert / Backspace / Delete) and cursor move
+    /// so the visible list filters live as the user types. Opens the popup if it
+    /// wasn't open; closes it when nothing matches. Preserves the highlighted
+    /// selection by label across refreshes so navigating with the keyboard isn't
+    /// thrown off when an unrelated keystroke triggers the refresh.
+    /// </summary>
+    public void Refresh(IReadOnlyDictionary<string, NValue>? scope, in ReplLayout layout)
+        => RefreshInternal(scope, layout, resetSelection: false);
+
+    private bool RefreshInternal(IReadOnlyDictionary<string, NValue>? scope, in ReplLayout layout, bool resetSelection)
     {
         var (cursorLine, cursorCol) = _input.CursorToLineCol(_input.CursorCol);
         var items = LanguageService.GetCompletions(_input.Text, new Position(cursorLine, cursorCol), scope);
-        if (items.Count == 0) return false;
+        if (items.Count == 0)
+        {
+            if (IsOpen) Close();
+            return false;
+        }
 
+        var previousLabel = !resetSelection && _items is { Count: > 0 } ? _items[_index].Label : null;
         _anchorCol = InputBuffer.FindWordStart(_input.Text, _input.CursorCol);
         _items = items;
         _index = 0;
+        if (previousLabel is not null)
+        {
+            for (int i = 0; i < items.Count; i++)
+            {
+                if (items[i].Label == previousLabel) { _index = i; break; }
+            }
+        }
 
         var entries = new CompletionEntry[items.Count];
         for (int i = 0; i < items.Count; i++) entries[i] = ToEntry(items[i]);
 
         var (anchorX, anchorY) = GetAnchor(layout);
         _panel.Placement = PlacementMode.Top;
-        _panel.ShowAt(anchorX, anchorY, entries, 0);
+        _panel.ShowAt(anchorX, anchorY, entries, _index);
         _invalidate();
         return true;
     }
@@ -77,10 +103,10 @@ internal sealed class CompletionController
     }
 
     /// <summary>
-    /// Handle a keystroke while the popup is open. Returns true when the popup
-    /// consumed (or dismissed itself on) the key — the caller should not run its
-    /// normal handler. Returns false when the popup wasn't open or the key
-    /// implicitly closes it and should keep flowing to the input handler.
+    /// Handle a keystroke while the popup is open. The popup consumes its own
+    /// navigation keys (Up/Down/Esc/Tab/Enter); every other key falls through so
+    /// the caller can mutate the buffer or move the cursor, then call
+    /// <see cref="Refresh"/> to re-filter the list in place.
     /// </summary>
     public CompletionKeyResult HandleKey(KeyEvent e)
     {
@@ -106,10 +132,11 @@ internal sealed class CompletionController
                 Accept();
                 return CompletionKeyResult.Consumed;
             default:
-                // Any other key drops the popup. Caller still handles the keystroke
-                // normally — the user kept typing past the prefix.
-                Close();
-                return CompletionKeyResult.ClosedFallthrough;
+                // Stay open — the caller will mutate the buffer (or move the cursor)
+                // and then call Refresh, which re-queries completions and either
+                // updates the panel in place or closes it when the prefix no longer
+                // matches anything.
+                return CompletionKeyResult.NotHandled;
         }
     }
 

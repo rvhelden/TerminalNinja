@@ -40,6 +40,7 @@ public sealed class NinjaRepl
         _error = error;
         _env = BuiltinRegistry.CreateDefaultEnvWith(_config);
         DefaultAliases.Seed(_config, _env);
+        DefaultKeybindings.Seed(_config);
         if (PwshBridge.IsAvailable) _env = PwshBridge.Install(_env);
         RcLoader.TryLoad(RcLoader.DefaultPath(), _env, _error);
     }
@@ -155,6 +156,7 @@ public sealed class NinjaRepl
         try
         {
             var value = NinjaEvaluator.Invoke(inv.Func, inv.Args);
+            if (inv.PipelineTail is { } tail) value = EvalPipelineTail(value, tail);
             var rendered = Printer.Format(value);
             if (!string.IsNullOrEmpty(rendered)) _output.WriteLine(rendered);
         }
@@ -166,5 +168,20 @@ public sealed class NinjaRepl
         {
             _error.WriteLine($"internal error: {ex.GetType().Name}: {ex.Message}");
         }
+    }
+
+    /// <summary>
+    /// Evaluate the pipeline tail captured by <see cref="AliasInterceptor"/> with
+    /// <paramref name="aliasResult"/> as the pipeline input. The result is bound to a
+    /// fresh internal name (prefixed with <c>__</c> so it can't collide with anything
+    /// a user-facing <c>let</c> could introduce) in a temporary env, and the parser
+    /// handles the rest of the line normally as <c>__pipein | &lt;tail&gt;</c>. The
+    /// temporary binding is intentionally not propagated to <see cref="_env"/>.
+    /// </summary>
+    private NValue EvalPipelineTail(NValue aliasResult, string tail)
+    {
+        const string slot = "__pipein";
+        var tempEnv = _env.Extend(slot, aliasResult);
+        return NinjaEvaluator.EvalScript(slot + " | " + tail, tempEnv).Value;
     }
 }

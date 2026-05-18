@@ -11,7 +11,7 @@ namespace TerminalNinja.Shell.Builtins;
 /// (<c>Ctrl+L</c>, <c>Alt+R</c>, <c>Shift+Tab</c>) to named actions. Chord syntax
 /// is validated by <see cref="ChordParser"/>; the action name must be one of the
 /// v1 supported actions (<c>clear</c>, <c>history-prev</c>, <c>history-next</c>,
-/// <c>abort</c>, <c>submit</c>, <c>complete</c>).
+/// <c>abort</c>, <c>submit</c>, <c>complete</c>, <c>edit-config</c>).
 /// </summary>
 /// <remarks>
 /// Bindings are consumed by the line editor (Task 5) — registering one here only
@@ -29,6 +29,7 @@ public static class KeyModule
             "abort",
             "submit",
             "complete",
+            "edit-config",
         };
 
     /// <summary>Register the <c>key</c> module into <paramref name="b"/>, closing over <paramref name="config"/>.</summary>

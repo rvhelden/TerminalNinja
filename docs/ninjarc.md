@@ -38,12 +38,15 @@ Supported actions:
 - `abort` — same as Ctrl+C (abandon the line).
 - `clear` — emit the ANSI clear-screen escape and redraw the prompt.
 - `complete` — same as Tab.
+- `edit-config` — open `~/.ninjarc` in VS Code via the `code` CLI. Bound to **`Ctrl+E`** by default; rebind or unbind to taste.
 - `history-prev` / `history-next` — recognised, but the minimal line editor has no history yet; binding these is a no-op for now.
 
 ```ninja
 key.bind("Ctrl+L", "clear")
 key.bind("Ctrl+S", "submit")
 key.bind("Ctrl+Q", "abort")
+key.unbind("Ctrl+E")           # drop the default edit-config binding
+key.bind("Alt+,",  "edit-config")  # …or move it somewhere else
 ```
 
 Pure Shift chords (e.g. `Shift+A`) are deliberately not eligible for binding — they would block normal capital-letter typing. Chords must include `Ctrl` or `Alt` to be intercepted.

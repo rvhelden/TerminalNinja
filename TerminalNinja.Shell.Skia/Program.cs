@@ -1,6 +1,8 @@
+using SkiaSharp;
 using TerminalNinja;
 using TerminalNinja.Controls;
 using TerminalNinja.Input;
+using TerminalNinja.Shell.Skia.Branding;
 using TerminalNinja.Skia;
 using TerminalNinja.Xaml;
 
@@ -13,8 +15,22 @@ namespace TerminalNinja.Shell.Skia;
 /// </summary>
 internal static class Program
 {
-    public static int Main()
+    public static int Main(string[] args)
     {
+        // Out-of-band entry point used to bake the static icon PNG that the VS Code extension
+        // ships in its VSIX. Bypasses the SDL / GL stack so it runs in CI / headless environments
+        // — same SkiaSharp rendering routine the running app uses, just dumped to disk.
+        // Usage: dotnet run --project TerminalNinja.Shell.Skia -- --write-icon <path> [size]
+        if (args.Length >= 2 && args[0] == "--write-icon")
+        {
+            var size = args.Length >= 3 && int.TryParse(args[2], out var parsed) ? parsed : 256;
+            IconRenderer.WritePng(args[1], size);
+            // Fully qualified: a using of TerminalNinja brings in a TerminalNinja.Console
+            // namespace that shadows System.Console at the unqualified name.
+            System.Console.WriteLine($"Wrote {size}×{size} icon to {args[1]}");
+            return 0;
+        }
+
         var viewModel = new ShellViewModel();
         var root = TerminalXaml.Load<Border>(XamlLayouts.ShellLayout, viewModel);
 
@@ -23,8 +39,14 @@ internal static class Program
             Title = "NinjaShell UI",
             CellsWide = 140,
             CellsTall = 36,
-            // Same font as SkiaTerminal — ligatures + Nerd Font icons render correctly.
-            FontFamily = "FiraCode Nerd Font Mono",
+            // FiraCode Nerd Font Mono ships embedded in this assembly (Fonts/) so ligatures
+            // and Nerd Font glyphs render the same on every machine, with no system-wide
+            // font install required. SkiaApplication takes ownership and disposes on exit.
+            Typeface = LoadEmbeddedTypeface("FiraCodeNerdFontMono-Regular.ttf"),
+            // 256px source — window managers resample down to 16/24/32/48 for taskbar +
+            // chrome contexts. SkiaApplication consumes (and disposes) the bitmap during
+            // window init; SDL3 copies the pixels internally before we let it go.
+            WindowIcon = IconRenderer.Render(256),
             EscapeQuits = false,
             // Tab moves focus through the focusable elements (REPL → EnvList → ScopeList).
             // The lists need keyboard focus to handle their own Up/Down/Enter, so this is
@@ -58,6 +80,14 @@ internal static class Program
                         args.Handled = true;
                     }
                     break;
+                case ConsoleKey.C when key.Ctrl && !key.Shift && !key.Alt && app.FocusManager.FocusedElement == viewModel.Repl:
+                    // Application.HandleKeyEvent treats plain Ctrl+C as "exit unless a TextBox
+                    // has focus" — ReplView isn't a TextBox, so without this intercept the
+                    // event never reaches the REPL and its selection-copy/clear path never
+                    // runs. Forward to the REPL manually and consume so the app doesn't exit.
+                    viewModel.Repl.OnKeyEvent(key);
+                    args.Handled = true;
+                    break;
                 case ConsoleKey.F1:
                     viewModel.ToggleFilesPanel();
                     args.Handled = true;
@@ -79,5 +109,14 @@ internal static class Program
 
         app.Run();
         return 0;
+    }
+
+    private static SKTypeface? LoadEmbeddedTypeface(string resourceName)
+    {
+        // Embedded as a flat manifest name via <LogicalName> in the csproj, so this lookup
+        // is the file name verbatim. SKTypeface.FromStream copies the bytes internally —
+        // safe to dispose the stream right after.
+        using var stream = typeof(Program).Assembly.GetManifestResourceStream(resourceName);
+        return stream is null ? null : SKTypeface.FromStream(stream);
     }
 }

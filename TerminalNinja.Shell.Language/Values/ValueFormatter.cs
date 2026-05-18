@@ -1,3 +1,4 @@
+using System.Collections.Immutable;
 using System.Globalization;
 using System.Text;
 
@@ -11,6 +12,47 @@ namespace TerminalNinja.Shell.Values;
 /// </summary>
 public static class ValueFormatter
 {
+    /// <summary>
+    /// Return a copy of <paramref name="v"/> with every record field whose key
+    /// starts with <c>__</c> removed, recursing through list items, record
+    /// values, and variant payloads. Used by the hover panel so internal
+    /// bookkeeping fields (<c>__type</c>, <c>__src</c>, …) don't clutter the
+    /// quick-look UI; the underlying value is untouched. <see cref="NSeq"/>
+    /// passes through unchanged — stripping lazily would force enumeration.
+    /// </summary>
+    public static NValue StripHiddenFields(NValue v)
+    {
+        switch (v)
+        {
+            case NRecord rec:
+            {
+                var b = ImmutableSortedDictionary.CreateBuilder<string, NValue>(StringComparer.Ordinal);
+                foreach (var kv in rec.Fields)
+                {
+                    if (kv.Key.StartsWith("__", StringComparison.Ordinal)) continue;
+                    b.Add(kv.Key, StripHiddenFields(kv.Value));
+                }
+                return new NRecord(b.ToImmutable());
+            }
+            case NList list:
+            {
+                var items = ImmutableArray.CreateBuilder<NValue>(list.Items.Length);
+                for (int i = 0; i < list.Items.Length; i++)
+                    items.Add(StripHiddenFields(list.Items[i]));
+                return new NList(items.MoveToImmutable());
+            }
+            case NVariant variant:
+            {
+                var items = ImmutableArray.CreateBuilder<NValue>(variant.Items.Length);
+                for (int i = 0; i < variant.Items.Length; i++)
+                    items.Add(StripHiddenFields(variant.Items[i]));
+                return new NVariant(variant.Tag, items.MoveToImmutable());
+            }
+            default:
+                return v;
+        }
+    }
+
     /// <summary>Canonical NinjaShell type name (matches <c>obj.type</c>).</summary>
     public static string TypeName(NValue v) => v switch
     {

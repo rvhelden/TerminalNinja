@@ -31,4 +31,18 @@
                           ReferenceOutputAssembly="false" />
     </ItemGroup>
 
+    <!--
+        Bundle FiraCode Nerd Font Mono Regular so the Skia shell renders the same on every
+        machine — ligatures + Nerd Font symbols without requiring a system-wide font install.
+        LogicalName flattens the manifest name so Program.cs can fetch it as a single literal
+        instead of an assembly-qualified path. OFL.txt ships alongside per the font's license.
+    -->
+    <ItemGroup>
+        <EmbeddedResource Include="Fonts\FiraCodeNerdFontMono-Regular.ttf">
+            <LogicalName>FiraCodeNerdFontMono-Regular.ttf</LogicalName>
+        </EmbeddedResource>
+        <None Include="Fonts\OFL.txt" Pack="true" PackagePath="Fonts\OFL.txt" />
+        <None Include="Fonts\README.md" Pack="true" PackagePath="Fonts\README.md" />
+    </ItemGroup>
+
 </Project>

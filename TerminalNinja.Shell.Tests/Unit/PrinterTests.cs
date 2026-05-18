@@ -40,6 +40,44 @@ public class PrinterTests
     }
 
     [Test]
+    public async Task Format_ListOfStrings_RendersOnePerLine()
+    {
+        // A one-column projection (e.g. `fs.ls() | select(x => $"Test {x.Name}")`)
+        // surfaces as a list of strings. The bracketed `["a","b"]` array form
+        // hides the data; one-per-line is what the user expects from "table".
+        var list = new NList(ImmutableArray.Create<NValue>(
+            new NString("Test alpha"),
+            new NString("Test beta"),
+            new NString("Test gamma")));
+        var output = Printer.Format(list);
+        await Assert.That(output).IsEqualTo("Test alpha\nTest beta\nTest gamma");
+        await Assert.That(output.StartsWith('[')).IsFalse();
+    }
+
+    [Test]
+    public async Task Format_SeqOfStrings_RendersOnePerLine()
+    {
+        var seq = new NSeq(new NValue[]
+        {
+            new NString("alpha"),
+            new NString("beta"),
+        });
+        var output = Printer.Format(seq);
+        await Assert.That(output).IsEqualTo("alpha\nbeta");
+    }
+
+    [Test]
+    public async Task IsStringListShaped_RequiresNonEmptyAllStrings()
+    {
+        var allStrings = new NList(ImmutableArray.Create<NValue>(new NString("a"), new NString("b")));
+        var mixed = new NList(ImmutableArray.Create<NValue>(new NString("a"), new NInt(1)));
+        var empty = new NList(ImmutableArray<NValue>.Empty);
+        await Assert.That(Printer.IsStringListShaped(allStrings)).IsTrue();
+        await Assert.That(Printer.IsStringListShaped(mixed)).IsFalse();
+        await Assert.That(Printer.IsStringListShaped(empty)).IsFalse();
+    }
+
+    [Test]
     public async Task Format_ListOfUniformRecords_RendersAlignedTable()
     {
         var rec1 = new NRecord(ImmutableSortedDictionary<string, NValue>.Empty
@@ -52,13 +90,21 @@ public class PrinterTests
 
         var output = Printer.Format(list);
         var lines = output.Split('\n').Select(l => l.TrimEnd('\r')).ToArray();
-        await Assert.That(lines.Length).IsGreaterThanOrEqualTo(4);
-        await Assert.That(lines[0].Contains("N")).IsTrue();
-        await Assert.That(lines[0].Contains("Name")).IsTrue();
-        await Assert.That(lines[1]).Contains("-");
-        // Each data row keeps the column alignment — every row has the same width.
-        await Assert.That(lines[2].Length).IsEqualTo(lines[3].Length);
-        await Assert.That(lines[0].Length).IsEqualTo(lines[3].Length);
+        // top border + header + middle border + 2 data rows + bottom border.
+        await Assert.That(lines.Length).IsGreaterThanOrEqualTo(6);
+        await Assert.That(StripSgr(lines[0])).Contains("╭");
+        await Assert.That(StripSgr(lines[0])).Contains("┬");
+        await Assert.That(StripSgr(lines[1])).Contains("N");
+        await Assert.That(StripSgr(lines[1])).Contains("Name");
+        await Assert.That(StripSgr(lines[2])).Contains("├");
+        await Assert.That(StripSgr(lines[2])).Contains("┼");
+        await Assert.That(StripSgr(lines[^1])).Contains("╰");
+        // Visual widths align across header, both data rows, and all borders.
+        var headerW = StripSgr(lines[1]).Length;
+        await Assert.That(StripSgr(lines[0]).Length).IsEqualTo(headerW);
+        await Assert.That(StripSgr(lines[3]).Length).IsEqualTo(headerW);
+        await Assert.That(StripSgr(lines[4]).Length).IsEqualTo(headerW);
+        await Assert.That(StripSgr(lines[^1]).Length).IsEqualTo(headerW);
     }
 
     [Test]
@@ -76,12 +122,13 @@ public class PrinterTests
 
         var output = Printer.Format(list);
         var lines = output.Split('\n').Select(l => l.TrimEnd('\r')).ToArray();
-        await Assert.That(lines[0].Contains("a")).IsTrue();
-        await Assert.That(lines[0].Contains("b")).IsTrue();
-        // Row 0: a=1, b blank; row 1: a blank, b=2.
-        // Width-padded, so the data lines have the same length as the header.
-        await Assert.That(lines[2].Length).IsEqualTo(lines[0].Length);
-        await Assert.That(lines[3].Length).IsEqualTo(lines[0].Length);
+        // lines[0] top border, [1] header, [2] middle border, [3..4] data, [5] bottom border.
+        await Assert.That(StripSgr(lines[1])).Contains("a");
+        await Assert.That(StripSgr(lines[1])).Contains("b");
+        // Width-padded, so every line shares the header's visual width.
+        var headerW = StripSgr(lines[1]).Length;
+        await Assert.That(StripSgr(lines[3]).Length).IsEqualTo(headerW);
+        await Assert.That(StripSgr(lines[4]).Length).IsEqualTo(headerW);
     }
 
     [Test]
@@ -131,11 +178,11 @@ public class PrinterTests
 
         var output = Printer.Format(list);
         var lines = output.Split('\n').Select(l => l.TrimEnd('\r')).ToArray();
-        // Header + separator + 3 data rows.
-        await Assert.That(lines.Length).IsGreaterThanOrEqualTo(5);
-        await Assert.That(lines[0]).Contains("Name");
-        await Assert.That(lines[0]).Contains("FullPath");
-        await Assert.That(lines[0]).DoesNotContain("__display");
+        // top + header + middle + 3 data + bottom = 7 lines.
+        await Assert.That(lines.Length).IsGreaterThanOrEqualTo(7);
+        await Assert.That(StripSgr(lines[1])).Contains("Name");
+        await Assert.That(StripSgr(lines[1])).Contains("FullPath");
+        await Assert.That(StripSgr(lines[1])).DoesNotContain("__display");
     }
 
     [Test]
@@ -155,13 +202,12 @@ public class PrinterTests
 
         var table = Printer.FormatRecordTable(list);
         var lines = table.Split('\n').Select(l => l.TrimEnd('\r')).ToArray();
-        await Assert.That(lines[0]).Contains("B");
-        await Assert.That(lines[0]).Contains("A");
-        await Assert.That(lines[0]).DoesNotContain("C");
+        var header = StripSgr(lines[1]);
+        await Assert.That(header).Contains("B");
+        await Assert.That(header).Contains("A");
+        await Assert.That(header).DoesNotContain("C");
         // Order: B appears before A in the header.
-        var bIdx = lines[0].IndexOf('B');
-        var aIdx = lines[0].IndexOf('A');
-        await Assert.That(bIdx < aIdx).IsTrue();
+        await Assert.That(header.IndexOf('B') < header.IndexOf('A')).IsTrue();
     }
 
     [Test]
@@ -213,12 +259,11 @@ public class PrinterTests
 
         var table = Printer.FormatRecordTable(list);
         var lines = table.Split('\n').Select(l => l.TrimEnd('\r')).ToArray();
-        // Header line: "Icon  Name" (4 + 2 + 4 = 10 visible chars).
-        var headerVisible = StripSgr(lines[0]);
-        var rowVisible = StripSgr(lines[2]);
-        // The data row visually starts with a single icon char, then padding to
-        // the column width (4), two-space gutter, then "hello". So visible
-        // header and data row must have matching column edges.
+        // lines[1] is the header row; lines[3] is the single data row. Visible
+        // edges must match so the icon column doesn't bleed past its slot
+        // despite the SGR escapes inflating its raw byte count.
+        var headerVisible = StripSgr(lines[1]);
+        var rowVisible = StripSgr(lines[3]);
         await Assert.That(headerVisible.IndexOf("Name")).IsEqualTo(rowVisible.IndexOf("hello"));
     }
 
@@ -234,12 +279,15 @@ public class PrinterTests
 
         var table = Printer.FormatRecordTable(list);
         var lines = table.Split('\n').Select(l => l.TrimEnd('\r')).ToArray();
-        // Header + separator + 1 data row. The data row carries the dim wrap.
-        await Assert.That(lines[2].StartsWith("\x1b[2m")).IsTrue();
-        await Assert.That(lines[2]).Contains(".hidden");
-        await Assert.That(lines[2].EndsWith("\x1b[22m")).IsTrue();
-        // Header (row 0) must not be wrapped — only the row that opted in.
-        await Assert.That(lines[0].StartsWith("\x1b[")).IsFalse();
+        // lines[0] top border, [1] header, [2] middle border, [3] data, [4] bottom border.
+        // The data row carries the dim wrap.
+        await Assert.That(lines[3].StartsWith("\x1b[2m")).IsTrue();
+        await Assert.That(lines[3]).Contains(".hidden");
+        await Assert.That(lines[3].EndsWith("\x1b[22m")).IsTrue();
+        // Header must not be dim — only the row that opted in. (The header line
+        // does start with the border color escape, so check specifically for the
+        // dim toggle rather than any SGR prefix.)
+        await Assert.That(lines[1].StartsWith("\x1b[2m")).IsFalse();
     }
 
     private static string StripSgr(string s)

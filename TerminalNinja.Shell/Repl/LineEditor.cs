@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Text;
 using TerminalNinja.Shell.Config;
 using TerminalNinja.Shell.Language.Services;
@@ -23,6 +24,7 @@ public sealed class LineEditor
     private readonly TextWriter _output;
     private readonly Func<string, int, IReadOnlyList<CompletionItem>>? _completer;
     private readonly NinjaConfig? _config;
+    private readonly Action<string> _openConfigEditor;
 
     private readonly StringBuilder _buffer = new();
     private string _prompt = "";
@@ -32,12 +34,14 @@ public sealed class LineEditor
     /// <param name="keys">Input source. Pass <see cref="ConsoleKeyReader"/> in production.</param>
     /// <param name="output">Where to render. Pass <see cref="Console.Out"/> in production.</param>
     /// <param name="completer">Tab completion provider — given (line, cursor), returns suggestions. <c>null</c> disables Tab handling.</param>
-    /// <param name="config">Optional REPL config; when non-null, the editor consults <see cref="NinjaConfig.Keybindings"/> on each keystroke and dispatches the named action (<c>clear</c>, <c>submit</c>, <c>abort</c>, <c>complete</c>, <c>history-prev</c>, <c>history-next</c>) before the hardcoded handling runs.</param>
+    /// <param name="config">Optional REPL config; when non-null, the editor consults <see cref="NinjaConfig.Keybindings"/> on each keystroke and dispatches the named action (<c>clear</c>, <c>submit</c>, <c>abort</c>, <c>complete</c>, <c>history-prev</c>, <c>history-next</c>, <c>edit-config</c>) before the hardcoded handling runs.</param>
+    /// <param name="openConfigEditor">Launcher invoked with the rc-file path when the <c>edit-config</c> action fires. <c>null</c> uses a default that runs <c>code &lt;path&gt;</c> via the OS shell.</param>
     public LineEditor(
         IKeyReader keys,
         TextWriter output,
         Func<string, int, IReadOnlyList<CompletionItem>>? completer = null,
-        NinjaConfig? config = null)
+        NinjaConfig? config = null,
+        Action<string>? openConfigEditor = null)
     {
         ArgumentNullException.ThrowIfNull(keys);
         ArgumentNullException.ThrowIfNull(output);
@@ -45,6 +49,7 @@ public sealed class LineEditor
         _output = output;
         _completer = completer;
         _config = config;
+        _openConfigEditor = openConfigEditor ?? (path => LaunchVsCode(path, _output));
     }
 
     /// <summary>The result of one <see cref="ReadLine"/> call.</summary>
@@ -250,6 +255,11 @@ public sealed class LineEditor
             case "complete":
                 HandleTab();
                 return null;
+            case "edit-config":
+                _output.WriteLine();
+                _openConfigEditor(RcLoader.DefaultPath());
+                Redraw();
+                return null;
             case "history-prev":
             case "history-next":
                 // No history infrastructure in this minimal editor; the action
@@ -268,6 +278,27 @@ public sealed class LineEditor
         _output.Write(_prompt);
         _output.Write(_buffer.ToString());
         _output.Flush();
+    }
+
+    private static void LaunchVsCode(string path, TextWriter output)
+    {
+        // UseShellExecute lets the OS resolve `code` / `code.cmd` through PATH or
+        // file associations — the same way a user typing `code .ninjarc` in their
+        // terminal would. The launched process is detached; we don't wait on it.
+        try
+        {
+            Process.Start(new ProcessStartInfo
+            {
+                FileName = "code",
+                Arguments = $"\"{path}\"",
+                UseShellExecute = true,
+            });
+        }
+        catch (Exception ex)
+        {
+            output.WriteLine($"ninja: failed to open '{path}' in vscode: {ex.Message}");
+            output.WriteLine("ninja: ensure VS Code's `code` CLI is on PATH (Command Palette → Shell Command: Install 'code' command).");
+        }
     }
 }
 

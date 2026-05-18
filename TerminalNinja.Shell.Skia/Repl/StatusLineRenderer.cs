@@ -6,21 +6,14 @@ using TerminalNinja.Shell.Language.Services;
 namespace TerminalNinja.Shell.Skia;
 
 /// <summary>
-/// Renders the two single-row decorations between the output area and the input
-/// block: the hover line (cursor-target identifier info) and the diagnostic line
-/// (first compile error, with a caret under the offending column).
+/// Renders the single-row diagnostic decoration that sits between the output
+/// area and the input block: the first compile error for the current input,
+/// with a caret under the offending column. (Cursor-target hover info now
+/// lives in the on-demand HoverPanel — see <c>ShowCursorHover</c>.)
 /// </summary>
 internal static class StatusLineRenderer
 {
-    private static readonly Color HoverFg = new(0x89, 0xDC, 0xEB);
     private static readonly Color ErrorFg = new(0xF3, 0x8B, 0xA8);
-
-    public static void RenderHover(CellBuffer buffer, int x, int y, int width, Hover hover, Color bg)
-    {
-        // Hover content can be multi-line — collapse to one row, separating blocks with " · ".
-        var text = hover.Contents.Replace("\n\n", " · ").Replace('\n', ' ');
-        CellPaint.DrawText(buffer, x, y, text, width, HoverFg, bg);
-    }
 
     public static void RenderDiagnostic(CellBuffer buffer, int x, int y, int width, Diagnostic diagnostic, int promptWidth, Color bg)
     {

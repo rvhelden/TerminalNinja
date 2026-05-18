@@ -135,10 +135,55 @@ public class AliasInterceptorTests
     }
 
     [Test]
-    public async Task UnquotedPipeInArgs_AbortsIntercept()
+    public async Task UnquotedPipe_SplitsHeadFromPipelineTail()
+    {
+        var fn = Marker();
+        var c = WithAliases(("cd", fn));
+        var ok = AliasInterceptor.TryIntercept("cd foo | print", c, out var inv);
+        await Assert.That(ok).IsTrue();
+        await Assert.That(inv.Args.Length).IsEqualTo(1);
+        await Assert.That(inv.Args[0] is NString s && s.Value == "foo").IsTrue();
+        await Assert.That(inv.PipelineTail).IsEqualTo("print");
+    }
+
+    [Test]
+    public async Task PipelineTail_PreservesMultiStagePipeline()
+    {
+        var c = WithAliases(("ls", Marker()));
+        var ok = AliasInterceptor.TryIntercept("ls | where(x => x) | select(x => x)", c, out var inv);
+        await Assert.That(ok).IsTrue();
+        await Assert.That(inv.Args.Length).IsEqualTo(0);
+        // Only the first `|` splits — every later stage stays in the tail so the parser
+        // sees the full pipeline expression verbatim.
+        await Assert.That(inv.PipelineTail).IsEqualTo("where(x => x) | select(x => x)");
+    }
+
+    [Test]
+    public async Task BareAlias_NoTail_LeavesPipelineTailNull()
     {
         var c = WithAliases(("cd", Marker()));
-        var ok = AliasInterceptor.TryIntercept("cd foo | print", c, out _);
+        var ok = AliasInterceptor.TryIntercept("cd foo", c, out var inv);
+        await Assert.That(ok).IsTrue();
+        await Assert.That(inv.PipelineTail).IsNull();
+    }
+
+    [Test]
+    public async Task DoublePipe_NotTreatedAsSplit()
+    {
+        // `||` is logical-or, not a pipeline operator — `cd foo || bar` is an expression
+        // and must fall through to the parser instead of being intercepted.
+        var c = WithAliases(("cd", Marker()));
+        var ok = AliasInterceptor.TryIntercept("cd foo || bar", c, out _);
+        await Assert.That(ok).IsFalse();
+    }
+
+    [Test]
+    public async Task DanglingPipe_DoesNotIntercept()
+    {
+        // No tail after `|` means a real syntax error — bail to the parser so the user
+        // gets a proper diagnostic instead of silent no-op behavior.
+        var c = WithAliases(("cd", Marker()));
+        var ok = AliasInterceptor.TryIntercept("cd foo |   ", c, out _);
         await Assert.That(ok).IsFalse();
     }
 

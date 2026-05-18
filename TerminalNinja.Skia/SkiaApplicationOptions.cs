@@ -1,3 +1,5 @@
+using SkiaSharp;
+
 namespace TerminalNinja.Skia;
 
 /// <summary>
@@ -46,7 +48,34 @@ public sealed class SkiaApplicationOptions
     /// Family name of the font to load. Resolved by Skia's font manager; passing null
     /// falls back to <see cref="SkiaSharp.SKTypeface.Default"/>.
     /// </summary>
+    /// <remarks>
+    /// Ignored when <see cref="Typeface"/> is set — a pre-loaded typeface wins so consumers
+    /// can ship a font (file or embedded resource) without depending on a system install.
+    /// </remarks>
     public string? FontFamily { get; init; }
+
+    /// <summary>
+    /// Pre-loaded typeface to use for cell rendering. When set, takes precedence over
+    /// <see cref="FontFamily"/>. Lets consumers ship a bundled font file or embedded
+    /// resource and load it via <c>SKTypeface.FromFile</c> / <c>SKTypeface.FromStream</c>
+    /// without relying on a system-installed font family. Ownership transfers to the host,
+    /// which disposes the typeface on shutdown.
+    /// </summary>
+    public SKTypeface? Typeface { get; init; }
+
+    /// <summary>
+    /// Pre-rendered OS window icon. When set, the host hands the pixels to SDL3 via
+    /// <c>SDL_SetWindowIcon</c> after the window is created so taskbar / window-chrome glyphs
+    /// match the application's brand instead of falling back to SDL's generic default.
+    /// </summary>
+    /// <remarks>
+    /// Must be <see cref="SkiaSharp.SKColorType.Rgba8888"/> — the host hands the buffer to SDL
+    /// as <c>SDL_PIXELFORMAT_ABGR8888</c> (same byte layout on little-endian, which is the only
+    /// architecture family the host targets). The bitmap can be any square size; window managers
+    /// resample as needed (256–512px is a good source). Ownership transfers to the host, which
+    /// disposes the bitmap once the icon has been applied.
+    /// </remarks>
+    public SkiaSharp.SKBitmap? WindowIcon { get; init; }
 
     /// <summary>Enable VSync via SDL_GL_SetSwapInterval(1). Default true.</summary>
     public bool VSync { get; init; } = true;

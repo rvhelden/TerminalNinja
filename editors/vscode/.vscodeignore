@@ -7,7 +7,9 @@ src/**
 vsc-extension-quickstart.md
 **/tsconfig.json
 **/.eslintrc.json
-**/*.map
 **/*.ts
-node_modules/**/test/**
-node_modules/.bin/**
+# extension.js is built by esbuild — no runtime dep tree shipped in the VSIX.
+node_modules/**
+pnpm-lock.yaml
+package-lock.json
+yarn.lock

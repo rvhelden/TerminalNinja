@@ -146,7 +146,6 @@ public sealed class ReplView : Control
             bounds,
             _input.CountLines(),
             _analysis.HasDiagnostic,
-            _analysis.Hover is not null,
             promptWidth);
 
         _outputRenderer.Clamp(_layout.OutputHeight);
@@ -157,8 +156,6 @@ public sealed class ReplView : Control
         CellPaint.ClearRegion(buffer, bounds, bg);
         _outputRenderer.Render(buffer, _layout, fg, bg);
 
-        if (_layout.HoverY > -1 && _analysis.Hover is not null)
-            StatusLineRenderer.RenderHover(buffer, bounds.X, _layout.HoverY, bounds.Width, _analysis.Hover, bg);
         if (_layout.DiagY > -1 && _analysis.HasDiagnostic)
             StatusLineRenderer.RenderDiagnostic(buffer, bounds.X, _layout.DiagY, bounds.Width, _analysis.Diagnostics[0], Prompt.Length, bg);
 
@@ -186,16 +183,24 @@ public sealed class ReplView : Control
             return;
         }
 
-        // Esc — close any open overlay before anything else handles it.
-        // Order: completion popup is handled below via _completion.HandleKey,
-        // so we only catch signature / mouse hover / selection here.
-        if (e.Key == ConsoleKey.Escape && !_completion.IsOpen)
+        // Esc — close any open overlay before anything else handles it. The
+        // hover panel comes first so an explicitly-summoned hover (Ctrl+Space)
+        // dismisses without also closing the live completion popup behind it.
+        // Completion popup itself is dismissed via _completion.HandleKey below.
+        if (e.Key == ConsoleKey.Escape)
         {
-            bool any = false;
-            if (_signatureHelp.IsOpen) { _signatureHelp.Hide(); any = true; }
-            if (_mouseHover.IsOpen) { _mouseHover.Hide(); any = true; }
-            if (_selection.HasSelection) { ClearSelection(); any = true; }
-            if (any) { Invalidate(); return; }
+            if (_mouseHover.IsOpen) { _mouseHover.Hide(); Invalidate(); return; }
+            if (_signatureHelp.IsOpen) { _signatureHelp.Hide(); Invalidate(); return; }
+            if (!_completion.IsOpen && _selection.HasSelection) { ClearSelection(); return; }
+        }
+
+        // Ctrl+Space — on-demand hover at the cursor. The inline hover status
+        // line above the input is gone; this surfaces the same content in the
+        // shared HoverPanel overlay, anchored to the cursor row/column.
+        if (e.Key == ConsoleKey.Spacebar && e.Ctrl)
+        {
+            ShowCursorHover();
+            return;
         }
 
         // Completion popup eats Up/Down/Enter/Esc/Tab while open. The popup is
@@ -214,6 +219,12 @@ public sealed class ReplView : Control
             case ConsoleKey.C when e.Ctrl:
                 if (_selection.HasSelection) { CopyToClipboard(); return; }
                 break;
+            case ConsoleKey.V when e.Ctrl:
+                PasteFromClipboard();
+                return;
+            case ConsoleKey.Insert when e.Shift:
+                PasteFromClipboard();
+                return;
             case ConsoleKey.Enter when e.Alt:
                 // Alt+Enter — manual IntelliSense trigger. Opens the completion
                 // popup at the cursor; does NOT submit. No-op when there are no
@@ -244,6 +255,7 @@ public sealed class ReplView : Control
                     _input.Remove(_input.CursorCol - 1, 1);
                     _input.CursorCol--;
                     RecomputeAnalysis();
+                    RefreshCompletion();
                     Invalidate();
                 }
                 return;
@@ -253,14 +265,15 @@ public sealed class ReplView : Control
                     ClearInputSelection();
                     _input.Remove(_input.CursorCol, 1);
                     RecomputeAnalysis();
+                    RefreshCompletion();
                     Invalidate();
                 }
                 return;
             case ConsoleKey.LeftArrow:
-                if (_input.CursorCol > 0) { _input.CursorCol--; RecomputeAnalysis(); Invalidate(); }
+                if (_input.CursorCol > 0) { _input.CursorCol--; RecomputeAnalysis(); RefreshCompletion(); Invalidate(); }
                 return;
             case ConsoleKey.RightArrow:
-                if (_input.CursorCol < _input.Length) { _input.CursorCol++; RecomputeAnalysis(); Invalidate(); }
+                if (_input.CursorCol < _input.Length) { _input.CursorCol++; RecomputeAnalysis(); RefreshCompletion(); Invalidate(); }
                 return;
             case ConsoleKey.Home when e.Ctrl:
                 _outputRenderer.ScrollTo(int.MaxValue, _layout.OutputHeight);
@@ -303,13 +316,12 @@ public sealed class ReplView : Control
             _input.Insert(_input.CursorCol, e.KeyChar);
             _input.CursorCol++;
             RecomputeAnalysis();
+            // Live completion: query LSP after every printable insert. Refresh
+            // updates the open popup in place, opens a fresh popup when nothing
+            // was showing yet, or closes it when the current prefix has no
+            // matches — so typing `en` lands you on `env` with no Tab needed.
+            RefreshCompletion();
             Invalidate();
-
-            // Auto-trigger member completion after the user types '.'. OpenCompletion
-            // silently no-ops when the LSP has nothing to suggest (e.g. the dot wasn't
-            // preceded by a module / record-typed expression), so this is safe to fire
-            // unconditionally on every '.'.
-            if (e.KeyChar == '.') OpenCompletion();
         }
     }
 
@@ -334,6 +346,23 @@ public sealed class ReplView : Control
         var opened = _completion.Open(Scope, _layout);
         if (opened) Invalidate();
         return opened;
+    }
+
+    private void RefreshCompletion()
+    {
+        if (_layout.IsEmpty) return;
+        _completion.Refresh(Scope, _layout);
+    }
+
+    private void ShowCursorHover()
+    {
+        if (_layout.IsEmpty) return;
+        var (cursorLine, cursorCol) = _input.CursorToLineCol(_input.CursorCol);
+        var anchorX = _layout.InputX + cursorCol;
+        var anchorY = _layout.InputTopY + cursorLine;
+        _mouseHover.Theme = Theme;
+        _mouseHover.ShowInputHover(anchorX, anchorY, _input.Text, new Position(cursorLine, cursorCol), Scope);
+        Invalidate();
     }
 
     // ─── Mouse handling ─────────────────────────────────────────────────────
@@ -386,7 +415,11 @@ public sealed class ReplView : Control
         }
         if (e.Button == MouseButton.Left && e.Action == MouseAction.Release)
         {
-            _selection.IsMouseDragging = false;
+            if (_selection.IsMouseDragging)
+            {
+                _selection.IsMouseDragging = false;
+                TerminalNinja.App.Application.Current?.FocusManager.ReleaseMouseCapture();
+            }
             return;
         }
 
@@ -455,8 +488,7 @@ public sealed class ReplView : Control
         var inputLines = Math.Min(_input.CountLines(), Math.Max(1, _layout.Bounds.Height / 2));
         int outputHeight = _layout.Bounds.Height
             - inputLines
-            - (_analysis.HasDiagnostic ? 1 : 0)
-            - (_analysis.Hover is not null ? 1 : 0);
+            - (_analysis.HasDiagnostic ? 1 : 0);
         if (outputHeight <= 0) return false;
 
         int rowInPanel = row - _layout.Bounds.Y;
@@ -501,6 +533,11 @@ public sealed class ReplView : Control
         }
 
         _selection.IsMouseDragging = true;
+        // Capture the mouse so a drag that wanders outside the REPL bounds — or
+        // over the completion / hover popups — still routes Move/Release back
+        // to us. Without this, the Release goes to whatever element the cursor
+        // happens to be over and IsMouseDragging stays stuck on.
+        TerminalNinja.App.Application.Current?.FocusManager.CaptureMouse(this);
         Invalidate();
     }
 
@@ -564,10 +601,11 @@ public sealed class ReplView : Control
     }
 
     /// <summary>
-    /// Copy the current selection to the OS clipboard. On success the selection
-    /// is cleared (so the next keystroke / click doesn't see stale highlight).
-    /// Failures surface as a single output line so the user knows why nothing
-    /// landed on the clipboard.
+    /// Copy the current selection to the OS clipboard. The selection is cleared
+    /// unconditionally — leaving the highlight visible after a copy attempt would
+    /// imply the operation is "pending" or retry-able, which it isn't. Failures
+    /// surface as a single output line so the user knows why nothing landed on
+    /// the clipboard.
     /// </summary>
     private bool CopyToClipboard()
     {
@@ -577,6 +615,7 @@ public sealed class ReplView : Control
             ? _output.Lines
             : _input.Lines();
         var text = _selection.BuildText(source);
+        ClearSelection();
         if (text.Length == 0) return false;
 
         var clipboard = TerminalNinja.App.Application.Current?.Clipboard;
@@ -596,8 +635,45 @@ public sealed class ReplView : Control
             return false;
         }
 
-        ClearSelection();
         return true;
+    }
+
+    /// <summary>
+    /// Insert the OS clipboard text at the cursor position. Normalises CRLF and CR
+    /// to '\n' so multi-line pastes round-trip through <see cref="InputBuffer"/>'s
+    /// '\n'-only line splitting. Silently no-ops when the clipboard is empty;
+    /// surfaces "paste: …" errors into the output log the same way copy does.
+    /// </summary>
+    private void PasteFromClipboard()
+    {
+        var clipboard = TerminalNinja.App.Application.Current?.Clipboard;
+        if (clipboard is null)
+        {
+            AppendOutput("paste: clipboard is unavailable (no Application context)");
+            return;
+        }
+
+        string? text;
+        try
+        {
+            text = clipboard.GetText();
+        }
+        catch (Exception ex)
+        {
+            AppendOutput($"paste: failed — {ex.Message}");
+            return;
+        }
+
+        if (string.IsNullOrEmpty(text)) return;
+
+        var normalised = text.Replace("\r\n", "\n").Replace('\r', '\n');
+
+        ClearInputSelection();
+        _input.Insert(_input.CursorCol, normalised);
+        _input.CursorCol += normalised.Length;
+        RecomputeAnalysis();
+        RefreshCompletion();
+        Invalidate();
     }
 
     // ─── Submit / history ──────────────────────────────────────────────────
@@ -673,6 +749,7 @@ public sealed class ReplView : Control
         var entry = _history.Navigate(direction);
         _input.Replace(entry ?? string.Empty);
         RecomputeAnalysis();
+        RefreshCompletion();
         Invalidate();
     }
 

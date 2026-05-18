@@ -3,6 +3,7 @@ using System.Collections.ObjectModel;
 using System.Text;
 using TerminalNinja.Controls;
 using TerminalNinja.Shell.Builtins;
+using TerminalNinja.Shell.Config;
 using TerminalNinja.Shell.PowerShell;
 using TerminalNinja.Shell.Repl;
 using TerminalNinja.Shell.Runtime;
@@ -28,6 +29,14 @@ namespace TerminalNinja.Shell.Skia;
 public sealed class ShellViewModel : ViewModelBase
 {
     private Env _env;
+
+    /// <summary>
+    /// Per-REPL configuration: shell-mode aliases (<c>ls</c>, <c>cd</c>, …) and the
+    /// keybinding table. Owned here so the <c>alias</c> and <c>key</c> modules bound
+    /// into <see cref="_env"/> mutate the same instance the
+    /// <see cref="AliasInterceptor"/> consults on every command.
+    /// </summary>
+    private readonly NinjaConfig _config = NinjaConfig.Empty();
 
     /// <summary>
     /// Names that were already bound when this view model started: the builtin
@@ -144,7 +153,13 @@ public sealed class ShellViewModel : ViewModelBase
     /// <summary>Creates a view model with a fresh evaluator environment and a focused REPL.</summary>
     public ShellViewModel()
     {
-        _env = BuiltinRegistry.CreateDefaultEnv();
+        // CreateDefaultEnvWith binds the `alias` and `key` modules against _config — without
+        // this, `alias.list()` etc. resolve to "unbound identifier". Seed the same default
+        // shell-mode aliases (`ls`, `cd`, `pwd`, …) and keybindings the console REPL ships
+        // with, so the user doesn't have to rebind every command per-frontend.
+        _env = BuiltinRegistry.CreateDefaultEnvWith(_config);
+        DefaultAliases.Seed(_config, _env);
+        DefaultKeybindings.Seed(_config);
         if (PwshBridge.IsAvailable)
         {
             _env = PwshBridge.Install(_env);
@@ -164,6 +179,10 @@ public sealed class ShellViewModel : ViewModelBase
         Repl.AppendOutput("Enter on a row to edit; F1/F2/F3 toggle panels; F10 exits.");
         Repl.Scope = SnapshotScope(_env);
         Repl.CommandEntered += OnCommandEntered;
+
+        // Load ~/.ninjarc once the REPL exists so any parse/runtime errors surface as
+        // banner rows in the output panel rather than vanishing into stderr.
+        LoadRcInto(Repl);
 
         EnvList = new EditableKeyValueList
         {
@@ -274,18 +293,49 @@ public sealed class ShellViewModel : ViewModelBase
     {
         try
         {
-            var result = NinjaEvaluator.EvalScript(line, _env);
-            _env = result.Env;
-            // Keep the REPL's scope snapshot in sync so mouse hover on an identifier
-            // shows live shape + data, not stale or missing info.
-            Repl.Scope = SnapshotScope(_env);
-
-            var rendered = Printer.Format(result.Value);
-            if (!string.IsNullOrEmpty(rendered))
+            // Shell-mode aliases come first: `ls` / `cd foo` resolve to a configured
+            // callable and dispatch as a regular call, with each whitespace-token
+            // becoming an NString argument. A top-level `|` splits the line into a
+            // shell-mode head and a pipeline tail (`ls | select(x => x)`) — the
+            // alias is invoked and its result is piped through the tail evaluated
+            // as a regular expression. Lines that don't look like a shell call
+            // (no alias match, expression punctuation in args, …) fall through to
+            // the normal expression parser unchanged.
+            if (AliasInterceptor.TryIntercept(line, _config, out var inv))
             {
-                // AppendResult stores the produced NValue alongside the rendered text,
-                // making each output line a mouse-hover target with shape + data.
-                Repl.AppendResult(rendered, result.Value);
+                var value = NinjaEvaluator.Invoke(inv.Func, inv.Args);
+                if (inv.PipelineTail is { } tail)
+                {
+                    // Bind the alias result to an internal slot (the `__` prefix
+                    // keeps it out of the scope panel and out of users' way) and
+                    // let the parser handle the rest of the pipeline normally.
+                    // The temp env is intentionally discarded — the slot doesn't
+                    // outlive this single command.
+                    const string slot = "__pipein";
+                    var tempEnv = _env.Extend(slot, value);
+                    value = NinjaEvaluator.EvalScript(slot + " | " + tail, tempEnv).Value;
+                }
+                var rendered = Printer.Format(value);
+                if (!string.IsNullOrEmpty(rendered))
+                {
+                    Repl.AppendResult(rendered, value);
+                }
+            }
+            else
+            {
+                var result = NinjaEvaluator.EvalScript(line, _env);
+                _env = result.Env;
+                // Keep the REPL's scope snapshot in sync so mouse hover on an identifier
+                // shows live shape + data, not stale or missing info.
+                Repl.Scope = SnapshotScope(_env);
+
+                var rendered = Printer.Format(result.Value);
+                if (!string.IsNullOrEmpty(rendered))
+                {
+                    // AppendResult stores the produced NValue alongside the rendered text,
+                    // making each output line a mouse-hover target with shape + data.
+                    Repl.AppendResult(rendered, result.Value);
+                }
             }
         }
         catch (Exception ex)
@@ -294,6 +344,25 @@ public sealed class ShellViewModel : ViewModelBase
         }
 
         RefreshPanels();
+    }
+
+    /// <summary>
+    /// Run <see cref="RcLoader.TryLoad"/> against the live env, piping any diagnostic lines
+    /// it emits into the REPL output panel instead of stderr (which is invisible in the
+    /// Skia host). The script itself acts via side-effects on <see cref="_config"/> —
+    /// <c>alias.set</c>, <c>key.bind</c>, etc.
+    /// </summary>
+    private void LoadRcInto(ReplView repl)
+    {
+        using var sw = new StringWriter();
+        RcLoader.TryLoad(RcLoader.DefaultPath(), _env, sw);
+        var text = sw.ToString();
+        if (string.IsNullOrEmpty(text)) return;
+        foreach (var rcLine in text.Split('\n'))
+        {
+            var trimmed = rcLine.TrimEnd('\r');
+            if (trimmed.Length > 0) repl.AppendOutput(trimmed);
+        }
     }
 
     /// <summary>Materialise an env into a plain dictionary for the REPL's hover lookups.</summary>

@@ -64,11 +64,14 @@ internal sealed class MouseHoverController
 
     public void ShowValueHover(NValue value, int mouseX, int mouseY)
     {
+        // Strip __* fields so internal bookkeeping (e.g. __type, __src) doesn't
+        // leak into the quick-look UI. The original value is unaffected.
+        var visible = ValueFormatter.StripHiddenFields(value);
         var sb = new StringBuilder();
-        sb.Append("result :: ").AppendLine(ValueFormatter.TypeName(value));
+        sb.Append("result :: ").AppendLine(ValueFormatter.TypeName(visible));
         sb.AppendLine();
-        sb.Append("shape: ").AppendLine(ValueFormatter.Def(value));
-        sb.Append("data:  ").Append(ValueFormatter.Dump(value));
+        sb.Append("shape: ").AppendLine(ValueFormatter.Def(visible));
+        sb.Append("data:  ").Append(ValueFormatter.Dump(visible));
 
         // Value hovers surface obj.dump-style payloads — drive the highlighter
         // with the record grammar so keys/values are visually distinguishable.

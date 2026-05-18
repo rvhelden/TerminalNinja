@@ -1,5 +1,5 @@
 using System.Text;
-using TerminalNinja.Shell.LanguageServer.Protocol;
+using TerminalNinja.Shell.Language.Protocol;
 
 namespace TerminalNinja.Shell.LanguageServer.Tests.Unit;
 
@@ -47,6 +47,30 @@ public class JsonRpcFramingTests
         var reader = new JsonRpcReader(new MemoryStream());
         var doc = reader.ReadMessage();
         await Assert.That(doc).IsNull();
+    }
+
+    [Test]
+    public async Task Reader_OnlyBlankLine_ReturnsNullAtEof()
+    {
+        // Smoke-test / misbehaving client: a stray newline followed by EOF should
+        // surface as a clean shutdown, not as an InvalidDataException.
+        var input = new MemoryStream(Encoding.ASCII.GetBytes("\r\n"));
+        var reader = new JsonRpcReader(input);
+        var doc = reader.ReadMessage();
+        await Assert.That(doc).IsNull();
+    }
+
+    [Test]
+    public async Task Reader_LeadingBlankLinesBeforeFrame_AreSkipped()
+    {
+        // Some peers emit a trailing blank between frames. The reader should
+        // tolerate it and parse the next real frame.
+        var bytes = new List<byte>();
+        bytes.AddRange(Encoding.ASCII.GetBytes("\r\n\r\n"));
+        bytes.AddRange(Frame("{\"id\":42}"));
+        var reader = new JsonRpcReader(new MemoryStream(bytes.ToArray()));
+        using var doc = reader.ReadMessage();
+        await Assert.That(doc!.RootElement.GetProperty("id").GetInt32()).IsEqualTo(42);
     }
 
     [Test]

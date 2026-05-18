@@ -118,10 +118,11 @@ public class ObjModuleTests
         var v = Run("obj.table([{ a: 1, b: 2 }, { a: 3, b: 4 }])");
         if (v is not NString s) throw new InvalidOperationException();
         var lines = s.Value.Split('\n').Select(l => l.TrimEnd('\r')).ToArray();
-        // Header + separator + 2 data rows.
-        await Assert.That(lines.Length).IsGreaterThanOrEqualTo(4);
-        await Assert.That(lines[0]).Contains("a");
-        await Assert.That(lines[0]).Contains("b");
+        // top border + header + middle border + 2 data rows + bottom border.
+        await Assert.That(lines.Length).IsGreaterThanOrEqualTo(6);
+        // Header text lives on the header row (index 1), wrapped in border SGR.
+        await Assert.That(lines[1]).Contains("a");
+        await Assert.That(lines[1]).Contains("b");
     }
 
     [Test]
@@ -137,6 +138,28 @@ public class ObjModuleTests
     public async Task ObjTable_OnNonContainer_Throws()
     {
         await Assert.That(() => Run("obj.table(42)")).ThrowsExactly<EvaluatorException>();
+    }
+
+    [Test]
+    public async Task ObjTable_OnListOfStrings_RendersOnePerLine()
+    {
+        // String projections (e.g. fs.ls() | select(x => $"Test {x.Name}")) feed
+        // a list of strings into obj.table — render each on its own line, no
+        // brackets, no quotes.
+        var v = Run("obj.table([\"alpha\", \"beta\", \"gamma\"])");
+        if (v is not NString s) throw new InvalidOperationException();
+        await Assert.That(s.Value).IsEqualTo("alpha\nbeta\ngamma");
+    }
+
+    [Test]
+    public async Task ObjTable_OnSeqOfStrings_RendersOnePerLine()
+    {
+        // End-to-end shape of the pipeline the user reported — a select projection
+        // produces an NSeq of NString; obj.table should materialise and surface
+        // each line raw.
+        var v = Run("[\"alpha\", \"beta\"] | select(x => $\"Test {x}\") | materialize | obj.table");
+        if (v is not NString s) throw new InvalidOperationException();
+        await Assert.That(s.Value).IsEqualTo("Test alpha\nTest beta");
     }
 
     [Test]

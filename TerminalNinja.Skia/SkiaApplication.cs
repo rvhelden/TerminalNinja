@@ -250,6 +250,8 @@ public sealed class SkiaApplication : IDisposable
             throw new InvalidOperationException($"SDL_CreateWindow failed: {GetSdlError()}");
         }
 
+        ApplyWindowIcon();
+
         _glContext = Sdl3.SDL_GL_CreateContext(_window);
         if (_glContext == IntPtr.Zero)
         {
@@ -265,9 +267,16 @@ public sealed class SkiaApplication : IDisposable
         _grContext = GRContext.CreateGl(_grGlInterface)
             ?? throw new InvalidOperationException("GRContext.CreateGl returned null.");
 
-        _typeface = _options.FontFamily is null
-            ? SKTypeface.Default
-            : SKTypeface.FromFamilyName(_options.FontFamily) ?? SKTypeface.Default;
+        // Resolution order:
+        //   1. An explicit pre-loaded typeface (consumer shipped a font file / embedded resource).
+        //   2. A family-name lookup against the system font manager.
+        //   3. Skia's default typeface as a final fallback.
+        // (1) lets apps like NinjaShell ship a Nerd Font in-assembly so symbols + ligatures
+        // render correctly on machines that don't have the font installed system-wide.
+        _typeface = _options.Typeface
+            ?? (_options.FontFamily is null
+                ? SKTypeface.Default
+                : SKTypeface.FromFamilyName(_options.FontFamily) ?? SKTypeface.Default);
 
         // Apply display scaling. Resize the window to the post-scale pixel size so the
         // framebuffer matches our scaled cell metrics exactly (no fractional cells, no
@@ -505,6 +514,48 @@ public sealed class SkiaApplication : IDisposable
         _grContext = null;
         _grGlInterface = null;
         _input = null;
+    }
+
+    /// <summary>
+    /// Pushes <see cref="SkiaApplicationOptions.WindowIcon"/> (if any) onto the SDL window so
+    /// taskbar / window-chrome glyphs render with the app's brand. SDL3 wants an SDL_Surface,
+    /// so we wrap the bitmap's pixel buffer in a throwaway one via <c>SDL_CreateSurfaceFrom</c>.
+    /// SDL_SetWindowIcon copies the image internally, so the surface + bitmap can be released
+    /// the moment the call returns — no pinning lifetime to manage. Failures are non-fatal:
+    /// the icon is purely cosmetic, and the run loop is what consumers actually care about.
+    /// </summary>
+    private void ApplyWindowIcon()
+    {
+        var icon = _options.WindowIcon;
+        if (icon is null)
+        {
+            return;
+        }
+
+        var pixels = icon.GetPixels();
+        if (pixels == IntPtr.Zero)
+        {
+            icon.Dispose();
+            return;
+        }
+
+        var surface = Sdl3.SDL_CreateSurfaceFrom(
+            icon.Width,
+            icon.Height,
+            Sdl3.SDL_PIXELFORMAT_ABGR8888,
+            pixels,
+            icon.RowBytes);
+
+        if (surface != IntPtr.Zero)
+        {
+            Sdl3.SDL_SetWindowIcon(_window, surface);
+            Sdl3.SDL_DestroySurface(surface);
+        }
+
+        // SDL has copied the pixels internally by now (SDL_SetWindowIcon docs); the bitmap is
+        // no longer needed. Disposing here matches the typeface-ownership pattern documented
+        // on SkiaApplicationOptions.WindowIcon.
+        icon.Dispose();
     }
 
     private static string GetSdlError()

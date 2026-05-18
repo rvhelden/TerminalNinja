@@ -679,6 +679,10 @@ public static class LanguageService
     /// </summary>
     private static string BuildScopedHoverContents(string name, NValue value, BuiltinDescriptor? staticEntry)
     {
+        // __* fields are hidden from hover so internal bookkeeping doesn't
+        // leak into the quick-look UI. Type line uses the original value
+        // (the top-level type doesn't change either way).
+        var visible = ValueFormatter.StripHiddenFields(value);
         var sb = new System.Text.StringBuilder();
         if (staticEntry is not null)
         {
@@ -689,8 +693,8 @@ public static class LanguageService
             sb.Append(name).Append(" :: ").AppendLine(ValueFormatter.TypeName(value));
         }
         sb.AppendLine();
-        sb.Append("shape: ").AppendLine(ValueFormatter.Def(value));
-        sb.Append("data:  ").Append(ValueFormatter.Dump(value));
+        sb.Append("shape: ").AppendLine(ValueFormatter.Def(visible));
+        sb.Append("data:  ").Append(ValueFormatter.Dump(visible));
         return sb.ToString();
     }
 

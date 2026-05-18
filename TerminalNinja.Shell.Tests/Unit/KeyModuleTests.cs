@@ -80,7 +80,7 @@ public class KeyModuleTests
     [Test]
     public async Task KeyBind_AllSupportedActions_Accepted()
     {
-        foreach (var action in new[] { "clear", "history-prev", "history-next", "abort", "submit", "complete" })
+        foreach (var action in new[] { "clear", "history-prev", "history-next", "abort", "submit", "complete", "edit-config" })
         {
             var config = NinjaConfig.Empty();
             Run($"key.bind(\"Ctrl+A\", \"{action}\")", config);

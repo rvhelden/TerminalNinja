@@ -10,6 +10,7 @@
     "categories": [
         "Programming Languages"
     ],
+    "icon": "images/icon.png",
     "main": "./out/extension.js",
     "contributes": {
         "languages": [
@@ -49,19 +50,82 @@
                     ],
                     "default": "off",
                     "description": "Trace JSON-RPC messages between the extension and ninja-lsp."
+                },
+                "ninja.debugAdapter.path": {
+                    "type": "string",
+                    "default": "",
+                    "description": "Path to the ninja executable (which hosts the --dap debug adapter). Leave empty to look it up on PATH."
                 }
             }
-        }
+        },
+        "breakpoints": [
+            {
+                "language": "ninja"
+            }
+        ],
+        "debuggers": [
+            {
+                "type": "ninja",
+                "label": "NinjaShell",
+                "languages": [
+                    "ninja"
+                ],
+                "configurationAttributes": {
+                    "launch": {
+                        "required": [
+                            "program"
+                        ],
+                        "properties": {
+                            "program": {
+                                "type": "string",
+                                "description": "Absolute path to the .ninja script to launch.",
+                                "default": "${file}"
+                            },
+                            "stopOnEntry": {
+                                "type": "boolean",
+                                "description": "Pause execution before the first statement.",
+                                "default": false
+                            }
+                        }
+                    }
+                },
+                "initialConfigurations": [
+                    {
+                        "type": "ninja",
+                        "request": "launch",
+                        "name": "Run current NinjaShell file",
+                        "program": "${file}",
+                        "stopOnEntry": false
+                    }
+                ],
+                "configurationSnippets": [
+                    {
+                        "label": "NinjaShell: Launch script",
+                        "description": "Launch the current .ninja file under the debugger.",
+                        "body": {
+                            "type": "ninja",
+                            "request": "launch",
+                            "name": "Run current NinjaShell file",
+                            "program": "^\"\\${file}\"",
+                            "stopOnEntry": false
+                        }
+                    }
+                ]
+            }
+        ]
     },
     "scripts": {
-        "compile": "tsc -p ./ && vsce package --no-dependencies",
-        "watch": "tsc -watch -p ./"
+        "typecheck": "tsc -p ./ --noEmit",
+        "bundle": "esbuild ./src/extension.ts --bundle --outfile=out/extension.js --external:vscode --format=cjs --platform=node --target=node18 --sourcemap",
+        "compile": "tsc -p ./ --noEmit && esbuild ./src/extension.ts --bundle --outfile=out/extension.js --external:vscode --format=cjs --platform=node --target=node18 --sourcemap && vsce package --no-dependencies",
+        "watch": "tsc -watch -p ./ --noEmit"
     },
     "devDependencies": {
         "@types/node": "^25.9.0",
         "@types/vscode": "^1.80.0",
-        "typescript": "^6.0.3",
-        "@vscode/vsce": "^3.9.1"
+        "@vscode/vsce": "^3.9.1",
+        "esbuild": "^0.24.0",
+        "typescript": "^6.0.3"
     },
     "dependencies": {
         "vscode-languageclient": "^9.0.1"

@@ -3,6 +3,7 @@ using System.Globalization;
 using System.Text;
 using TerminalNinja.Shell.Ast;
 using TerminalNinja.Shell.Parser;
+using TerminalNinja.Shell.Runtime.Debug;
 using TerminalNinja.Shell.Values;
 
 namespace TerminalNinja.Shell.Runtime;
@@ -59,6 +60,14 @@ public static class NinjaEvaluator
     public const int MaxSourceDepth = 32;
 
     [ThreadStatic] private static int _sourceDepth;
+
+    /// <summary>
+    /// Per-thread debugger hook. <c>null</c> in production runs (REPL, scripts,
+    /// tests); set by <see cref="DebugScope"/> when the DAP session runs the
+    /// evaluator on its worker thread. The null-check in <see cref="Eval"/> is
+    /// the only overhead the hook adds when no debugger is attached.
+    /// </summary>
+    [ThreadStatic] internal static IDebugSink? CurrentSink;
 
     /// <summary>
     /// Evaluate a parsed top-level expression. <see cref="LetStatement"/> and
@@ -136,6 +145,7 @@ public static class NinjaEvaluator
     /// <summary>Evaluate <paramref name="expr"/> against <paramref name="env"/>, producing an <see cref="NValue"/>.</summary>
     public static NValue Eval(Expr expr, Env env)
     {
+        CurrentSink?.OnEnter(expr, env);
         switch (expr)
         {
             case Lit lit: return lit.Value;
@@ -189,7 +199,23 @@ public static class NinjaEvaluator
         var args = new NValue[call.Args.Length];
         for (int i = 0; i < call.Args.Length; i++)
             args[i] = Eval(call.Args[i], env);
-        return f.Apply(args);
+
+        var sink = CurrentSink;
+        if (sink is null) return f.Apply(args);
+
+        // Push a synthetic call frame so the debugger's stackTrace reflects
+        // user-level call depth. Builtins don't re-enter Eval, so their frames
+        // sit on top only for the duration of their C# body; user-defined
+        // lambdas re-enter Eval and the inner OnEnter updates the new frame's
+        // live position.
+        string name = call.Function switch
+        {
+            Var v => v.Name,
+            _ => "(lambda)"
+        };
+        sink.OnEnterCall(name, call.Span);
+        try { return f.Apply(args); }
+        finally { sink.OnLeaveCall(); }
     }
 
     /// <summary>
