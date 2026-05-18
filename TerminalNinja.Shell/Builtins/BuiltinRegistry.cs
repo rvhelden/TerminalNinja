@@ -28,6 +28,7 @@ public static class BuiltinRegistry
         ObjModule.Register(b);
         EnvModule.Register(b);
         ProcModule.Register(b);
+        JsonModule.Register(b);
         return b.ToImmutable();
     }
 
