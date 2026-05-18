@@ -68,6 +68,11 @@ public sealed class ReplView : Control
     private Rect _lastBounds;
     private (int X, int Y)? _lastMouseHoverCell;
 
+    // Cached on every OnRender so OnMouseEvent and the OnKeyEvent scroll path
+    // can use "one page" (= output rows visible) for PageUp / PageDown without
+    // duplicating the layout math.
+    private int _lastOutputHeight;
+
     /// <summary>The prompt rendered in front of the first input row. Defaults to <c>"ninja&gt; "</c>.</summary>
     public string Prompt { get; set; } = "ninja> ";
 
@@ -193,11 +198,14 @@ public sealed class ReplView : Control
 
         var topReserved = inputLines + (diagY > -1 ? 1 : 0) + (hoverY > -1 ? 1 : 0);
         var outputHeight = Math.Max(0, bounds.Height - topReserved);
+        _lastOutputHeight = outputHeight;
+        ClampScrollOffset();
 
         var fg = Foreground;
         var bg = Background;
         ClearRegion(buffer, bounds, bg);
         RenderOutput(buffer, bounds.X, bounds.Y, bounds.Width, outputHeight, fg, bg);
+        RenderScrollIndicator(buffer, bounds.Right - 1, bounds.Y, outputHeight, bg);
 
         if (hoverY > -1) RenderHoverLine(buffer, bounds.X, hoverY, bounds.Width, bg);
         if (diagY > -1) RenderDiagnosticLine(buffer, bounds.X, diagY, bounds.Width, bg);
@@ -235,6 +243,63 @@ public sealed class ReplView : Control
             var row = y + (i - firstLine);
             DrawText(buffer, x, row, _outputLines[i], width, fg, bg);
         }
+    }
+
+    /// <summary>
+    /// Draws a one-cell-wide scroll-position indicator on the right edge of the
+    /// output area. The thumb's height is proportional to "visible / total" and
+    /// its top position is proportional to the scroll offset. Track cells stay
+    /// blank (no fill character) so the indicator looks like a discrete block
+    /// rather than a continuous line.
+    /// </summary>
+    private void RenderScrollIndicator(CellBuffer buffer, int x, int y, int outputHeight, Color bg)
+    {
+        if (outputHeight <= 1) return;
+        if (_outputLines.Count <= outputHeight) return;        // everything visible — no indicator
+
+        int total = _outputLines.Count;
+        // Thumb height: outputHeight^2 / total, min 1, max outputHeight.
+        int thumbHeight = Math.Max(1, Math.Min(outputHeight, outputHeight * outputHeight / Math.Max(1, total)));
+        int trackLength = outputHeight - thumbHeight;
+        // Thumb top: trackLength * (1 - scrollOffset / maxOffset). scrollOffset=0 → bottom; max → top.
+        int maxOffset = Math.Max(1, total - outputHeight);
+        int offsetFromTop = trackLength - (trackLength * Math.Min(_scrollOffset, maxOffset) / maxOffset);
+        int thumbTopY = y + offsetFromTop;
+
+        var thumbColor = new Color(0x6C, 0x70, 0x86);
+        for (int i = 0; i < thumbHeight; i++)
+        {
+            int row = thumbTopY + i;
+            if ((uint)row >= (uint)buffer.Height || (uint)x >= (uint)buffer.Width) continue;
+            buffer.SetChar(x, row, '█', thumbColor, bg);   // █ full block
+        }
+    }
+
+    /// <summary>
+    /// Scroll by <paramref name="lines"/> rows; positive moves the view back in time
+    /// (older content), negative moves forward (newer). Clamping happens in
+    /// <see cref="ClampScrollOffset"/> on the next render pass.
+    /// </summary>
+    private void ScrollBy(int lines)
+    {
+        _scrollOffset += lines;
+        ClampScrollOffset();
+        InvalidationCallback?.Invoke();
+    }
+
+    /// <summary>Scroll to an absolute offset (clamped). <c>0</c> = bottom (newest), large = top.</summary>
+    private void ScrollTo(int offset)
+    {
+        _scrollOffset = offset;
+        ClampScrollOffset();
+        InvalidationCallback?.Invoke();
+    }
+
+    private void ClampScrollOffset()
+    {
+        int maxOffset = Math.Max(0, _outputLines.Count - _lastOutputHeight);
+        if (_scrollOffset > maxOffset) _scrollOffset = maxOffset;
+        if (_scrollOffset < 0) _scrollOffset = 0;
     }
 
     /// <summary>
@@ -546,6 +611,12 @@ public sealed class ReplView : Control
             case ConsoleKey.RightArrow:
                 if (_cursorCol < _input.Length) { _cursorCol++; RecomputeAnalysis(); InvalidationCallback?.Invoke(); }
                 return;
+            case ConsoleKey.Home when e.Ctrl:
+                ScrollTo(int.MaxValue);
+                return;
+            case ConsoleKey.End when e.Ctrl:
+                ScrollTo(0);
+                return;
             case ConsoleKey.Home:
                 // Home goes to the start of the current line (matches editor convention).
                 _cursorCol = LineColToIndex(CursorToLineCol(_cursorCol).Line, 0);
@@ -562,12 +633,10 @@ public sealed class ReplView : Control
                 MoveDownOrHistoryForward();
                 return;
             case ConsoleKey.PageUp:
-                _scrollOffset = Math.Min(_scrollOffset + 5, Math.Max(0, _outputLines.Count - 1));
-                InvalidationCallback?.Invoke();
+                ScrollBy(Math.Max(1, _lastOutputHeight - 1));
                 return;
             case ConsoleKey.PageDown:
-                _scrollOffset = Math.Max(0, _scrollOffset - 5);
-                InvalidationCallback?.Invoke();
+                ScrollBy(-Math.Max(1, _lastOutputHeight - 1));
                 return;
         }
 
@@ -799,6 +868,21 @@ public sealed class ReplView : Control
     /// <inheritdoc />
     public override void OnMouseEvent(MouseEvent e)
     {
+        // Wheel events scroll the output history. We handle them before the
+        // Move-only filter below so the wheel works whether or not the mouse
+        // is over the panel's bounds (the hit-test that routed the event here
+        // already confirmed the pointer is over the REPL).
+        if (e.Action == MouseAction.ScrollUp)
+        {
+            ScrollBy(3);
+            return;
+        }
+        if (e.Action == MouseAction.ScrollDown)
+        {
+            ScrollBy(-3);
+            return;
+        }
+
         if (e.Action != MouseAction.Move) return;
         if (_lastBounds.Width <= 0 || _lastBounds.Height <= 0) return;
 
