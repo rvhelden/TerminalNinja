@@ -1,6 +1,7 @@
 using System.Text;
 using TerminalNinja.Buffers;
 using TerminalNinja.Controls;
+using TerminalNinja.Highlighting;
 using TerminalNinja.Input;
 using TerminalNinja.Primitives;
 using TerminalNinja.Shell.Language.Services;
@@ -51,6 +52,16 @@ public sealed class ReplView : Control
 
     /// <summary>The prompt rendered in front of the input line. Defaults to <c>"ninja&gt; "</c>.</summary>
     public string Prompt { get; set; } = "ninja> ";
+
+    /// <summary>
+    /// Language identifier handed to <see cref="SyntaxHighlighterRegistry"/> when rendering
+    /// the input line. <c>null</c> disables highlighting (the input is drawn with the plain
+    /// <see cref="Control.Foreground"/> color). Default is <c>"ninja"</c>.
+    /// </summary>
+    public string? HighlightLanguage { get; set; } = "ninja";
+
+    /// <summary>The theme colour palette applied to highlighted tokens.</summary>
+    public SyntaxTheme Theme { get; set; } = SyntaxTheme.Dark;
 
     /// <summary>The current contents of the input buffer (without the prompt).</summary>
     public string InputBuffer => _input.ToString();
@@ -145,7 +156,7 @@ public sealed class ReplView : Control
         DrawText(buffer, x, y, Prompt, width, fg, bg);
         var inputX = x + Prompt.Length;
         var inputWidth = Math.Max(0, width - Prompt.Length);
-        DrawText(buffer, inputX, y, _input.ToString(), inputWidth, fg, bg);
+        DrawHighlightedInput(buffer, inputX, y, _input.ToString(), inputWidth, fg, bg);
 
         // Cursor: invert fg/bg on the cell at the cursor position.
         var cursorX = inputX + Math.Min(_cursorCol, inputWidth - 1);
@@ -153,6 +164,55 @@ public sealed class ReplView : Control
         {
             var cell = buffer.GetCell(cursorX, y);
             buffer.SetCell(cursorX, y, new Cell(cell.Codepoint, cell.Background, cell.Foreground, cell.Decorations, cell.Flags));
+        }
+    }
+
+    /// <summary>
+    /// Renders the input buffer with per-token colours. Resolves the configured
+    /// <see cref="HighlightLanguage"/> through <see cref="SyntaxHighlighterRegistry"/>;
+    /// if no highlighter is registered, falls back to drawing the text plain.
+    /// </summary>
+    private void DrawHighlightedInput(CellBuffer buffer, int x, int y, string text, int maxWidth, Color fallbackFg, Color bg)
+    {
+        if (text.Length == 0 || maxWidth <= 0 || (uint)y >= (uint)buffer.Height) return;
+
+        ISyntaxHighlighter? highlighter = null;
+        if (HighlightLanguage is not null)
+        {
+            SyntaxHighlighterRegistry.TryGet(HighlightLanguage, out highlighter);
+        }
+
+        if (highlighter is null)
+        {
+            DrawText(buffer, x, y, text, maxWidth, fallbackFg, bg);
+            return;
+        }
+
+        var tokens = highlighter.Tokenize(text);
+        // Walk char-by-char, advancing through the token list in lock-step. Characters that
+        // don't fall inside any token use the fallback foreground (whitespace, gaps).
+        var tokenIdx = 0;
+        for (var i = 0; i < text.Length && i < maxWidth; i++)
+        {
+            // Advance past tokens that ended before this offset.
+            while (tokenIdx < tokens.Count && tokens[tokenIdx].Start + tokens[tokenIdx].Length <= i)
+            {
+                tokenIdx++;
+            }
+
+            var fg = fallbackFg;
+            if (tokenIdx < tokens.Count)
+            {
+                var t = tokens[tokenIdx];
+                if (i >= t.Start && i < t.Start + t.Length)
+                {
+                    fg = Theme.GetColor(t.Kind);
+                }
+            }
+
+            var cx = x + i;
+            if ((uint)cx >= (uint)buffer.Width) break;
+            buffer.SetChar(cx, y, text[i], fg, bg);
         }
     }
 
