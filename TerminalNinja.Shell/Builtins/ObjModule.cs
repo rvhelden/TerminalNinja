@@ -1,5 +1,6 @@
 using System.Collections.Immutable;
 using System.Text;
+using TerminalNinja.Shell.Repl;
 using TerminalNinja.Shell.Runtime;
 using TerminalNinja.Shell.Values;
 
@@ -19,7 +20,8 @@ public static class ObjModule
         BuiltinRegistry.RegisterModule(b, "obj",
             ("type", Fn1("obj.type", TypeOf)),
             ("size", Fn1("obj.size", Size)),
-            ("dump", Fn1("obj.dump", v => new NString(DumpString(v)))),
+            ("dump", new NFunc(Dump, -1)),
+            ("table", Fn1("obj.table", Table)),
             ("def", Fn1("obj.def", v => new NString(DefString(v)))),
             ("pairs", Fn1("obj.pairs", Pairs)),
             ("from_pairs", Fn1("obj.from_pairs", FromPairs)),
@@ -54,8 +56,50 @@ public static class ObjModule
         _ => throw new EvaluatorException($"obj.size is not defined for {ValueFormatter.TypeName(v)}"),
     };
 
-    /// <summary>Recursive structural pretty-printer with type annotations. Delegates to <see cref="ValueFormatter.Dump"/>.</summary>
-    internal static string DumpString(NValue v) => ValueFormatter.Dump(v);
+    /// <summary>
+    /// Vertical property-table renderer used by <c>obj.dump(v[, depth])</c>. Records
+    /// render as <c>key | value</c> rows; depth controls how many levels of nested
+    /// records/lists expand before collapsing to <c>record (N fields)</c> /
+    /// <c>list (N items)</c>. Defaults to depth 2, which expands the top record and
+    /// any single layer of nested records.
+    /// </summary>
+    private static NValue Dump(NValue[] args)
+    {
+        if (args.Length is < 1 or > 2)
+            throw new EvaluatorException($"obj.dump expects 1 or 2 arguments, got {args.Length}");
+        int depth = 2;
+        if (args.Length == 2)
+        {
+            if (args[1] is not NInt d) throw new EvaluatorException("obj.dump: depth must be an int");
+            depth = (int)d.Value;
+            if (depth < 0) throw new EvaluatorException("obj.dump: depth must be non-negative");
+        }
+        return new NString(ValueFormatter.DumpTable(args[0], depth));
+    }
+
+    /// <summary>
+    /// Force the aligned record-table format used by <c>Printer.Format</c> for any
+    /// list/sequence of records. Useful when the default printer chose a different
+    /// representation (single record, sequence sink, etc.) and you want the table
+    /// rendering as a string for piping or println.
+    /// </summary>
+    private static NValue Table(NValue v)
+    {
+        if (v is NList list) return new NString(Printer.FormatRecordTable(list));
+        if (v is NSeq seq)
+        {
+            var materialised = new NList(ImmutableArray.CreateRange(seq.Items));
+            return new NString(Printer.FormatRecordTable(materialised));
+        }
+        if (v is NRecord rec)
+        {
+            // A single record renders as a one-row table — useful for symmetry with
+            // multi-record cases.
+            var single = new NList(ImmutableArray.Create<NValue>(rec));
+            return new NString(Printer.FormatRecordTable(single));
+        }
+        throw new EvaluatorException($"obj.table requires a list, seq, or record, got {TypeName(v)}");
+    }
 
     /// <summary>Schema-only inspector. Delegates to <see cref="ValueFormatter.Def"/>.</summary>
     internal static string DefString(NValue v) => ValueFormatter.Def(v);

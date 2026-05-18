@@ -62,23 +62,81 @@ public class ObjModuleTests
     }
 
     [Test]
-    public async Task ObjDump_OnList_RecursesWithIndentation()
+    public async Task ObjDump_OnList_RendersInlineWithItemCount()
     {
         var v = Run("obj.dump([1, 2])");
         if (v is not NString s) throw new InvalidOperationException();
-        await Assert.That(s.Value.Contains("1 :: int")).IsTrue();
-        await Assert.That(s.Value.Contains("2 :: int")).IsTrue();
-        await Assert.That(s.Value.EndsWith(":: list")).IsTrue();
+        await Assert.That(s.Value).Contains("1");
+        await Assert.That(s.Value).Contains("2");
+        await Assert.That(s.Value).Contains("list (2 items)");
     }
 
     [Test]
-    public async Task ObjDump_OnRecord_ShowsKeysAndValueTypes()
+    public async Task ObjDump_OnRecord_RendersAsPropertyTable()
     {
         var v = Run("obj.dump({ Name: \"a\", Age: 40 })");
         if (v is not NString s) throw new InvalidOperationException();
-        await Assert.That(s.Value.Contains("Name: \"a\" :: string")).IsTrue();
-        await Assert.That(s.Value.Contains("Age: 40 :: int")).IsTrue();
-        await Assert.That(s.Value.EndsWith(":: record")).IsTrue();
+        // Two key|value lines, aligned. Keys are sorted (Age < Name).
+        var lines = s.Value.Split('\n').Select(l => l.TrimEnd('\r')).ToArray();
+        await Assert.That(lines.Length).IsEqualTo(2);
+        await Assert.That(lines[0]).Contains("Age");
+        await Assert.That(lines[0]).Contains("|");
+        await Assert.That(lines[0]).Contains("40");
+        await Assert.That(lines[1]).Contains("Name");
+        await Assert.That(lines[1]).Contains("\"a\"");
+        // The property table is pre-formatted text — no trailing type tag.
+        await Assert.That(s.Value).DoesNotContain(":: record");
+    }
+
+    [Test]
+    public async Task ObjDump_DepthLimit_CollapsesNestedRecordsToType()
+    {
+        // Depth 1 stops expansion at the nested record — should show its type + count.
+        var v = Run("obj.dump({ Outer: { Inner: 1 } }, 1)");
+        if (v is not NString s) throw new InvalidOperationException();
+        await Assert.That(s.Value).Contains("Outer");
+        await Assert.That(s.Value).Contains("record (1 fields)");
+        // Crucially the inner value did NOT leak through.
+        await Assert.That(s.Value.Contains("Inner")).IsFalse();
+        await Assert.That(s.Value.Contains(": 1")).IsFalse();
+    }
+
+    [Test]
+    public async Task ObjDump_DefaultDepth_ExpandsOneNestedLevel()
+    {
+        // Default depth (2) expands the outer record and its inner record once.
+        var v = Run("obj.dump({ Outer: { Inner: 1 } })");
+        if (v is not NString s) throw new InvalidOperationException();
+        await Assert.That(s.Value).Contains("Outer");
+        await Assert.That(s.Value).Contains("Inner");
+        await Assert.That(s.Value).Contains("1");
+    }
+
+    [Test]
+    public async Task ObjTable_OnListOfRecords_ReturnsAlignedTableString()
+    {
+        var v = Run("obj.table([{ a: 1, b: 2 }, { a: 3, b: 4 }])");
+        if (v is not NString s) throw new InvalidOperationException();
+        var lines = s.Value.Split('\n').Select(l => l.TrimEnd('\r')).ToArray();
+        // Header + separator + 2 data rows.
+        await Assert.That(lines.Length).IsGreaterThanOrEqualTo(4);
+        await Assert.That(lines[0]).Contains("a");
+        await Assert.That(lines[0]).Contains("b");
+    }
+
+    [Test]
+    public async Task ObjTable_OnSingleRecord_RendersOneRowTable()
+    {
+        var v = Run("obj.table({ name: \"alpha\", n: 1 })");
+        if (v is not NString s) throw new InvalidOperationException();
+        await Assert.That(s.Value).Contains("name");
+        await Assert.That(s.Value).Contains("alpha");
+    }
+
+    [Test]
+    public async Task ObjTable_OnNonContainer_Throws()
+    {
+        await Assert.That(() => Run("obj.table(42)")).ThrowsExactly<EvaluatorException>();
     }
 
     [Test]
@@ -120,6 +178,6 @@ public class ObjModuleTests
         // The canonical use: pipe a value into obj.dump.
         var v = Run("[1, 2, 3] | obj.dump");
         if (v is not NString s) throw new InvalidOperationException();
-        await Assert.That(s.Value.EndsWith(":: list")).IsTrue();
+        await Assert.That(s.Value).Contains(":: list");
     }
 }
