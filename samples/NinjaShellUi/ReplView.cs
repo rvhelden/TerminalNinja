@@ -74,6 +74,7 @@ public sealed class ReplView : Control
     // pushes its content onto the Application overlay stack on Show. We track
     // the last-shown cell so identical mouse positions don't churn the overlay.
     private readonly HoverPanel _hoverPanel = new();
+    private readonly HoverBox _hoverBox = new();
     private readonly Dictionary<int, NValue> _outputResults = new();
     private Rect _lastBounds;
     private (int X, int Y)? _lastMouseHoverCell;
@@ -824,19 +825,127 @@ public sealed class ReplView : Control
     private static void DrawText(CellBuffer buffer, int x, int y, string text, int maxWidth, Color fg, Color bg)
     {
         if ((uint)y >= (uint)buffer.Height) return;
-        for (var i = 0; i < text.Length && i < maxWidth; i++)
+        var currentFg = fg;
+        var currentBg = bg;
+        var deco = TextDecorations.None;
+        int col = 0;
+        int i = 0;
+        while (i < text.Length && col < maxWidth)
         {
-            var cx = x + i;
+            // SGR escape: \e[ params m → mutate state, don't advance a column.
+            if (text[i] == 0x1B && i + 1 < text.Length && text[i + 1] == '[')
+            {
+                int end = text.IndexOf('m', i + 2);
+                if (end < 0) break;     // malformed — abort the rest of the line
+                ApplySgr(text.AsSpan(i + 2, end - (i + 2)), ref currentFg, ref currentBg, ref deco, fg, bg);
+                i = end + 1;
+                continue;
+            }
+            var cx = x + col;
             if ((uint)cx >= (uint)buffer.Width) break;
-            buffer.SetChar(cx, y, text[i], fg, bg);
+            buffer.SetChar(cx, y, text[i], currentFg, currentBg, deco);
+            col++;
+            i++;
         }
     }
+
+    /// <summary>
+    /// Apply a single ANSI SGR (Select Graphic Rendition) payload — the
+    /// semicolon-separated numeric codes between <c>\e[</c> and <c>m</c> — to
+    /// the current rendering state. Supports the subset the REPL actually emits:
+    /// reset, bold/dim toggle, basic + bright 8-color fg, 256-color fg, truecolor
+    /// fg, and the matching default-fg / clear-bold-or-dim reset codes.
+    /// </summary>
+    private static void ApplySgr(ReadOnlySpan<char> payload, ref Color fg, ref Color bg,
+                                 ref TextDecorations deco, Color defaultFg, Color defaultBg)
+    {
+        Span<int> codes = stackalloc int[16];
+        int n = 0;
+        int cur = 0;
+        bool any = false;
+        foreach (var ch in payload)
+        {
+            if (ch == ';')
+            {
+                if (n < codes.Length) codes[n++] = any ? cur : 0;
+                cur = 0; any = false;
+            }
+            else if (ch is >= '0' and <= '9')
+            {
+                cur = cur * 10 + (ch - '0');
+                any = true;
+            }
+        }
+        if (n < codes.Length) codes[n++] = any ? cur : 0;
+
+        int k = 0;
+        while (k < n)
+        {
+            int code = codes[k];
+            switch (code)
+            {
+                case 0: fg = defaultFg; bg = defaultBg; deco = TextDecorations.None; k++; break;
+                case 1: deco |= TextDecorations.Bold; k++; break;
+                case 2: deco |= TextDecorations.Dim; k++; break;
+                case 22: deco &= ~(TextDecorations.Bold | TextDecorations.Dim); k++; break;
+                case 30: case 31: case 32: case 33: case 34: case 35: case 36: case 37:
+                    fg = AnsiBasicColor(code - 30); k++; break;
+                case 38:
+                    if (k + 4 < n && codes[k + 1] == 2)
+                    { fg = new Color((byte)codes[k + 2], (byte)codes[k + 3], (byte)codes[k + 4]); k += 5; }
+                    else if (k + 2 < n && codes[k + 1] == 5)
+                    { fg = AnsiBasicColor(codes[k + 2] & 0xF); k += 3; }
+                    else k++;
+                    break;
+                case 39: fg = defaultFg; k++; break;
+                case 90: case 91: case 92: case 93: case 94: case 95: case 96: case 97:
+                    fg = AnsiBrightColor(code - 90); k++; break;
+                default: k++; break;
+            }
+        }
+    }
+
+    private static Color AnsiBasicColor(int idx) => idx switch
+    {
+        0 => new Color(0x00, 0x00, 0x00),
+        1 => new Color(0xF3, 0x8B, 0xA8),
+        2 => new Color(0xA6, 0xE3, 0xA1),
+        3 => new Color(0xF9, 0xE2, 0xAF),
+        4 => new Color(0x89, 0xB4, 0xFA),
+        5 => new Color(0xCB, 0xA6, 0xF7),
+        6 => new Color(0x94, 0xE2, 0xD5),
+        7 => new Color(0xCD, 0xD6, 0xF4),
+        _ => new Color(0xCD, 0xD6, 0xF4),
+    };
+
+    private static Color AnsiBrightColor(int idx) => idx switch
+    {
+        0 => new Color(0x58, 0x5B, 0x70),
+        1 => new Color(0xF3, 0x8B, 0xA8),
+        2 => new Color(0xA6, 0xE3, 0xA1),
+        3 => new Color(0xF9, 0xE2, 0xAF),
+        4 => new Color(0x89, 0xB4, 0xFA),
+        5 => new Color(0xCB, 0xA6, 0xF7),
+        6 => new Color(0x94, 0xE2, 0xD5),
+        7 => new Color(0xCD, 0xD6, 0xF4),
+        _ => new Color(0xCD, 0xD6, 0xF4),
+    };
 
     private void ScrollToBottom() => _scrollOffset = 0;
 
     /// <inheritdoc />
     public override void OnKeyEvent(KeyEvent e)
     {
+        // Hover panel scroll: while the mouse-hover overlay is open, PgUp/PgDn
+        // and Ctrl+↑/↓ scroll its contents (the box itself never gets focus, so
+        // the REPL forwards keys to it explicitly). Keys the hover doesn't
+        // consume fall through to the normal input handling below.
+        if (_hoverPanel.IsOpen && _hoverBox.HandleKey(e))
+        {
+            InvalidationCallback?.Invoke();
+            return;
+        }
+
         // Completion popup eats Up / Down / Enter / Esc / Tab while it's open. The popup is
         // dismissed by Esc or by any keystroke that changes the input buffer in a way that
         // would invalidate the items (handled below as "any non-popup key while open").
@@ -1358,6 +1467,7 @@ public sealed class ReplView : Control
             return;
         }
 
+        _hoverBox.Language = "ninja";
         var content = BuildHoverContent(hover.Contents);
         // Anchor on the current input row, not the panel bottom — multi-line input might
         // sit several rows above the bottom.
@@ -1376,6 +1486,9 @@ public sealed class ReplView : Control
         sb.Append("shape: ").AppendLine(ValueFormatter.Def(value));
         sb.Append("data:  ").Append(ValueFormatter.Dump(value));
 
+        // Value hovers surface obj.dump-style payloads — drive the highlighter
+        // with the record grammar so keys/values are visually distinguishable.
+        _hoverBox.Language = "record";
         var content = BuildHoverContent(sb.ToString());
         _hoverPanel.Placement = PlacementMode.Bottom;
         _hoverPanel.ShowAt(mouseX, mouseY, content);
@@ -1408,17 +1521,14 @@ public sealed class ReplView : Control
         _lastMouseHoverCell = null;
     }
 
-    private static UIElement BuildHoverContent(string text)
+    /// <summary>
+    /// Build a bounded, syntax-highlighted hover content element. Cached on the
+    /// REPL so PgUp / PgDn / Ctrl+↑ / Ctrl+↓ can scroll it while it's open.
+    /// </summary>
+    private UIElement BuildHoverContent(string text)
     {
-        var tb = new TextBlock
-        {
-            Text = text,
-            Padding = new Thickness(1, 0),
-        };
-        return new Border
-        {
-            Child = tb,
-            BorderStyle = BorderStyle.Rounded(new Color(0x89, 0xDC, 0xEB)),
-        };
+        _hoverBox.Text = text;
+        _hoverBox.Theme = Theme;
+        return _hoverBox;
     }
 }
