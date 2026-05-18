@@ -1,4 +1,5 @@
 using System.Text;
+using TerminalNinja.Shell.Config;
 using TerminalNinja.Shell.Language.Services;
 
 namespace TerminalNinja.Shell.Repl;
@@ -21,6 +22,7 @@ public sealed class LineEditor
     private readonly IKeyReader _keys;
     private readonly TextWriter _output;
     private readonly Func<string, int, IReadOnlyList<CompletionItem>>? _completer;
+    private readonly NinjaConfig? _config;
 
     private readonly StringBuilder _buffer = new();
     private string _prompt = "";
@@ -30,16 +32,19 @@ public sealed class LineEditor
     /// <param name="keys">Input source. Pass <see cref="ConsoleKeyReader"/> in production.</param>
     /// <param name="output">Where to render. Pass <see cref="Console.Out"/> in production.</param>
     /// <param name="completer">Tab completion provider — given (line, cursor), returns suggestions. <c>null</c> disables Tab handling.</param>
+    /// <param name="config">Optional REPL config; when non-null, the editor consults <see cref="NinjaConfig.Keybindings"/> on each keystroke and dispatches the named action (<c>clear</c>, <c>submit</c>, <c>abort</c>, <c>complete</c>, <c>history-prev</c>, <c>history-next</c>) before the hardcoded handling runs.</param>
     public LineEditor(
         IKeyReader keys,
         TextWriter output,
-        Func<string, int, IReadOnlyList<CompletionItem>>? completer = null)
+        Func<string, int, IReadOnlyList<CompletionItem>>? completer = null,
+        NinjaConfig? config = null)
     {
         ArgumentNullException.ThrowIfNull(keys);
         ArgumentNullException.ThrowIfNull(output);
         _keys = keys;
         _output = output;
         _completer = completer;
+        _config = config;
     }
 
     /// <summary>The result of one <see cref="ReadLine"/> call.</summary>
@@ -67,6 +72,17 @@ public sealed class LineEditor
         while (true)
         {
             var key = _keys.ReadKey();
+
+            // User-configured keybindings get first pass. Only chords carrying Ctrl
+            // or Alt are eligible — Shift-only chords stay reserved for normal text
+            // input (Shift+letter must keep producing capitals).
+            if (_config is not null && TryBuildChord(key, out var chord)
+                && _config.TryGetAction(chord, out var action))
+            {
+                var dispatched = DispatchKeyAction(action);
+                if (dispatched is { } result) return result;
+                continue;
+            }
 
             // Ctrl+C → abandon the line.
             if (key.Key == ConsoleKey.C && (key.Modifiers & ConsoleModifiers.Control) != 0)
@@ -200,6 +216,50 @@ public sealed class LineEditor
         }
         _output.WriteLine(sb.ToString());
         Redraw();
+    }
+
+    private static bool TryBuildChord(ConsoleKeyInfo key, out string chord)
+    {
+        chord = string.Empty;
+        bool ctrl = (key.Modifiers & ConsoleModifiers.Control) != 0;
+        bool alt = (key.Modifiers & ConsoleModifiers.Alt) != 0;
+        bool shift = (key.Modifiers & ConsoleModifiers.Shift) != 0;
+        // Pure Shift (or no modifiers at all) flows through as ordinary input so
+        // capital letters and shifted symbols still type normally.
+        if (!ctrl && !alt) return false;
+        chord = ChordKey.Format(ctrl, alt, shift, key.Key.ToString());
+        return true;
+    }
+
+    private LineEditorResult? DispatchKeyAction(string action)
+    {
+        switch (action)
+        {
+            case "submit":
+                _output.WriteLine();
+                return new LineEditorResult(ReadResult.EnteredLine, _buffer.ToString());
+            case "abort":
+                _output.WriteLine();
+                return new LineEditorResult(ReadResult.Aborted, string.Empty);
+            case "clear":
+                _output.Write("\x1b[2J\x1b[H");
+                _buffer.Clear();
+                _showedListSinceLastEdit = false;
+                Redraw();
+                return null;
+            case "complete":
+                HandleTab();
+                return null;
+            case "history-prev":
+            case "history-next":
+                // No history infrastructure in this minimal editor; the action
+                // is recognised so KeyModule accepts the binding, but the
+                // editor cannot act on it until history support lands.
+                return null;
+            default:
+                // Unknown actions slip through to the hardcoded handlers below.
+                return null;
+        }
     }
 
     private void Redraw()

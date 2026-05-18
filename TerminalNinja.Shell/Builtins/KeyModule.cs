@@ -1,5 +1,6 @@
 using System.Collections.Immutable;
 using TerminalNinja.Shell.Config;
+using TerminalNinja.Shell.Repl;
 using TerminalNinja.Shell.Runtime;
 using TerminalNinja.Shell.Values;
 
@@ -105,12 +106,7 @@ internal static class ChordParser
         }
         var key = parts[^1].Trim();
         if (key.Length == 0) return false;
-        var b = new System.Text.StringBuilder();
-        if (ctrl) b.Append("Ctrl+");
-        if (alt) b.Append("Alt+");
-        if (shift) b.Append("Shift+");
-        b.Append(key);
-        canonical = b.ToString();
+        canonical = ChordKey.Format(ctrl, alt, shift, key);
         return true;
     }
 }

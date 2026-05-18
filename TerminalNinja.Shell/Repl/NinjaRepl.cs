@@ -41,6 +41,7 @@ public sealed class NinjaRepl
         _env = BuiltinRegistry.CreateDefaultEnvWith(_config);
         DefaultAliases.Seed(_config, _env);
         if (PwshBridge.IsAvailable) _env = PwshBridge.Install(_env);
+        RcLoader.TryLoad(RcLoader.DefaultPath(), _env, _error);
     }
 
     /// <summary>Run the REPL until <paramref name="exitOnEof"/> is true and stdin reaches EOF.</summary>
@@ -62,7 +63,8 @@ public sealed class NinjaRepl
         // so Console.ReadLine semantics — and existing test harnesses — still work.
         if (Console.IsInputRedirected) return null;
         return new LineEditor(new ConsoleKeyReader(), _output,
-            (line, cursor) => LanguageService.GetCompletions(line, new Position(0, cursor)));
+            (line, cursor) => LanguageService.GetCompletions(line, new Position(0, cursor)),
+            _config);
     }
 
     private int RunInteractive(LineEditor editor, bool exitOnEof)
