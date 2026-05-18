@@ -33,22 +33,27 @@ public static class LanguageService
         }
         catch (LexerException ex)
         {
-            diagnostics.Add(SinglePointDiagnostic(ex.Line, ex.Column, ex.Message));
+            diagnostics.Add(SpanDiagnostic(ex.Line, ex.Column, ex.Length, ex.Message));
         }
         catch (ParserException ex)
         {
-            diagnostics.Add(SinglePointDiagnostic(ex.Line, ex.Column, ex.Message));
+            diagnostics.Add(SpanDiagnostic(ex.Line, ex.Column, ex.Length, ex.Message));
         }
         return diagnostics;
     }
 
-    private static Diagnostic SinglePointDiagnostic(int line1, int column1, string message)
+    /// <summary>
+    /// Convert a 1-based (line, column, length) tuple from the lexer/parser to
+    /// a 0-based LSP <see cref="Range"/>. Length clamps to at least 1 so editors
+    /// always render at least a one-cell-wide squiggle for a known error.
+    /// </summary>
+    private static Diagnostic SpanDiagnostic(int line1, int column1, int length, string message)
     {
-        // Lexer/Parser positions are 1-based; LSP wants 0-based.
         int line = Math.Max(line1 - 1, 0);
         int col = Math.Max(column1 - 1, 0);
+        int span = Math.Max(length, 1);
         var start = new Position(line, col);
-        var end = new Position(line, col + 1);
+        var end = new Position(line, col + span);
         return new Diagnostic(new Range(start, end), DiagnosticSeverity.Error, message);
     }
 

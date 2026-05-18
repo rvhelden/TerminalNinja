@@ -57,4 +57,18 @@ public class LanguageServiceTests
         var d = LanguageService.GetDiagnostics("@illegal");
         await Assert.That(d[0].Range.End.Character).IsGreaterThan(d[0].Range.Start.Character);
     }
+
+    [Test]
+    public async Task GetDiagnostics_BadToken_RangeCoversWholeToken()
+    {
+        // `let foo bar` — after `let foo` the parser expects `=` but gets `bar`.
+        // The diagnostic range should span the whole `bar` identifier (length 3),
+        // not just the first character — that's the point of carrying token
+        // length through to the diagnostic.
+        var source = "let foo bar";
+        var d = LanguageService.GetDiagnostics(source);
+        await Assert.That(d.Count).IsEqualTo(1);
+        int width = d[0].Range.End.Character - d[0].Range.Start.Character;
+        await Assert.That(width).IsEqualTo("bar".Length);
+    }
 }

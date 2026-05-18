@@ -76,7 +76,7 @@ public static class NinjaParser
             bool incomplete = IsAtEnd;
             throw new ParserException(
                 $"expected {what} but got {Current.Kind}('{Current.Text}')",
-                Current.Line, Current.Column, incomplete);
+                Current.Line, Current.Column, Current.Text.Length, incomplete);
         }
 
         private void SkipNewlines()
@@ -111,7 +111,7 @@ public static class NinjaParser
             if (!IsAtEnd)
                 throw new ParserException(
                     $"unexpected trailing token {Current.Kind}('{Current.Text}')",
-                    Current.Line, Current.Column, isIncomplete: false);
+                    Current.Line, Current.Column, Current.Text.Length, isIncomplete: false);
         }
 
         /// <summary>Parse every top-level form in the token stream, separated by newlines.</summary>
@@ -451,7 +451,7 @@ public static class NinjaParser
                         return new LitPattern(new NFloat(-double.Parse(ft.Text, System.Globalization.CultureInfo.InvariantCulture)));
                     }
                     throw new ParserException("expected numeric literal after '-' in pattern",
-                        Current.Line, Current.Column, IsAtEnd);
+                        Current.Line, Current.Column, Current.Text.Length, IsAtEnd);
                 case TokenKind.Identifier:
                     Advance();
                     if (t.Text == "_") return new WildcardPattern();
@@ -459,7 +459,7 @@ public static class NinjaParser
                 default:
                     throw new ParserException(
                         $"expected switch pattern but got {t.Kind}('{t.Text}')",
-                        t.Line, t.Column, IsAtEnd);
+                        t.Line, t.Column, t.Text.Length, IsAtEnd);
             }
         }
 
@@ -510,11 +510,11 @@ public static class NinjaParser
                 case TokenKind.KwSource:
                     throw new ParserException(
                         "'source' may only appear at the top level of a script",
-                        t.Line, t.Column, isIncomplete: false);
+                        t.Line, t.Column, t.Text.Length, isIncomplete: false);
                 default:
                     throw new ParserException(
                         $"unexpected token {t.Kind}('{t.Text}')",
-                        t.Line, t.Column, IsAtEnd);
+                        t.Line, t.Column, t.Text.Length, IsAtEnd);
             }
         }
 
@@ -525,7 +525,7 @@ public static class NinjaParser
             Expect(TokenKind.FatArrow, "'=>' in lambda");
             SkipNewlines();
             if (IsAtEnd)
-                throw new ParserException("expected lambda body after '=>'", Current.Line, Current.Column, isIncomplete: true);
+                throw new ParserException("expected lambda body after '=>'", Current.Line, Current.Column, Current.Text.Length, isIncomplete: true);
             var body = ParseExpr();
             return new Lambda(ImmutableArray.Create(name), body, SpanFrom(start));
         }
@@ -554,14 +554,14 @@ public static class NinjaParser
                 if (!Check(TokenKind.Identifier))
                     throw new ParserException(
                         $"expected lambda parameter but got {Current.Kind}",
-                        Current.Line, Current.Column, isIncomplete: false);
+                        Current.Line, Current.Column, Current.Text.Length, isIncomplete: false);
                 parameters.Add(Advance().Text);
                 while (Match(TokenKind.Comma))
                 {
                     if (!Check(TokenKind.Identifier))
                         throw new ParserException(
                             $"expected lambda parameter after ',' but got {Current.Kind}",
-                            Current.Line, Current.Column, isIncomplete: false);
+                            Current.Line, Current.Column, Current.Text.Length, isIncomplete: false);
                     parameters.Add(Advance().Text);
                 }
             }
@@ -569,7 +569,7 @@ public static class NinjaParser
             Expect(TokenKind.FatArrow, "'=>' in lambda");
             SkipNewlines();
             if (IsAtEnd)
-                throw new ParserException("expected lambda body after '=>'", Current.Line, Current.Column, isIncomplete: true);
+                throw new ParserException("expected lambda body after '=>'", Current.Line, Current.Column, Current.Text.Length, isIncomplete: true);
             var body = ParseExpr();
             return new Lambda(parameters.ToImmutable(), body, SpanFrom(start));
         }
@@ -623,7 +623,7 @@ public static class NinjaParser
                 {
                     throw new ParserException(
                         $"expected record field name but got {Current.Kind}",
-                        Current.Line, Current.Column, IsAtEnd);
+                        Current.Line, Current.Column, Current.Text.Length, IsAtEnd);
                 }
                 if (!keys.Add(key))
                     throw new ParserException(
@@ -665,7 +665,7 @@ public static class NinjaParser
                 {
                     throw new ParserException(
                         $"unexpected token {t.Kind} inside interpolated string",
-                        t.Line, t.Column, IsAtEnd);
+                        t.Line, t.Column, t.Text.Length, IsAtEnd);
                 }
             }
             Expect(TokenKind.InterpEnd, "closing '\"' of interpolated string");

@@ -12,12 +12,20 @@ public sealed class LexerException : Exception
     /// <summary>1-based column number where the problem was detected.</summary>
     public int Column { get; }
 
+    /// <summary>Length of the offending span in characters; defaults to 1 when only a single point is known.</summary>
+    public int Length { get; }
+
     /// <summary>Create an exception for a lex-time failure.</summary>
     public LexerException(string message, int line, int column, bool isIncomplete)
+        : this(message, line, column, length: 1, isIncomplete) { }
+
+    /// <summary>Create an exception that knows the offending span's length.</summary>
+    public LexerException(string message, int line, int column, int length, bool isIncomplete)
         : base($"({line}:{column}) {message}")
     {
         Line = line;
         Column = column;
+        Length = length < 1 ? 1 : length;
         IsIncomplete = isIncomplete;
     }
 }

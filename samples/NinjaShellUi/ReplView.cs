@@ -378,6 +378,46 @@ public sealed class ReplView : Control
         return (_selectionHead.Row, _selectionHead.Col, _selectionAnchor.Row, _selectionAnchor.Col);
     }
 
+    /// <summary>
+    /// Walks the active diagnostic list and underlines any cells on the given
+    /// input row that intersect a diagnostic range. The decoration also pulls
+    /// the foreground to soft-red so the squiggle reads regardless of whatever
+    /// the syntax highlighter painted underneath.
+    /// </summary>
+    private void ApplyDiagnosticUnderlinesToRow(CellBuffer buffer, int inputX, int y, int lineLength, int row, int inputWidth)
+    {
+        if (_diagnostics.Count == 0 || lineLength == 0) return;
+        var errFg = new Color(0xF3, 0x8B, 0xA8);
+        foreach (var d in _diagnostics)
+        {
+            if (d.Range.Start.Line != row && d.Range.End.Line != row
+                && (row < d.Range.Start.Line || row > d.Range.End.Line)) continue;
+
+            // Map the diagnostic range onto this row's column span. A range
+            // that starts on an earlier line begins at column 0 here; one that
+            // ends on a later line runs to EOL.
+            int s = d.Range.Start.Line == row ? d.Range.Start.Character : 0;
+            int e = d.Range.End.Line == row ? d.Range.End.Character : lineLength;
+            s = Math.Clamp(s, 0, lineLength);
+            e = Math.Clamp(e, s, lineLength);
+            if (e <= s) continue;
+            UnderlineCells(buffer, inputX + s, y, Math.Min(e - s, inputWidth - s), errFg);
+        }
+    }
+
+    /// <summary>Add <see cref="TextDecorations.Underline"/> and force red fg on <paramref name="length"/> cells starting at (x, y).</summary>
+    private static void UnderlineCells(CellBuffer buffer, int x, int y, int length, Color errFg)
+    {
+        if ((uint)y >= (uint)buffer.Height) return;
+        for (int i = 0; i < length; i++)
+        {
+            int cx = x + i;
+            if ((uint)cx >= (uint)buffer.Width) break;
+            var c = buffer.GetCell(cx, y);
+            buffer.SetCell(cx, y, new Cell(c.Codepoint, errFg, c.Background, c.Decorations | TextDecorations.Underline, c.Flags));
+        }
+    }
+
     /// <summary>Invert fg/bg of <paramref name="length"/> cells starting at (<paramref name="x"/>, <paramref name="y"/>).</summary>
     private static void InvertCells(CellBuffer buffer, int x, int y, int length)
     {
@@ -568,6 +608,11 @@ public sealed class ReplView : Control
             // Slice the line's text and highlighter tokens onto this row.
             var lineText = text.Substring(offset, lineEnd - offset);
             DrawHighlightedInputLine(buffer, inputX, y, lineText, offset, allTokens, inputWidth, fg, bg);
+
+            // Error underlines go on after highlighting and before selection
+            // inversion — selection visually wins over the underline (you can
+            // still see the squiggle, just inverted with the rest of the run).
+            ApplyDiagnosticUnderlinesToRow(buffer, inputX, y, lineText.Length, r, inputWidth);
 
             // Selection inversion lives on top of the highlight pass so it
             // works regardless of the per-token colour we drew underneath.
