@@ -213,6 +213,60 @@ public class LspServerTests
         await Assert.That(arr[0].GetProperty("kind").GetInt32()).IsEqualTo((int)TerminalNinja.Shell.Language.Services.SymbolKind.Variable);
     }
 
+    // ─── completion ─────────────────────────────────────────────────────────
+
+    [Test]
+    public async Task Initialize_Advertises_CompletionProvider_WithDotTrigger()
+    {
+        var responses = RunServerAndCollect(BuildInput(Initialize()));
+        var caps = responses[0].RootElement.GetProperty("result").GetProperty("capabilities");
+        var prov = caps.GetProperty("completionProvider");
+        var trigger = prov.GetProperty("triggerCharacters");
+        await Assert.That(trigger.GetArrayLength()).IsEqualTo(1);
+        await Assert.That(trigger[0].GetString()).IsEqualTo(".");
+    }
+
+    [Test]
+    public async Task Completion_OnMemberAccess_ReturnsModuleMembers()
+    {
+        const string uri = "file:///compl.ninja";
+        var responses = RunServerAndCollect(BuildInput(
+            Initialize(),
+            DidOpen(uri, "obj."),
+            $"{{\"jsonrpc\":\"2.0\",\"id\":77,\"method\":\"textDocument/completion\",\"params\":{{" +
+            $"\"textDocument\":{{\"uri\":\"{uri}\"}}," +
+            "\"position\":{\"line\":0,\"character\":4}" +
+            "}}"));
+
+        var compl = responses.Single(r =>
+            r.RootElement.TryGetProperty("id", out var idEl) && idEl.GetInt32() == 77);
+        var result = compl.RootElement.GetProperty("result");
+        await Assert.That(result.GetProperty("isIncomplete").GetBoolean()).IsFalse();
+        var items = result.GetProperty("items");
+        var labels = new HashSet<string>();
+        for (int i = 0; i < items.GetArrayLength(); i++)
+            labels.Add(items[i].GetProperty("label").GetString() ?? "");
+        await Assert.That(labels.Contains("type")).IsTrue();
+        await Assert.That(labels.Contains("dump")).IsTrue();
+        await Assert.That(labels.Contains("normalize")).IsTrue();
+    }
+
+    [Test]
+    public async Task Completion_OnUnknownUri_ReturnsEmptyItems()
+    {
+        var responses = RunServerAndCollect(BuildInput(
+            Initialize(),
+            "{\"jsonrpc\":\"2.0\",\"id\":78,\"method\":\"textDocument/completion\",\"params\":{" +
+            "\"textDocument\":{\"uri\":\"file:///nope.ninja\"}," +
+            "\"position\":{\"line\":0,\"character\":0}" +
+            "}}"));
+
+        var compl = responses.Single(r =>
+            r.RootElement.TryGetProperty("id", out var idEl) && idEl.GetInt32() == 78);
+        var items = compl.RootElement.GetProperty("result").GetProperty("items");
+        await Assert.That(items.GetArrayLength()).IsEqualTo(0);
+    }
+
     [Test]
     public async Task DocumentSymbol_OnUnknownUri_ReturnsEmptyArray()
     {

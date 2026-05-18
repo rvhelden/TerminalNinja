@@ -1,3 +1,4 @@
+using System.Text.RegularExpressions;
 using TerminalNinja.Shell.Ast;
 using TerminalNinja.Shell.Lexer;
 using TerminalNinja.Shell.Parser;
@@ -109,5 +110,100 @@ public static class LanguageService
         var start = new Position(Math.Max(s.StartLine - 1, 0), Math.Max(s.StartColumn - 1, 0));
         var end = new Position(Math.Max(s.EndLine - 1, 0), Math.Max(s.EndColumn - 1, 0));
         return new Range(start, end);
+    }
+
+    // ─── completions ────────────────────────────────────────────────────────
+
+    private static readonly Regex MemberAccessPattern =
+        new(@"([A-Za-z_][A-Za-z0-9_]*)\.([A-Za-z_][A-Za-z0-9_]*)?$", RegexOptions.Compiled);
+
+    private static readonly Regex IdentifierPattern =
+        new(@"([A-Za-z_][A-Za-z0-9_]*)$", RegexOptions.Compiled);
+
+    /// <summary>
+    /// Produce a list of completions for the given <paramref name="cursor"/> position
+    /// in <paramref name="source"/>. Detects two contexts: a member access (the
+    /// cursor sits at <c>module.member</c> or <c>module.</c>) → return the named
+    /// module's members; otherwise → top-level builtins + keywords filtered by
+    /// whatever identifier prefix is to the left of the cursor.
+    /// </summary>
+    public static IReadOnlyList<CompletionItem> GetCompletions(string source, Position cursor)
+    {
+        ArgumentNullException.ThrowIfNull(source);
+        var prefix = TakeSourceBeforeCursor(source, cursor);
+
+        var memberMatch = MemberAccessPattern.Match(prefix);
+        if (memberMatch.Success)
+        {
+            var targetName = memberMatch.Groups[1].Value;
+            var memberPrefix = memberMatch.Groups[2].Success ? memberMatch.Groups[2].Value : string.Empty;
+            return GetMemberCompletions(targetName, memberPrefix);
+        }
+
+        var identifierMatch = IdentifierPattern.Match(prefix);
+        var ident = identifierMatch.Success ? identifierMatch.Groups[1].Value : string.Empty;
+        return GetTopLevelCompletions(ident);
+    }
+
+    private static IReadOnlyList<CompletionItem> GetMemberCompletions(string targetName, string prefix)
+    {
+        if (!BuiltinCatalog.Modules.TryGetValue(targetName, out var members))
+            return Array.Empty<CompletionItem>();
+        var result = new List<CompletionItem>();
+        foreach (var d in members)
+        {
+            if (prefix.Length == 0 || d.Name.StartsWith(prefix, StringComparison.Ordinal))
+                result.Add(new CompletionItem(d.Name, d.Kind, d.Detail, null));
+        }
+        return result;
+    }
+
+    private static IReadOnlyList<CompletionItem> GetTopLevelCompletions(string prefix)
+    {
+        var result = new List<CompletionItem>();
+        AddMatches(BuiltinCatalog.TopLevel, prefix, result);
+        AddMatches(BuiltinCatalog.Keywords, prefix, result);
+        // Module names themselves (env, fs, proc, obj, json, xml) as Module items.
+        foreach (var key in BuiltinCatalog.Modules.Keys)
+        {
+            if (prefix.Length == 0 || key.StartsWith(prefix, StringComparison.Ordinal))
+                result.Add(new CompletionItem(key, CompletionKind.Module, $"module {key}", null));
+        }
+        return result;
+    }
+
+    private static void AddMatches(IReadOnlyList<BuiltinDescriptor> source, string prefix, List<CompletionItem> dest)
+    {
+        foreach (var d in source)
+        {
+            if (prefix.Length == 0 || d.Name.StartsWith(prefix, StringComparison.Ordinal))
+                dest.Add(new CompletionItem(d.Name, d.Kind, d.Detail, null));
+        }
+    }
+
+    /// <summary>
+    /// Take source up to (but not past) the given 0-based <paramref name="cursor"/>
+    /// position. If the cursor is past end-of-line, clamps to end-of-line. If
+    /// the cursor is past end-of-file, clamps to end-of-file.
+    /// </summary>
+    internal static string TakeSourceBeforeCursor(string source, Position cursor)
+    {
+        if (cursor.Line < 0 || cursor.Character < 0) return string.Empty;
+
+        int offset = 0;
+        int line = 0;
+        while (line < cursor.Line && offset < source.Length)
+        {
+            if (source[offset] == '\n') line++;
+            offset++;
+        }
+        int end = offset;
+        int taken = 0;
+        while (end < source.Length && source[end] != '\n' && taken < cursor.Character)
+        {
+            end++;
+            taken++;
+        }
+        return source.Substring(0, end);
     }
 }

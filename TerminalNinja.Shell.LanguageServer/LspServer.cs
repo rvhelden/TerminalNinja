@@ -87,6 +87,9 @@ public sealed class LspServer
             case "textDocument/documentSymbol":
                 if (hasId) HandleDocumentSymbol(idEl, message, writer);
                 break;
+            case "textDocument/completion":
+                if (hasId) HandleCompletion(idEl, message, writer);
+                break;
             default:
                 // Unknown request → MethodNotFound (-32601). Unknown notification → ignore.
                 if (hasId) writer.WriteError(idEl, -32601, $"method not supported: {method}");
@@ -104,6 +107,12 @@ public sealed class LspServer
             w.WriteNumber("textDocumentSync", 1);
             // Outline / breadcrumb support.
             w.WriteBoolean("documentSymbolProvider", true);
+            // Completion — trigger on '.' for member access, and on every typed character via the editor.
+            w.WriteStartObject("completionProvider");
+            w.WriteStartArray("triggerCharacters");
+            w.WriteStringValue(".");
+            w.WriteEndArray();
+            w.WriteEndObject();
             w.WriteEndObject();
             w.WriteStartObject("serverInfo");
             w.WriteString("name", "ninja-lsp");
@@ -143,6 +152,33 @@ public sealed class LspServer
         if (text is null) return;
         _docs.Update(uri, text);
         Publish(uri, writer);
+    }
+
+    private void HandleCompletion(JsonElement id, JsonElement message, LspWriter writer)
+    {
+        if (!message.TryGetProperty("params", out var p)
+            || !p.TryGetProperty("textDocument", out var td)
+            || !td.TryGetProperty("uri", out var uriEl)
+            || !p.TryGetProperty("position", out var posEl))
+        {
+            writer.WriteCompletions(id, Array.Empty<CompletionItem>());
+            return;
+        }
+        var uri = uriEl.GetString();
+        var text = uri is null ? null : _docs.GetText(uri);
+        if (text is null)
+        {
+            writer.WriteCompletions(id, Array.Empty<CompletionItem>());
+            return;
+        }
+        if (!posEl.TryGetProperty("line", out var lineEl) || !posEl.TryGetProperty("character", out var charEl))
+        {
+            writer.WriteCompletions(id, Array.Empty<CompletionItem>());
+            return;
+        }
+        var cursor = new Position(lineEl.GetInt32(), charEl.GetInt32());
+        var items = LanguageService.GetCompletions(text, cursor);
+        writer.WriteCompletions(id, items);
     }
 
     private void HandleDocumentSymbol(JsonElement id, JsonElement message, LspWriter writer)

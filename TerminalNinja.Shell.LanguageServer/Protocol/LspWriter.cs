@@ -123,6 +123,29 @@ public sealed class LspWriter
         });
     }
 
+    /// <summary>Write a <c>textDocument/completion</c> response for the given <paramref name="id"/>.</summary>
+    public void WriteCompletions(JsonElement id, IReadOnlyList<CompletionItem> items)
+    {
+        WriteResponse(id, w =>
+        {
+            // Use the CompletionList shape so we can mark the list as non-incomplete.
+            w.WriteStartObject();
+            w.WriteBoolean("isIncomplete", false);
+            w.WriteStartArray("items");
+            foreach (var item in items)
+            {
+                w.WriteStartObject();
+                w.WriteString("label", item.Label);
+                w.WriteNumber("kind", (int)item.Kind);
+                if (item.Detail is not null) w.WriteString("detail", item.Detail);
+                if (item.InsertText is not null) w.WriteString("insertText", item.InsertText);
+                w.WriteEndObject();
+            }
+            w.WriteEndArray();
+            w.WriteEndObject();
+        });
+    }
+
     private static void WriteDocumentSymbol(Utf8JsonWriter w, DocumentSymbol s)
     {
         w.WriteStartObject();
