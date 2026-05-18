@@ -804,4 +804,93 @@ public static class LanguageService
         }
         return source.Substring(0, end);
     }
+
+    // ─── go-to-definition ───────────────────────────────────────────────────
+
+    /// <summary>
+    /// Resolves the identifier under the cursor to the source range of its
+    /// declaring top-level <c>let NAME = VALUE</c> statement. Returns
+    /// <see langword="null"/> when the cursor isn't on an identifier, when the
+    /// identifier is part of a <c>module.member</c> path (those resolve to
+    /// builtin catalog entries, not source), when the script fails to parse,
+    /// or when no matching <c>let</c> binding exists in the file.
+    /// </summary>
+    /// <remarks>
+    /// When multiple top-level <c>let</c>s share the name (shadowing), the
+    /// last one declared before the cursor wins — matching evaluator semantics.
+    /// If every match comes after the cursor (forward references), the first
+    /// match in document order is returned so the editor can still navigate.
+    /// Nested <c>let … in …</c> bindings inside expressions are not yet
+    /// considered; only top-level <see cref="LetStatement"/>s participate.
+    /// </remarks>
+    public static Definition? GetDefinition(string source, Position cursor)
+    {
+        ArgumentNullException.ThrowIfNull(source);
+        if (!TryFindWordAtCursor(source, cursor, out var startCol, out _, out var word))
+        {
+            return null;
+        }
+
+        // Member access — skip. `foo.bar` is a catalog/runtime lookup, not a let binding.
+        if (startCol > 0 && GetCharAt(source, cursor.Line, startCol - 1) == '.')
+        {
+            return null;
+        }
+
+        ImmutableArray<Expr> forms;
+        try
+        {
+            forms = NinjaParser.ParseScript(source);
+        }
+        catch (LexerException) { return null; }
+        catch (ParserException) { return null; }
+
+        Definition? firstMatch = null;
+        Definition? bestBeforeCursor = null;
+        foreach (var form in forms)
+        {
+            if (form is not LetStatement ls || ls.Name != word) continue;
+            if (!TryBuildLetDefinition(source, ls, out var def)) continue;
+
+            firstMatch ??= def;
+            // "Before the cursor" means the let statement's name ends at-or-before the cursor token.
+            if (ComparePosition(def.NameRange.End, new Position(cursor.Line, startCol)) <= 0)
+            {
+                bestBeforeCursor = def;
+            }
+        }
+        return bestBeforeCursor ?? firstMatch;
+    }
+
+    /// <summary>
+    /// Locate the identifier inside a parsed <see cref="LetStatement"/>'s source span.
+    /// The span starts at the <c>let</c> keyword; we skip the keyword + whitespace and
+    /// take the next <c>Name.Length</c> chars, asserting they match the parsed name.
+    /// </summary>
+    private static bool TryBuildLetDefinition(string source, LetStatement ls, out Definition definition)
+    {
+        definition = null!;
+        var line0 = ls.Span.StartLine - 1;
+        var col0 = ls.Span.StartColumn - 1;
+        if (line0 < 0 || col0 < 0) return false;
+
+        var lineText = GetLine(source, line0);
+        if (lineText is null) return false;
+        // Expect the literal "let" at the span's start column.
+        if (col0 + 3 > lineText.Length) return false;
+        if (lineText[col0] != 'l' || lineText[col0 + 1] != 'e' || lineText[col0 + 2] != 't') return false;
+
+        var i = col0 + 3;
+        while (i < lineText.Length && (lineText[i] == ' ' || lineText[i] == '\t')) i++;
+        if (i + ls.Name.Length > lineText.Length) return false;
+        if (!lineText.AsSpan(i, ls.Name.Length).SequenceEqual(ls.Name.AsSpan())) return false;
+
+        var nameRange = new Range(new Position(line0, i), new Position(line0, i + ls.Name.Length));
+        var fullRange = SpanToRange(ls.Span);
+        definition = new Definition(nameRange, fullRange);
+        return true;
+    }
+
+    private static int ComparePosition(Position a, Position b)
+        => a.Line != b.Line ? a.Line - b.Line : a.Character - b.Character;
 }

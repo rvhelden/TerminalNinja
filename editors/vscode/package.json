@@ -1,71 +1,69 @@
 {
-  "name": "ninjashell",
-  "displayName": "NinjaShell",
-  "description": "Syntax highlighting and language-server diagnostics for NinjaShell (.ninja) files.",
-  "version": "0.0.1",
-  "publisher": "terminalninja",
-  "engines": {
-    "vscode": "^1.80.0"
-  },
-  "categories": [
-    "Programming Languages"
-  ],
-  "activationEvents": [
-    "onLanguage:ninja"
-  ],
-  "main": "./out/extension.js",
-  "contributes": {
-    "languages": [
-      {
-        "id": "ninja",
-        "aliases": [
-          "NinjaShell",
-          "ninja"
-        ],
-        "extensions": [
-          ".ninja"
-        ],
-        "configuration": "./language-configuration.json"
-      }
+    "name": "ninjashell",
+    "displayName": "NinjaShell",
+    "description": "Syntax highlighting and language-server diagnostics for NinjaShell (.ninja) files.",
+    "version": "0.0.1",
+    "publisher": "terminalninja",
+    "engines": {
+        "vscode": "^1.80.0"
+    },
+    "categories": [
+        "Programming Languages"
     ],
-    "grammars": [
-      {
-        "language": "ninja",
-        "scopeName": "source.ninja",
-        "path": "./syntaxes/ninja.tmLanguage.json"
-      }
-    ],
-    "configuration": {
-      "title": "NinjaShell",
-      "properties": {
-        "ninja.languageServer.path": {
-          "type": "string",
-          "default": "",
-          "description": "Path to the ninja-lsp executable. Leave empty to look it up on PATH."
-        },
-        "ninja.languageServer.trace.server": {
-          "type": "string",
-          "enum": [
-            "off",
-            "messages",
-            "verbose"
-          ],
-          "default": "off",
-          "description": "Trace JSON-RPC messages between the extension and ninja-lsp."
+    "main": "./out/extension.js",
+    "contributes": {
+        "languages": [
+            {
+                "id": "ninja",
+                "aliases": [
+                    "NinjaShell",
+                    "ninja"
+                ],
+                "extensions": [
+                    ".ninja"
+                ],
+                "configuration": "./language-configuration.json"
+            }
+        ],
+        "grammars": [
+            {
+                "language": "ninja",
+                "scopeName": "source.ninja",
+                "path": "./syntaxes/ninja.tmLanguage.json"
+            }
+        ],
+        "configuration": {
+            "title": "NinjaShell",
+            "properties": {
+                "ninja.languageServer.path": {
+                    "type": "string",
+                    "default": "",
+                    "description": "Path to the ninja-lsp executable. Leave empty to look it up on PATH."
+                },
+                "ninja.languageServer.trace.server": {
+                    "type": "string",
+                    "enum": [
+                        "off",
+                        "messages",
+                        "verbose"
+                    ],
+                    "default": "off",
+                    "description": "Trace JSON-RPC messages between the extension and ninja-lsp."
+                }
+            }
         }
-      }
+    },
+    "scripts": {
+        "compile": "tsc -p ./ && vsce package --no-dependencies",
+        "watch": "tsc -watch -p ./"
+    },
+    "devDependencies": {
+        "@types/node": "^25.9.0",
+        "@types/vscode": "^1.80.0",
+        "typescript": "^6.0.3",
+        "@vscode/vsce": "^3.9.1"
+    },
+    "dependencies": {
+        "vscode-languageclient": "^9.0.1"
     }
-  },
-  "scripts": {
-    "compile": "tsc -p ./",
-    "watch": "tsc -watch -p ./"
-  },
-  "devDependencies": {
-    "@types/node": "^18.0.0",
-    "@types/vscode": "^1.80.0",
-    "typescript": "^5.3.0"
-  },
-  "dependencies": {
-    "vscode-languageclient": "^9.0.1"
-  }
 }

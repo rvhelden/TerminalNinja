@@ -20,6 +20,29 @@ public sealed class FocusManager
     public UIElement? HoveredElement { get; private set; }
 
     /// <summary>
+    /// Gets the element that has captured the mouse, or null if none.
+    /// While set, every mouse event is routed to this element (and bubbled up
+    /// its ancestors) regardless of cursor position — the WPF behaviour that
+    /// lets a 1-cell <see cref="GridSplitter"/> keep receiving move/release
+    /// events after the cursor leaves its bounds during a drag.
+    /// </summary>
+    public UIElement? CapturedElement { get; private set; }
+
+    /// <summary>
+    /// Captures the mouse for the given element. Subsequent mouse events
+    /// bypass hit-testing and bubble up from <paramref name="element"/> until
+    /// <see cref="ReleaseMouseCapture"/> is called.
+    /// </summary>
+    public void CaptureMouse(UIElement element)
+    {
+        ArgumentNullException.ThrowIfNull(element);
+        CapturedElement = element;
+    }
+
+    /// <summary>Releases any active mouse capture.</summary>
+    public void ReleaseMouseCapture() => CapturedElement = null;
+
+    /// <summary>
     /// Sets focus to the specified element. Pass null to clear focus.
     /// </summary>
     /// <param name="element">The element to focus, or null to clear focus.</param>
@@ -192,17 +215,27 @@ public sealed class FocusManager
         {
             UpdateHover(rootControl, rootBounds, mouseEvent.X, mouseEvent.Y);
         }
-        
+
+        // While capture is active the cursor's screen position is irrelevant —
+        // the captured element gets every event, and hit-testing / focus moves
+        // are suppressed so a drag can't accidentally re-focus whatever the
+        // cursor wandered onto.
+        if (CapturedElement is not null)
+        {
+            BubbleMouseEvent(CapturedElement, mouseEvent);
+            return;
+        }
+
         // Find the deepest element at the mouse position (any element, not just focusable)
         var targetElement = HitTestDeep(rootControl, rootBounds, mouseEvent.X, mouseEvent.Y);
-        
+
         // Focus the nearest focusable ancestor on left mouse button press
         if (mouseEvent is { Action: MouseAction.Press, Button: MouseButton.Left })
         {
             var focusTarget = FindFocusableAncestorOrSelf(targetElement);
             SetFocus(focusTarget);
         }
-        
+
         // Bubble the event from the deepest target up through ancestors.
         // This mirrors WPF's bubbling routed event strategy — every element
         // in the ancestor chain gets a chance to handle the event.

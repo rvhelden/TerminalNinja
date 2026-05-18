@@ -192,6 +192,23 @@ public static class NinjaEvaluator
         return f.Apply(args);
     }
 
+    /// <summary>
+    /// Invoke a pre-resolved callable with pre-evaluated arguments — the same code
+    /// path the evaluator uses for AST <see cref="Call"/> nodes, exposed for callers
+    /// (notably the REPL's alias-interceptor path) that already hold the function
+    /// value and don't need to parse a Call expression. Lambda values produced by
+    /// <c>MakeLambda</c> are supported because they materialise as <see cref="NFunc"/>.
+    /// </summary>
+    /// <exception cref="EvaluatorException">Thrown when <paramref name="callable"/> is not an <see cref="NFunc"/>.</exception>
+    public static NValue Invoke(NValue callable, ImmutableArray<NValue> args)
+    {
+        if (callable is not NFunc f)
+            throw new EvaluatorException($"value of type {NValueDescriber.Describe(callable)} is not callable");
+        var arr = new NValue[args.Length];
+        for (int i = 0; i < args.Length; i++) arr[i] = args[i];
+        return f.Apply(arr);
+    }
+
     private static NValue EvalSwitch(Switch sw, Env env)
     {
         var v = Eval(sw.Scrutinee, env);

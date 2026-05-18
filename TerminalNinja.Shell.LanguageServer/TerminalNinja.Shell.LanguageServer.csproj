@@ -19,7 +19,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <InternalsVisibleTo Include="TerminalNinja.Tests" />
+    <InternalsVisibleTo Include="TerminalNinja.Shell.LanguageServer.Tests" />
   </ItemGroup>
 
 </Project>

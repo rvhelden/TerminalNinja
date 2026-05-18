@@ -54,64 +54,13 @@ public static class JsonModule
             }
         }
 
-        var buffer = new ArrayBufferWriter<byte>();
-        using (var writer = new Utf8JsonWriter(buffer, new JsonWriterOptions
+        try
         {
-            Indented = indent > 0,
-            IndentSize = indent,
-        }))
-        {
-            WriteValue(writer, args[0]);
+            return new NString(NValueToJson.SerializeToString(args[0], indent));
         }
-        return new NString(Encoding.UTF8.GetString(buffer.WrittenSpan));
-    }
-
-    private static void WriteValue(Utf8JsonWriter w, NValue v)
-    {
-        switch (v)
+        catch (EvaluatorException ex)
         {
-            case NUnit:
-                w.WriteNullValue();
-                break;
-            case NBool b:
-                w.WriteBooleanValue(b.Value);
-                break;
-            case NInt i:
-                w.WriteNumberValue(i.Value);
-                break;
-            case NFloat f:
-                if (double.IsNaN(f.Value) || double.IsInfinity(f.Value))
-                    throw new EvaluatorException($"json.stringify: cannot serialize {f.Value} (NaN/Infinity are not valid JSON)");
-                w.WriteNumberValue(f.Value);
-                break;
-            case NString s:
-                w.WriteStringValue(s.Value);
-                break;
-            case NList list:
-                w.WriteStartArray();
-                foreach (var item in list.Items) WriteValue(w, item);
-                w.WriteEndArray();
-                break;
-            case NSeq seq:
-                w.WriteStartArray();
-                foreach (var item in seq.Items) WriteValue(w, item);
-                w.WriteEndArray();
-                break;
-            case NRecord rec:
-                w.WriteStartObject();
-                foreach (var kv in rec.Fields)
-                {
-                    w.WritePropertyName(kv.Key);
-                    WriteValue(w, kv.Value);
-                }
-                w.WriteEndObject();
-                break;
-            case NVariant variant:
-                throw new EvaluatorException($"json.stringify: NVariant '{variant.Tag}' has no canonical JSON form — convert to a record first");
-            case NFunc:
-                throw new EvaluatorException("json.stringify: functions cannot be serialized to JSON");
-            default:
-                throw new EvaluatorException($"json.stringify: unhandled value type {v.GetType().Name}");
+            throw new EvaluatorException("json.stringify: " + ex.Message, ex);
         }
     }
 }

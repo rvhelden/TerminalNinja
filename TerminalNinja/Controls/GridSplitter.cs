@@ -1,3 +1,4 @@
+using TerminalNinja.App;
 using TerminalNinja.Buffers;
 using TerminalNinja.Input;
 using TerminalNinja.Primitives;
@@ -92,6 +93,10 @@ public sealed class GridSplitter : Control
             case MouseAction.Press when e.Button == MouseButton.Left:
                 _dragAnchorX = e.X;
                 _isDragging = true;
+                // Capture the mouse — the splitter is 1 cell wide, so without
+                // capture the very first move event leaves our bounds and gets
+                // routed to a sibling instead, making drag-resize impossible.
+                Application.Current?.FocusManager.CaptureMouse(this);
                 break;
             case MouseAction.Move when _isDragging:
                 int delta = e.X - _dragAnchorX;
@@ -103,6 +108,7 @@ public sealed class GridSplitter : Control
                 break;
             case MouseAction.Release when e.Button == MouseButton.Left:
                 _isDragging = false;
+                Application.Current?.FocusManager.ReleaseMouseCapture();
                 break;
         }
     }

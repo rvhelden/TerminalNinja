@@ -44,10 +44,13 @@ highlighting immediately, and red squigglies under syntax errors as
 - Syntax highlighting (keywords, strings, numbers, comments, interpolated strings, pwsh blocks).
 - Live diagnostics from lexer / parser errors with 0-based ranges.
 - Bracket pairing and auto-closing for `()` `[]` `{}` and `""`.
+- Document symbols (outline view).
+- Completion: builtin names plus `module.<member>` after `.`.
+- Signature help: parameter hints inside open parens, with active-parameter tracking on `,`.
+- Hover: signatures / docs for builtins and `module.member` paths, rendered as markdown.
+- Go-to-definition: jump from a reference to the declaring top-level `let NAME = …` (most recent shadowing definition wins).
 
 ## What's coming
 
-- Hover (signatures / docs for builtins).
-- Completion (builtin names + `module.<member>` after `.`).
-- Document symbols (outline view).
-- Go-to-definition for `let` bindings.
+- Find-all-references for `let` bindings.
+- Go-to-definition for nested `let … in …` expressions (currently only top-level lets).

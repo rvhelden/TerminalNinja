@@ -1,4 +1,5 @@
 using TerminalNinja.Shell.Builtins;
+using TerminalNinja.Shell.Config;
 using TerminalNinja.Shell.Language.Services;
 using TerminalNinja.Shell.PowerShell;
 using TerminalNinja.Shell.Runtime;
@@ -24,6 +25,7 @@ public sealed class NinjaRepl
     private readonly TextWriter _output;
     private readonly TextWriter _error;
     private readonly LineAccumulator _accumulator = new();
+    private readonly NinjaConfig _config = NinjaConfig.Empty();
     private Env _env;
 
     /// <summary>Create a REPL bound to the given streams.</summary>
@@ -36,7 +38,8 @@ public sealed class NinjaRepl
         _input = input;
         _output = output;
         _error = error;
-        _env = BuiltinRegistry.CreateDefaultEnv();
+        _env = BuiltinRegistry.CreateDefaultEnvWith(_config);
+        DefaultAliases.Seed(_config, _env);
         if (PwshBridge.IsAvailable) _env = PwshBridge.Install(_env);
     }
 
@@ -104,6 +107,12 @@ public sealed class NinjaRepl
         exitCode = 0;
         if (_accumulator.IsEmpty && line.Trim() is "exit" or "quit") { exitCode = 0; return true; }
 
+        if (_accumulator.IsEmpty && AliasInterceptor.TryIntercept(line, _config, out var inv))
+        {
+            ExecuteAlias(inv);
+            return false;
+        }
+
         var result = _accumulator.Feed(line);
         switch (result.State)
         {
@@ -127,6 +136,24 @@ public sealed class NinjaRepl
             var evaluated = NinjaEvaluator.EvalTop(expr, _env);
             _env = evaluated.Env;
             var rendered = Printer.Format(evaluated.Value);
+            if (!string.IsNullOrEmpty(rendered)) _output.WriteLine(rendered);
+        }
+        catch (EvaluatorException ex)
+        {
+            _error.WriteLine($"runtime error: {ex.Message}");
+        }
+        catch (Exception ex)
+        {
+            _error.WriteLine($"internal error: {ex.GetType().Name}: {ex.Message}");
+        }
+    }
+
+    private void ExecuteAlias(AliasInterceptor.AliasInvocation inv)
+    {
+        try
+        {
+            var value = NinjaEvaluator.Invoke(inv.Func, inv.Args);
+            var rendered = Printer.Format(value);
             if (!string.IsNullOrEmpty(rendered)) _output.WriteLine(rendered);
         }
         catch (EvaluatorException ex)
