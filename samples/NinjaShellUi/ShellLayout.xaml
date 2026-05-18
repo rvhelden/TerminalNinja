@@ -11,12 +11,16 @@
         <StackPanel Grid.Row="0" Orientation="Horizontal">
 
             <!-- Files panel (left). Visibility="Collapsed" yields its width back to the
-                 stretching center cell now that StackPanel honors UIElement.Visibility. -->
+                 stretching center cell now that StackPanel honors UIElement.Visibility.
+                 Right padding is 2 (not 1) so a maximum-length filename always leaves a
+                 visible gap before the panel's right border — without it, text that fills
+                 the content column reads as if the border itself shifted, because there's
+                 no breathing room between the last character and the vertical line. -->
             <Border StackPanel.SizeMode="Fixed" StackPanel.FixedSize="32"
                     Visibility="{Binding FilesPanelVisibility}"
                     BorderStyle="Single"
                     BorderBrush="#45475A"
-                    Padding="1,0,1,0">
+                    Padding="1,0,2,0">
                 <StackPanel Orientation="Vertical">
                     <TextBlock StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1"
                                Text=" Files"
@@ -43,7 +47,7 @@
                     Visibility="{Binding RightPanelVisibility}"
                     BorderStyle="Single"
                     BorderBrush="#45475A"
-                    Padding="1,0,1,0">
+                    Padding="1,0,2,0">
                 <StackPanel Orientation="Vertical">
                     <TextBlock StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1"
                                Visibility="{Binding EnvPanelVisibility}"
