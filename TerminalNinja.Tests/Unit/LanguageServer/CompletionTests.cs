@@ -1,4 +1,5 @@
 using TerminalNinja.Shell.Language.Services;
+using TerminalNinja.Shell.Values;
 
 namespace TerminalNinja.Tests.Unit.LanguageServer;
 
@@ -6,6 +7,11 @@ public class CompletionTests
 {
     private static IReadOnlyList<CompletionItem> At(string source, int line, int character)
         => LanguageService.GetCompletions(source, new Position(line, character));
+
+    private static IReadOnlyList<CompletionItem> At(
+        string source, int line, int character,
+        IReadOnlyDictionary<string, NValue> scope)
+        => LanguageService.GetCompletions(source, new Position(line, character), scope);
 
     // ─── top-level completion ───────────────────────────────────────────────
 
@@ -126,5 +132,70 @@ public class CompletionTests
         var select = items.Single(i => i.Label == "select");
         await Assert.That(select.Detail).IsNotNull();
         await Assert.That(select.Detail!.Length).IsGreaterThan(0);
+    }
+
+    // ─── scope-aware completion ─────────────────────────────────────────────
+
+    [Test]
+    public async Task Scope_UserBinding_AppearsInTopLevelResults()
+    {
+        var scope = new Dictionary<string, NValue>
+        {
+            ["greeting"] = new NString("hello"),
+        };
+        var items = At("gre", 0, 3, scope);
+        var greeting = items.SingleOrDefault(i => i.Label == "greeting");
+        await Assert.That(greeting).IsNotNull();
+        await Assert.That(greeting!.Kind).IsEqualTo(CompletionKind.Variable);
+    }
+
+    [Test]
+    public async Task Scope_LambdaBinding_KindIsFunction()
+    {
+        var scope = new Dictionary<string, NValue>
+        {
+            ["double"] = new NFunc(args => args[0], 1),
+        };
+        var items = At("d", 0, 1, scope);
+        var dbl = items.SingleOrDefault(i => i.Label == "double");
+        await Assert.That(dbl).IsNotNull();
+        await Assert.That(dbl!.Kind).IsEqualTo(CompletionKind.Function);
+    }
+
+    [Test]
+    public async Task Scope_BindingShadowingBuiltin_SuppressesBuiltin()
+    {
+        // User has rebound `where` — only the user version should appear, not the
+        // builtin definition. Otherwise the popup misleads users into thinking
+        // the original is still in play.
+        var scope = new Dictionary<string, NValue>
+        {
+            ["where"] = new NString("user override"),
+        };
+        var items = At("where", 0, 5, scope);
+        var whereItems = items.Where(i => i.Label == "where").ToList();
+        await Assert.That(whereItems.Count).IsEqualTo(1);
+        await Assert.That(whereItems[0].Kind).IsEqualTo(CompletionKind.Variable);
+    }
+
+    [Test]
+    public async Task Scope_NoMatch_FallsThroughToBuiltinsOnly()
+    {
+        var scope = new Dictionary<string, NValue>
+        {
+            ["xyz"] = new NInt(1),
+        };
+        var items = At("se", 0, 2, scope);
+        var labels = items.Select(i => i.Label).ToList();
+        await Assert.That(labels).Contains("select");
+        await Assert.That(labels).DoesNotContain("xyz");
+    }
+
+    [Test]
+    public async Task Scope_EmptyDictionary_BehavesLikeNullScope()
+    {
+        var items = At("se", 0, 2, new Dictionary<string, NValue>());
+        var labels = items.Select(i => i.Label).ToList();
+        await Assert.That(labels).Contains("select");
     }
 }

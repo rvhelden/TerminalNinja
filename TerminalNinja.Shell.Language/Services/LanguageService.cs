@@ -128,6 +128,21 @@ public static class LanguageService
     /// whatever identifier prefix is to the left of the cursor.
     /// </summary>
     public static IReadOnlyList<CompletionItem> GetCompletions(string source, Position cursor)
+        => GetCompletions(source, cursor, scope: null);
+
+    /// <summary>
+    /// Scope-aware completion. Same context detection as
+    /// <see cref="GetCompletions(string, Position)"/>, plus the keys of
+    /// <paramref name="scope"/> surface as <see cref="CompletionKind.Variable"/>
+    /// (or <see cref="CompletionKind.Function"/> when the bound value is an
+    /// <see cref="NFunc"/>). The detail line shows the value's shape via
+    /// <see cref="ValueFormatter.Def"/> so an editor can preview what a name
+    /// resolves to before the user picks it.
+    /// </summary>
+    public static IReadOnlyList<CompletionItem> GetCompletions(
+        string source,
+        Position cursor,
+        IReadOnlyDictionary<string, NValue>? scope)
     {
         ArgumentNullException.ThrowIfNull(source);
         var prefix = TakeSourceBeforeCursor(source, cursor);
@@ -142,7 +157,7 @@ public static class LanguageService
 
         var identifierMatch = IdentifierPattern.Match(prefix);
         var ident = identifierMatch.Success ? identifierMatch.Groups[1].Value : string.Empty;
-        return GetTopLevelCompletions(ident);
+        return GetTopLevelCompletions(ident, scope);
     }
 
     private static IReadOnlyList<CompletionItem> GetMemberCompletions(string targetName, string prefix)
@@ -158,24 +173,48 @@ public static class LanguageService
         return result;
     }
 
-    private static IReadOnlyList<CompletionItem> GetTopLevelCompletions(string prefix)
+    private static IReadOnlyList<CompletionItem> GetTopLevelCompletions(
+        string prefix,
+        IReadOnlyDictionary<string, NValue>? scope)
     {
         var result = new List<CompletionItem>();
-        AddMatches(BuiltinCatalog.TopLevel, prefix, result);
-        AddMatches(BuiltinCatalog.Keywords, prefix, result);
+
+        // Scope first — user-defined names shadow builtins in the evaluator, so they
+        // should appear first in the completion list too. We dedupe by label below
+        // when adding builtins so a `let where = ...` rebinding doesn't show twice.
+        var scopeNames = scope is null ? null : new HashSet<string>(StringComparer.Ordinal);
+        if (scope is not null)
+        {
+            foreach (var kv in scope)
+            {
+                if (prefix.Length > 0 && !kv.Key.StartsWith(prefix, StringComparison.Ordinal)) continue;
+                scopeNames!.Add(kv.Key);
+                var kind = kv.Value is NFunc ? CompletionKind.Function : CompletionKind.Variable;
+                result.Add(new CompletionItem(kv.Key, kind, ValueFormatter.Def(kv.Value), null));
+            }
+        }
+
+        AddMatches(BuiltinCatalog.TopLevel, prefix, result, scopeNames);
+        AddMatches(BuiltinCatalog.Keywords, prefix, result, scopeNames);
         // Module names themselves (env, fs, proc, obj, json, xml) as Module items.
         foreach (var key in BuiltinCatalog.Modules.Keys)
         {
-            if (prefix.Length == 0 || key.StartsWith(prefix, StringComparison.Ordinal))
-                result.Add(new CompletionItem(key, CompletionKind.Module, $"module {key}", null));
+            if (prefix.Length > 0 && !key.StartsWith(prefix, StringComparison.Ordinal)) continue;
+            if (scopeNames is not null && scopeNames.Contains(key)) continue;
+            result.Add(new CompletionItem(key, CompletionKind.Module, $"module {key}", null));
         }
         return result;
     }
 
-    private static void AddMatches(IReadOnlyList<BuiltinDescriptor> source, string prefix, List<CompletionItem> dest)
+    private static void AddMatches(
+        IReadOnlyList<BuiltinDescriptor> source,
+        string prefix,
+        List<CompletionItem> dest,
+        HashSet<string>? shadowed)
     {
         foreach (var d in source)
         {
+            if (shadowed is not null && shadowed.Contains(d.Name)) continue;
             if (prefix.Length == 0 || d.Name.StartsWith(prefix, StringComparison.Ordinal))
                 dest.Add(new CompletionItem(d.Name, d.Kind, d.Detail, null));
         }

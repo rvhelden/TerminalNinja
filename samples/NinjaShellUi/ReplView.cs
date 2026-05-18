@@ -908,7 +908,11 @@ public sealed class ReplView : Control
 
     private bool OpenCompletion()
     {
-        var items = LanguageService.GetCompletions(_input.ToString(), new Position(0, _cursorCol));
+        // Pass Scope through so user-defined `let` bindings show up alongside builtins.
+        // Scope is null on first open (before any evaluation has produced bindings) —
+        // GetCompletions handles that as "no extras", same as the parameterless overload.
+        var (cursorLine, cursorCol) = CursorToLineCol(_cursorCol);
+        var items = LanguageService.GetCompletions(_input.ToString(), new Position(cursorLine, cursorCol), Scope);
         if (items.Count == 0)
         {
             // No completions — let the caller (Tab handler) decide what to do; typically
