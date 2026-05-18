@@ -56,9 +56,19 @@ public sealed class ReplView : Control
 
     // Completion popup state. Built fresh on each Tab press from the current cursor;
     // surviving keystrokes (Up / Down / Enter / Esc) navigate or dismiss it.
+    // The visual is rendered via the core CompletionPanel overlay (icon + label
+    // list on the left, signature + documentation on the right).
     private IReadOnlyList<CompletionItem>? _completions;
     private int _completionIndex;
     private int _completionAnchorCol;
+    private readonly CompletionPanel _completionPanel = new();
+
+    // Signature-help popup. Re-evaluated on every keystroke; opens when the
+    // cursor sits inside an open paren that resolves to a known callable.
+    // Uses HoverPanel (not CompletionPanel) — signature help is just a styled
+    // single-block tooltip, not a navigable list.
+    private readonly HoverPanel _signaturePanel = new();
+    private SignatureHelp? _activeSignature;
 
     // Mouse-hover state. The HoverPanel itself lives in TerminalNinja core and
     // pushes its content onto the Application overlay stack on Show. We track
@@ -228,11 +238,8 @@ public sealed class ReplView : Control
 
         RenderInputBlock(buffer, bounds.X, inputTopY, bounds.Width, inputLines, fg, bg);
 
-        // The completion popup sits on top of everything else — render last.
-        if (_completions is { Count: > 0 })
-        {
-            RenderCompletionPopup(buffer, bounds, inputTopY, fg, bg);
-        }
+        // Completion + signature popups render on the overlay stack via
+        // _completionPanel / _signaturePanel — nothing to draw inline.
     }
 
     /// <summary>Number of input rows the current buffer needs (1 + count of '\n').</summary>
@@ -720,62 +727,43 @@ public sealed class ReplView : Control
         DrawText(buffer, x, y, line.ToString(), width, errFg, bg);
     }
 
-    private void RenderCompletionPopup(CellBuffer buffer, Rect bounds, int inputTopY, Color fg, Color bg)
+    /// <summary>
+    /// Map an LSP-shaped <see cref="CompletionItem"/> to a renderer-friendly
+    /// <see cref="CompletionEntry"/>: pick a glyph and colour per kind so the
+    /// list reads at a glance, and pass Detail / Documentation straight through.
+    /// </summary>
+    private static CompletionEntry ToEntry(CompletionItem item)
     {
-        var items = _completions!;
-        var popupHeight = Math.Min(items.Count, 8);
-        if (popupHeight <= 0) return;
-
-        // Width = longest item label + " — detail" tail, capped by the panel width.
-        var maxLabel = 0;
-        var maxDetail = 0;
-        for (var i = 0; i < items.Count; i++)
+        var (glyph, color) = item.Kind switch
         {
-            maxLabel = Math.Max(maxLabel, items[i].Label.Length);
-            maxDetail = Math.Max(maxDetail, items[i].Detail?.Length ?? 0);
-        }
-        var popupWidth = Math.Min(bounds.Width - 2, maxLabel + 3 + maxDetail);
-        if (popupWidth < 10) popupWidth = Math.Min(bounds.Width - 2, 30);
+            CompletionKind.Function    => ("ƒ", new Color(0x89, 0xB4, 0xFA)), // blue
+            CompletionKind.Method      => ("ƒ", new Color(0x89, 0xB4, 0xFA)),
+            CompletionKind.Constructor => ("ƒ", new Color(0x89, 0xB4, 0xFA)),
+            CompletionKind.Variable    => ("α", new Color(0xA6, 0xE3, 0xA1)), // green
+            CompletionKind.Field       => ("▪", new Color(0x94, 0xE2, 0xD5)), // teal
+            CompletionKind.Property    => ("▪", new Color(0x94, 0xE2, 0xD5)),
+            CompletionKind.Module      => ("■", new Color(0xF9, 0xE2, 0xAF)), // yellow
+            CompletionKind.Class       => ("C", new Color(0xF9, 0xE2, 0xAF)),
+            CompletionKind.Interface   => ("I", new Color(0xF9, 0xE2, 0xAF)),
+            CompletionKind.Keyword     => ("★", new Color(0xCB, 0xA6, 0xF7)), // mauve
+            CompletionKind.Enum        => ("E", new Color(0xFA, 0xB3, 0x87)), // peach
+            CompletionKind.Snippet     => ("◇", new Color(0x9C, 0xA0, 0xB0)),
+            _                          => ("·", new Color(0x9C, 0xA0, 0xB0)),
+        };
+        return new CompletionEntry(item.Label, glyph, color, item.Detail, item.Documentation);
+    }
 
-        // Anchor: float just above the input row that holds the partial token. With a
-        // multi-line buffer the popup needs to track the line the cursor is on, not the
-        // top of the block — anchorCol is a logical column on whichever line we landed.
+    /// <summary>
+    /// Place the <see cref="CompletionPanel"/> at the row above the input line
+    /// that holds the partial token, anchored to the column of the partial token.
+    /// </summary>
+    private (int X, int Y) GetCompletionAnchor()
+    {
         var (anchorLine, _) = CursorToLineCol(_completionAnchorCol);
         var promptWidth = Math.Max(Prompt.Length, ContinuationPrompt.Length);
-        // anchorColOnLine = column-within-line of the anchor; derive by walking back to
-        // the start of that line.
         var anchorLineStart = LineColToIndex(anchorLine, 0);
         var anchorColOnLine = _completionAnchorCol - anchorLineStart;
-
-        var popupX = bounds.X + Math.Min(bounds.Width - popupWidth - 1, Math.Max(0, promptWidth + anchorColOnLine));
-        var anchorRowY = inputTopY + anchorLine;
-        var popupY = Math.Max(bounds.Y, anchorRowY - popupHeight);
-
-        var popupBg = new Color(0x31, 0x32, 0x44);
-        var popupSelBg = new Color(0x45, 0x47, 0x5A);
-
-        // Window the visible items so the selection stays in view.
-        var firstVisible = Math.Max(0, Math.Min(items.Count - popupHeight, _completionIndex - popupHeight / 2));
-        for (var r = 0; r < popupHeight; r++)
-        {
-            var itemIndex = firstVisible + r;
-            if (itemIndex >= items.Count) break;
-            var rowBg = itemIndex == _completionIndex ? popupSelBg : popupBg;
-            var y = popupY + r;
-            FillRow(buffer, popupX, y, popupWidth, rowBg);
-
-            var item = items[itemIndex];
-            DrawText(buffer, popupX + 1, y, item.Label, popupWidth - 2, fg, rowBg);
-            if (item.Detail is not null)
-            {
-                var detailX = popupX + 1 + item.Label.Length + 2;
-                if (detailX < popupX + popupWidth - 1)
-                {
-                    var dimFg = new Color(0x9C, 0xA0, 0xB0);
-                    DrawText(buffer, detailX, y, item.Detail, popupX + popupWidth - 1 - detailX, dimFg, rowBg);
-                }
-            }
-        }
+        return (_lastBounds.X + promptWidth + anchorColOnLine, _lastInputTopY + anchorLine);
     }
 
     private static void FillRow(CellBuffer buffer, int x, int y, int width, Color bg)
@@ -829,10 +817,12 @@ public sealed class ReplView : Control
             {
                 case ConsoleKey.UpArrow:
                     _completionIndex = (_completionIndex - 1 + _completions.Count) % _completions.Count;
+                    _completionPanel.SelectedIndex = _completionIndex;
                     InvalidationCallback?.Invoke();
                     return;
                 case ConsoleKey.DownArrow:
                     _completionIndex = (_completionIndex + 1) % _completions.Count;
+                    _completionPanel.SelectedIndex = _completionIndex;
                     InvalidationCallback?.Invoke();
                     return;
                 case ConsoleKey.Escape:
@@ -969,6 +959,14 @@ public sealed class ReplView : Control
         _completionAnchorCol = FindWordStart(_input.ToString(), _cursorCol);
         _completions = items;
         _completionIndex = 0;
+
+        // Translate to renderer-friendly entries and show the overlay panel
+        // anchored at the partial-token position.
+        var entries = new CompletionEntry[items.Count];
+        for (int i = 0; i < items.Count; i++) entries[i] = ToEntry(items[i]);
+        var (anchorX, anchorY) = GetCompletionAnchor();
+        _completionPanel.Placement = PlacementMode.Top;
+        _completionPanel.ShowAt(anchorX, anchorY, entries, 0);
         InvalidationCallback?.Invoke();
         return true;
     }
@@ -1007,6 +1005,7 @@ public sealed class ReplView : Control
     {
         _completions = null;
         _completionIndex = 0;
+        if (_completionPanel.IsOpen) _completionPanel.Hide();
         InvalidationCallback?.Invoke();
     }
 
@@ -1077,6 +1076,56 @@ public sealed class ReplView : Control
         _hover = text.Length == 0
             ? null
             : LanguageService.GetHover(text, new Position(cursorLine, cursorCol), Scope);
+
+        RecomputeSignatureHelp(text, cursorLine, cursorCol);
+    }
+
+    /// <summary>
+    /// Refresh the signature-help overlay based on the current cursor. When
+    /// the cursor sits inside a known callable's argument list, show a
+    /// <see cref="HoverPanel"/> just above the input row with the signature
+    /// (active parameter underlined) and the documentation below it. When it
+    /// doesn't, hide the panel.
+    /// </summary>
+    private void RecomputeSignatureHelp(string text, int cursorLine, int cursorCol)
+    {
+        var sig = text.Length == 0
+            ? null
+            : LanguageService.GetSignatureHelp(text, new Position(cursorLine, cursorCol), Scope);
+        _activeSignature = sig;
+        if (sig is null)
+        {
+            if (_signaturePanel.IsOpen) _signaturePanel.Hide();
+            return;
+        }
+
+        // Build the panel content: signature line on top with the active param
+        // emphasised, documentation underneath in a dimmer color.
+        var sb = new StringBuilder();
+        sb.Append(sig.Label);
+        if (sig.ActiveParameter >= 0 && sig.ActiveParameter < sig.Parameters.Length)
+        {
+            var p = sig.Parameters[sig.ActiveParameter];
+            sb.Append("\n").Append(new string(' ', p.LabelStart)).Append(new string('▔', p.LabelLength));
+        }
+        if (sig.Documentation is not null)
+        {
+            sb.Append("\n\n").Append(sig.Documentation);
+        }
+
+        var content = new Border
+        {
+            Child = new TextBlock { Text = sb.ToString(), Padding = new Thickness(1, 0) },
+            BorderStyle = BorderStyle.Rounded(new Color(0x89, 0xB4, 0xFA)),
+        };
+
+        // Anchor on the input row that holds the cursor (multi-line buffers
+        // place the cursor on a row != input top).
+        var anchorY = _lastInputTopY + cursorLine;
+        var promptWidth = Math.Max(Prompt.Length, ContinuationPrompt.Length);
+        var anchorX = _lastBounds.X + promptWidth + cursorCol;
+        _signaturePanel.Placement = PlacementMode.Top;
+        _signaturePanel.ShowAt(anchorX, anchorY, content);
     }
 
     private void Submit()
@@ -1087,6 +1136,8 @@ public sealed class ReplView : Control
         _historyIndex = -1;
         _diagnostics = Array.Empty<Diagnostic>();
         _hover = null;
+        _activeSignature = null;
+        if (_signaturePanel.IsOpen) _signaturePanel.Hide();
 
         // Echo the buffer back into the output with prompts in front of each line so the
         // history reads like a transcript. Continuation rows use ContinuationPrompt to
