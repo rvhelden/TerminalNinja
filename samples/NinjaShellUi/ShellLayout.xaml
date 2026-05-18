@@ -39,7 +39,7 @@
             <!-- Env + scope (right). The wrapper Border collapses when both inner panels are
                  collapsed (RightPanelVisibility is wired in the VM). Inner Visibility bindings
                  toggle env / scope independently. -->
-            <Border StackPanel.SizeMode="Fixed" StackPanel.FixedSize="48"
+            <Border StackPanel.SizeMode="Fixed" StackPanel.FixedSize="56"
                     Visibility="{Binding RightPanelVisibility}"
                     BorderStyle="Single"
                     BorderBrush="#45475A"
@@ -50,21 +50,17 @@
                                Text=" Environment"
                                Foreground="#F9E2AF"
                                TextDecorations="Bold" />
-                    <TextBlock StackPanel.SizeMode="Fixed" StackPanel.FixedSize="12"
-                               Visibility="{Binding EnvPanelVisibility}"
-                               Text="{Binding EnvText}"
-                               Foreground="#A6E3A1"
-                               TextWrapping="NoWrap" />
+                    <ContentControl StackPanel.SizeMode="Fixed" StackPanel.FixedSize="14"
+                                    Visibility="{Binding EnvPanelVisibility}"
+                                    Content="{Binding EnvList}" />
                     <TextBlock StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1"
                                Visibility="{Binding ScopePanelVisibility}"
                                Text=" Scope"
                                Foreground="#F9E2AF"
                                TextDecorations="Bold" />
-                    <TextBlock StackPanel.SizeMode="Stretch"
-                               Visibility="{Binding ScopePanelVisibility}"
-                               Text="{Binding ScopeText}"
-                               Foreground="#94E2D5"
-                               TextWrapping="NoWrap" />
+                    <ContentControl StackPanel.SizeMode="Stretch"
+                                    Visibility="{Binding ScopePanelVisibility}"
+                                    Content="{Binding ScopeList}" />
                 </StackPanel>
             </Border>
         </StackPanel>

@@ -5,6 +5,9 @@
         <TargetFramework>net11.0</TargetFramework>
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
+        <!-- NValue is a C# 15 discriminated union (TerminalNinja.Shell.Language uses LangVersion=preview).
+             Pattern-matching its variants in this sample requires the preview language version too. -->
+        <LangVersion>preview</LangVersion>
         <PublishAot>true</PublishAot>
         <RootNamespace>NinjaShellUi</RootNamespace>
         <AssemblyName>NinjaShellUi</AssemblyName>

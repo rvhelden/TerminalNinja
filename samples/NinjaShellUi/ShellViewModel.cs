@@ -1,4 +1,5 @@
 using System.Collections;
+using System.Collections.ObjectModel;
 using System.Text;
 using TerminalNinja.Controls;
 using TerminalNinja.Shell.Builtins;
@@ -31,6 +32,12 @@ public sealed class ShellViewModel : ViewModelBase
     /// <summary>The custom REPL surface bound into the layout's centre cell.</summary>
     public ReplView Repl { get; }
 
+    /// <summary>Editable list bound into the env panel. Items reference <see cref="EnvEntries"/>.</summary>
+    public EditableKeyValueList EnvList { get; }
+
+    /// <summary>Editable list bound into the scope panel. Items reference <see cref="ScopeEntries"/>.</summary>
+    public EditableKeyValueList ScopeList { get; }
+
     /// <summary>The current working directory the file panel reflects.</summary>
     public string CwdDisplay
     {
@@ -45,19 +52,18 @@ public sealed class ShellViewModel : ViewModelBase
         private set => SetProperty(ref field, value);
     } = "";
 
-    /// <summary>Multi-line listing of the process environment variables (sorted by name).</summary>
-    public string EnvText
-    {
-        get;
-        private set => SetProperty(ref field, value);
-    } = "";
+    /// <summary>
+    /// Process environment variables, sorted by name. Bound to the env panel's editable list —
+    /// committing a row writes back through <see cref="Environment.SetEnvironmentVariable(string, string?)"/>.
+    /// </summary>
+    public ObservableCollection<KeyValueEntry> EnvEntries { get; } = new();
 
-    /// <summary>Multi-line listing of the bindings in the NinjaShell evaluator's <see cref="Env"/>.</summary>
-    public string ScopeText
-    {
-        get;
-        private set => SetProperty(ref field, value);
-    } = "";
+    /// <summary>
+    /// NinjaShell evaluator bindings (process scope). Bound to the scope panel's editable list —
+    /// committing a row re-evaluates the new text as a NinjaShell expression and rebinds the
+    /// name, or reports a parse error in the REPL.
+    /// </summary>
+    public ObservableCollection<KeyValueEntry> ScopeEntries { get; } = new();
 
     /// <summary>Visibility of the files panel (F1).</summary>
     public Visibility FilesPanelVisibility
@@ -91,7 +97,7 @@ public sealed class ShellViewModel : ViewModelBase
     } = Visibility.Visible;
 
     /// <summary>Footer hint string describing the toggle shortcuts.</summary>
-    public string ShortcutHint { get; } = "F1 files   F2 env   F3 scope   F10 exit";
+    public string ShortcutHint { get; } = "F1 files   F2 env   F3 scope   Tab focus   Enter edit   F10 exit";
 
     /// <summary>Creates a view model with a fresh evaluator environment and a focused REPL.</summary>
     public ShellViewModel()
@@ -108,8 +114,25 @@ public sealed class ShellViewModel : ViewModelBase
             Background = new TerminalNinja.Primitives.Color(0x1E, 0x1E, 0x2E),
         };
 
-        Repl.AppendOutput($"NinjaShell UI  —  type expressions; F1/F2/F3 toggle panels; F10 exits.");
+        Repl.AppendOutput("NinjaShell UI  —  type expressions in the REPL; Tab to focus a side panel;");
+        Repl.AppendOutput("Enter on a row to edit; F1/F2/F3 toggle panels; F10 exits.");
         Repl.CommandEntered += OnCommandEntered;
+
+        EnvList = new EditableKeyValueList
+        {
+            ItemsSource = EnvEntries,
+            Foreground = new TerminalNinja.Primitives.Color(0xA6, 0xE3, 0xA1),
+            Background = new TerminalNinja.Primitives.Color(0x1E, 0x1E, 0x2E),
+        };
+        EnvList.ItemCommitted += OnEnvEntryCommitted;
+
+        ScopeList = new EditableKeyValueList
+        {
+            ItemsSource = ScopeEntries,
+            Foreground = new TerminalNinja.Primitives.Color(0x94, 0xE2, 0xD5),
+            Background = new TerminalNinja.Primitives.Color(0x1E, 0x1E, 0x2E),
+        };
+        ScopeList.ItemCommitted += OnScopeEntryCommitted;
 
         RefreshPanels();
     }
@@ -140,6 +163,55 @@ public sealed class ShellViewModel : ViewModelBase
         var bothCollapsed = EnvPanelVisibility == Visibility.Collapsed
             && ScopePanelVisibility == Visibility.Collapsed;
         RightPanelVisibility = bothCollapsed ? Visibility.Collapsed : Visibility.Visible;
+    }
+
+    /// <summary>
+    /// Commits an env-panel edit: writes the new value back into the process environment.
+    /// On Windows / Unix the change is process-scoped — child processes inherit it but the OS
+    /// shell that spawned us is unaffected.
+    /// </summary>
+    public void OnEnvEntryCommitted(KeyValueEntry entry)
+    {
+        try
+        {
+            Environment.SetEnvironmentVariable(entry.Key, entry.Value);
+            Repl.AppendOutput($"env: set {entry.Key}");
+        }
+        catch (Exception ex)
+        {
+            Repl.AppendOutput($"env: failed to set {entry.Key}: {ex.Message}");
+        }
+        // Re-pull env vars so the entry list stays sorted / canonical (in case the OS rejected
+        // the value or normalised it).
+        RefreshEnvVars();
+    }
+
+    /// <summary>
+    /// Commits a scope-panel edit: parses the new value as a NinjaShell expression and rebinds
+    /// the name in-place. Closures that captured the original <see cref="EnvRef"/> see the new
+    /// value because <see cref="Env.TrySetBindingValue"/> mutates the slot rather than producing
+    /// a new <see cref="Env"/>.
+    /// </summary>
+    public void OnScopeEntryCommitted(KeyValueEntry entry)
+    {
+        try
+        {
+            var result = NinjaEvaluator.EvalSource(entry.Value, _env);
+            // EvalSource doesn't extend the env unless the source is `let …`; we want a
+            // straight value, so we rebind via the slot directly.
+            if (!_env.TrySetBindingValue(entry.Key, result.Value))
+            {
+                // Name disappeared from the env between selection and commit — unusual but
+                // possible if a REPL command unbinds it. Fall back to extending.
+                _env = _env.Extend(entry.Key, result.Value);
+            }
+            Repl.AppendOutput($"scope: {entry.Key} = {Printer.Format(result.Value)}");
+        }
+        catch (Exception ex)
+        {
+            Repl.AppendOutput($"scope: parse error setting '{entry.Key}': {ex.Message}");
+        }
+        RefreshScope();
     }
 
     private void OnCommandEntered(string line)
@@ -200,31 +272,68 @@ public sealed class ShellViewModel : ViewModelBase
 
     private void RefreshEnvVars()
     {
-        var sb = new StringBuilder();
+        // Rebuild the collection in sorted order. Process env vars are usually < ~200 entries —
+        // wiping and refilling is cheap and avoids juggling diff logic to keep the
+        // ObservableCollection identity-stable across refreshes.
+        EnvEntries.Clear();
+        var sorted = new List<KeyValueEntry>();
         foreach (DictionaryEntry kv in Environment.GetEnvironmentVariables())
         {
-            sb.Append(kv.Key).Append('=').AppendLine(kv.Value?.ToString() ?? "");
+            var key = kv.Key?.ToString() ?? "";
+            var value = kv.Value?.ToString() ?? "";
+            sorted.Add(new KeyValueEntry(key, value));
         }
-
-        // Sort lines for stable display — Environment.GetEnvironmentVariables enumerates in
-        // hash order which jumps around between refreshes.
-        var lines = sb.ToString().Split('\n', StringSplitOptions.RemoveEmptyEntries);
-        Array.Sort(lines, StringComparer.OrdinalIgnoreCase);
-        EnvText = string.Join('\n', lines);
+        sorted.Sort((a, b) => StringComparer.OrdinalIgnoreCase.Compare(a.Key, b.Key));
+        foreach (var entry in sorted)
+        {
+            EnvEntries.Add(entry);
+        }
     }
 
     private void RefreshScope()
     {
-        var sb = new StringBuilder();
+        ScopeEntries.Clear();
         foreach (var kv in _env.Bindings.OrderBy(b => b.Key, StringComparer.Ordinal))
         {
             // Hide internal bookkeeping bindings the bridges install (prefixed with double underscores).
             if (kv.Key.StartsWith("__", StringComparison.Ordinal)) continue;
 
             var formatted = Printer.Format(kv.Value);
-            if (formatted.Length > 60) formatted = formatted[..57] + "...";
-            sb.Append(kv.Key).Append(" = ").AppendLine(formatted);
+            if (formatted.Length > 80) formatted = formatted[..77] + "...";
+
+            // Mark functions and records as read-only — editing them as a flat NinjaShell
+            // expression usually fails to parse back, and the resulting confusion outweighs
+            // the rare case of legitimately wanting to replace a function binding.
+            var typeHint = DescribeType(kv.Value);
+            // Only let leaf scalar values be edited as flat NinjaShell expressions.
+            // Functions and records are shown read-only with a type hint.
+            var editable = IsEditableScalar(kv.Value);
+            ScopeEntries.Add(new KeyValueEntry(kv.Key, formatted, hint: $"({typeHint})", editable: editable));
         }
-        ScopeText = sb.Length == 0 ? "(no bindings)" : sb.ToString();
     }
+
+    private static bool IsEditableScalar(NValue v) => v switch
+    {
+        NInt => true,
+        NFloat => true,
+        NString => true,
+        NBool => true,
+        NUnit => true,
+        _ => false,
+    };
+
+    private static string DescribeType(NValue v) => v switch
+    {
+        NInt => "int",
+        NFloat => "float",
+        NString => "string",
+        NBool => "bool",
+        NUnit => "unit",
+        NList => "list",
+        NRecord => "record",
+        NVariant => "variant",
+        NSeq => "seq",
+        NFunc => "fn",
+        _ => "?",
+    };
 }

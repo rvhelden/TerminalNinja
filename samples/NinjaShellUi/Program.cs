@@ -26,7 +26,10 @@ internal static class Program
             // Same font as SkiaTerminal — ligatures + Nerd Font icons render correctly.
             FontFamily = "FiraCode Nerd Font Mono",
             EscapeQuits = false,
-            EnableTabNavigation = false,
+            // Tab moves focus through the focusable elements (REPL → EnvList → ScopeList).
+            // The lists need keyboard focus to handle their own Up/Down/Enter, so this is
+            // the user's path to switch between them.
+            EnableTabNavigation = true,
         });
 
         app.ThemeName = "Dark";
