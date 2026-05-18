@@ -1,26 +1,36 @@
 using System.Text;
 using TerminalNinja.Controls;
+using TerminalNinja.Highlighting;
+using TerminalNinja.Input;
 using TerminalNinja.Primitives;
 using TerminalNinja.Shell.Language.Services;
 using TerminalNinja.Shell.Values;
-using TerminalNinja.Styling;
 
 namespace NinjaShellUi;
 
 /// <summary>
 /// Owns the signature-help overlay. Re-evaluated on every keystroke: opens when the
 /// cursor sits inside an open paren that resolves to a known callable, hides otherwise.
-/// Uses <see cref="HoverPanel"/> (not <see cref="CompletionPanel"/>) — signature help
-/// is a styled single-block tooltip, not a navigable list.
+/// Content is rendered via <see cref="HoverBox"/> — bounded, scrollable, and
+/// syntax-highlighted — so a long Documentation payload doesn't blow the panel up
+/// to fill the REPL pane.
 /// </summary>
 internal sealed class SignatureHelpController
 {
-    private static readonly Color BorderColor = new(0x89, 0xB4, 0xFA);
-
     private readonly HoverPanel _panel = new();
+    private readonly HoverBox _box = new();
     private SignatureHelp? _active;
 
     public bool IsOpen => _panel.IsOpen;
+
+    public SyntaxTheme Theme
+    {
+        get => _box.Theme;
+        set => _box.Theme = value;
+    }
+
+    /// <summary>Forward a key (PgUp/PgDn/Ctrl+up/down) to the panel's hover box.</summary>
+    public bool ForwardKey(KeyEvent e) => _panel.IsOpen && _box.HandleKey(e);
 
     public void Refresh(string text, int cursorLine, int cursorCol, IReadOnlyDictionary<string, NValue>? scope, in ReplLayout layout)
     {
@@ -47,16 +57,13 @@ internal sealed class SignatureHelpController
             sb.Append("\n\n").Append(sig.Documentation);
         }
 
-        var content = new Border
-        {
-            Child = new TextBlock { Text = sb.ToString(), Padding = new Thickness(1, 0) },
-            BorderStyle = BorderStyle.Rounded(BorderColor),
-        };
+        _box.Text = sb.ToString();
+        _box.Language = "ninja";
 
         var anchorY = layout.InputTopY + cursorLine;
         var anchorX = layout.Bounds.X + layout.PromptWidth + cursorCol;
         _panel.Placement = PlacementMode.Top;
-        _panel.ShowAt(anchorX, anchorY, content);
+        _panel.ShowAt(anchorX, anchorY, _box);
     }
 
     public void Hide()

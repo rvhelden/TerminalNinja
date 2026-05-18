@@ -7,3 +7,4 @@ riderModule.iml
 *.user
 nul
 /TestResults
+tmp/

@@ -172,13 +172,30 @@ public sealed class ReplView : Control
     /// <inheritdoc />
     public override void OnKeyEvent(KeyEvent e)
     {
-        // Hover panel scroll: while the mouse-hover overlay is open, PgUp/PgDn
-        // and Ctrl+up/down scroll its contents. Keys the hover doesn't consume
-        // fall through to normal input handling.
+        // Hover / signature panel scroll: while either overlay is open, PgUp/PgDn
+        // and Ctrl+up/down scroll its contents. Keys the boxes don't consume fall
+        // through to normal input handling.
         if (_mouseHover.ForwardKey(e))
         {
             Invalidate();
             return;
+        }
+        if (_signatureHelp.ForwardKey(e))
+        {
+            Invalidate();
+            return;
+        }
+
+        // Esc — close any open overlay before anything else handles it.
+        // Order: completion popup is handled below via _completion.HandleKey,
+        // so we only catch signature / mouse hover / selection here.
+        if (e.Key == ConsoleKey.Escape && !_completion.IsOpen)
+        {
+            bool any = false;
+            if (_signatureHelp.IsOpen) { _signatureHelp.Hide(); any = true; }
+            if (_mouseHover.IsOpen) { _mouseHover.Hide(); any = true; }
+            if (_selection.HasSelection) { ClearSelection(); any = true; }
+            if (any) { Invalidate(); return; }
         }
 
         // Completion popup eats Up/Down/Enter/Esc/Tab while open. The popup is
@@ -197,8 +214,11 @@ public sealed class ReplView : Control
             case ConsoleKey.C when e.Ctrl:
                 if (_selection.HasSelection) { CopyToClipboard(); return; }
                 break;
-            case ConsoleKey.Escape when _selection.HasSelection:
-                ClearSelection();
+            case ConsoleKey.Enter when e.Alt:
+                // Alt+Enter — manual IntelliSense trigger. Opens the completion
+                // popup at the cursor; does NOT submit. No-op when there are no
+                // completions at the current position.
+                OpenCompletion();
                 return;
             case ConsoleKey.Enter when e.Shift:
                 // Shift+Enter — insert a newline rather than submit.
@@ -284,6 +304,12 @@ public sealed class ReplView : Control
             _input.CursorCol++;
             RecomputeAnalysis();
             Invalidate();
+
+            // Auto-trigger member completion after the user types '.'. OpenCompletion
+            // silently no-ops when the LSP has nothing to suggest (e.g. the dot wasn't
+            // preceded by a module / record-typed expression), so this is safe to fire
+            // unconditionally on every '.'.
+            if (e.KeyChar == '.') OpenCompletion();
         }
     }
 
