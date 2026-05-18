@@ -55,4 +55,21 @@ public sealed class Env
 
     /// <summary>True if <paramref name="name"/> is bound (possibly to a not-yet-filled slot).</summary>
     public bool Contains(string name) => _bindings.ContainsKey(name);
+
+    /// <summary>
+    /// Enumerates the currently bound names with their resolved values, in arbitrary order.
+    /// Reads through each <see cref="EnvRef"/> at the moment of iteration — recursive bindings
+    /// that haven't filled their slot yet surface as <see cref="NUnit.Instance"/>. Intended for
+    /// tooling (REPL inspectors, debuggers) that wants to display the scope.
+    /// </summary>
+    public IEnumerable<KeyValuePair<string, NValue>> Bindings
+    {
+        get
+        {
+            foreach (var kv in _bindings)
+            {
+                yield return new KeyValuePair<string, NValue>(kv.Key, kv.Value.Value);
+            }
+        }
+    }
 }
