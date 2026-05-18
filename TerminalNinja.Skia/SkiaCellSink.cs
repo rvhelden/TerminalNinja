@@ -193,19 +193,36 @@ public sealed class SkiaCellSink : IShapedRunSink
         // 2. Shape + draw glyphs. Pick the typeface variant matching bold/italic decorations,
         // shape (via HarfBuzz) once and cache the positioned SKTextBlob keyed by (text, style).
         // Subsequent frames re-rendering the same string + style skip HarfBuzz entirely.
+        //
+        // Glyphs are clipped to the run's pixel rectangle so a character whose shaping
+        // produces a negative left bearing (some Unicode symbols, italic faces, and certain
+        // Nerd Font glyphs do) cannot paint outside its allocated cells. Without the clip
+        // those stray pixels survive across frames — the dirty-rect renderer only re-clears
+        // the bounding box of changed cells, so anything that bled left of column 0 of a
+        // run never gets wiped.
         _fgPaint.Color = ApplyDimmedAlpha(ToSkColor(displayFg), decorations);
         var styled = GetStyledFont(decorations);
         var blob = GetOrBuildBlob(text, decorations);
-        if (blob is not null)
+
+        canvas.Save();
+        canvas.ClipRect(new SKRect(px, py, px + rectW, py + rectH));
+        try
         {
-            canvas.DrawText(blob, px, py + _textBaseline, _fgPaint);
+            if (blob is not null)
+            {
+                canvas.DrawText(blob, px, py + _textBaseline, _fgPaint);
+            }
+            else
+            {
+                // Fallback for edge cases where SKShaper / SKTextBlobBuilder doesn't produce
+                // a blob (e.g. empty text after shaping). DrawShapedText reshapes inline using
+                // the style-matched shaper.
+                canvas.DrawShapedText(styled.Shaper, text.ToString(), px, py + _textBaseline, styled.Font, _fgPaint);
+            }
         }
-        else
+        finally
         {
-            // Fallback for edge cases where SKShaper / SKTextBlobBuilder doesn't produce a
-            // blob (e.g. empty text after shaping). DrawShapedText reshapes inline using the
-            // style-matched shaper.
-            canvas.DrawShapedText(styled.Shaper, text.ToString(), px, py + _textBaseline, styled.Font, _fgPaint);
+            canvas.Restore();
         }
 
         // 3. Decorations that aren't carried by the font (under/strikethrough). Bold/italic
@@ -260,7 +277,20 @@ public sealed class SkiaCellSink : IShapedRunSink
         if (cell.Codepoint != 0 && cell.Codepoint != ' ')
         {
             _fgPaint.Color = ApplyDimmedAlpha(ToSkColor(fg), cell.Decorations);
-            DrawGlyph(canvas, cell.Codepoint, px, py + _textBaseline, _fgPaint);
+            // Clip the glyph to its cell rectangle — see the matching comment in WriteRun.
+            // Negative left bearing or asymmetric glyph metrics would otherwise paint outside
+            // the cell and survive across frames as the dirty-rect renderer never re-clears
+            // pixels that fall outside a changed cell's bounds.
+            canvas.Save();
+            canvas.ClipRect(new SKRect(px, py, px + rectW, py + rectH));
+            try
+            {
+                DrawGlyph(canvas, cell.Codepoint, px, py + _textBaseline, _fgPaint);
+            }
+            finally
+            {
+                canvas.Restore();
+            }
         }
 
         if ((cell.Decorations & TextDecorations.Underline) != 0)

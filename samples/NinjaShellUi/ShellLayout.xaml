@@ -10,10 +10,10 @@
     <Grid Rows="* 1" Columns="*">
         <StackPanel Grid.Row="0" Orientation="Horizontal">
 
-            <!-- Files panel (left) — width set from code on F1 (StackPanel.FixedSize attached -->
-            <!-- properties don't accept {Binding} in the current XAML loader). -->
-            <Border x:Name="FilesPanel"
-                    StackPanel.SizeMode="Fixed" StackPanel.FixedSize="32"
+            <!-- Files panel (left). Visibility="Collapsed" yields its width back to the
+                 stretching center cell now that StackPanel honors UIElement.Visibility. -->
+            <Border StackPanel.SizeMode="Fixed" StackPanel.FixedSize="32"
+                    Visibility="{Binding FilesPanelVisibility}"
                     BorderStyle="Single"
                     BorderBrush="#45475A"
                     Padding="1,0,1,0">
@@ -36,30 +36,32 @@
                 <ContentControl Content="{Binding Repl}" />
             </Border>
 
-            <!-- Env + scope (right) — single column, env on top, scope below -->
-            <Border x:Name="RightPanel"
-                    StackPanel.SizeMode="Fixed" StackPanel.FixedSize="48"
+            <!-- Env + scope (right). The wrapper Border collapses when both inner panels are
+                 collapsed (RightPanelVisibility is wired in the VM). Inner Visibility bindings
+                 toggle env / scope independently. -->
+            <Border StackPanel.SizeMode="Fixed" StackPanel.FixedSize="48"
+                    Visibility="{Binding RightPanelVisibility}"
                     BorderStyle="Single"
                     BorderBrush="#45475A"
                     Padding="1,0,1,0">
                 <StackPanel Orientation="Vertical">
-                    <TextBlock x:Name="EnvHeader"
-                               StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1"
+                    <TextBlock StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1"
+                               Visibility="{Binding EnvPanelVisibility}"
                                Text=" Environment"
                                Foreground="#F9E2AF"
                                TextDecorations="Bold" />
-                    <TextBlock x:Name="EnvBody"
-                               StackPanel.SizeMode="Fixed" StackPanel.FixedSize="12"
+                    <TextBlock StackPanel.SizeMode="Fixed" StackPanel.FixedSize="12"
+                               Visibility="{Binding EnvPanelVisibility}"
                                Text="{Binding EnvText}"
                                Foreground="#A6E3A1"
                                TextWrapping="NoWrap" />
-                    <TextBlock x:Name="ScopeHeader"
-                               StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1"
+                    <TextBlock StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1"
+                               Visibility="{Binding ScopePanelVisibility}"
                                Text=" Scope"
                                Foreground="#F9E2AF"
                                TextDecorations="Bold" />
-                    <TextBlock x:Name="ScopeBody"
-                               StackPanel.SizeMode="Stretch"
+                    <TextBlock StackPanel.SizeMode="Stretch"
+                               Visibility="{Binding ScopePanelVisibility}"
                                Text="{Binding ScopeText}"
                                Foreground="#94E2D5"
                                TextWrapping="NoWrap" />

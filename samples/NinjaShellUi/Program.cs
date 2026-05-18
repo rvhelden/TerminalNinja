@@ -16,17 +16,7 @@ internal static class Program
     public static int Main()
     {
         var viewModel = new ShellViewModel();
-
-        // Open the layout's embedded resource and load via LoadFromStreamWithNamedElements so
-        // the toggle code has direct refs to the named Border / TextBlock elements.
-        // TerminalXaml.Load(IXamlLayout, ...) is the convenient form but discards the
-        // named-elements dictionary.
-        var layout = XamlLayouts.ShellLayout;
-        using var stream = layout.Assembly.GetManifestResourceStream(layout.ResourceName)
-            ?? throw new InvalidOperationException($"Embedded XAML resource '{layout.ResourceName}' not found.");
-        var loaded = TerminalXaml.LoadFromStreamWithNamedElements<Border>(stream, viewModel);
-        viewModel.BindElements(loaded.NamedElements);
-        var root = loaded.Control;
+        var root = TerminalXaml.Load<Border>(XamlLayouts.ShellLayout, viewModel);
 
         using var app = new SkiaApplication(new SkiaApplicationOptions
         {

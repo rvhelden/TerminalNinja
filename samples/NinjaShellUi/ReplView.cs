@@ -75,7 +75,7 @@ public sealed class ReplView : Control
     }
 
     /// <inheritdoc />
-    public override void Render(CellBuffer buffer, Rect parentBounds)
+    protected override void OnRender(CellBuffer buffer, Rect parentBounds)
     {
         var bounds = CalculateBounds(parentBounds);
         if (bounds.Width <= 0 || bounds.Height <= 0) return;

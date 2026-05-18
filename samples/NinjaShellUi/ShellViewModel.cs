@@ -1,7 +1,6 @@
 using System.Collections;
 using System.Text;
 using TerminalNinja.Controls;
-using TerminalNinja.DependencySystem;
 using TerminalNinja.Shell.Builtins;
 using TerminalNinja.Shell.PowerShell;
 using TerminalNinja.Shell.Repl;
@@ -60,25 +59,36 @@ public sealed class ShellViewModel : ViewModelBase
         private set => SetProperty(ref field, value);
     } = "";
 
-    private const int DefaultLeftWidth = 32;
-    private const int DefaultRightWidth = 48;
-    private const int DefaultEnvHeight = 12;
+    /// <summary>Visibility of the files panel (F1).</summary>
+    public Visibility FilesPanelVisibility
+    {
+        get;
+        private set => SetProperty(ref field, value);
+    } = Visibility.Visible;
 
-    private bool _filesVisible = true;
-    private bool _envVisible = true;
-    private bool _scopeVisible = true;
+    /// <summary>Visibility of the env panel (F2).</summary>
+    public Visibility EnvPanelVisibility
+    {
+        get;
+        private set => SetProperty(ref field, value);
+    } = Visibility.Visible;
 
-    // Cell-grid dimensions are set via StackPanel.SetFixedSize on the named elements after the
-    // layout loads. We grab references from XamlLoadResult.NamedElements and stash them here
-    // because the XAML loader doesn't run {Binding} expressions for attached properties — the
-    // value is parsed as a literal integer at load time. Zeroing the size is also the only
-    // working "hide" mechanism right now (UIElement.Visibility is declared but layout-inert).
-    private DependencyObject? _filesPanel;
-    private DependencyObject? _rightPanel;
-    private DependencyObject? _envBody;
-    private DependencyObject? _scopeBody;
-    private DependencyObject? _envHeader;
-    private DependencyObject? _scopeHeader;
+    /// <summary>Visibility of the scope panel (F3).</summary>
+    public Visibility ScopePanelVisibility
+    {
+        get;
+        private set => SetProperty(ref field, value);
+    } = Visibility.Visible;
+
+    /// <summary>
+    /// Visibility of the entire right-hand column (env + scope). Collapses when both inner
+    /// panels are hidden so the centre REPL can grow into the freed space.
+    /// </summary>
+    public Visibility RightPanelVisibility
+    {
+        get;
+        private set => SetProperty(ref field, value);
+    } = Visibility.Visible;
 
     /// <summary>Footer hint string describing the toggle shortcuts.</summary>
     public string ShortcutHint { get; } = "F1 files   F2 env   F3 scope   F10 exit";
@@ -104,56 +114,32 @@ public sealed class ShellViewModel : ViewModelBase
         RefreshPanels();
     }
 
-    /// <summary>
-    /// Wires up references to the named XAML elements whose <c>StackPanel.FixedSize</c>
-    /// attached property the toggle methods mutate. Must be called once after the layout
-    /// has been loaded; subsequent calls overwrite the references.
-    /// </summary>
-    public void BindElements(IReadOnlyDictionary<string, object> namedElements)
-    {
-        _filesPanel = namedElements.GetValueOrDefault("FilesPanel") as DependencyObject;
-        _rightPanel = namedElements.GetValueOrDefault("RightPanel") as DependencyObject;
-        _envHeader = namedElements.GetValueOrDefault("EnvHeader") as DependencyObject;
-        _envBody = namedElements.GetValueOrDefault("EnvBody") as DependencyObject;
-        _scopeHeader = namedElements.GetValueOrDefault("ScopeHeader") as DependencyObject;
-        _scopeBody = namedElements.GetValueOrDefault("ScopeBody") as DependencyObject;
-    }
+    /// <summary>Toggles the files panel between collapsed and visible.</summary>
+    public void ToggleFilesPanel() => FilesPanelVisibility = Flip(FilesPanelVisibility);
 
-    /// <summary>Toggles the files panel between hidden (FixedSize=0) and shown.</summary>
-    public void ToggleFilesPanel()
-    {
-        _filesVisible = !_filesVisible;
-        if (_filesPanel is not null)
-        {
-            StackPanel.SetFixedSize(_filesPanel, _filesVisible ? DefaultLeftWidth : 0);
-        }
-    }
-
-    /// <summary>Toggles the env panel between hidden and shown.</summary>
+    /// <summary>Toggles the env panel between collapsed and visible.</summary>
     public void ToggleEnvPanel()
     {
-        _envVisible = !_envVisible;
-        if (_envHeader is not null) StackPanel.SetFixedSize(_envHeader, _envVisible ? 1 : 0);
-        if (_envBody is not null) StackPanel.SetFixedSize(_envBody, _envVisible ? DefaultEnvHeight : 0);
+        EnvPanelVisibility = Flip(EnvPanelVisibility);
         UpdateRightPanelVisibility();
     }
 
-    /// <summary>Toggles the scope panel between hidden and shown.</summary>
+    /// <summary>Toggles the scope panel between collapsed and visible.</summary>
     public void ToggleScopePanel()
     {
-        _scopeVisible = !_scopeVisible;
-        if (_scopeHeader is not null) StackPanel.SetFixedSize(_scopeHeader, _scopeVisible ? 1 : 0);
-        // Scope body uses Stretch sizing — collapsing it requires swapping SizeMode. For now
-        // we hide the header line and let the (empty) body take any leftover space; the
-        // visible footprint is just the surrounding border. A follow-up could swap SizeMode
-        // to Fixed=0 when both env and scope are off.
+        ScopePanelVisibility = Flip(ScopePanelVisibility);
         UpdateRightPanelVisibility();
     }
+
+    private static Visibility Flip(Visibility v) =>
+        v == Visibility.Visible ? Visibility.Collapsed : Visibility.Visible;
 
     private void UpdateRightPanelVisibility()
     {
-        if (_rightPanel is null) return;
-        StackPanel.SetFixedSize(_rightPanel, (_envVisible || _scopeVisible) ? DefaultRightWidth : 0);
+        // Both inner panels collapsed → drop the wrapper too, otherwise show.
+        var bothCollapsed = EnvPanelVisibility == Visibility.Collapsed
+            && ScopePanelVisibility == Visibility.Collapsed;
+        RightPanelVisibility = bothCollapsed ? Visibility.Collapsed : Visibility.Visible;
     }
 
     private void OnCommandEntered(string line)
