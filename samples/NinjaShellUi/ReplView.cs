@@ -3,6 +3,7 @@ using TerminalNinja.Buffers;
 using TerminalNinja.Controls;
 using TerminalNinja.Input;
 using TerminalNinja.Primitives;
+using TerminalNinja.Shell.Language.Services;
 
 namespace NinjaShellUi;
 
@@ -14,14 +15,19 @@ namespace NinjaShellUi;
 /// </summary>
 /// <remarks>
 /// <para>
-/// The view is host-agnostic — it writes cells through the standard <see cref="CellBuffer"/>
-/// contract and therefore renders identically in the console and in the Skia GUI host. The
-/// containing view model subscribes to <see cref="CommandEntered"/> to evaluate the input
-/// line; once evaluation completes the host calls <see cref="AppendOutput"/> with the result.
+/// LSP-shaped affordances are wired in through <see cref="LanguageService"/> — the same
+/// pure-function surface that the standalone LSP server consumes. Each keystroke that
+/// changes the input buffer kicks <see cref="RecomputeAnalysis"/> which refreshes:
 /// </para>
+/// <list type="bullet">
+/// <item><description>Diagnostics, drawn as a single-line error message above the prompt
+/// with a caret under the offending column.</description></item>
+/// <item><description>Hover info for the identifier under the cursor, drawn one line
+/// above the diagnostic.</description></item>
+/// </list>
 /// <para>
-/// History (up / down arrows) is in scope for the MVP — multi-line input, auto-completion,
-/// and search are deferred to follow-ups.
+/// Tab triggers a completion popup overlaid above the prompt; ↑/↓ cycles through the
+/// items, Enter (or Tab) accepts and replaces the partial token, Esc dismisses.
 /// </para>
 /// </remarks>
 public sealed class ReplView : Control
@@ -32,6 +38,16 @@ public sealed class ReplView : Control
     private int _historyIndex = -1;
     private int _cursorCol;
     private int _scrollOffset;
+
+    // LSP-shaped derived state, recomputed on every input change.
+    private IReadOnlyList<Diagnostic> _diagnostics = Array.Empty<Diagnostic>();
+    private Hover? _hover;
+
+    // Completion popup state. Built fresh on each Tab press from the current cursor;
+    // surviving keystrokes (Up / Down / Enter / Esc) navigate or dismiss it.
+    private IReadOnlyList<CompletionItem>? _completions;
+    private int _completionIndex;
+    private int _completionAnchorCol;
 
     /// <summary>The prompt rendered in front of the input line. Defaults to <c>"ninja&gt; "</c>.</summary>
     public string Prompt { get; set; } = "ninja> ";
@@ -80,16 +96,36 @@ public sealed class ReplView : Control
         var bounds = CalculateBounds(parentBounds);
         if (bounds.Width <= 0 || bounds.Height <= 0) return;
 
-        // Reserve the bottom row for the input prompt; everything above is output.
-        var outputHeight = Math.Max(0, bounds.Height - 1);
+        // Bottom row = input prompt. Two optional info rows above it: hover + diagnostic.
+        // Each is only allocated when there's something to show, so a clean input keeps
+        // the full output area visible.
         var promptY = bounds.Y + bounds.Height - 1;
+        var diagY = HasDiagnostic() ? promptY - 1 : -1;
+        var hoverY = (_hover is not null && diagY > 0) ? diagY - 1
+                   : _hover is not null ? promptY - 1
+                   : -1;
+
+        var topReserved = (promptY > -1 ? 1 : 0) + (diagY > -1 ? 1 : 0) + (hoverY > -1 ? 1 : 0);
+        var outputHeight = Math.Max(0, bounds.Height - topReserved);
 
         var fg = Foreground;
         var bg = Background;
         ClearRegion(buffer, bounds, bg);
         RenderOutput(buffer, bounds.X, bounds.Y, bounds.Width, outputHeight, fg, bg);
+
+        if (hoverY > -1) RenderHoverLine(buffer, bounds.X, hoverY, bounds.Width, bg);
+        if (diagY > -1) RenderDiagnosticLine(buffer, bounds.X, diagY, bounds.Width, bg);
+
         RenderPromptLine(buffer, bounds.X, promptY, bounds.Width, fg, bg);
+
+        // The completion popup sits on top of everything else — render last.
+        if (_completions is { Count: > 0 })
+        {
+            RenderCompletionPopup(buffer, bounds, promptY, fg, bg);
+        }
     }
+
+    private bool HasDiagnostic() => _diagnostics.Count > 0;
 
     private void RenderOutput(CellBuffer buffer, int x, int y, int width, int height, Color fg, Color bg)
     {
@@ -117,6 +153,92 @@ public sealed class ReplView : Control
         {
             var cell = buffer.GetCell(cursorX, y);
             buffer.SetCell(cursorX, y, new Cell(cell.Codepoint, cell.Background, cell.Foreground, cell.Decorations, cell.Flags));
+        }
+    }
+
+    private void RenderHoverLine(CellBuffer buffer, int x, int y, int width, Color bg)
+    {
+        if (_hover is null) return;
+        // Hover info is informational — dim cyan-ish on the same background.
+        var hoverFg = new Color(0x89, 0xDC, 0xEB);
+        // Collapse newlines: hover content can be multi-line (module summary lists members
+        // on a second line). One row only, so we replace newlines with " · ".
+        var text = _hover.Contents.Replace("\n\n", " · ").Replace('\n', ' ');
+        DrawText(buffer, x, y, text, width, hoverFg, bg);
+    }
+
+    private void RenderDiagnosticLine(CellBuffer buffer, int x, int y, int width, Color bg)
+    {
+        var d = _diagnostics[0];
+        var errFg = new Color(0xF3, 0x8B, 0xA8); // soft red
+        // Format: "  ^ <message>" with the caret roughly under the offending column —
+        // remember diagnostic ranges are 0-based and pointing into the input buffer, but
+        // we want screen coordinates so we add Prompt.Length.
+        var caretCol = Prompt.Length + d.Range.Start.Character;
+        var line = new StringBuilder(width);
+        for (var c = 0; c < caretCol && c < width; c++) line.Append(' ');
+        if (caretCol < width) line.Append('^');
+        line.Append(' ').Append(d.Message);
+        DrawText(buffer, x, y, line.ToString(), width, errFg, bg);
+    }
+
+    private void RenderCompletionPopup(CellBuffer buffer, Rect bounds, int promptY, Color fg, Color bg)
+    {
+        var items = _completions!;
+        var popupHeight = Math.Min(items.Count, 8);
+        if (popupHeight <= 0) return;
+
+        // Width = longest item label + " — detail" tail, capped by the panel width.
+        var maxLabel = 0;
+        var maxDetail = 0;
+        for (var i = 0; i < items.Count; i++)
+        {
+            maxLabel = Math.Max(maxLabel, items[i].Label.Length);
+            maxDetail = Math.Max(maxDetail, items[i].Detail?.Length ?? 0);
+        }
+        var popupWidth = Math.Min(bounds.Width - 2, maxLabel + 3 + maxDetail);
+        if (popupWidth < 10) popupWidth = Math.Min(bounds.Width - 2, 30);
+
+        // Anchor: the popup floats just above the prompt, starting at the column where
+        // the completion was triggered (the start of the partial token).
+        var popupX = bounds.X + Math.Min(bounds.Width - popupWidth - 1, Math.Max(0, Prompt.Length + _completionAnchorCol));
+        var popupY = Math.Max(bounds.Y, promptY - popupHeight);
+
+        var popupBg = new Color(0x31, 0x32, 0x44);
+        var popupSelBg = new Color(0x45, 0x47, 0x5A);
+
+        // Window the visible items so the selection stays in view.
+        var firstVisible = Math.Max(0, Math.Min(items.Count - popupHeight, _completionIndex - popupHeight / 2));
+        for (var r = 0; r < popupHeight; r++)
+        {
+            var itemIndex = firstVisible + r;
+            if (itemIndex >= items.Count) break;
+            var rowBg = itemIndex == _completionIndex ? popupSelBg : popupBg;
+            var y = popupY + r;
+            FillRow(buffer, popupX, y, popupWidth, rowBg);
+
+            var item = items[itemIndex];
+            DrawText(buffer, popupX + 1, y, item.Label, popupWidth - 2, fg, rowBg);
+            if (item.Detail is not null)
+            {
+                var detailX = popupX + 1 + item.Label.Length + 2;
+                if (detailX < popupX + popupWidth - 1)
+                {
+                    var dimFg = new Color(0x9C, 0xA0, 0xB0);
+                    DrawText(buffer, detailX, y, item.Detail, popupX + popupWidth - 1 - detailX, dimFg, rowBg);
+                }
+            }
+        }
+    }
+
+    private static void FillRow(CellBuffer buffer, int x, int y, int width, Color bg)
+    {
+        if ((uint)y >= (uint)buffer.Height) return;
+        for (var i = 0; i < width; i++)
+        {
+            var cx = x + i;
+            if ((uint)cx >= (uint)buffer.Width) break;
+            buffer.SetCell(cx, y, new Cell(' ', Color.White, bg));
         }
     }
 
@@ -151,16 +273,53 @@ public sealed class ReplView : Control
     /// <inheritdoc />
     public override void OnKeyEvent(KeyEvent e)
     {
+        // Completion popup eats Up / Down / Enter / Esc / Tab while it's open. The popup is
+        // dismissed by Esc or by any keystroke that changes the input buffer in a way that
+        // would invalidate the items (handled below as "any non-popup key while open").
+        if (_completions is { Count: > 0 })
+        {
+            switch (e.Key)
+            {
+                case ConsoleKey.UpArrow:
+                    _completionIndex = (_completionIndex - 1 + _completions.Count) % _completions.Count;
+                    InvalidationCallback?.Invoke();
+                    return;
+                case ConsoleKey.DownArrow:
+                    _completionIndex = (_completionIndex + 1) % _completions.Count;
+                    InvalidationCallback?.Invoke();
+                    return;
+                case ConsoleKey.Escape:
+                    CloseCompletion();
+                    return;
+                case ConsoleKey.Tab:
+                case ConsoleKey.Enter:
+                    AcceptCompletion();
+                    return;
+                default:
+                    // Any other key drops the popup. Fall through so the keystroke also
+                    // mutates the buffer normally (the user kept typing past the prefix).
+                    CloseCompletion();
+                    break;
+            }
+        }
+
         switch (e.Key)
         {
             case ConsoleKey.Enter:
                 Submit();
+                return;
+            case ConsoleKey.Tab:
+                OpenCompletion();
+                // Always swallow Tab when it lands here directly — the host intercepts
+                // Tab via KeyDown and routes through TryHandleCompletionTab when it wants
+                // to fall back to focus navigation.
                 return;
             case ConsoleKey.Backspace:
                 if (_cursorCol > 0)
                 {
                     _input.Remove(_cursorCol - 1, 1);
                     _cursorCol--;
+                    RecomputeAnalysis();
                     InvalidationCallback?.Invoke();
                 }
                 return;
@@ -168,20 +327,21 @@ public sealed class ReplView : Control
                 if (_cursorCol < _input.Length)
                 {
                     _input.Remove(_cursorCol, 1);
+                    RecomputeAnalysis();
                     InvalidationCallback?.Invoke();
                 }
                 return;
             case ConsoleKey.LeftArrow:
-                if (_cursorCol > 0) { _cursorCol--; InvalidationCallback?.Invoke(); }
+                if (_cursorCol > 0) { _cursorCol--; RecomputeAnalysis(); InvalidationCallback?.Invoke(); }
                 return;
             case ConsoleKey.RightArrow:
-                if (_cursorCol < _input.Length) { _cursorCol++; InvalidationCallback?.Invoke(); }
+                if (_cursorCol < _input.Length) { _cursorCol++; RecomputeAnalysis(); InvalidationCallback?.Invoke(); }
                 return;
             case ConsoleKey.Home:
-                _cursorCol = 0; InvalidationCallback?.Invoke();
+                _cursorCol = 0; RecomputeAnalysis(); InvalidationCallback?.Invoke();
                 return;
             case ConsoleKey.End:
-                _cursorCol = _input.Length; InvalidationCallback?.Invoke();
+                _cursorCol = _input.Length; RecomputeAnalysis(); InvalidationCallback?.Invoke();
                 return;
             case ConsoleKey.UpArrow:
                 NavigateHistory(-1);
@@ -204,8 +364,85 @@ public sealed class ReplView : Control
         {
             _input.Insert(_cursorCol, e.KeyChar);
             _cursorCol++;
+            RecomputeAnalysis();
             InvalidationCallback?.Invoke();
         }
+    }
+
+    private bool OpenCompletion()
+    {
+        var items = LanguageService.GetCompletions(_input.ToString(), new Position(0, _cursorCol));
+        if (items.Count == 0)
+        {
+            // No completions — let the caller (Tab handler) decide what to do; typically
+            // fall through to focus navigation so empty-input Tab leaves the REPL.
+            return false;
+        }
+
+        // Anchor at the start of the partial token to the left of the cursor.
+        _completionAnchorCol = FindWordStart(_input.ToString(), _cursorCol);
+        _completions = items;
+        _completionIndex = 0;
+        InvalidationCallback?.Invoke();
+        return true;
+    }
+
+    /// <summary>
+    /// Tries to handle a Tab keypress as a completion trigger. Returns true if the popup
+    /// opened or advanced; false if there's nothing to complete (the host should then let
+    /// Tab perform its default behaviour, typically focus navigation).
+    /// </summary>
+    public bool TryHandleCompletionTab()
+    {
+        if (_completions is { Count: > 0 })
+        {
+            AcceptCompletion();
+            return true;
+        }
+        return OpenCompletion();
+    }
+
+    private void AcceptCompletion()
+    {
+        if (_completions is null || _completions.Count == 0) return;
+        var item = _completions[_completionIndex];
+
+        // Replace the partial token [_completionAnchorCol, _cursorCol) with item.Label.
+        var removeLen = _cursorCol - _completionAnchorCol;
+        if (removeLen > 0) _input.Remove(_completionAnchorCol, removeLen);
+        _input.Insert(_completionAnchorCol, item.Label);
+        _cursorCol = _completionAnchorCol + item.Label.Length;
+        CloseCompletion();
+        RecomputeAnalysis();
+        InvalidationCallback?.Invoke();
+    }
+
+    private void CloseCompletion()
+    {
+        _completions = null;
+        _completionIndex = 0;
+        InvalidationCallback?.Invoke();
+    }
+
+    private static int FindWordStart(string text, int cursor)
+    {
+        var s = cursor;
+        while (s > 0 && IsIdentifierChar(text[s - 1])) s--;
+        return s;
+    }
+
+    private static bool IsIdentifierChar(char c)
+        => (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9') || c == '_';
+
+    private void RecomputeAnalysis()
+    {
+        var text = _input.ToString();
+        _diagnostics = text.Length == 0
+            ? Array.Empty<Diagnostic>()
+            : LanguageService.GetDiagnostics(text);
+        _hover = text.Length == 0
+            ? null
+            : LanguageService.GetHover(text, new Position(0, _cursorCol));
     }
 
     private void Submit()
@@ -214,6 +451,8 @@ public sealed class ReplView : Control
         _input.Clear();
         _cursorCol = 0;
         _historyIndex = -1;
+        _diagnostics = Array.Empty<Diagnostic>();
+        _hover = null;
 
         AppendOutput(Prompt + line);
 
@@ -247,6 +486,7 @@ public sealed class ReplView : Control
             _input.Append(_history[_historyIndex]);
         }
         _cursorCol = _input.Length;
+        RecomputeAnalysis();
         InvalidationCallback?.Invoke();
     }
 }
