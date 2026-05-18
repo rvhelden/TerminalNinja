@@ -54,3 +54,12 @@ None. The change is purely additive at the REPL and runtime layer:
 - The full design plan is at `plan.md` in this folder.
 - The approved plan was developed in Claude plan-mode and pre-approved by the user; Phase 2 reviews are skipped per user direction ("do NOT redo intake or planning").
 - Working tree at branch creation has unrelated WIP (test project split, `samples/NinjaShellUi/` → `TerminalNinja.Shell.Skia/` rename). That WIP is untouched by this branch's commits — only feature-specific paths are staged.
+
+## Sample-gate descope (Phase 4)
+
+Phase 4's standard sample gate ("every feature ships a XAML control sample under `Sample/Samples/<Name>/` + `docs/samples/<name>.html`") does not apply: this feature has no XAML control. It's a shell-language addition (REPL aliases, keybindings, rc loader). The equivalent demonstrable artifact for this feature is:
+
+- `docs/ninjarc.md` — worked example of a rc file using every new module function.
+- `docs/llms.txt` — new "Shell features" section linking to it.
+
+The Skia `ReplView` (in `TerminalNinja.Shell.Skia/`) is the UI surface where this feature is consumed at runtime. Wiring the alias interceptor into `ReplView.OnKeyEvent` is explicitly out of scope (see plan.md) and tracked as a follow-up — the config shape is settled by this PR so the wiring is one call.
