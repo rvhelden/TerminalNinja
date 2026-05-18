@@ -148,12 +148,21 @@ public static class LanguageService
         ArgumentNullException.ThrowIfNull(source);
         var prefix = TakeSourceBeforeCursor(source, cursor);
 
+        // Interpolation hole — `$"…{cursor here}…"`. Slice the active hole's
+        // source and recurse so the user gets normal completion inside the
+        // expression. We compute a synthetic Position so member/prefix
+        // detection works on just the hole text.
+        if (TryExtractActiveInterpolationHole(prefix, out var holeText))
+        {
+            return GetCompletions(holeText, new Position(0, holeText.Length), scope);
+        }
+
         var memberMatch = MemberAccessPattern.Match(prefix);
         if (memberMatch.Success)
         {
             var targetName = memberMatch.Groups[1].Value;
             var memberPrefix = memberMatch.Groups[2].Success ? memberMatch.Groups[2].Value : string.Empty;
-            return GetMemberCompletions(targetName, memberPrefix);
+            return GetMemberCompletions(targetName, memberPrefix, scope);
         }
 
         var identifierMatch = IdentifierPattern.Match(prefix);
@@ -161,17 +170,87 @@ public static class LanguageService
         return GetTopLevelCompletions(ident, scope);
     }
 
-    private static IReadOnlyList<CompletionItem> GetMemberCompletions(string targetName, string prefix)
+    /// <summary>
+    /// Detect when the cursor sits inside the body of a <c>$"…{…}…"</c>
+    /// interpolation hole. Walks left from end-of-prefix; if we find an
+    /// unmatched <c>{</c> that is preceded by an <c>$"</c> opener (with no
+    /// closing <c>"</c> in between) then we're inside a hole — return the
+    /// hole's source so the caller can recurse into completion on it.
+    /// </summary>
+    private static bool TryExtractActiveInterpolationHole(string prefix, out string holeText)
     {
-        if (!BuiltinCatalog.Modules.TryGetValue(targetName, out var members))
-            return Array.Empty<CompletionItem>();
-        var result = new List<CompletionItem>();
-        foreach (var d in members)
+        holeText = string.Empty;
+        // Walk left looking for `{`. Count nested braces so `{{` and `{` inside
+        // sub-expressions don't trip us up.
+        int depth = 0;
+        for (int i = prefix.Length - 1; i >= 0; i--)
         {
-            if (prefix.Length == 0 || d.Name.StartsWith(prefix, StringComparison.Ordinal))
-                result.Add(new CompletionItem(d.Name, d.Kind, d.Detail, null, d.Documentation));
+            char c = prefix[i];
+            if (c == '}') { depth++; continue; }
+            if (c == '{')
+            {
+                if (depth > 0) { depth--; continue; }
+                // Unmatched `{` — check whether it's an interpolation hole.
+                // The character preceding `{` must be inside a `$"..."` literal
+                // with no `"` between the `$"` and here. Heuristic: scan back
+                // for the nearest `"`; if we find `$"` we're in a hole.
+                int j = i - 1;
+                while (j >= 0)
+                {
+                    if (prefix[j] == '"')
+                    {
+                        // Found a quote — check for `$` immediately before.
+                        if (j > 0 && prefix[j - 1] == '$')
+                        {
+                            holeText = prefix.Substring(i + 1);
+                            return true;
+                        }
+                        return false;       // bare `"…{` is malformed but not a hole
+                    }
+                    j--;
+                }
+                return false;
+            }
         }
-        return result;
+        return false;
+    }
+
+    private static IReadOnlyList<CompletionItem> GetMemberCompletions(
+        string targetName,
+        string prefix,
+        IReadOnlyDictionary<string, NValue>? scope)
+    {
+        // Builtin module member access takes priority — `fs.<TAB>` always means
+        // "members of the fs module" even if a local also happens to be named fs.
+        if (BuiltinCatalog.Modules.TryGetValue(targetName, out var members))
+        {
+            var result = new List<CompletionItem>();
+            foreach (var d in members)
+            {
+                if (prefix.Length == 0 || d.Name.StartsWith(prefix, StringComparison.Ordinal))
+                    result.Add(new CompletionItem(d.Name, d.Kind, d.Detail, null, d.Documentation));
+            }
+            return result;
+        }
+
+        // Scope fallback — `userRec.<TAB>` returns the record's field keys.
+        // Other scope value types (lists, scalars) have no statically-completable
+        // members; return empty.
+        if (scope is not null && scope.TryGetValue(targetName, out var v) && v is NRecord rec)
+        {
+            var result = new List<CompletionItem>();
+            foreach (var key in rec.Fields.Keys)
+            {
+                if (prefix.Length > 0 && !key.StartsWith(prefix, StringComparison.Ordinal)) continue;
+                var fieldValue = rec.Fields[key];
+                var detail = ValueFormatter.Def(fieldValue);
+                var doc = $"{targetName}.{key} :: {ValueFormatter.TypeName(fieldValue)}\n\nshape: {detail}\ndata:  {ValueFormatter.Dump(fieldValue)}";
+                result.Add(new CompletionItem(key, CompletionKind.Field, detail, null, doc));
+            }
+            return result;
+        }
+
+        return Array.Empty<CompletionItem>();
     }
 
     private static IReadOnlyList<CompletionItem> GetTopLevelCompletions(

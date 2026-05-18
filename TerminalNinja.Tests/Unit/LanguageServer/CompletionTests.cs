@@ -232,4 +232,105 @@ public class CompletionTests
         var labels = items.Select(i => i.Label).ToList();
         await Assert.That(labels).Contains("select");
     }
+
+    // ─── record-field completion ────────────────────────────────────────────
+
+    [Test]
+    public async Task Member_OnScopeRecord_ReturnsItsFieldKeys()
+    {
+        var rec = new NRecord(
+            System.Collections.Immutable.ImmutableSortedDictionary
+                .CreateRange(StringComparer.Ordinal,
+                    new[]
+                    {
+                        new KeyValuePair<string, NValue>("Name", new NString("Ronald")),
+                        new KeyValuePair<string, NValue>("Age", new NInt(40)),
+                    }));
+        var scope = new Dictionary<string, NValue> { ["p"] = rec };
+        var items = At("p.", 0, 2, scope);
+        var labels = items.Select(i => i.Label).ToHashSet();
+        await Assert.That(labels.Contains("Name")).IsTrue();
+        await Assert.That(labels.Contains("Age")).IsTrue();
+        // Each field item carries shape + data documentation.
+        var name = items.Single(i => i.Label == "Name");
+        await Assert.That(name.Kind).IsEqualTo(CompletionKind.Field);
+        await Assert.That(name.Documentation!).Contains("Ronald");
+    }
+
+    [Test]
+    public async Task Member_OnScopeRecordWithPrefix_FiltersFields()
+    {
+        var rec = new NRecord(
+            System.Collections.Immutable.ImmutableSortedDictionary
+                .CreateRange(StringComparer.Ordinal,
+                    new[]
+                    {
+                        new KeyValuePair<string, NValue>("Name", new NString("x")),
+                        new KeyValuePair<string, NValue>("Age", new NInt(1)),
+                    }));
+        var scope = new Dictionary<string, NValue> { ["p"] = rec };
+        var items = At("p.N", 0, 3, scope);
+        await Assert.That(items.Count).IsEqualTo(1);
+        await Assert.That(items[0].Label).IsEqualTo("Name");
+    }
+
+    [Test]
+    public async Task Member_OnScopeNonRecord_ReturnsEmpty()
+    {
+        var scope = new Dictionary<string, NValue> { ["x"] = new NInt(42) };
+        var items = At("x.", 0, 2, scope);
+        await Assert.That(items).IsEmpty();
+    }
+
+    [Test]
+    public async Task Member_BuiltinModuleStillWinsOverShadowingScope()
+    {
+        // User has a `fs` binding to a record — builtin fs module still wins
+        // for `fs.<TAB>` so module behaviour stays predictable.
+        var rec = new NRecord(System.Collections.Immutable.ImmutableSortedDictionary
+            .Create<string, NValue>(StringComparer.Ordinal)
+            .Add("custom", new NString("override")));
+        var scope = new Dictionary<string, NValue> { ["fs"] = rec };
+        var items = At("fs.", 0, 3, scope);
+        var labels = items.Select(i => i.Label).ToHashSet();
+        await Assert.That(labels.Contains("ls")).IsTrue();
+        await Assert.That(labels.Contains("custom")).IsFalse();
+    }
+
+    // ─── interpolation-hole completion ──────────────────────────────────────
+
+    [Test]
+    public async Task InterpolationHole_OffersTopLevelCompletionsForBareIdentifier()
+    {
+        // Cursor inside `$"hello {gre"` — should suggest scope name `greeting`.
+        var scope = new Dictionary<string, NValue> { ["greeting"] = new NString("hi") };
+        var source = "$\"hello {gre";
+        var items = At(source, 0, source.Length, scope);
+        var labels = items.Select(i => i.Label).ToHashSet();
+        await Assert.That(labels.Contains("greeting")).IsTrue();
+    }
+
+    [Test]
+    public async Task InterpolationHole_OffersMemberCompletion()
+    {
+        // Cursor inside `$"x = {fs."` — should offer fs module members.
+        var source = "$\"x = {fs.";
+        var items = At(source, 0, source.Length);
+        var labels = items.Select(i => i.Label).ToHashSet();
+        await Assert.That(labels.Contains("ls")).IsTrue();
+        await Assert.That(labels.Contains("pwd")).IsTrue();
+    }
+
+    [Test]
+    public async Task InterpolationHole_OnlyTriggersInsideUnmatchedHole()
+    {
+        // Closed hole — cursor is back in the literal portion of the string.
+        // We don't fire interpolation completion there; the cursor is just
+        // inside a string literal which currently has no completion handling
+        // (so it falls through to top-level completion of an empty prefix).
+        var source = "$\"hello {x} world ";
+        var items = At(source, 0, source.Length);
+        var labels = items.Select(i => i.Label).ToList();
+        await Assert.That(labels).Contains("let");
+    }
 }
