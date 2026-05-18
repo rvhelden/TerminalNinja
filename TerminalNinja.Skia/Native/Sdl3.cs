@@ -176,6 +176,15 @@ internal static partial class Sdl3
     public static partial bool SDL_StopTextInput(IntPtr window);
 
     /// <summary>
+    /// Returns the current modifier-key state bitmask (combination of
+    /// <see cref="SDL_KMOD_SHIFT"/> / <see cref="SDL_KMOD_CTRL"/> /
+    /// <see cref="SDL_KMOD_ALT"/> etc.). Used to enrich mouse events
+    /// with modifier state — SDL3's mouse-event variants don't carry it.
+    /// </summary>
+    [LibraryImport(Lib)]
+    public static partial ushort SDL_GetModState();
+
+    /// <summary>
     /// SDL3 event union. Variants are reinterpreted via <see cref="System.Runtime.CompilerServices.Unsafe.As{TFrom, TTo}(ref TFrom)"/>
     /// once <see cref="type"/> identifies which variant SDL3 wrote.
     /// </summary>

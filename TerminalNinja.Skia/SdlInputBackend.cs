@@ -247,7 +247,15 @@ public sealed class SdlInputBackend : IInputBackend
     {
         var cellX = (int)(pixelX / _cellWidth);
         var cellY = (int)(pixelY / _cellHeight);
-        return new MouseEvent(cellX, cellY, button, action);
+        // SDL3 mouse-event variants don't carry modifier state — read it
+        // synchronously so handlers can disambiguate (e.g. Alt+drag block
+        // selection, Shift+Click extend) without keeping their own copy
+        // of the keyboard state.
+        var mod = Sdl3.SDL_GetModState();
+        bool shift = (mod & Sdl3.SDL_KMOD_SHIFT) != 0;
+        bool ctrl = (mod & Sdl3.SDL_KMOD_CTRL) != 0;
+        bool alt = (mod & Sdl3.SDL_KMOD_ALT) != 0;
+        return new MouseEvent(cellX, cellY, button, action, shift, alt, ctrl);
     }
 
     internal static MouseButton MapButton(byte sdlButton) => sdlButton switch
