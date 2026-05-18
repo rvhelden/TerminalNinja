@@ -1,4 +1,5 @@
 using TerminalNinja.Buffers;
+using TerminalNinja.Highlighting;
 using TerminalNinja.Primitives;
 
 namespace TerminalNinja.Controls.Primitives;
@@ -9,16 +10,29 @@ namespace TerminalNinja.Controls.Primitives;
 /// the right (signature + documentation for the selected item). Positions the
 /// composite via the same placement math as <see cref="HoverPanelRoot"/>.
 /// </summary>
+/// <remarks>
+/// Pane widths are caps, not fixed: <see cref="CalculateBounds"/> shrinks the
+/// details pane to fit when the viewport is narrow, and drops it entirely when
+/// there isn't room for both panes. The maximum panel footprint is roughly
+/// 22 + 1 + 32 = 55 cells — chosen so the popup never dominates a narrow REPL
+/// pane (the previous 28+1+42 = 71 layout could span half a 1280px window).
+/// </remarks>
 internal sealed class CompletionPanelRoot : FrameworkElement
 {
-    /// <summary>Width budget for the list pane in cells (label + glyph + padding).</summary>
-    private const int ListPaneWidth = 28;
+    /// <summary>Width cap for the list pane in cells (label + glyph + padding).</summary>
+    private const int ListPaneWidth = 22;
 
-    /// <summary>Width budget for the details pane in cells.</summary>
-    private const int DetailsPaneWidth = 42;
+    /// <summary>Width cap for the details pane in cells.</summary>
+    private const int DetailsPaneWidth = 32;
 
     /// <summary>Maximum visible rows before scrolling kicks in.</summary>
     private const int MaxVisibleRows = 8;
+
+    /// <summary>Highlighter used to colorize the Detail signature line.</summary>
+    private static readonly NinjaSyntaxHighlighter Highlighter = new();
+
+    /// <summary>Theme used for syntax-highlighted Detail/Documentation. Public so callers can swap.</summary>
+    public SyntaxTheme Theme { get; set; } = SyntaxTheme.Dark;
 
     /// <summary>Background colour for the panel — Catppuccin surface0.</summary>
     private static readonly Color PanelBg = new(0x31, 0x32, 0x44);
@@ -56,7 +70,7 @@ internal sealed class CompletionPanelRoot : FrameworkElement
     public override Size2D GetPreferredSize(Rect parent)
     {
         int width = ComputeWidth();
-        int height = Math.Min(Items.Count, MaxVisibleRows);
+        int height = ComputeHeight();
         if (height <= 0) return new Size2D(0, 0);
         return new Size2D(width, height);
     }
@@ -67,7 +81,7 @@ internal sealed class CompletionPanelRoot : FrameworkElement
         if (Items.Count == 0) return new Rect(0, 0, 0, 0);
 
         int w = ComputeWidth();
-        int h = Math.Min(Items.Count, MaxVisibleRows);
+        int h = ComputeHeight();
 
         var targetRect = new Rect(AnchorX, AnchorY, 1, 1);
         int x, y;
@@ -116,6 +130,42 @@ internal sealed class CompletionPanelRoot : FrameworkElement
         if (y < viewport.Y) y = viewport.Y;
 
         return new Rect(x, y, w, h);
+    }
+
+    /// <summary>
+    /// Panel height = the larger of (list rows) and (details rows). With a
+    /// single completion entry the list wants 1 row, but the details pane may
+    /// need 3–8 rows to surface the signature + documentation — sizing by the
+    /// max keeps both panes visible. Capped at MaxVisibleRows; overflow shows
+    /// a "↓ +N more" indicator on the last details row.
+    /// </summary>
+    private int ComputeHeight()
+    {
+        if (Items.Count == 0) return 0;
+        int listRows = Math.Min(Items.Count, MaxVisibleRows);
+        int detailsRows = ComputeDetailsRowCount();
+        return Math.Min(MaxVisibleRows, Math.Max(listRows, detailsRows));
+    }
+
+    /// <summary>Rows the selected entry's Detail + Documentation need when wrapped.</summary>
+    private int ComputeDetailsRowCount()
+    {
+        if (SelectedIndex < 0 || SelectedIndex >= Items.Count) return 0;
+        var entry = Items[SelectedIndex];
+        if (string.IsNullOrEmpty(entry.Detail) && string.IsNullOrEmpty(entry.Documentation)) return 0;
+        int innerWidth = Math.Max(1, DetailsPaneWidth - 2);
+        int rows = 0;
+        if (!string.IsNullOrEmpty(entry.Detail))
+        {
+            foreach (var _ in WrapLines(entry.Detail!, innerWidth)) rows++;
+            if (!string.IsNullOrEmpty(entry.Documentation)) rows++; // spacer
+        }
+        if (!string.IsNullOrEmpty(entry.Documentation))
+        {
+            foreach (var hardLine in entry.Documentation!.Split('\n'))
+                foreach (var _ in WrapLines(hardLine, innerWidth)) rows++;
+        }
+        return rows;
     }
 
     /// <summary>Total panel width = list pane + 1-cell separator + details pane.</summary>
@@ -185,8 +235,11 @@ internal sealed class CompletionPanelRoot : FrameworkElement
 
     /// <summary>
     /// Render the details pane for <see cref="SelectedIndex"/>: signature line
-    /// (Detail) at the top in slightly brighter ink, then a blank line, then
-    /// the Documentation body wrapped to the pane width.
+    /// (Detail) at the top syntax-highlighted in ninja colors, then a blank
+    /// line, then the Documentation body wrapped to the pane width. If
+    /// Documentation overflows the visible rows, the last row shows a "↓ +N"
+    /// indicator so the user knows there's more (full body is reachable via
+    /// hover or by accepting the completion and inspecting via obj.dump).
     /// </summary>
     private void RenderDetails(CellBuffer buffer, Rect rect)
     {
@@ -194,33 +247,65 @@ internal sealed class CompletionPanelRoot : FrameworkElement
         var entry = Items[SelectedIndex];
         if (string.IsNullOrEmpty(entry.Detail) && string.IsNullOrEmpty(entry.Documentation)) return;
 
-        int row = 0;
+        // Collect all lines (detail + spacer + wrapped doc) upfront so we can
+        // count total vs visible and render an overflow indicator on the last row.
+        var lines = new List<(string Text, bool Highlight)>();
         if (!string.IsNullOrEmpty(entry.Detail))
         {
             foreach (var line in WrapLines(entry.Detail!, rect.Width - 2))
-            {
-                if (row >= rect.Height) return;
-                DrawText(buffer, rect.X + 1, rect.Y + row, line, rect.Width - 2, SignatureFg, PanelBg);
-                row++;
-            }
-            // Spacer between Detail header and Documentation body.
-            if (!string.IsNullOrEmpty(entry.Documentation) && row < rect.Height) row++;
+                lines.Add((line, true));
+            if (!string.IsNullOrEmpty(entry.Documentation))
+                lines.Add((string.Empty, false));
         }
-
         if (!string.IsNullOrEmpty(entry.Documentation))
         {
-            // Documentation can be multi-line — split on existing newlines first,
-            // then wrap each soft line. This preserves paragraph breaks the source
-            // intentionally inserted (e.g. "shape:" / "data:" on their own lines).
             foreach (var hardLine in entry.Documentation!.Split('\n'))
-            {
                 foreach (var soft in WrapLines(hardLine, rect.Width - 2))
-                {
-                    if (row >= rect.Height) return;
-                    DrawText(buffer, rect.X + 1, rect.Y + row, soft, rect.Width - 2, LabelFg, PanelBg);
-                    row++;
-                }
+                    lines.Add((soft, false));
+        }
+
+        int max = rect.Height;
+        bool overflow = lines.Count > max;
+        int rowsForText = overflow ? max - 1 : lines.Count;
+        for (int r = 0; r < rowsForText; r++)
+        {
+            var (text, highlight) = lines[r];
+            if (highlight) DrawHighlighted(buffer, rect.X + 1, rect.Y + r, text, rect.Width - 2);
+            else DrawText(buffer, rect.X + 1, rect.Y + r, text, rect.Width - 2, LabelFg, PanelBg);
+        }
+        if (overflow)
+        {
+            int hidden = lines.Count - rowsForText;
+            DrawText(buffer, rect.X + 1, rect.Y + rowsForText,
+                     $"↓ +{hidden} more", rect.Width - 2, DimFg, PanelBg);
+        }
+    }
+
+    /// <summary>
+    /// Draw <paramref name="text"/> with NinjaSyntaxHighlighter token colors.
+    /// Used for the Detail signature line so callables, keywords, literals etc.
+    /// get the same colors users see while typing.
+    /// </summary>
+    private void DrawHighlighted(CellBuffer buffer, int x, int y, string text, int maxWidth)
+    {
+        if (text.Length == 0 || maxWidth <= 0 || (uint)y >= (uint)buffer.Height) return;
+        IReadOnlyList<SyntaxToken> tokens;
+        try { tokens = Highlighter.Tokenize(text); }
+        catch { tokens = Array.Empty<SyntaxToken>(); }
+        int tokenIdx = 0;
+        for (int i = 0; i < text.Length && i < maxWidth; i++)
+        {
+            var fg = SignatureFg;
+            while (tokenIdx < tokens.Count && tokens[tokenIdx].Start + tokens[tokenIdx].Length <= i)
+                tokenIdx++;
+            if (tokenIdx < tokens.Count)
+            {
+                var t = tokens[tokenIdx];
+                if (i >= t.Start && i < t.Start + t.Length) fg = Theme.GetColor(t.Kind);
             }
+            int cx = x + i;
+            if ((uint)cx >= (uint)buffer.Width) break;
+            buffer.SetChar(cx, y, text[i], fg, PanelBg);
         }
     }
 
