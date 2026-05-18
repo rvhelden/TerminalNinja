@@ -134,6 +134,40 @@ public class CompletionTests
         await Assert.That(select.Detail!.Length).IsGreaterThan(0);
     }
 
+    [Test]
+    public async Task CompletionItem_BuiltinCarriesDocumentation()
+    {
+        var items = At("se", 0, 2);
+        var select = items.Single(i => i.Label == "select");
+        // Documentation is the longer human-readable description from the catalog.
+        await Assert.That(select.Documentation).IsNotNull();
+        await Assert.That(select.Documentation!.Length).IsGreaterThan(select.Detail!.Length);
+    }
+
+    [Test]
+    public async Task CompletionItem_ScopeVariableCarriesShapeAndData()
+    {
+        var scope = new Dictionary<string, NValue>
+        {
+            ["greeting"] = new NString("hello"),
+        };
+        var items = At("gre", 0, 3, scope);
+        var greeting = items.Single(i => i.Label == "greeting");
+        await Assert.That(greeting.Documentation).IsNotNull();
+        await Assert.That(greeting.Documentation!).Contains("shape:");
+        await Assert.That(greeting.Documentation!).Contains("data:");
+    }
+
+    [Test]
+    public async Task CompletionItem_ModuleCarriesMemberListDocumentation()
+    {
+        var items = At("fs", 0, 2);
+        var fs = items.Single(i => i.Label == "fs");
+        await Assert.That(fs.Documentation).IsNotNull();
+        await Assert.That(fs.Documentation!).Contains("ls");
+        await Assert.That(fs.Documentation!).Contains("pwd");
+    }
+
     // ─── scope-aware completion ─────────────────────────────────────────────
 
     [Test]

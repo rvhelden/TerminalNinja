@@ -168,7 +168,7 @@ public static class LanguageService
         foreach (var d in members)
         {
             if (prefix.Length == 0 || d.Name.StartsWith(prefix, StringComparison.Ordinal))
-                result.Add(new CompletionItem(d.Name, d.Kind, d.Detail, null));
+                result.Add(new CompletionItem(d.Name, d.Kind, d.Detail, null, d.Documentation));
         }
         return result;
     }
@@ -190,7 +190,11 @@ public static class LanguageService
                 if (prefix.Length > 0 && !kv.Key.StartsWith(prefix, StringComparison.Ordinal)) continue;
                 scopeNames!.Add(kv.Key);
                 var kind = kv.Value is NFunc ? CompletionKind.Function : CompletionKind.Variable;
-                result.Add(new CompletionItem(kv.Key, kind, ValueFormatter.Def(kv.Value), null));
+                var detail = ValueFormatter.Def(kv.Value);
+                // Documentation carries the value preview — "shape:" and "data:" lines
+                // so the details pane shows what the binding actually resolves to.
+                var doc = $"{kv.Key} :: {ValueFormatter.TypeName(kv.Value)}\n\nshape: {detail}\ndata:  {ValueFormatter.Dump(kv.Value)}";
+                result.Add(new CompletionItem(kv.Key, kind, detail, null, doc));
             }
         }
 
@@ -201,7 +205,9 @@ public static class LanguageService
         {
             if (prefix.Length > 0 && !key.StartsWith(prefix, StringComparison.Ordinal)) continue;
             if (scopeNames is not null && scopeNames.Contains(key)) continue;
-            result.Add(new CompletionItem(key, CompletionKind.Module, $"module {key}", null));
+            var members = BuiltinCatalog.Modules[key];
+            var moduleDoc = $"module {key}\n\nmembers: {string.Join(", ", members.Select(m => m.Name))}";
+            result.Add(new CompletionItem(key, CompletionKind.Module, $"module {key}", null, moduleDoc));
         }
         return result;
     }
@@ -216,7 +222,7 @@ public static class LanguageService
         {
             if (shadowed is not null && shadowed.Contains(d.Name)) continue;
             if (prefix.Length == 0 || d.Name.StartsWith(prefix, StringComparison.Ordinal))
-                dest.Add(new CompletionItem(d.Name, d.Kind, d.Detail, null));
+                dest.Add(new CompletionItem(d.Name, d.Kind, d.Detail, null, d.Documentation));
         }
     }
 

@@ -21,13 +21,21 @@ public enum CompletionKind
 }
 
 /// <summary>
-/// A single completion suggestion. <see cref="Label"/> is what the user sees in the
-/// list; <see cref="InsertText"/> is what gets dropped into the document on accept
-/// (defaults to <see cref="Label"/> when null); <see cref="Detail"/> is a short
-/// inline annotation (e.g. a function signature).
+/// A single completion suggestion.
+/// <list type="bullet">
+/// <item><description><see cref="Label"/> — what the user sees in the list.</description></item>
+/// <item><description><see cref="Kind"/> — drives the icon / colour in two-pane UIs.</description></item>
+/// <item><description><see cref="Detail"/> — short inline annotation (e.g. a function signature).</description></item>
+/// <item><description><see cref="Documentation"/> — longer human-readable explanation rendered in the
+/// details pane. For scope items this carries <c>shape:</c> / <c>data:</c> lines from
+/// <see cref="ValueFormatter"/> so user-defined bindings preview their value.</description></item>
+/// <item><description><see cref="InsertText"/> — what gets dropped into the document on accept
+/// (defaults to <see cref="Label"/> when null).</description></item>
+/// </list>
 /// </summary>
 public sealed record CompletionItem(
     string Label,
     CompletionKind Kind,
     string? Detail,
-    string? InsertText);
+    string? InsertText,
+    string? Documentation = null);

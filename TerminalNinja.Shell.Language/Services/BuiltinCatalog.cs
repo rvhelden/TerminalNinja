@@ -14,22 +14,38 @@ internal static class BuiltinCatalog
 {
     /// <summary>Top-level builtins that resolve as bare identifiers.</summary>
     public static readonly ImmutableArray<BuiltinDescriptor> TopLevel = ImmutableArray.Create(
-        new BuiltinDescriptor("where", "where(seq, predicate)", CompletionKind.Function),
-        new BuiltinDescriptor("select", "select(seq, projection)", CompletionKind.Function),
-        new BuiltinDescriptor("each", "each(seq, action)", CompletionKind.Function),
-        new BuiltinDescriptor("fold", "fold(seq, init, (acc, x) => ...)", CompletionKind.Function),
-        new BuiltinDescriptor("take", "take(seq, n)", CompletionKind.Function),
-        new BuiltinDescriptor("skip", "skip(seq, n)", CompletionKind.Function),
-        new BuiltinDescriptor("count", "count(seq) -> int", CompletionKind.Function),
-        new BuiltinDescriptor("sort", "sort(seq[, { by, desc }])", CompletionKind.Function),
-        new BuiltinDescriptor("reverse", "reverse(seq) -> list", CompletionKind.Function),
-        new BuiltinDescriptor("distinct", "distinct(seq) -> list", CompletionKind.Function),
-        new BuiltinDescriptor("head", "head(seq)", CompletionKind.Function),
-        new BuiltinDescriptor("tail", "tail(seq) -> list", CompletionKind.Function),
-        new BuiltinDescriptor("materialize", "materialize(seq) -> list", CompletionKind.Function),
-        new BuiltinDescriptor("print", "print(v)", CompletionKind.Function),
-        new BuiltinDescriptor("println", "println(v)", CompletionKind.Function),
-        new BuiltinDescriptor("format_table", "format_table(list_of_records) -> string", CompletionKind.Function));
+        new BuiltinDescriptor("where", "where(seq, predicate)", CompletionKind.Function,
+            "Filter a sequence to items where predicate returns true. Lazy — pulls from the source only as the result is iterated."),
+        new BuiltinDescriptor("select", "select(seq, projection)", CompletionKind.Function,
+            "Map each item through projection. Lazy. Use with records to reshape pipelines: `xs | select(r => r.Name)`."),
+        new BuiltinDescriptor("each", "each(seq, action)", CompletionKind.Function,
+            "Run action for every item. Eager — drains the sequence. Returns unit."),
+        new BuiltinDescriptor("fold", "fold(seq, init, (acc, x) => ...)", CompletionKind.Function,
+            "Left fold: thread acc through the sequence starting at init. Eager."),
+        new BuiltinDescriptor("take", "take(seq, n)", CompletionKind.Function,
+            "First n items. Lazy — only pulls n from the source."),
+        new BuiltinDescriptor("skip", "skip(seq, n)", CompletionKind.Function,
+            "Drop the first n items. Lazy."),
+        new BuiltinDescriptor("count", "count(seq) -> int", CompletionKind.Function,
+            "Number of items. Eager — fully drains the sequence."),
+        new BuiltinDescriptor("sort", "sort(seq[, { by, desc }])", CompletionKind.Function,
+            "Sort by natural order, or by `{ by: r => r.Field, desc: true }`. Eager."),
+        new BuiltinDescriptor("reverse", "reverse(seq) -> list", CompletionKind.Function,
+            "Materialise and reverse. Eager."),
+        new BuiltinDescriptor("distinct", "distinct(seq) -> list", CompletionKind.Function,
+            "Drop duplicates by structural equality. Eager."),
+        new BuiltinDescriptor("head", "head(seq)", CompletionKind.Function,
+            "First item, or unit if empty. Lazy — pulls one."),
+        new BuiltinDescriptor("tail", "tail(seq) -> list", CompletionKind.Function,
+            "All but the first item. Eager."),
+        new BuiltinDescriptor("materialize", "materialize(seq) -> list", CompletionKind.Function,
+            "Force a lazy sequence into a fully-realised list. Useful before storing in a let or printing."),
+        new BuiltinDescriptor("print", "print(v)", CompletionKind.Function,
+            "Write v to stdout (no trailing newline)."),
+        new BuiltinDescriptor("println", "println(v)", CompletionKind.Function,
+            "Write v + newline to stdout."),
+        new BuiltinDescriptor("format_table", "format_table(list_of_records) -> string", CompletionKind.Function,
+            "Render a list of records as an aligned ASCII table. Uses field order of the first row."));
 
     /// <summary>Modules and their members, accessed via <c>module.member</c>.</summary>
     public static readonly ImmutableDictionary<string, ImmutableArray<BuiltinDescriptor>> Modules =
@@ -68,7 +84,8 @@ internal static class BuiltinCatalog
             ["obj"] = ImmutableArray.Create(
                 new BuiltinDescriptor("type", "obj.type(v) -> string", CompletionKind.Function),
                 new BuiltinDescriptor("size", "obj.size(v) -> int", CompletionKind.Function),
-                new BuiltinDescriptor("dump", "obj.dump(v) -> string  (data + types)", CompletionKind.Function),
+                new BuiltinDescriptor("dump", "obj.dump(v[, depth]) -> string  (vertical property table; depth caps recursion, default 2)", CompletionKind.Function),
+                new BuiltinDescriptor("table", "obj.table(list) -> string  (force aligned record-table rendering)", CompletionKind.Function),
                 new BuiltinDescriptor("def", "obj.def(v) -> string  (shape only)", CompletionKind.Function),
                 new BuiltinDescriptor("pairs", "obj.pairs(r) -> list of {Key, Value}", CompletionKind.Function),
                 new BuiltinDescriptor("from_pairs", "obj.from_pairs(seq) -> record", CompletionKind.Function),
@@ -103,5 +120,13 @@ internal static class BuiltinCatalog
         new BuiltinDescriptor("false", "false", CompletionKind.Keyword));
 }
 
-/// <summary>An entry in the <see cref="BuiltinCatalog"/>.</summary>
-internal sealed record BuiltinDescriptor(string Name, string Detail, CompletionKind Kind);
+/// <summary>
+/// An entry in the <see cref="BuiltinCatalog"/>. <see cref="Detail"/> is the
+/// one-line signature shown in lists; <see cref="Documentation"/> is a longer
+/// human-readable explanation rendered in the details pane.
+/// </summary>
+internal sealed record BuiltinDescriptor(
+    string Name,
+    string Detail,
+    CompletionKind Kind,
+    string? Documentation = null);
