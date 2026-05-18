@@ -286,8 +286,11 @@ public sealed class SdlInputBackend : IInputBackend
         //   • Modifier-combined keys (Ctrl+C, Alt+f, etc.) — TEXT_INPUT skips these.
         //   • Named control keys (Enter, Tab, arrows, F-keys, Backspace, Escape, …) — these
         //     have no text representation.
-        // Plain letters and digits with no modifier fall through to TEXT_INPUT.
-        if (!ctrl && !alt && IsPrintableConsoleKey(consoleKey))
+        // Plain printable ASCII falls through to TEXT_INPUT. The KeyChar check below catches
+        // non-letter symbols ('=', '!', '?', ';', etc.) whose ConsoleKey maps to NoName —
+        // without it those characters would arrive twice (once as KEY_DOWN.KeyChar and once
+        // from the matching TEXT_INPUT event).
+        if (!ctrl && !alt && (IsPrintableConsoleKey(consoleKey) || IsPrintableAscii(keyChar)))
         {
             return null;
         }
@@ -305,6 +308,9 @@ public sealed class SdlInputBackend : IInputBackend
         => k is (>= ConsoleKey.A and <= ConsoleKey.Z)
             or (>= ConsoleKey.D0 and <= ConsoleKey.D9)
             or ConsoleKey.Spacebar;
+
+    /// <summary>True for printable ASCII (space through '~'); excludes control chars (Enter, Tab, …).</summary>
+    private static bool IsPrintableAscii(char ch) => ch >= 0x20 && ch < 0x7F;
 
     /// <summary>
     /// Maps an SDL3 keycode (SDL_keycode.h) to the closest <see cref="ConsoleKey"/> value.
