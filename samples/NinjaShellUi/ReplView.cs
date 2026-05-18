@@ -45,6 +45,8 @@ public sealed class ReplView : Control
     private readonly StringBuilder _input = new();
     private readonly List<string> _history = new();
     private int _historyIndex = -1;
+    // Linear UTF-16 offset into _input — NOT a column index. Multi-line input means this
+    // index spans `\n`s; the row/column on screen is computed via CursorToLineCol(...).
     private int _cursorCol;
     private int _scrollOffset;
 
@@ -66,8 +68,15 @@ public sealed class ReplView : Control
     private Rect _lastBounds;
     private (int X, int Y)? _lastMouseHoverCell;
 
-    /// <summary>The prompt rendered in front of the input line. Defaults to <c>"ninja&gt; "</c>.</summary>
+    /// <summary>The prompt rendered in front of the first input row. Defaults to <c>"ninja&gt; "</c>.</summary>
     public string Prompt { get; set; } = "ninja> ";
+
+    /// <summary>
+    /// Continuation prompt rendered in front of input rows 2..n when the user has entered
+    /// a multi-line buffer via Shift+Enter. Must be the same width as <see cref="Prompt"/>
+    /// so cursor columns line up across rows; padded automatically if it's shorter.
+    /// </summary>
+    public string ContinuationPrompt { get; set; } = "... > ";
 
     /// <summary>
     /// Language identifier handed to <see cref="SyntaxHighlighterRegistry"/> when rendering
@@ -167,16 +176,22 @@ public sealed class ReplView : Control
         _lastBounds = bounds;
         if (bounds.Width <= 0 || bounds.Height <= 0) return;
 
-        // Bottom row = input prompt. Two optional info rows above it: hover + diagnostic.
-        // Each is only allocated when there's something to show, so a clean input keeps
-        // the full output area visible.
-        var promptY = bounds.Y + bounds.Height - 1;
-        var diagY = HasDiagnostic() ? promptY - 1 : -1;
+        // The input region grows downward from a baseline near the bottom: it always
+        // occupies `inputLines` rows (≥ 1, the user-entered '\n' count plus one), and
+        // the optional hover / diagnostic rows sit above it. We clamp inputLines to
+        // half the panel height so a runaway multi-line buffer can't swallow the entire
+        // output area.
+        var inputLines = CountInputLines();
+        inputLines = Math.Min(inputLines, Math.Max(1, bounds.Height / 2));
+
+        var inputBottomY = bounds.Y + bounds.Height - 1;
+        var inputTopY = inputBottomY - (inputLines - 1);
+        var diagY = HasDiagnostic() ? inputTopY - 1 : -1;
         var hoverY = (_hover is not null && diagY > 0) ? diagY - 1
-                   : _hover is not null ? promptY - 1
+                   : _hover is not null ? inputTopY - 1
                    : -1;
 
-        var topReserved = (promptY > -1 ? 1 : 0) + (diagY > -1 ? 1 : 0) + (hoverY > -1 ? 1 : 0);
+        var topReserved = inputLines + (diagY > -1 ? 1 : 0) + (hoverY > -1 ? 1 : 0);
         var outputHeight = Math.Max(0, bounds.Height - topReserved);
 
         var fg = Foreground;
@@ -187,13 +202,24 @@ public sealed class ReplView : Control
         if (hoverY > -1) RenderHoverLine(buffer, bounds.X, hoverY, bounds.Width, bg);
         if (diagY > -1) RenderDiagnosticLine(buffer, bounds.X, diagY, bounds.Width, bg);
 
-        RenderPromptLine(buffer, bounds.X, promptY, bounds.Width, fg, bg);
+        RenderInputBlock(buffer, bounds.X, inputTopY, bounds.Width, inputLines, fg, bg);
 
         // The completion popup sits on top of everything else — render last.
         if (_completions is { Count: > 0 })
         {
-            RenderCompletionPopup(buffer, bounds, promptY, fg, bg);
+            RenderCompletionPopup(buffer, bounds, inputTopY, fg, bg);
         }
+    }
+
+    /// <summary>Number of input rows the current buffer needs (1 + count of '\n').</summary>
+    private int CountInputLines()
+    {
+        var n = 1;
+        for (var i = 0; i < _input.Length; i++)
+        {
+            if (_input[i] == '\n') n++;
+        }
+        return n;
     }
 
     private bool HasDiagnostic() => _diagnostics.Count > 0;
@@ -211,51 +237,97 @@ public sealed class ReplView : Control
         }
     }
 
-    private void RenderPromptLine(CellBuffer buffer, int x, int y, int width, Color fg, Color bg)
+    /// <summary>
+    /// Renders one or more input rows starting at <paramref name="topY"/>. The first row
+    /// uses <see cref="Prompt"/>; subsequent rows use <see cref="ContinuationPrompt"/>
+    /// padded to the same width so cursor columns align across rows. Highlighter runs
+    /// once over the full buffer; the tokens are sliced per row at render time.
+    /// </summary>
+    private void RenderInputBlock(CellBuffer buffer, int x, int topY, int width, int rowCount, Color fg, Color bg)
     {
-        DrawText(buffer, x, y, Prompt, width, fg, bg);
-        var inputX = x + Prompt.Length;
-        var inputWidth = Math.Max(0, width - Prompt.Length);
-        DrawHighlightedInput(buffer, inputX, y, _input.ToString(), inputWidth, fg, bg);
+        var promptWidth = Math.Max(Prompt.Length, ContinuationPrompt.Length);
+        var inputX = x + promptWidth;
+        var inputWidth = Math.Max(0, width - promptWidth);
 
-        // Cursor: invert fg/bg on the cell at the cursor position.
-        var cursorX = inputX + Math.Min(_cursorCol, inputWidth - 1);
-        if (cursorX >= inputX && cursorX < inputX + inputWidth && (uint)y < (uint)buffer.Height)
+        var allTokens = TokenizeOrNull();
+        var text = _input.ToString();
+
+        var (cursorLine, cursorCol) = CursorToLineCol(_cursorCol);
+
+        // Walk the buffer line by line in lockstep with the row we render on. Each line's
+        // start offset is its byte index in `text`; render `rowCount` rows even if the
+        // logical input has more lines (clamped — overflow lines are dropped from view).
+        var offset = 0;
+        for (var r = 0; r < rowCount; r++)
         {
-            var cell = buffer.GetCell(cursorX, y);
-            buffer.SetCell(cursorX, y, new Cell(cell.Codepoint, cell.Background, cell.Foreground, cell.Decorations, cell.Flags));
+            var y = topY + r;
+            if ((uint)y >= (uint)buffer.Height) break;
+
+            // Find the end of this logical line: next '\n' or end of buffer.
+            var lineEnd = offset;
+            while (lineEnd < text.Length && text[lineEnd] != '\n') lineEnd++;
+
+            // Prompt prefix for this row.
+            var prefix = r == 0 ? Prompt : ContinuationPrompt;
+            var prefixFg = r == 0 ? fg : new Color(0x6C, 0x70, 0x86); // dim continuation
+            DrawText(buffer, x, y, prefix.PadRight(promptWidth), width, prefixFg, bg);
+
+            // Slice the line's text and highlighter tokens onto this row.
+            var lineText = text.Substring(offset, lineEnd - offset);
+            DrawHighlightedInputLine(buffer, inputX, y, lineText, offset, allTokens, inputWidth, fg, bg);
+
+            // Render the cursor cell on this row if the cursor sits on this line.
+            if (cursorLine == r)
+            {
+                var cursorX = inputX + Math.Min(cursorCol, Math.Max(0, inputWidth - 1));
+                if (cursorX >= inputX && cursorX < inputX + inputWidth && (uint)cursorX < (uint)buffer.Width)
+                {
+                    var cell = buffer.GetCell(cursorX, y);
+                    buffer.SetCell(cursorX, y, new Cell(cell.Codepoint, cell.Background, cell.Foreground, cell.Decorations, cell.Flags));
+                }
+            }
+
+            // Advance past this line plus the trailing '\n' (if any).
+            offset = lineEnd < text.Length ? lineEnd + 1 : lineEnd;
         }
     }
 
-    /// <summary>
-    /// Renders the input buffer with per-token colours. Resolves the configured
-    /// <see cref="HighlightLanguage"/> through <see cref="SyntaxHighlighterRegistry"/>;
-    /// if no highlighter is registered, falls back to drawing the text plain.
-    /// </summary>
-    private void DrawHighlightedInput(CellBuffer buffer, int x, int y, string text, int maxWidth, Color fallbackFg, Color bg)
+    private IReadOnlyList<SyntaxToken>? TokenizeOrNull()
     {
-        if (text.Length == 0 || maxWidth <= 0 || (uint)y >= (uint)buffer.Height) return;
+        if (HighlightLanguage is null) return null;
+        if (_input.Length == 0) return null;
+        if (!SyntaxHighlighterRegistry.TryGet(HighlightLanguage, out var hl)) return null;
+        return hl.Tokenize(_input.ToString());
+    }
 
-        ISyntaxHighlighter? highlighter = null;
-        if (HighlightLanguage is not null)
-        {
-            SyntaxHighlighterRegistry.TryGet(HighlightLanguage, out highlighter);
-        }
+    /// <summary>
+    /// Renders one row of the input — the substring <paramref name="lineText"/> that lives
+    /// at <paramref name="lineOffset"/> within the full buffer — with highlighted token
+    /// colours. Tokens were produced over the whole buffer (so multi-line constructs like
+    /// strings highlight correctly across rows); per-row rendering filters tokens to those
+    /// that overlap this line's offset range.
+    /// </summary>
+    private void DrawHighlightedInputLine(
+        CellBuffer buffer, int x, int y,
+        string lineText, int lineOffset,
+        IReadOnlyList<SyntaxToken>? tokens,
+        int maxWidth, Color fallbackFg, Color bg)
+    {
+        if (lineText.Length == 0 || maxWidth <= 0 || (uint)y >= (uint)buffer.Height) return;
 
-        if (highlighter is null)
+        if (tokens is null)
         {
-            DrawText(buffer, x, y, text, maxWidth, fallbackFg, bg);
+            DrawText(buffer, x, y, lineText, maxWidth, fallbackFg, bg);
             return;
         }
 
-        var tokens = highlighter.Tokenize(text);
-        // Walk char-by-char, advancing through the token list in lock-step. Characters that
-        // don't fall inside any token use the fallback foreground (whitespace, gaps).
         var tokenIdx = 0;
-        for (var i = 0; i < text.Length && i < maxWidth; i++)
+        for (var i = 0; i < lineText.Length && i < maxWidth; i++)
         {
-            // Advance past tokens that ended before this offset.
-            while (tokenIdx < tokens.Count && tokens[tokenIdx].Start + tokens[tokenIdx].Length <= i)
+            var absoluteOffset = lineOffset + i;
+
+            // Advance past tokens that ended before this absolute offset.
+            while (tokenIdx < tokens.Count && tokens[tokenIdx].Start + tokens[tokenIdx].Length <= absoluteOffset)
             {
                 tokenIdx++;
             }
@@ -264,7 +336,7 @@ public sealed class ReplView : Control
             if (tokenIdx < tokens.Count)
             {
                 var t = tokens[tokenIdx];
-                if (i >= t.Start && i < t.Start + t.Length)
+                if (absoluteOffset >= t.Start && absoluteOffset < t.Start + t.Length)
                 {
                     fg = Theme.GetColor(t.Kind);
                 }
@@ -272,7 +344,7 @@ public sealed class ReplView : Control
 
             var cx = x + i;
             if ((uint)cx >= (uint)buffer.Width) break;
-            buffer.SetChar(cx, y, text[i], fg, bg);
+            buffer.SetChar(cx, y, lineText[i], fg, bg);
         }
     }
 
@@ -302,7 +374,7 @@ public sealed class ReplView : Control
         DrawText(buffer, x, y, line.ToString(), width, errFg, bg);
     }
 
-    private void RenderCompletionPopup(CellBuffer buffer, Rect bounds, int promptY, Color fg, Color bg)
+    private void RenderCompletionPopup(CellBuffer buffer, Rect bounds, int inputTopY, Color fg, Color bg)
     {
         var items = _completions!;
         var popupHeight = Math.Min(items.Count, 8);
@@ -319,10 +391,19 @@ public sealed class ReplView : Control
         var popupWidth = Math.Min(bounds.Width - 2, maxLabel + 3 + maxDetail);
         if (popupWidth < 10) popupWidth = Math.Min(bounds.Width - 2, 30);
 
-        // Anchor: the popup floats just above the prompt, starting at the column where
-        // the completion was triggered (the start of the partial token).
-        var popupX = bounds.X + Math.Min(bounds.Width - popupWidth - 1, Math.Max(0, Prompt.Length + _completionAnchorCol));
-        var popupY = Math.Max(bounds.Y, promptY - popupHeight);
+        // Anchor: float just above the input row that holds the partial token. With a
+        // multi-line buffer the popup needs to track the line the cursor is on, not the
+        // top of the block — anchorCol is a logical column on whichever line we landed.
+        var (anchorLine, _) = CursorToLineCol(_completionAnchorCol);
+        var promptWidth = Math.Max(Prompt.Length, ContinuationPrompt.Length);
+        // anchorColOnLine = column-within-line of the anchor; derive by walking back to
+        // the start of that line.
+        var anchorLineStart = LineColToIndex(anchorLine, 0);
+        var anchorColOnLine = _completionAnchorCol - anchorLineStart;
+
+        var popupX = bounds.X + Math.Min(bounds.Width - popupWidth - 1, Math.Max(0, promptWidth + anchorColOnLine));
+        var anchorRowY = inputTopY + anchorLine;
+        var popupY = Math.Max(bounds.Y, anchorRowY - popupHeight);
 
         var popupBg = new Color(0x31, 0x32, 0x44);
         var popupSelBg = new Color(0x45, 0x47, 0x5A);
@@ -425,6 +506,14 @@ public sealed class ReplView : Control
 
         switch (e.Key)
         {
+            case ConsoleKey.Enter when e.Shift:
+                // Shift+Enter — insert a newline rather than submit. Lets the user compose
+                // multi-line expressions (let … in …, switch arms, pasted scripts).
+                _input.Insert(_cursorCol, '\n');
+                _cursorCol++;
+                RecomputeAnalysis();
+                InvalidationCallback?.Invoke();
+                return;
             case ConsoleKey.Enter:
                 Submit();
                 return;
@@ -458,16 +547,19 @@ public sealed class ReplView : Control
                 if (_cursorCol < _input.Length) { _cursorCol++; RecomputeAnalysis(); InvalidationCallback?.Invoke(); }
                 return;
             case ConsoleKey.Home:
-                _cursorCol = 0; RecomputeAnalysis(); InvalidationCallback?.Invoke();
+                // Home goes to the start of the current line (matches editor convention).
+                _cursorCol = LineColToIndex(CursorToLineCol(_cursorCol).Line, 0);
+                RecomputeAnalysis(); InvalidationCallback?.Invoke();
                 return;
             case ConsoleKey.End:
-                _cursorCol = _input.Length; RecomputeAnalysis(); InvalidationCallback?.Invoke();
+                _cursorCol = LineColToIndex(CursorToLineCol(_cursorCol).Line, int.MaxValue);
+                RecomputeAnalysis(); InvalidationCallback?.Invoke();
                 return;
             case ConsoleKey.UpArrow:
-                NavigateHistory(-1);
+                MoveUpOrHistoryBack();
                 return;
             case ConsoleKey.DownArrow:
-                NavigateHistory(+1);
+                MoveDownOrHistoryForward();
                 return;
             case ConsoleKey.PageUp:
                 _scrollOffset = Math.Min(_scrollOffset + 5, Math.Max(0, _outputLines.Count - 1));
@@ -551,6 +643,51 @@ public sealed class ReplView : Control
         return s;
     }
 
+    /// <summary>
+    /// Maps the linear cursor index into (line, column) over the current input buffer.
+    /// Counts '\n' characters; the column resets to 0 after each. Indices past end-of-input
+    /// clamp to the last line's last column.
+    /// </summary>
+    private (int Line, int Col) CursorToLineCol(int index)
+    {
+        var line = 0;
+        var lineStart = 0;
+        var clamped = Math.Clamp(index, 0, _input.Length);
+        for (var i = 0; i < clamped; i++)
+        {
+            if (_input[i] == '\n')
+            {
+                line++;
+                lineStart = i + 1;
+            }
+        }
+        return (line, clamped - lineStart);
+    }
+
+    /// <summary>
+    /// Reverse of <see cref="CursorToLineCol"/>: convert a (line, col) target to a linear
+    /// index, clamping the column to the actual length of <paramref name="line"/>.
+    /// </summary>
+    private int LineColToIndex(int line, int col)
+    {
+        if (line < 0) return 0;
+        var i = 0;
+        var currentLine = 0;
+        while (currentLine < line && i < _input.Length)
+        {
+            if (_input[i] == '\n') currentLine++;
+            i++;
+        }
+        if (currentLine < line)
+        {
+            return _input.Length;
+        }
+        var lineStart = i;
+        var lineEnd = lineStart;
+        while (lineEnd < _input.Length && _input[lineEnd] != '\n') lineEnd++;
+        return lineStart + Math.Min(col, lineEnd - lineStart);
+    }
+
     private static bool IsIdentifierChar(char c)
         => (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9') || c == '_';
 
@@ -560,9 +697,12 @@ public sealed class ReplView : Control
         _diagnostics = text.Length == 0
             ? Array.Empty<Diagnostic>()
             : LanguageService.GetDiagnostics(text);
+        // Hover needs (line, character) — convert from the linear cursor offset so the
+        // service sees the right token even when the buffer spans multiple lines.
+        var (cursorLine, cursorCol) = CursorToLineCol(_cursorCol);
         _hover = text.Length == 0
             ? null
-            : LanguageService.GetHover(text, new Position(0, _cursorCol), Scope);
+            : LanguageService.GetHover(text, new Position(cursorLine, cursorCol), Scope);
     }
 
     private void Submit()
@@ -574,7 +714,15 @@ public sealed class ReplView : Control
         _diagnostics = Array.Empty<Diagnostic>();
         _hover = null;
 
-        AppendOutput(Prompt + line);
+        // Echo the buffer back into the output with prompts in front of each line so the
+        // history reads like a transcript. Continuation rows use ContinuationPrompt to
+        // match how the input was displayed while the user was typing it.
+        var lines = line.Split('\n');
+        for (var i = 0; i < lines.Length; i++)
+        {
+            var prefix = i == 0 ? Prompt : ContinuationPrompt;
+            AppendOutput(prefix + lines[i]);
+        }
 
         if (!string.IsNullOrWhiteSpace(line))
         {
@@ -585,6 +733,42 @@ public sealed class ReplView : Control
         {
             InvalidationCallback?.Invoke();
         }
+    }
+
+    /// <summary>
+    /// Up arrow: if the cursor is on the first line of a multi-line buffer (or the buffer
+    /// is single-line), walk history backwards; otherwise move the cursor up one line,
+    /// preserving the visual column when possible.
+    /// </summary>
+    private void MoveUpOrHistoryBack()
+    {
+        var (line, col) = CursorToLineCol(_cursorCol);
+        if (line > 0)
+        {
+            _cursorCol = LineColToIndex(line - 1, col);
+            RecomputeAnalysis();
+            InvalidationCallback?.Invoke();
+            return;
+        }
+        NavigateHistory(-1);
+    }
+
+    /// <summary>
+    /// Down arrow: opposite of <see cref="MoveUpOrHistoryBack"/>. On the last line of a
+    /// multi-line buffer, walks history forwards; otherwise drops one line.
+    /// </summary>
+    private void MoveDownOrHistoryForward()
+    {
+        var (line, col) = CursorToLineCol(_cursorCol);
+        var totalLines = CountInputLines();
+        if (line < totalLines - 1)
+        {
+            _cursorCol = LineColToIndex(line + 1, col);
+            RecomputeAnalysis();
+            InvalidationCallback?.Invoke();
+            return;
+        }
+        NavigateHistory(+1);
     }
 
     private void NavigateHistory(int direction)
@@ -630,11 +814,16 @@ public sealed class ReplView : Control
         if (_lastMouseHoverCell == cell) return;
         _lastMouseHoverCell = cell;
 
-        int promptY = _lastBounds.Y + _lastBounds.Height - 1;
+        // Multi-line input occupies the bottom N rows. inputTopY ≤ mouse.Y ≤ panel bottom
+        // means the mouse is on one of the input lines; the line within the buffer is the
+        // delta from inputTopY.
+        var inputLines = Math.Min(CountInputLines(), Math.Max(1, _lastBounds.Height / 2));
+        var inputBottomY = _lastBounds.Y + _lastBounds.Height - 1;
+        var inputTopY = inputBottomY - (inputLines - 1);
 
-        if (e.Y == promptY)
+        if (e.Y >= inputTopY && e.Y <= inputBottomY)
         {
-            ShowInputHover(e.X);
+            ShowInputHover(e.X, e.Y - inputTopY);
             return;
         }
 
@@ -647,18 +836,26 @@ public sealed class ReplView : Control
         HideMouseHover();
     }
 
-    private void ShowInputHover(int mouseX)
+    private void ShowInputHover(int mouseX, int inputRow)
     {
+        var promptWidth = Math.Max(Prompt.Length, ContinuationPrompt.Length);
         int promptStartX = _lastBounds.X;
-        int inputCol = mouseX - promptStartX - Prompt.Length;
+        int colInLine = mouseX - promptStartX - promptWidth;
         var text = _input.ToString();
-        if (inputCol < 0 || inputCol > text.Length)
+        if (colInLine < 0)
         {
             HideMouseHover();
             return;
         }
 
-        var hover = LanguageService.GetHover(text, new Position(0, inputCol), Scope);
+        var totalLines = CountInputLines();
+        if (inputRow < 0 || inputRow >= totalLines)
+        {
+            HideMouseHover();
+            return;
+        }
+
+        var hover = LanguageService.GetHover(text, new Position(inputRow, colInLine), Scope);
         if (hover is null)
         {
             HideMouseHover();
@@ -666,8 +863,12 @@ public sealed class ReplView : Control
         }
 
         var content = BuildHoverContent(hover.Contents);
-        int anchorY = _lastBounds.Y + _lastBounds.Height - 1;
-        _hoverPanel.Placement = PlacementMode.Top; // input is the bottom row — float above.
+        // Anchor on the current input row, not the panel bottom — multi-line input might
+        // sit several rows above the bottom.
+        var inputBottomY = _lastBounds.Y + _lastBounds.Height - 1;
+        var inputTopY = inputBottomY - (totalLines - 1);
+        int anchorY = inputTopY + inputRow;
+        _hoverPanel.Placement = PlacementMode.Top;
         _hoverPanel.ShowAt(mouseX, anchorY, content);
     }
 
@@ -687,8 +888,9 @@ public sealed class ReplView : Control
     private bool TryGetOutputValueAtRow(int row, out NValue value)
     {
         value = NUnit.Instance;
+        var inputLines = Math.Min(CountInputLines(), Math.Max(1, _lastBounds.Height / 2));
         int outputHeight = _lastBounds.Height
-            - 1 // prompt row
+            - inputLines
             - (HasDiagnostic() ? 1 : 0)
             - (_hover is not null ? 1 : 0);
         if (outputHeight <= 0) return false;
