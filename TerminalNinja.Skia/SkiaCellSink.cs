@@ -341,7 +341,7 @@ public sealed class SkiaCellSink : IShapedRunSink
         }
 
         var styled = GetStyledFont(decorations);
-        var blob = BuildBlob(keyStr, styled.Font, styled.Shaper);
+        var blob = BuildBlob(keyStr, styled.Font, styled.Shaper, _cellWidth);
         if (blob is null)
         {
             return null;
@@ -362,7 +362,7 @@ public sealed class SkiaCellSink : IShapedRunSink
         return blob;
     }
 
-    private static SKTextBlob? BuildBlob(string text, SKFont font, SKShaper shaper)
+    private static SKTextBlob? BuildBlob(string text, SKFont font, SKShaper shaper, int cellWidth)
     {
         // Shape the text at (0, 0) — we apply the actual draw origin at DrawText time so the
         // same shaped result can be reused across cells/frames at different positions.
@@ -383,7 +383,21 @@ public sealed class SkiaCellSink : IShapedRunSink
             glyphs[i] = (ushort)result.Codepoints[i];
         }
 
-        result.Points.AsSpan().CopyTo(run.Positions);
+        // Snap HarfBuzz's per-glyph X positions to the cell grid. The shaped result can carry
+        // small sub-pixel offsets — GPOS adjustments, kerning, fractional advances — that
+        // accumulate row-by-row and make vertical box-drawing characters (e.g. the panel
+        // border │) appear to zigzag across frames. Cells are integer-aligned by definition,
+        // so the correct position for the i-th glyph is round(point.X / cellWidth) × cellWidth.
+        // Ligatures (1 glyph covering multiple chars) keep their natural left edge — the
+        // rounding only removes the sub-pixel jitter.
+        var srcPoints = result.Points.AsSpan();
+        var dstPoints = run.Positions;
+        for (var i = 0; i < srcPoints.Length && i < dstPoints.Length; i++)
+        {
+            var p = srcPoints[i];
+            var snappedX = (float)Math.Round(p.X / cellWidth) * cellWidth;
+            dstPoints[i] = new SKPoint(snappedX, p.Y);
+        }
         return builder.Build();
     }
 
