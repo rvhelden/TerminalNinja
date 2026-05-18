@@ -29,6 +29,21 @@ public sealed class NinjaSyntaxHighlighter : ISyntaxHighlighter
         "true", "false",
     };
 
+    /// <summary>
+    /// Top-level builtin callables. Hand-mirrored from
+    /// <c>TerminalNinja.Shell.Language.Services.BuiltinCatalog.TopLevel</c> — the
+    /// core lib cannot depend on the Shell.Language project, so when that catalog
+    /// gains a new entry this set must be updated too. Names that follow a <c>(</c>
+    /// or appear on their own get the <see cref="SyntaxTokenKind.Function"/> kind so
+    /// themes can colour callables distinctly from user-defined / unknown identifiers.
+    /// </summary>
+    private static readonly HashSet<string> Builtins = new(StringComparer.Ordinal)
+    {
+        "where", "select", "each", "fold", "take", "skip",
+        "count", "sort", "reverse", "distinct", "head", "tail",
+        "materialize", "print", "println", "format_table",
+    };
+
     /// <inheritdoc />
     public IReadOnlyList<SyntaxToken> Tokenize(string source)
     {
@@ -114,13 +129,19 @@ public sealed class NinjaSyntaxHighlighter : ISyntaxHighlighter
                 {
                     kind = SyntaxTokenKind.BoolLiteral;
                 }
-                else
+                else if (i < n && source[i] == '.')
                 {
                     // Heuristic: if a '.' follows this identifier we're looking at a
                     // module/object access — paint the head with the module colour.
-                    kind = (i < n && source[i] == '.')
-                        ? SyntaxTokenKind.ModuleName
-                        : SyntaxTokenKind.Identifier;
+                    kind = SyntaxTokenKind.ModuleName;
+                }
+                else if (Builtins.Contains(word))
+                {
+                    kind = SyntaxTokenKind.Function;
+                }
+                else
+                {
+                    kind = SyntaxTokenKind.Identifier;
                 }
                 tokens.Add(new SyntaxToken(start, i - start, kind));
                 continue;

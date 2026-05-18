@@ -85,6 +85,35 @@ public class HighlighterTests
     }
 
     [Test]
+    public async Task Ninja_KnownBuiltin_IsClassifiedAsFunction()
+    {
+        var hl = SyntaxHighlighterRegistry.Get("ninja")!;
+        var tokens = hl.Tokenize("where(x => x)");
+        // First token "where" is in the builtin set and not followed by a dot → Function.
+        await Assert.That(tokens[0].Kind).IsEqualTo(SyntaxTokenKind.Function);
+    }
+
+    [Test]
+    public async Task Ninja_UnknownIdentifier_StaysAsIdentifier()
+    {
+        var hl = SyntaxHighlighterRegistry.Get("ninja")!;
+        var tokens = hl.Tokenize("myThing(1)");
+        // myThing isn't in the catalog — should remain a plain Identifier.
+        await Assert.That(tokens[0].Kind).IsEqualTo(SyntaxTokenKind.Identifier);
+    }
+
+    [Test]
+    public async Task Ninja_BuiltinFollowedByDot_StaysAsModuleName()
+    {
+        // Defensive: catalog name like `count` followed by `.something` should
+        // still paint as ModuleName so member access reads consistently. The
+        // member-access heuristic wins over the builtin-name match.
+        var hl = SyntaxHighlighterRegistry.Get("ninja")!;
+        var tokens = hl.Tokenize("count.x");
+        await Assert.That(tokens[0].Kind).IsEqualTo(SyntaxTokenKind.ModuleName);
+    }
+
+    [Test]
     public async Task Ninja_Comment_RunsToEndOfLine()
     {
         var hl = SyntaxHighlighterRegistry.Get("ninja")!;

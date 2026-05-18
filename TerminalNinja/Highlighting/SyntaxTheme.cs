@@ -45,6 +45,7 @@ public sealed class SyntaxTheme
         {
             [SyntaxTokenKind.Keyword] = new(0xCB, 0xA6, 0xF7),         // mauve
             [SyntaxTokenKind.Identifier] = new(0xCD, 0xD6, 0xF4),      // text (default-ish)
+            [SyntaxTokenKind.Function] = new(0x89, 0xB4, 0xFA),        // blue (callables)
             [SyntaxTokenKind.StringLiteral] = new(0xA6, 0xE3, 0xA1),   // green
             [SyntaxTokenKind.NumberLiteral] = new(0xFA, 0xB3, 0x87),   // peach
             [SyntaxTokenKind.BoolLiteral] = new(0xFA, 0xB3, 0x87),     // peach (like numbers)

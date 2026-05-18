@@ -57,4 +57,10 @@ public enum SyntaxTokenKind
     /// errors — this kind exists for highlighters that catch them inline (e.g. an
     /// unterminated string).</summary>
     Error,
+
+    /// <summary>A known function name — language builtin, library callable, or any
+    /// identifier the highlighter has resolved to "this is callable". Distinguished
+    /// from <see cref="Identifier"/> so themes can colour <c>where</c>, <c>select</c>,
+    /// <c>print</c> differently from unknown / user-defined names.</summary>
+    Function,
 }
