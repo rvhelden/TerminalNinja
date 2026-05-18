@@ -299,12 +299,14 @@ public class ParserTests
     public async Task Parse_PipeIntoBareFunctionRef_OneArg()
     {
         // Direct AST inspection — make sure the bare-function form is exactly Call(Var, [lhs]).
+        // Compare by Var.Name (records also carry a Span that the parser populates;
+        // pattern matching on the case + field is the equality we actually mean).
         var ast = NinjaParser.ParseExpression("xs | println");
         var call = ast as Call;
         await Assert.That(call).IsNotNull();
-        await Assert.That(call!.Function).IsEqualTo((Expr)new Var("println"));
+        await Assert.That(call!.Function is Var { Name: "println" }).IsTrue();
         await Assert.That(call.Args.Length).IsEqualTo(1);
-        await Assert.That(call.Args[0]).IsEqualTo((Expr)new Var("xs"));
+        await Assert.That(call.Args[0] is Var { Name: "xs" }).IsTrue();
     }
 
     [Test]

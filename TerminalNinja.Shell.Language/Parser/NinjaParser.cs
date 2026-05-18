@@ -84,6 +84,27 @@ public static class NinjaParser
             while (Match(TokenKind.Newline)) { }
         }
 
+        /// <summary>Capture the start position of an in-progress production.</summary>
+        private (int Line, int Column) StartPos() => (Current.Line, Current.Column);
+
+        /// <summary>
+        /// Build a <see cref="Span"/> from <paramref name="start"/> to the end of the
+        /// most recently consumed token. Falls back to a zero-length span at the
+        /// start if no tokens have been consumed (e.g. the production rejected).
+        /// </summary>
+        private Span SpanFrom((int Line, int Column) start)
+        {
+            if (_pos == 0)
+                return new Span(start.Line, start.Column, start.Line, start.Column);
+            var prev = _tokens[_pos - 1];
+            int endLine = prev.Line;
+            int endCol = prev.Column + Math.Max(prev.Text.Length, 1);
+            return new Span(start.Line, start.Column, endLine, endCol);
+        }
+
+        /// <summary>Build a span that starts where <paramref name="left"/> started and ends at the most recently consumed token.</summary>
+        private Span SpanFromExpr(Expr left) => SpanFrom((left.Span.StartLine, left.Span.StartColumn));
+
         public void ExpectEof()
         {
             SkipNewlines();
@@ -122,13 +143,14 @@ public static class NinjaParser
 
         private Expr ParseSourceStatement()
         {
+            var start = StartPos();
             Expect(TokenKind.KwSource, "'source'");
             Expect(TokenKind.LParen, "'(' after 'source'");
             SkipNewlines();
             var path = ParseExpr();
             SkipNewlines();
             Expect(TokenKind.RParen, "')' to close source statement");
-            return new SourceStatement(path);
+            return new SourceStatement(path, SpanFrom(start));
         }
 
         /// <summary>
@@ -163,6 +185,7 @@ public static class NinjaParser
 
         private Expr ParseLetStatementOrLetIn()
         {
+            var start = StartPos();
             Expect(TokenKind.KwLet, "'let'");
             var name = Expect(TokenKind.Identifier, "identifier after 'let'").Text;
             Expect(TokenKind.Assign, "'=' after let name");
@@ -173,15 +196,16 @@ public static class NinjaParser
             {
                 SkipNewlines();
                 var body = ParseExpr();
-                return new Let(name, value, body);
+                return new Let(name, value, body, SpanFrom(start));
             }
-            return new LetStatement(name, value);
+            return new LetStatement(name, value, SpanFrom(start));
         }
 
         private Expr ParseExpr()
         {
             if (Check(TokenKind.KwLet) && !IsTopLevelLetStatement())
             {
+                var start = StartPos();
                 Advance();
                 var name = Expect(TokenKind.Identifier, "identifier after 'let'").Text;
                 Expect(TokenKind.Assign, "'=' after let name");
@@ -191,7 +215,7 @@ public static class NinjaParser
                 Expect(TokenKind.KwIn, "'in' to close let-binding");
                 SkipNewlines();
                 var body = ParseExpr();
-                return new Let(name, value, body);
+                return new Let(name, value, body, SpanFrom(start));
             }
 
             return ParsePipe();
@@ -206,17 +230,17 @@ public static class NinjaParser
                 if (!Match(TokenKind.Pipe)) break;
                 SkipNewlines();
                 var right = ParseOr();
-                left = DesugarPipe(left, right);
+                left = DesugarPipe(left, right, SpanFromExpr(left));
             }
             return left;
         }
 
-        private static Expr DesugarPipe(Expr lhs, Expr rhs)
+        private static Expr DesugarPipe(Expr lhs, Expr rhs, Span span)
         {
             return rhs switch
             {
-                Call call => new Call(call.Function, ImmutableArray.Create(lhs).AddRange(call.Args)),
-                _ => new Call(rhs, ImmutableArray.Create(lhs)),
+                Call call => new Call(call.Function, ImmutableArray.Create(lhs).AddRange(call.Args), span),
+                _ => new Call(rhs, ImmutableArray.Create(lhs), span),
             };
         }
 
@@ -226,7 +250,7 @@ public static class NinjaParser
             while (Match(TokenKind.OrOr))
             {
                 var right = ParseAnd();
-                left = new BinOp(BinOpKind.Or, left, right);
+                left = new BinOp(BinOpKind.Or, left, right, SpanFromExpr(left));
             }
             return left;
         }
@@ -237,7 +261,7 @@ public static class NinjaParser
             while (Match(TokenKind.AndAnd))
             {
                 var right = ParseEquality();
-                left = new BinOp(BinOpKind.And, left, right);
+                left = new BinOp(BinOpKind.And, left, right, SpanFromExpr(left));
             }
             return left;
         }
@@ -247,8 +271,8 @@ public static class NinjaParser
             var left = ParseComparison();
             while (true)
             {
-                if (Match(TokenKind.EqEq)) left = new BinOp(BinOpKind.Eq, left, ParseComparison());
-                else if (Match(TokenKind.NotEq)) left = new BinOp(BinOpKind.NotEq, left, ParseComparison());
+                if (Match(TokenKind.EqEq)) left = new BinOp(BinOpKind.Eq, left, ParseComparison(), SpanFromExpr(left));
+                else if (Match(TokenKind.NotEq)) left = new BinOp(BinOpKind.NotEq, left, ParseComparison(), SpanFromExpr(left));
                 else break;
             }
             return left;
@@ -259,10 +283,10 @@ public static class NinjaParser
             var left = ParseRange();
             while (true)
             {
-                if (Match(TokenKind.Less)) left = new BinOp(BinOpKind.Less, left, ParseRange());
-                else if (Match(TokenKind.LessEq)) left = new BinOp(BinOpKind.LessEq, left, ParseRange());
-                else if (Match(TokenKind.Greater)) left = new BinOp(BinOpKind.Greater, left, ParseRange());
-                else if (Match(TokenKind.GreaterEq)) left = new BinOp(BinOpKind.GreaterEq, left, ParseRange());
+                if (Match(TokenKind.Less)) left = new BinOp(BinOpKind.Less, left, ParseRange(), SpanFromExpr(left));
+                else if (Match(TokenKind.LessEq)) left = new BinOp(BinOpKind.LessEq, left, ParseRange(), SpanFromExpr(left));
+                else if (Match(TokenKind.Greater)) left = new BinOp(BinOpKind.Greater, left, ParseRange(), SpanFromExpr(left));
+                else if (Match(TokenKind.GreaterEq)) left = new BinOp(BinOpKind.GreaterEq, left, ParseRange(), SpanFromExpr(left));
                 else break;
             }
             return left;
@@ -274,7 +298,7 @@ public static class NinjaParser
             if (Match(TokenKind.DotDot))
             {
                 var right = ParseAddSub();
-                return new RangeLit(left, right);
+                return new RangeLit(left, right, SpanFromExpr(left));
             }
             return left;
         }
@@ -284,8 +308,8 @@ public static class NinjaParser
             var left = ParseMulDiv();
             while (true)
             {
-                if (Match(TokenKind.Plus)) left = new BinOp(BinOpKind.Add, left, ParseMulDiv());
-                else if (Match(TokenKind.Minus)) left = new BinOp(BinOpKind.Sub, left, ParseMulDiv());
+                if (Match(TokenKind.Plus)) left = new BinOp(BinOpKind.Add, left, ParseMulDiv(), SpanFromExpr(left));
+                else if (Match(TokenKind.Minus)) left = new BinOp(BinOpKind.Sub, left, ParseMulDiv(), SpanFromExpr(left));
                 else break;
             }
             return left;
@@ -296,8 +320,8 @@ public static class NinjaParser
             var left = ParseUnary();
             while (true)
             {
-                if (Match(TokenKind.Star)) left = new BinOp(BinOpKind.Mul, left, ParseUnary());
-                else if (Match(TokenKind.Slash)) left = new BinOp(BinOpKind.Div, left, ParseUnary());
+                if (Match(TokenKind.Star)) left = new BinOp(BinOpKind.Mul, left, ParseUnary(), SpanFromExpr(left));
+                else if (Match(TokenKind.Slash)) left = new BinOp(BinOpKind.Div, left, ParseUnary(), SpanFromExpr(left));
                 else break;
             }
             return left;
@@ -305,7 +329,12 @@ public static class NinjaParser
 
         private Expr ParseUnary()
         {
-            if (Match(TokenKind.Minus)) return new UnaryOp(UnaryOpKind.Neg, ParseUnary());
+            if (Check(TokenKind.Minus))
+            {
+                var start = StartPos();
+                Advance();
+                return new UnaryOp(UnaryOpKind.Neg, ParseUnary(), SpanFrom(start));
+            }
             return ParsePostfix();
         }
 
@@ -317,7 +346,7 @@ public static class NinjaParser
                 if (Match(TokenKind.Dot))
                 {
                     var member = Expect(TokenKind.Identifier, "identifier after '.'").Text;
-                    expr = new MemberAccess(expr, member);
+                    expr = new MemberAccess(expr, member, SpanFromExpr(expr));
                 }
                 else if (Match(TokenKind.LBracket))
                 {
@@ -325,12 +354,12 @@ public static class NinjaParser
                     var index = ParseExpr();
                     SkipNewlines();
                     Expect(TokenKind.RBracket, "']' to close indexer");
-                    expr = new IndexAccess(expr, index);
+                    expr = new IndexAccess(expr, index, SpanFromExpr(expr));
                 }
                 else if (Match(TokenKind.LParen))
                 {
                     var args = ParseCallArgs();
-                    expr = new Call(expr, args);
+                    expr = new Call(expr, args, SpanFromExpr(expr));
                 }
                 else if (Check(TokenKind.KwSwitch))
                 {
@@ -377,7 +406,7 @@ public static class NinjaParser
                 SkipSeparators();
             }
             Expect(TokenKind.RBrace, "'}' to close switch body");
-            return new Switch(scrutinee, arms.ToImmutable());
+            return new Switch(scrutinee, arms.ToImmutable(), SpanFromExpr(scrutinee));
         }
 
         private SwitchArm ParseSwitchArm()
@@ -443,30 +472,31 @@ public static class NinjaParser
         {
             SkipNewlines();
             var t = Current;
+            var start = StartPos();
             switch (t.Kind)
             {
                 case TokenKind.IntLiteral:
                     Advance();
-                    return new Lit(new NInt(long.Parse(t.Text, System.Globalization.CultureInfo.InvariantCulture)));
+                    return new Lit(new NInt(long.Parse(t.Text, System.Globalization.CultureInfo.InvariantCulture)), SpanFrom(start));
                 case TokenKind.FloatLiteral:
                     Advance();
-                    return new Lit(new NFloat(double.Parse(t.Text, System.Globalization.CultureInfo.InvariantCulture)));
+                    return new Lit(new NFloat(double.Parse(t.Text, System.Globalization.CultureInfo.InvariantCulture)), SpanFrom(start));
                 case TokenKind.StringLiteral:
                     Advance();
-                    return new Lit(new NString(t.Text));
+                    return new Lit(new NString(t.Text), SpanFrom(start));
                 case TokenKind.KwTrue:
                     Advance();
-                    return new Lit(new NBool(true));
+                    return new Lit(new NBool(true), SpanFrom(start));
                 case TokenKind.KwFalse:
                     Advance();
-                    return new Lit(new NBool(false));
+                    return new Lit(new NBool(false), SpanFrom(start));
                 case TokenKind.Identifier:
                     if (Peek(1).Kind == TokenKind.FatArrow)
                     {
                         return ParseSingleParamLambda();
                     }
                     Advance();
-                    return new Var(t.Text);
+                    return new Var(t.Text, SpanFrom(start));
                 case TokenKind.LParen:
                     return ParseLambdaOrParen();
                 case TokenKind.LBracket:
@@ -490,13 +520,14 @@ public static class NinjaParser
 
         private Expr ParseSingleParamLambda()
         {
+            var start = StartPos();
             var name = Expect(TokenKind.Identifier, "lambda parameter").Text;
             Expect(TokenKind.FatArrow, "'=>' in lambda");
             SkipNewlines();
             if (IsAtEnd)
                 throw new ParserException("expected lambda body after '=>'", Current.Line, Current.Column, isIncomplete: true);
             var body = ParseExpr();
-            return new Lambda(ImmutableArray.Create(name), body);
+            return new Lambda(ImmutableArray.Create(name), body, SpanFrom(start));
         }
 
         private Expr ParseLambdaOrParen()
@@ -515,6 +546,7 @@ public static class NinjaParser
 
         private Expr TryParseParenLambda()
         {
+            var start = StartPos();
             Expect(TokenKind.LParen, "'('");
             var parameters = ImmutableArray.CreateBuilder<string>();
             if (!Check(TokenKind.RParen))
@@ -539,7 +571,7 @@ public static class NinjaParser
             if (IsAtEnd)
                 throw new ParserException("expected lambda body after '=>'", Current.Line, Current.Column, isIncomplete: true);
             var body = ParseExpr();
-            return new Lambda(parameters.ToImmutable(), body);
+            return new Lambda(parameters.ToImmutable(), body, SpanFrom(start));
         }
 
         private Expr ParseParenExpression()
@@ -554,6 +586,7 @@ public static class NinjaParser
 
         private Expr ParseListLiteral()
         {
+            var start = StartPos();
             Expect(TokenKind.LBracket, "'['");
             var items = ImmutableArray.CreateBuilder<Expr>();
             SkipSeparators();
@@ -563,12 +596,13 @@ public static class NinjaParser
                 SkipSeparators();
             }
             Expect(TokenKind.RBracket, "']' to close list literal");
-            return new ListLit(items.ToImmutable());
+            return new ListLit(items.ToImmutable(), SpanFrom(start));
         }
 
         private Expr ParseRecordLiteral()
         {
             int braceLine = Current.Line, braceCol = Current.Column;
+            var start = StartPos();
             Expect(TokenKind.LBrace, "'{'");
             var fields = ImmutableArray.CreateBuilder<RecordField>();
             var keys = new HashSet<string>(StringComparer.Ordinal);
@@ -605,11 +639,12 @@ public static class NinjaParser
             if (IsAtEnd)
                 throw new ParserException("'}' to close record literal", braceLine, braceCol, isIncomplete: true);
             Expect(TokenKind.RBrace, "'}' to close record literal");
-            return new RecordLit(fields.ToImmutable());
+            return new RecordLit(fields.ToImmutable(), SpanFrom(start));
         }
 
         private Expr ParseInterpolation()
         {
+            var start = StartPos();
             Expect(TokenKind.InterpStart, "'$\"'");
             var segments = ImmutableArray.CreateBuilder<InterpSegment>();
             while (!Check(TokenKind.InterpEnd) && !IsAtEnd)
@@ -634,14 +669,15 @@ public static class NinjaParser
                 }
             }
             Expect(TokenKind.InterpEnd, "closing '\"' of interpolated string");
-            return new InterpExpr(segments.ToImmutable());
+            return new InterpExpr(segments.ToImmutable(), SpanFrom(start));
         }
 
         private Expr ParsePwshExpr()
         {
+            var start = StartPos();
             Expect(TokenKind.KwPwsh, "'pwsh'");
             var block = Expect(TokenKind.PwshBlock, "'{' block after 'pwsh'");
-            return new PwshExpr(block.Text);
+            return new PwshExpr(block.Text, SpanFrom(start));
         }
     }
 }
