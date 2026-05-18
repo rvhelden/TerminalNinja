@@ -17,6 +17,7 @@
     <ProjectReference Include="..\TerminalNinja.Terminal\TerminalNinja.Terminal.csproj" />
     <ProjectReference Include="..\TerminalNinja.Shell.Language\TerminalNinja.Shell.Language.csproj" />
     <ProjectReference Include="..\TerminalNinja.Shell\TerminalNinja.Shell.csproj" />
+    <ProjectReference Include="..\TerminalNinja.Shell.LanguageServer\TerminalNinja.Shell.LanguageServer.csproj" />
     <ProjectReference Include="..\TerminalNinja.Generators\TerminalNinja.Generators.csproj"
                       OutputItemType="Analyzer"
                       ReferenceOutputAssembly="false" />
