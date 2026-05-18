@@ -228,7 +228,7 @@ public class ContentPresenter : FrameworkElement
     public override Rect CalculateBounds(Rect parent) => parent;
 
     /// <inheritdoc />
-    public override void Render(CellBuffer buffer, Rect parentBounds)
+    protected override void OnRender(CellBuffer buffer, Rect parentBounds)
     {
         EnsureTemplatedChild();
         var bounds = CalculateBounds(parentBounds);

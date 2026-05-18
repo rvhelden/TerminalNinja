@@ -18,7 +18,7 @@ public class PanelTests
     {
         public List<string> Events { get; } = new();
 
-        public override void Render(CellBuffer buffer, Rect bounds)
+        protected override void OnRender(CellBuffer buffer, Rect bounds)
         {
             // No-op for testing
         }

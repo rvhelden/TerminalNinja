@@ -179,7 +179,7 @@ internal sealed class PopupRoot : FrameworkElement
         return new Rect(x, y, childW, childH);
     }
 
-    public override void Render(CellBuffer buffer, Rect parentBounds)
+    protected override void OnRender(CellBuffer buffer, Rect parentBounds)
     {
         if (_child == null)
         {

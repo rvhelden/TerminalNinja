@@ -158,7 +158,30 @@ public abstract class UIElement : Visual
     public abstract Rect CalculateBounds(Rect parent);
 
     /// <summary>
-    /// Renders this element to the specified cell buffer.
+    /// Renders this element to the specified cell buffer, honoring <see cref="Visibility"/>.
+    /// <see cref="Visibility.Hidden"/> and <see cref="Visibility.Collapsed"/> both skip the
+    /// render entirely; the difference is in layout, which is the panel's responsibility
+    /// (a <see cref="Collapsed"/> child should also be treated as zero-size when sizing its
+    /// siblings — see <c>StackPanel.CalculateChildSizes</c>).
     /// </summary>
-    public abstract void Render(CellBuffer buffer, Rect parentBounds);
+    /// <remarks>
+    /// Subclasses override <see cref="OnRender"/> instead of this method — the visibility
+    /// short-circuit lives here so call sites never need to gate manually.
+    /// </remarks>
+    public void Render(CellBuffer buffer, Rect parentBounds)
+    {
+        if (Visibility != Visibility.Visible)
+        {
+            return;
+        }
+        OnRender(buffer, parentBounds);
+    }
+
+    /// <summary>
+    /// Renders this element's content. Called by the public <see cref="Render"/> wrapper
+    /// after the <see cref="Visibility"/> check passes; subclasses implement their painting
+    /// here. Calling <c>base.OnRender</c> from an override bypasses the visibility check
+    /// because the caller already cleared it.
+    /// </summary>
+    protected abstract void OnRender(CellBuffer buffer, Rect parentBounds);
 }

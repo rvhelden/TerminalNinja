@@ -35,7 +35,7 @@ public class FocusManagerTests
         
         public override Size2D GetPreferredSize(Rect parent) => new(_bounds.Width, _bounds.Height);
         public override Rect CalculateBounds(Rect parent) => _bounds;
-        public override void Render(CellBuffer buffer, Rect parentBounds) { }
+        protected override void OnRender(CellBuffer buffer, Rect parentBounds) { }
     }
     
     [Test]

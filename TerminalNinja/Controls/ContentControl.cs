@@ -120,7 +120,7 @@ public class ContentControl : Control
     public override Rect CalculateBounds(Rect parent) => parent;
 
     /// <inheritdoc />
-    public override void Render(CellBuffer buffer, Rect parentBounds)
+    protected override void OnRender(CellBuffer buffer, Rect parentBounds)
     {
         var bounds = CalculateBounds(parentBounds);
         _contentPresenter.Render(buffer, bounds);

@@ -162,7 +162,7 @@ public class ScrollViewer : ContentControl
     }
 
     /// <inheritdoc />
-    public override void Render(CellBuffer buffer, Rect parentBounds)
+    protected override void OnRender(CellBuffer buffer, Rect parentBounds)
     {
         var bounds = CalculateBounds(parentBounds);
 

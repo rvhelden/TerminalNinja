@@ -82,5 +82,5 @@ public abstract class Inline : FrameworkElement
     // Inlines are not rendered directly — they are collected and rendered by TextBlock
     public override Size2D GetPreferredSize(Rect parent) => default;
     public override Rect CalculateBounds(Rect parent) => default;
-    public override void Render(CellBuffer buffer, Rect parentBounds) { }
+    protected override void OnRender(CellBuffer buffer, Rect parentBounds) { }
 }

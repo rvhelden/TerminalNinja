@@ -226,7 +226,7 @@ public sealed class Grid : Panel
     /// <summary>
     /// Renders the grid and all its children.
     /// </summary>
-    public override void Render(CellBuffer buffer, Rect parentBounds)
+    protected override void OnRender(CellBuffer buffer, Rect parentBounds)
     {
         var bounds = CalculateBounds(parentBounds);
         if (Children.Count == 0)

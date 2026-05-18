@@ -266,7 +266,7 @@ public sealed class FilePicker : Window
 
     // ─── Rendering ───────────────────────────────────────────────────
 
-    public override void Render(CellBuffer buffer, Rect parentBounds)
+    protected override void OnRender(CellBuffer buffer, Rect parentBounds)
     {
         var bounds = CalculateBounds(parentBounds);
         _lastBounds = bounds;

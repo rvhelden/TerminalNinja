@@ -90,7 +90,7 @@ public class ItemsPresenter : FrameworkElement
     public override Rect CalculateBounds(Rect parent) => parent;
 
     /// <inheritdoc />
-    public override void Render(CellBuffer buffer, Rect parentBounds)
+    protected override void OnRender(CellBuffer buffer, Rect parentBounds)
     {
         var bounds = CalculateBounds(parentBounds);
         Owner?.ItemsPanel.Render(buffer, bounds);

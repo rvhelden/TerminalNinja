@@ -144,7 +144,7 @@ public class Popup : FrameworkElement
     /// <summary>
     /// Popup does not render inline — its content is rendered via the overlay stack.
     /// </summary>
-    public override void Render(CellBuffer buffer, Rect parentBounds)
+    protected override void OnRender(CellBuffer buffer, Rect parentBounds)
     {
         // Intentionally empty — the PopupRoot is rendered by Application's overlay loop
     }

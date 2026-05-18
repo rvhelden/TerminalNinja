@@ -184,7 +184,7 @@ public class SkiaShapedRunTests
 
         public override Rect CalculateBounds(Rect parentBounds) => parentBounds;
 
-        public override void Render(CellBuffer buffer, Rect parentBounds)
+        protected override void OnRender(CellBuffer buffer, Rect parentBounds)
         {
             CapturedSink = buffer.ActiveSink;
         }

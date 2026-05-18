@@ -275,6 +275,6 @@ public class DirtyRegionDispatchTests
 
         public override Size2D GetPreferredSize(Rect availableSpace) => new(0, 0);
         public override Rect CalculateBounds(Rect parentBounds) => parentBounds;
-        public override void Render(CellBuffer buffer, Rect parentBounds) => _write(buffer);
+        protected override void OnRender(CellBuffer buffer, Rect parentBounds) => _write(buffer);
     }
 }

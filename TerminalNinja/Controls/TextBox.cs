@@ -260,7 +260,7 @@ public sealed class TextBox : Control
     // ─── Rendering ───────────────────────────────────────────────────
 
     /// <inheritdoc />
-    public override void Render(CellBuffer buffer, Rect parentBounds)
+    protected override void OnRender(CellBuffer buffer, Rect parentBounds)
     {
         var bounds = CalculateBounds(parentBounds);
         var clipped = bounds.Intersect(new Rect(0, 0, buffer.Width, buffer.Height));

@@ -23,7 +23,7 @@ public class SelectorTests
     {
         public override Size2D GetPreferredSize(Rect parent) => new(parent.Width, parent.Height);
         public override Rect CalculateBounds(Rect parent) => parent;
-        public override void Render(CellBuffer buffer, Rect parentBounds)
+        protected override void OnRender(CellBuffer buffer, Rect parentBounds)
         {
             ItemsPanel.Render(buffer, parentBounds);
         }

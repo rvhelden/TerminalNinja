@@ -84,7 +84,7 @@ public sealed class TerminalView : UIElement
         => parentBounds; // fill what we're given; resize-to-fit handled separately
 
     /// <inheritdoc />
-    public override void Render(CellBuffer buffer, Rect parentBounds)
+    protected override void OnRender(CellBuffer buffer, Rect parentBounds)
     {
         // Pull any bytes that arrived since the last render. Done on the render thread so
         // parser + screen-buffer mutations are single-producer (avoids tearing).

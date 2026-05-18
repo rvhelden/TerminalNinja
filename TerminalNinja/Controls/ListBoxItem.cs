@@ -107,7 +107,7 @@ public class ListBoxItem : ContentControl, ISelectableContainer
     public override Rect CalculateBounds(Rect parent) => parent;
 
     /// <inheritdoc />
-    public override void Render(CellBuffer buffer, Rect parentBounds)
+    protected override void OnRender(CellBuffer buffer, Rect parentBounds)
     {
         var bounds = CalculateBounds(parentBounds);
 
@@ -173,7 +173,7 @@ public class ListBoxItem : ContentControl, ISelectableContainer
             // Fallback to the default ContentControl rendering path.
             // This guarantees content still renders even when we cannot directly
             // resolve the generated visual child.
-            base.Render(buffer, contentBounds);
+            base.OnRender(buffer, contentBounds);
         }
     }
 

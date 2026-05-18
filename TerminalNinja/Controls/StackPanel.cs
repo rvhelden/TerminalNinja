@@ -141,7 +141,7 @@ public class StackPanel : Panel
     /// <summary>
     /// Renders the stack panel and all its children.
     /// </summary>
-    public override void Render(CellBuffer buffer, Rect parentBounds)
+    protected override void OnRender(CellBuffer buffer, Rect parentBounds)
     {
         if (Children.Count == 0)
         {
@@ -204,23 +204,33 @@ public class StackPanel : Panel
     {
         var sizes = new int[Children.Count];
         var mainAxisSize = Orientation == Orientation.Horizontal ? bounds.Width : bounds.Height;
-        
+
         var totalFixed = 0;
         var stretchCount = 0;
-        
-        // First pass: calculate Fixed and Auto sizes
+
+        // First pass: calculate Fixed and Auto sizes. Collapsed children short-circuit to
+        // zero regardless of SizeMode so siblings fill the freed slot — Hidden takes its
+        // normal allocation (the cells just paint as background because the public Render
+        // wrapper on UIElement skips OnRender).
         for (var i = 0; i < Children.Count; i++)
         {
             var child = Children[i];
+
+            if (child is UIElement uie && uie.Visibility == Visibility.Collapsed)
+            {
+                sizes[i] = 0;
+                continue;
+            }
+
             var sizeMode = GetSizeMode(child);
-            
+
             switch (sizeMode)
             {
                 case ChildSizeMode.Fixed:
                     sizes[i] = GetFixedSize(child);
                     totalFixed += sizes[i];
                     break;
-                
+
                 case ChildSizeMode.Auto:
                     var preferredSize = child.GetPreferredSize(bounds);
                     var autoMargin = child is FrameworkElement autoFe ? autoFe.Margin : new Thickness(0);
@@ -229,25 +239,30 @@ public class StackPanel : Panel
                         : preferredSize.Height + autoMargin.VerticalTotal;
                     totalFixed += sizes[i];
                     break;
-                
+
                 case ChildSizeMode.Stretch:
                     stretchCount++;
                     break;
             }
         }
-        
-        // Second pass: distribute remaining space to Stretch children
+
+        // Second pass: distribute remaining space to Stretch children that aren't collapsed.
         var remainingSpace = Math.Max(0, mainAxisSize - totalFixed);
         var stretchSize = stretchCount > 0 ? remainingSpace / stretchCount : 0;
-        
+
         for (var i = 0; i < Children.Count; i++)
         {
-            if (GetSizeMode(Children[i]) == ChildSizeMode.Stretch)
+            var child = Children[i];
+            if (child is UIElement uie && uie.Visibility == Visibility.Collapsed)
+            {
+                continue;
+            }
+            if (GetSizeMode(child) == ChildSizeMode.Stretch)
             {
                 sizes[i] = stretchSize;
             }
         }
-        
+
         return sizes;
     }
     

@@ -199,14 +199,14 @@ public class Window : ContentControl
     /// Renders the window content to the buffer.
     /// Window itself has no visual representation - it delegates to Content via ContentPresenter.
     /// </summary>
-    public override void Render(CellBuffer buffer, Rect parentBounds)
+    protected override void OnRender(CellBuffer buffer, Rect parentBounds)
     {
         var bounds = CalculateBounds(parentBounds);
         
         // Render content if present (delegated to ContentPresenter via base)
         if (HasContent)
         {
-            base.Render(buffer, bounds);
+            base.OnRender(buffer, bounds);
         }
     }
 

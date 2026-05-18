@@ -207,7 +207,7 @@ public sealed class TextBlock : FrameworkElement
     /// <summary>
     /// Renders this text block to the specified cell buffer.
     /// </summary>
-    public override void Render(CellBuffer buffer, Rect parentBounds)
+    protected override void OnRender(CellBuffer buffer, Rect parentBounds)
     {
         var bounds = CalculateBounds(parentBounds);
         

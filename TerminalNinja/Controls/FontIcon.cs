@@ -179,7 +179,7 @@ public sealed class FontIcon : FrameworkElement
     /// Renders the icon glyph to the specified cell buffer.
     /// The glyph is centered within the calculated bounds.
     /// </summary>
-    public override void Render(CellBuffer buffer, Rect parentBounds)
+    protected override void OnRender(CellBuffer buffer, Rect parentBounds)
     {
         var bounds = CalculateBounds(parentBounds);
 

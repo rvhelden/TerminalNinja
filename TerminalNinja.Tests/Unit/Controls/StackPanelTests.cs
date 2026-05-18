@@ -722,4 +722,105 @@ public class StackPanelTests
     }
 
     #endregion
+
+    #region Visibility
+
+    [Test]
+    public async Task CalculateChildSizes_CollapsedChild_TakesZeroSpace()
+    {
+        // Arrange: two siblings; the first is Collapsed and should yield its space to the second.
+        var collapsed = new global::TerminalNinja.Controls.Border { Background = Color.Red };
+        StackPanel.SetSizeMode(collapsed, ChildSizeMode.Fixed);
+        StackPanel.SetFixedSize(collapsed, 30);
+        collapsed.Visibility = Visibility.Collapsed;
+
+        var stretchSibling = new global::TerminalNinja.Controls.Border { Background = Color.Green };
+        StackPanel.SetSizeMode(stretchSibling, ChildSizeMode.Stretch);
+
+        var stackPanel = new StackPanel { Orientation = Orientation.Horizontal };
+        stackPanel.Children.Add(collapsed);
+        stackPanel.Children.Add(stretchSibling);
+
+        var sizes = stackPanel.CalculateChildSizes(new Rect(0, 0, 100, 10));
+
+        await Assert.That(sizes[0]).IsEqualTo(0);
+        await Assert.That(sizes[1]).IsEqualTo(100);
+    }
+
+    [Test]
+    public async Task CalculateChildSizes_HiddenChild_KeepsItsAllocation()
+    {
+        // Arrange: Hidden differs from Collapsed — the child keeps its slot, the renderer
+        // just skips painting it (so siblings can rely on stable positions when toggling).
+        var hidden = new global::TerminalNinja.Controls.Border { Background = Color.Red };
+        StackPanel.SetSizeMode(hidden, ChildSizeMode.Fixed);
+        StackPanel.SetFixedSize(hidden, 30);
+        hidden.Visibility = Visibility.Hidden;
+
+        var stretchSibling = new global::TerminalNinja.Controls.Border { Background = Color.Green };
+        StackPanel.SetSizeMode(stretchSibling, ChildSizeMode.Stretch);
+
+        var stackPanel = new StackPanel { Orientation = Orientation.Horizontal };
+        stackPanel.Children.Add(hidden);
+        stackPanel.Children.Add(stretchSibling);
+
+        var sizes = stackPanel.CalculateChildSizes(new Rect(0, 0, 100, 10));
+
+        await Assert.That(sizes[0]).IsEqualTo(30);
+        await Assert.That(sizes[1]).IsEqualTo(70);
+    }
+
+    [Test]
+    public async Task Render_CollapsedChild_DoesNotPaintCells()
+    {
+        var collapsed = new global::TerminalNinja.Controls.Border { Background = Color.Red };
+        StackPanel.SetSizeMode(collapsed, ChildSizeMode.Fixed);
+        StackPanel.SetFixedSize(collapsed, 30);
+        collapsed.Visibility = Visibility.Collapsed;
+
+        var stretchSibling = new global::TerminalNinja.Controls.Border { Background = Color.Green };
+        StackPanel.SetSizeMode(stretchSibling, ChildSizeMode.Stretch);
+
+        var stackPanel = new StackPanel { Orientation = Orientation.Horizontal };
+        stackPanel.Children.Add(collapsed);
+        stackPanel.Children.Add(stretchSibling);
+
+        stackPanel.Render(_buffer, new Rect(0, 0, 100, 10));
+
+        // The first 30 columns should NOT be red — Collapsed child's space went to the
+        // sibling, so green fills the whole row.
+        await Assert.That(_buffer.GetCell(0, 0).Background).IsEqualTo(Color.Green);
+        await Assert.That(_buffer.GetCell(29, 0).Background).IsEqualTo(Color.Green);
+        await Assert.That(_buffer.GetCell(99, 0).Background).IsEqualTo(Color.Green);
+    }
+
+    [Test]
+    public async Task Render_HiddenChild_DoesNotPaintButReservesSpace()
+    {
+        // Arrange: red child marked Hidden, green sibling fills the rest. Hidden = the child's
+        // OnRender is skipped, but its layout footprint stays — the underlying cells get
+        // whatever the parent painted (default Empty cells: white-on-black space).
+        var hidden = new global::TerminalNinja.Controls.Border { Background = Color.Red };
+        StackPanel.SetSizeMode(hidden, ChildSizeMode.Fixed);
+        StackPanel.SetFixedSize(hidden, 30);
+        hidden.Visibility = Visibility.Hidden;
+
+        var stretchSibling = new global::TerminalNinja.Controls.Border { Background = Color.Green };
+        StackPanel.SetSizeMode(stretchSibling, ChildSizeMode.Stretch);
+
+        var stackPanel = new StackPanel { Orientation = Orientation.Horizontal };
+        stackPanel.Children.Add(hidden);
+        stackPanel.Children.Add(stretchSibling);
+
+        stackPanel.Render(_buffer, new Rect(0, 0, 100, 10));
+
+        // Hidden child's 30 columns are unchanged (still Cell.Empty's default black);
+        // green starts at column 30.
+        await Assert.That(_buffer.GetCell(0, 0).Background).IsEqualTo(Color.Black);
+        await Assert.That(_buffer.GetCell(29, 0).Background).IsEqualTo(Color.Black);
+        await Assert.That(_buffer.GetCell(30, 0).Background).IsEqualTo(Color.Green);
+        await Assert.That(_buffer.GetCell(99, 0).Background).IsEqualTo(Color.Green);
+    }
+
+    #endregion
 }
