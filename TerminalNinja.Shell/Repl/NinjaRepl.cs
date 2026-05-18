@@ -1,4 +1,5 @@
 using TerminalNinja.Shell.Builtins;
+using TerminalNinja.Shell.Language.Services;
 using TerminalNinja.Shell.PowerShell;
 using TerminalNinja.Shell.Runtime;
 using TerminalNinja.Shell.Values;
@@ -46,6 +47,44 @@ public sealed class NinjaRepl
         if (!PwshBridge.IsAvailable)
             _output.WriteLine("(pwsh not on PATH — `pwsh { ... }` blocks will fail)");
 
+        var editor = TryCreateInteractiveEditor();
+        if (editor is not null) return RunInteractive(editor, exitOnEof);
+        return RunPlain(exitOnEof);
+    }
+
+    private LineEditor? TryCreateInteractiveEditor()
+    {
+        // Key-mode reading only works on a real console. When input has been
+        // redirected (tests, pipes, files) fall back to the line-oriented path
+        // so Console.ReadLine semantics — and existing test harnesses — still work.
+        if (Console.IsInputRedirected) return null;
+        return new LineEditor(new ConsoleKeyReader(), _output,
+            (line, cursor) => LanguageService.GetCompletions(line, new Position(0, cursor)));
+    }
+
+    private int RunInteractive(LineEditor editor, bool exitOnEof)
+    {
+        while (true)
+        {
+            var prompt = _accumulator.IsEmpty ? PrimaryPrompt : ContinuationPrompt;
+            var r = editor.ReadLine(prompt);
+            switch (r.Result)
+            {
+                case LineEditor.ReadResult.Eof:
+                    if (!exitOnEof) return 0;
+                    return 0;
+                case LineEditor.ReadResult.Aborted:
+                    _accumulator.Reset();
+                    continue;
+                case LineEditor.ReadResult.EnteredLine:
+                    if (HandleInputLine(r.Text, out var exitCode)) return exitCode;
+                    continue;
+            }
+        }
+    }
+
+    private int RunPlain(bool exitOnEof)
+    {
         while (true)
         {
             _output.Write(_accumulator.IsEmpty ? PrimaryPrompt : ContinuationPrompt);
@@ -56,24 +95,29 @@ public sealed class NinjaRepl
                 _output.WriteLine();
                 return 0;
             }
-            if (_accumulator.IsEmpty && line.Trim() is "exit" or "quit")
-                return 0;
-
-            var result = _accumulator.Feed(line);
-            switch (result.State)
-            {
-                case AccumulatorState.Empty:
-                    continue;
-                case AccumulatorState.NeedMore:
-                    continue;
-                case AccumulatorState.Error:
-                    _error.WriteLine($"syntax error: {result.ErrorMessage}");
-                    continue;
-                case AccumulatorState.Complete:
-                    ExecuteAndPrint(result.Expression!);
-                    continue;
-            }
+            if (HandleInputLine(line, out var exitCode)) return exitCode;
         }
+    }
+
+    private bool HandleInputLine(string line, out int exitCode)
+    {
+        exitCode = 0;
+        if (_accumulator.IsEmpty && line.Trim() is "exit" or "quit") { exitCode = 0; return true; }
+
+        var result = _accumulator.Feed(line);
+        switch (result.State)
+        {
+            case AccumulatorState.Empty:
+            case AccumulatorState.NeedMore:
+                return false;
+            case AccumulatorState.Error:
+                _error.WriteLine($"syntax error: {result.ErrorMessage}");
+                return false;
+            case AccumulatorState.Complete:
+                ExecuteAndPrint(result.Expression!);
+                return false;
+        }
+        return false;
     }
 
     private void ExecuteAndPrint(Ast.Expr expr)
