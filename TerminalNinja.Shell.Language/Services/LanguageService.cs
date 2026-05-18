@@ -26,18 +26,13 @@ public static class LanguageService
     public static IReadOnlyList<Diagnostic> GetDiagnostics(string source)
     {
         ArgumentNullException.ThrowIfNull(source);
-        var diagnostics = new List<Diagnostic>();
-        try
+        var result = NinjaParser.TryParseScript(source);
+        if (result.Diagnostics.Length == 0) return Array.Empty<Diagnostic>();
+
+        var diagnostics = new List<Diagnostic>(result.Diagnostics.Length);
+        foreach (var d in result.Diagnostics)
         {
-            _ = NinjaParser.ParseScript(source);
-        }
-        catch (LexerException ex)
-        {
-            diagnostics.Add(SpanDiagnostic(ex.Line, ex.Column, ex.Length, ex.Message));
-        }
-        catch (ParserException ex)
-        {
-            diagnostics.Add(SpanDiagnostic(ex.Line, ex.Column, ex.Length, ex.Message));
+            diagnostics.Add(SpanDiagnostic(d.Line, d.Column, d.Length, d.Message));
         }
         return diagnostics;
     }

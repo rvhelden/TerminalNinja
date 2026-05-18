@@ -38,6 +38,34 @@ public static class NinjaParser
         return p.ParseAllForms();
     }
 
+    /// <summary>
+    /// Recovering parse — collect every top-level form the parser can recognise
+    /// alongside every diagnostic it had to skip past. Lex-time failures end the
+    /// parse with a single diagnostic; parse-time failures sync to the next
+    /// newline / EOF and keep going. Tooling (LSP, REPL) uses this so users see
+    /// every error in their source at once, not just the first.
+    /// </summary>
+    public static ParseResult TryParseScript(string source)
+    {
+        ArgumentNullException.ThrowIfNull(source);
+        IReadOnlyList<Token> tokens;
+        try
+        {
+            tokens = NinjaLexer.Tokenize(source);
+        }
+        catch (LexerException ex)
+        {
+            // Lexer can't recover mid-stream; report and stop.
+            return new ParseResult(
+                System.Collections.Immutable.ImmutableArray<Expr>.Empty,
+                System.Collections.Immutable.ImmutableArray.Create(
+                    new ParseDiagnostic(ex.Line, ex.Column, ex.Length, ex.Message, ex.IsIncomplete)));
+        }
+
+        var p = new State(tokens);
+        return p.ParseAllFormsWithRecovery();
+    }
+
     private sealed class State
     {
         private readonly IReadOnlyList<Token> _tokens;
@@ -125,6 +153,51 @@ public static class NinjaParser
                 SkipNewlines();
             }
             return b.ToImmutable();
+        }
+
+        /// <summary>
+        /// Recovering variant of <see cref="ParseAllForms"/> — when a top-level
+        /// form throws, record a diagnostic, skip past the next newline (or to
+        /// EOF), and keep going. Used by tooling so users see every error in
+        /// one round trip.
+        /// </summary>
+        public ParseResult ParseAllFormsWithRecovery()
+        {
+            var forms = System.Collections.Immutable.ImmutableArray.CreateBuilder<Expr>();
+            var diags = System.Collections.Immutable.ImmutableArray.CreateBuilder<ParseDiagnostic>();
+            SkipNewlines();
+            while (!IsAtEnd)
+            {
+                try
+                {
+                    forms.Add(ParseTopLevel());
+                }
+                catch (ParserException ex)
+                {
+                    diags.Add(new ParseDiagnostic(ex.Line, ex.Column, ex.Length, ex.Message, ex.IsIncomplete));
+                    SyncToNextStatement();
+                }
+                SkipNewlines();
+            }
+            return new ParseResult(forms.ToImmutable(), diags.ToImmutable());
+        }
+
+        /// <summary>
+        /// Sync token — consume tokens until we're sitting on a Newline / EOF /
+        /// statement-starter, so the next iteration of <see cref="ParseAllFormsWithRecovery"/>
+        /// has a clean starting point. Statement-starters are <c>let</c>, <c>source</c>,
+        /// and anything that could start a fresh expression at the top level.
+        /// </summary>
+        private void SyncToNextStatement()
+        {
+            // Cheapest recovery: advance until a Newline closes the offending
+            // form. The outer loop's SkipNewlines then aligns us on the next
+            // statement. If we're already on Newline / EOF (rare — most throws
+            // happen mid-token), bail immediately.
+            while (!IsAtEnd && !Check(TokenKind.Newline))
+            {
+                Advance();
+            }
         }
 
         public Expr ParseTopLevel()

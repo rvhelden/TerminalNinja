@@ -71,4 +71,41 @@ public class LanguageServiceTests
         int width = d[0].Range.End.Character - d[0].Range.Start.Character;
         await Assert.That(width).IsEqualTo("bar".Length);
     }
+
+    // ─── multi-error recovery ───────────────────────────────────────────────
+
+    [Test]
+    public async Task GetDiagnostics_TwoErrorsOnDifferentLines_BothReported()
+    {
+        // Two separate broken statements — the parser must sync past the first
+        // and report the second too. Pre-T4 only the first one surfaced.
+        var source = "let foo bar\nlet baz qux";
+        var d = LanguageService.GetDiagnostics(source);
+        await Assert.That(d.Count).IsEqualTo(2);
+        await Assert.That(d[0].Range.Start.Line).IsEqualTo(0);
+        await Assert.That(d[1].Range.Start.Line).IsEqualTo(1);
+    }
+
+    [Test]
+    public async Task GetDiagnostics_GoodStatementBetweenErrors_StillReported()
+    {
+        // Bad → good → bad. The middle form parses cleanly (the recovering
+        // parser doesn't poison anything downstream) and both bad forms
+        // surface as separate diagnostics. Lex-clean source — only the
+        // parser should reject.
+        var source = "let x =\nlet y = 1\nlet z =";
+        var d = LanguageService.GetDiagnostics(source);
+        await Assert.That(d.Count).IsEqualTo(2);
+        // Two distinct error positions, not the same one reported twice.
+        await Assert.That(d[0].Range.Start.Line).IsNotEqualTo(d[1].Range.Start.Line);
+    }
+
+    [Test]
+    public async Task GetDiagnostics_LexerError_StillSingleDiagnostic()
+    {
+        // Lexer can't recover — it throws once and we're done. Even if there's
+        // more bad syntax after, only the lex error gets reported.
+        var d = LanguageService.GetDiagnostics("@bad1\n@bad2");
+        await Assert.That(d.Count).IsEqualTo(1);
+    }
 }
