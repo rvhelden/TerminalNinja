@@ -383,20 +383,24 @@ public sealed class SkiaCellSink : IShapedRunSink
             glyphs[i] = (ushort)result.Codepoints[i];
         }
 
-        // Snap HarfBuzz's per-glyph X positions to the cell grid. The shaped result can carry
-        // small sub-pixel offsets — GPOS adjustments, kerning, fractional advances — that
-        // accumulate row-by-row and make vertical box-drawing characters (e.g. the panel
-        // border │) appear to zigzag across frames. Cells are integer-aligned by definition,
-        // so the correct position for the i-th glyph is round(point.X / cellWidth) × cellWidth.
-        // Ligatures (1 glyph covering multiple chars) keep their natural left edge — the
-        // rounding only removes the sub-pixel jitter.
-        var srcPoints = result.Points.AsSpan();
+        // Force each glyph to sit at its source character's cell column. HarfBuzz's per-glyph
+        // X positions accumulate GPOS / kerning / fractional-advance noise that's invisible
+        // for one character but accumulates over a long run — most visibly on contiguous
+        // vertical box-drawing glyphs (the panel border │) where the same glyph stacked
+        // across rows visibly drifts a cell off-axis. We use HarfBuzz's cluster array to
+        // map glyph → source char index, then plant the glyph at `cluster × cellWidth`.
+        //
+        // This preserves ligature behaviour: a 2-char ligature produces 1 glyph with
+        // cluster pointing at the first source char, so the glyph anchors at that char's
+        // cell and the following glyph (cluster=2) lands two cells over — the ligature
+        // naturally occupies the cells it visually spans. Pure-monospace input (the common
+        // case) maps 1:1 cluster↔glyph, so every glyph snaps to its own cell exactly.
+        var clusters = result.Clusters;
         var dstPoints = run.Positions;
-        for (var i = 0; i < srcPoints.Length && i < dstPoints.Length; i++)
+        for (var i = 0; i < result.Codepoints.Length && i < dstPoints.Length; i++)
         {
-            var p = srcPoints[i];
-            var snappedX = (float)Math.Round(p.X / cellWidth) * cellWidth;
-            dstPoints[i] = new SKPoint(snappedX, p.Y);
+            var charIndex = clusters is not null && i < clusters.Length ? (int)clusters[i] : i;
+            dstPoints[i] = new SKPoint(charIndex * cellWidth, 0);
         }
         return builder.Build();
     }
