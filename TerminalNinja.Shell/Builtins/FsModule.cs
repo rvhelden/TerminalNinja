@@ -236,11 +236,20 @@ public static class FsModule
 
     private static NValue MakeEntry(string fullPath, bool isDir, long size)
     {
+        var name = Path.GetFileName(fullPath);
+        var hidden = name.StartsWith('.');
         var d = ImmutableSortedDictionary.CreateBuilder<string, NValue>(StringComparer.Ordinal);
-        d["Name"] = new NString(Path.GetFileName(fullPath));
+        d["Name"] = new NString(name);
         d["FullPath"] = new NString(fullPath);
         d["IsDirectory"] = new NBool(isDir);
+        d["IsHidden"] = new NBool(hidden);
         d["Size"] = new NInt(size);
+        d["SizeText"] = new NString(FormatSize(size, isDir));
+        // Icon carries the glyph wrapped in an SGR truecolor escape so the table
+        // renderer surfaces it colored per category. The escape pair is opaque to
+        // the data layer — Printer's column-width math strips SGR before
+        // measuring, and obj.dump shows the raw string honestly.
+        d["Icon"] = new NString(ColorizedIcon(name, isDir));
         try
         {
             var modified = isDir ? Directory.GetLastWriteTimeUtc(fullPath) : File.GetLastWriteTimeUtc(fullPath);
@@ -250,6 +259,104 @@ public static class FsModule
         {
             d["LastModified"] = NUnit.Instance;
         }
+        // __display tells Printer.Format which field carries the canonical text
+        // representation when a single entry prints on its own. The value is the
+        // name of the field to render, not the rendered text — that way derived
+        // records (e.g. from `fs.ls() | select …`) can override which field
+        // surfaces as the default.
+        d["__display"] = new NString("FullPath");
+        // __row_style="dim" tells the table renderer to wrap the entire row in
+        // SGR dim (\e[2m), marking the entry as hidden. The Skia sink maps that
+        // to TextDecorations.Dim and renders the row at halved alpha.
+        if (hidden) d["__row_style"] = new NString("dim");
+        // __columns pins the default table view: icon (category color), name,
+        // size. Type column dropped — the colored icon already conveys category
+        // and saves horizontal space in narrow REPL panels. Richer fields
+        // (FullPath, IsDirectory, IsHidden, LastModified, raw Size) stay
+        // reachable via dot-access.
+        d["__columns"] = new NList(ImmutableArray.Create<NValue>(
+            new NString("Icon"),
+            new NString("Name"),
+            new NString("SizeText")));
         return new NRecord(d.ToImmutable());
+    }
+
+    /// <summary>
+    /// Returns the entry's icon glyph wrapped in an SGR truecolor escape. Nerd
+    /// Font codepoints (FiraCode Nerd Font Mono in the Skia sample) render the
+    /// glyph; the SGR pair sets the foreground per category and resets it.
+    /// </summary>
+    private static string ColorizedIcon(string name, bool isDir)
+    {
+        var (glyph, color) = ClassifyEntry(name, isDir);
+        return $"\x1b[38;2;{color.R};{color.G};{color.B}m{glyph}\x1b[39m";
+    }
+
+    /// <summary>
+    /// Map a filesystem entry to its display glyph + accent color. Colors come
+    /// from the Catppuccin Mocha palette so they harmonise with the Dark theme
+    /// the Skia sample ships with.
+    /// </summary>
+    private static (string Glyph, (byte R, byte G, byte B) Color) ClassifyEntry(string name, bool isDir)
+    {
+        (byte R, byte G, byte B) blue   = (0x89, 0xB4, 0xFA);
+        (byte R, byte G, byte B) mauve  = (0xCB, 0xA6, 0xF7);
+        (byte R, byte G, byte B) green  = (0xA6, 0xE3, 0xA1);
+        (byte R, byte G, byte B) yellow = (0xF9, 0xE2, 0xAF);
+        (byte R, byte G, byte B) peach  = (0xFA, 0xB3, 0x87);
+        (byte R, byte G, byte B) pink   = (0xF5, 0xC2, 0xE7);
+        (byte R, byte G, byte B) red    = (0xF3, 0x8B, 0xA8);
+        (byte R, byte G, byte B) teal   = (0x94, 0xE2, 0xD5);
+        (byte R, byte G, byte B) gray   = (0xA6, 0xAD, 0xC8);
+
+        if (isDir) return (FolderGlyph, blue);
+        var ext = Path.GetExtension(name).ToLowerInvariant();
+        return ext switch
+        {
+            ".png" or ".jpg" or ".jpeg" or ".gif" or ".svg" or ".ico" or ".webp" or ".bmp"
+                => (ImageGlyph, pink),
+            ".cs" or ".ts" or ".tsx" or ".js" or ".jsx" or ".py" or ".go" or ".rs"
+                or ".java" or ".cpp" or ".c" or ".h" or ".rb" or ".php" or ".swift" or ".kt"
+                => (CodeGlyph, mauve),
+            ".md" or ".markdown" => (MarkdownGlyph, teal),
+            ".json" => (JsonGlyph, yellow),
+            ".xml" or ".xaml" => (CodeGlyph, peach),
+            ".html" or ".htm" => (CodeGlyph, red),
+            ".yaml" or ".yml" or ".toml" or ".ini" or ".cfg" or ".config"
+                => (ConfigGlyph, yellow),
+            ".zip" or ".tar" or ".gz" or ".7z" or ".rar" => (ArchiveGlyph, peach),
+            ".pdf" => (PdfGlyph, red),
+            ".txt" or ".log" => (TextGlyph, green),
+            _ => (FileGlyph, gray),
+        };
+    }
+
+    // Nerd Font glyph constants. Kept as named constants so the ClassifyEntry
+    // switch stays readable; the actual codepoints are private-use ones from
+    // FiraCode Nerd Font Mono.
+    private const string FolderGlyph   = "";
+    private const string FileGlyph     = "";
+    private const string CodeGlyph     = "";
+    private const string ImageGlyph    = "";
+    private const string MarkdownGlyph = "";
+    private const string JsonGlyph     = "";
+    private const string ConfigGlyph   = "";
+    private const string ArchiveGlyph  = "";
+    private const string PdfGlyph      = "";
+    private const string TextGlyph     = "";
+
+
+    /// <summary>
+    /// Compact unit-suffixed size string for the default fs.ls table view.
+    /// Directories render as a single dash since size has no meaningful value
+    /// at the directory level without a recursive walk.
+    /// </summary>
+    private static string FormatSize(long bytes, bool isDir)
+    {
+        if (isDir) return "-";
+        if (bytes < 1024) return $"{bytes} B";
+        if (bytes < 1024L * 1024) return string.Format(CultureInfo.InvariantCulture, "{0:F1} KB", bytes / 1024.0);
+        if (bytes < 1024L * 1024 * 1024) return string.Format(CultureInfo.InvariantCulture, "{0:F1} MB", bytes / (1024.0 * 1024));
+        return string.Format(CultureInfo.InvariantCulture, "{0:F2} GB", bytes / (1024.0 * 1024 * 1024));
     }
 }

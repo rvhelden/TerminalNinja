@@ -125,6 +125,26 @@ public class FsModuleTests
                 await Assert.That(rec.Fields.ContainsKey("IsDirectory")).IsTrue();
                 await Assert.That(rec.Fields.ContainsKey("Size")).IsTrue();
                 await Assert.That(rec.Fields.ContainsKey("LastModified")).IsTrue();
+                // Derived display fields used by the default table view.
+                await Assert.That(rec.Fields.ContainsKey("Icon")).IsTrue();
+                await Assert.That(rec.Fields.ContainsKey("SizeText")).IsTrue();
+                await Assert.That(rec.Fields.ContainsKey("IsHidden")).IsTrue();
+                // Icon carries an SGR truecolor escape so the table renderer can
+                // colorize it per category — verify the wrapper is present.
+                if (rec.Fields["Icon"] is not NString iconStr) throw new InvalidOperationException("Icon not a string");
+                await Assert.That(iconStr.Value).Contains("\x1b[38;2;");
+                await Assert.That(iconStr.Value).Contains("\x1b[39m");
+                // Column hint pins the default rendering — must be a non-empty list
+                // of strings naming columns that actually exist on the row.
+                await Assert.That(rec.Fields.ContainsKey("__columns")).IsTrue();
+                if (rec.Fields["__columns"] is not NList cols)
+                    throw new InvalidOperationException("__columns is not a list");
+                await Assert.That(cols.Items.Length).IsGreaterThan(0);
+                foreach (var c in cols.Items)
+                {
+                    if (c is not NString cs) throw new InvalidOperationException("__columns item not a string");
+                    await Assert.That(rec.Fields.ContainsKey(cs.Value)).IsTrue();
+                }
             }
         }
         finally { Directory.Delete(sandbox, recursive: true); }
