@@ -29,6 +29,15 @@ public sealed class ShellViewModel : ViewModelBase
 {
     private Env _env;
 
+    /// <summary>
+    /// Names that were already bound when this view model started: the builtin
+    /// pipeline / IO / module functions plus the optional <c>pwsh</c> bridge.
+    /// The scope panel skips these so it shows only user-defined bindings —
+    /// otherwise every fresh REPL session opens with ~50 rows of <c>where</c>,
+    /// <c>select</c>, <c>fs</c>, etc. before the user has typed anything.
+    /// </summary>
+    private readonly HashSet<string> _builtinNames;
+
     /// <summary>The custom REPL surface bound into the layout's centre cell.</summary>
     public ReplView Repl { get; }
 
@@ -107,6 +116,10 @@ public sealed class ShellViewModel : ViewModelBase
         {
             _env = PwshBridge.Install(_env);
         }
+        // Capture the post-bootstrap binding set as the "builtins" — everything
+        // bound after this point is considered user state and surfaces in the
+        // scope panel.
+        _builtinNames = new HashSet<string>(_env.Bindings.Select(b => b.Key), StringComparer.Ordinal);
 
         Repl = new ReplView
         {
@@ -313,6 +326,9 @@ public sealed class ShellViewModel : ViewModelBase
         {
             // Hide internal bookkeeping bindings the bridges install (prefixed with double underscores).
             if (kv.Key.StartsWith("__", StringComparison.Ordinal)) continue;
+            // Hide everything that was already bound at startup — the user only
+            // cares about names they introduced themselves.
+            if (_builtinNames.Contains(kv.Key)) continue;
 
             var formatted = Printer.Format(kv.Value);
             if (formatted.Length > 80) formatted = formatted[..77] + "...";
