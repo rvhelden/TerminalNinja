@@ -15,8 +15,9 @@
                  Right padding is 2 (not 1) so a maximum-length filename always leaves a
                  visible gap before the panel's right border — without it, text that fills
                  the content column reads as if the border itself shifted, because there's
-                 no breathing room between the last character and the vertical line. -->
-            <Border StackPanel.SizeMode="Fixed" StackPanel.FixedSize="32"
+                 no breathing room between the last character and the vertical line.
+                 FixedSize is bound so the LeftSplitter below can resize it. -->
+            <Border StackPanel.SizeMode="Fixed" StackPanel.FixedSize="{Binding FilesPanelWidth}"
                     Visibility="{Binding FilesPanelVisibility}"
                     BorderStyle="Single"
                     BorderBrush="#45475A"
@@ -33,6 +34,11 @@
                 </StackPanel>
             </Border>
 
+            <!-- Left splitter — drag to resize the Files panel. -->
+            <ContentControl StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1"
+                            Visibility="{Binding FilesPanelVisibility}"
+                            Content="{Binding LeftSplitter}" />
+
             <!-- REPL (center) — fills the remaining horizontal space -->
             <Border StackPanel.SizeMode="Stretch"
                     BorderStyle="Single"
@@ -40,10 +46,15 @@
                 <ContentControl Content="{Binding Repl}" />
             </Border>
 
+            <!-- Right splitter — drag to resize the Env+Scope panel. -->
+            <ContentControl StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1"
+                            Visibility="{Binding RightPanelVisibility}"
+                            Content="{Binding RightSplitter}" />
+
             <!-- Env + scope (right). The wrapper Border collapses when both inner panels are
                  collapsed (RightPanelVisibility is wired in the VM). Inner Visibility bindings
                  toggle env / scope independently. -->
-            <Border StackPanel.SizeMode="Fixed" StackPanel.FixedSize="56"
+            <Border StackPanel.SizeMode="Fixed" StackPanel.FixedSize="{Binding RightPanelWidth}"
                     Visibility="{Binding RightPanelVisibility}"
                     BorderStyle="Single"
                     BorderBrush="#45475A"

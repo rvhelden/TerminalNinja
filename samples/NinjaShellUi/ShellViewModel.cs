@@ -74,6 +74,39 @@ public sealed class ShellViewModel : ViewModelBase
     /// </summary>
     public ObservableCollection<KeyValueEntry> ScopeEntries { get; } = new();
 
+    /// <summary>
+    /// Width in cells of the files panel. Bound to <c>StackPanel.FixedSize</c>;
+    /// the left <see cref="LeftSplitter"/> bumps this on drag. Clamped to
+    /// <see cref="MinPanelWidth"/>..<see cref="MaxPanelWidth"/>.
+    /// </summary>
+    public int FilesPanelWidth
+    {
+        get;
+        private set => SetProperty(ref field, Math.Clamp(value, MinPanelWidth, MaxPanelWidth));
+    } = 32;
+
+    /// <summary>
+    /// Width in cells of the right (env + scope) panel. Bound the same way as
+    /// <see cref="FilesPanelWidth"/>; the <see cref="RightSplitter"/> drives it.
+    /// </summary>
+    public int RightPanelWidth
+    {
+        get;
+        private set => SetProperty(ref field, Math.Clamp(value, MinPanelWidth, MaxPanelWidth));
+    } = 56;
+
+    /// <summary>Minimum panel width — small enough to read a few short keys but never zero.</summary>
+    public const int MinPanelWidth = 16;
+
+    /// <summary>Maximum panel width — keep at least 20 cells for the REPL.</summary>
+    public const int MaxPanelWidth = 100;
+
+    /// <summary>Splitter between the Files panel and the REPL.</summary>
+    public GridSplitter LeftSplitter { get; }
+
+    /// <summary>Splitter between the REPL and the Env/Scope panel.</summary>
+    public GridSplitter RightSplitter { get; }
+
     /// <summary>Visibility of the files panel (F1).</summary>
     public Visibility FilesPanelVisibility
     {
@@ -106,7 +139,7 @@ public sealed class ShellViewModel : ViewModelBase
     } = Visibility.Visible;
 
     /// <summary>Footer hint string describing the toggle shortcuts.</summary>
-    public string ShortcutHint { get; } = "F1 files   F2 env   F3 scope   Tab focus   Enter edit   F10 exit";
+    public string ShortcutHint { get; } = "F1 files   F2 env   F3 scope   Tab focus   Enter edit   drag │ to resize   F10 exit";
 
     /// <summary>Creates a view model with a fresh evaluator environment and a focused REPL.</summary>
     public ShellViewModel()
@@ -147,6 +180,15 @@ public sealed class ShellViewModel : ViewModelBase
             Background = new TerminalNinja.Primitives.Color(0x1E, 0x1E, 0x2E),
         };
         ScopeList.ItemCommitted += OnScopeEntryCommitted;
+
+        // Splitters — left drag changes the Files panel width; right drag
+        // changes the right (env + scope) panel width. Negative delta means
+        // "the user dragged left", which for the left splitter shrinks Files
+        // and for the right splitter grows Right.
+        LeftSplitter = new GridSplitter();
+        LeftSplitter.Resized += d => FilesPanelWidth += d;
+        RightSplitter = new GridSplitter();
+        RightSplitter.Resized += d => RightPanelWidth -= d;
 
         RefreshPanels();
     }
