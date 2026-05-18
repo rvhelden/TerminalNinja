@@ -116,6 +116,7 @@ public sealed class ShellViewModel : ViewModelBase
 
         Repl.AppendOutput("NinjaShell UI  —  type expressions in the REPL; Tab to focus a side panel;");
         Repl.AppendOutput("Enter on a row to edit; F1/F2/F3 toggle panels; F10 exits.");
+        Repl.Scope = SnapshotScope(_env);
         Repl.CommandEntered += OnCommandEntered;
 
         EnvList = new EditableKeyValueList
@@ -220,10 +221,16 @@ public sealed class ShellViewModel : ViewModelBase
         {
             var result = NinjaEvaluator.EvalScript(line, _env);
             _env = result.Env;
+            // Keep the REPL's scope snapshot in sync so mouse hover on an identifier
+            // shows live shape + data, not stale or missing info.
+            Repl.Scope = SnapshotScope(_env);
+
             var rendered = Printer.Format(result.Value);
             if (!string.IsNullOrEmpty(rendered))
             {
-                Repl.AppendOutput(rendered);
+                // AppendResult stores the produced NValue alongside the rendered text,
+                // making each output line a mouse-hover target with shape + data.
+                Repl.AppendResult(rendered, result.Value);
             }
         }
         catch (Exception ex)
@@ -232,6 +239,15 @@ public sealed class ShellViewModel : ViewModelBase
         }
 
         RefreshPanels();
+    }
+
+    /// <summary>Materialise an env into a plain dictionary for the REPL's hover lookups.</summary>
+    private static IReadOnlyDictionary<string, NValue> SnapshotScope(Env env)
+    {
+        var d = new Dictionary<string, NValue>(StringComparer.Ordinal);
+        foreach (var kv in env.Bindings)
+            d[kv.Key] = kv.Value;
+        return d;
     }
 
     private void RefreshPanels()

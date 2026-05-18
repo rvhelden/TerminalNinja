@@ -188,10 +188,21 @@ public static class LanguageService
     /// <see cref="BuiltinCatalog"/> entry and returns its signature/detail. Returns
     /// <see langword="null"/> when the cursor isn't sitting on an identifier or the
     /// identifier doesn't match anything in the catalog (user-defined names get no
-    /// hover info for now — the evaluator's <see cref="Env"/> isn't part of this
-    /// pure-function service).
+    /// hover info from this overload — call <see cref="GetHover(string, Position, IReadOnlyDictionary{string, NValue}?)"/>
+    /// with a scope dictionary to get shape + data for live bindings).
     /// </summary>
     public static Hover? GetHover(string source, Position cursor)
+        => GetHover(source, cursor, scope: null);
+
+    /// <summary>
+    /// Like <see cref="GetHover(string, Position)"/>, but enriches the result for
+    /// identifiers found in <paramref name="scope"/>. When the identifier under
+    /// the cursor matches a scope entry the hover gains <c>shape:</c> and <c>data:</c>
+    /// lines computed via <see cref="ValueFormatter.Def"/> and <see cref="ValueFormatter.Dump"/>.
+    /// Scope takes precedence over the static catalog when both match — what the
+    /// evaluator would actually use is what we describe.
+    /// </summary>
+    public static Hover? GetHover(string source, Position cursor, IReadOnlyDictionary<string, NValue>? scope)
     {
         ArgumentNullException.ThrowIfNull(source);
         if (!TryFindWordAtCursor(source, cursor, out var startCol, out var endCol, out var word))
@@ -199,9 +210,12 @@ public static class LanguageService
             return null;
         }
 
+        var range = RangeOnLine(cursor.Line, startCol, endCol);
+        bool isMemberAccess = startCol > 0 && GetCharAt(source, cursor.Line, startCol - 1) == '.';
+
         // Look back further: if there's a `.` immediately before this word, treat it as
         // member access and walk back one more identifier to get the module name.
-        if (startCol > 0 && GetCharAt(source, cursor.Line, startCol - 1) == '.')
+        if (isMemberAccess)
         {
             if (TryReadIdentifierEndingAt(source, cursor.Line, startCol - 1, out var modStart, out var modName))
             {
@@ -211,35 +225,71 @@ public static class LanguageService
                     {
                         if (d.Name == word)
                         {
-                            return Make(d, cursor.Line, startCol, endCol);
+                            return Make(d, range);
                         }
                     }
                 }
-                // Fall through: maybe the bare word resolves on its own.
                 _ = modStart;
             }
         }
 
-        // Bare identifier: check top-level builtins, keywords, and module names.
+        // Scope wins over the static catalog for bare identifiers — whatever the
+        // evaluator would actually use is what we describe.
+        if (!isMemberAccess && scope is not null && scope.TryGetValue(word, out var liveValue))
+        {
+            return new Hover(BuildScopedHoverContents(word, liveValue, staticEntry: FindStatic(word)), range);
+        }
+
         foreach (var d in BuiltinCatalog.TopLevel)
         {
-            if (d.Name == word) return Make(d, cursor.Line, startCol, endCol);
+            if (d.Name == word) return Make(d, range);
         }
         foreach (var d in BuiltinCatalog.Keywords)
         {
-            if (d.Name == word) return Make(d, cursor.Line, startCol, endCol);
+            if (d.Name == word) return Make(d, range);
         }
         if (BuiltinCatalog.Modules.TryGetValue(word, out _))
         {
             var members = BuiltinCatalog.Modules[word];
             var summary = $"module {word}\n\nmembers: {string.Join(", ", members.Select(m => m.Name))}";
-            return new Hover(summary, RangeOnLine(cursor.Line, startCol, endCol));
+            return new Hover(summary, range);
         }
 
         return null;
 
-        static Hover Make(BuiltinDescriptor d, int line, int startCol, int endCol)
-            => new($"{d.Name} — {d.Detail}", RangeOnLine(line, startCol, endCol));
+        static Hover Make(BuiltinDescriptor d, Range r) => new($"{d.Name} — {d.Detail}", r);
+
+        static BuiltinDescriptor? FindStatic(string word)
+        {
+            foreach (var d in BuiltinCatalog.TopLevel)
+                if (d.Name == word) return d;
+            foreach (var d in BuiltinCatalog.Keywords)
+                if (d.Name == word) return d;
+            return null;
+        }
+    }
+
+    /// <summary>
+    /// Build the multi-section hover string for a name resolved through scope.
+    /// Top line is either the static signature (if the name is also a known
+    /// builtin) or just <c>name :: type</c>; followed by <c>shape:</c> and
+    /// <c>data:</c> lines from <see cref="ValueFormatter"/>.
+    /// </summary>
+    private static string BuildScopedHoverContents(string name, NValue value, BuiltinDescriptor? staticEntry)
+    {
+        var sb = new System.Text.StringBuilder();
+        if (staticEntry is not null)
+        {
+            sb.Append(staticEntry.Name).Append(" — ").AppendLine(staticEntry.Detail);
+        }
+        else
+        {
+            sb.Append(name).Append(" :: ").AppendLine(ValueFormatter.TypeName(value));
+        }
+        sb.AppendLine();
+        sb.Append("shape: ").AppendLine(ValueFormatter.Def(value));
+        sb.Append("data:  ").Append(ValueFormatter.Dump(value));
+        return sb.ToString();
     }
 
     /// <summary>

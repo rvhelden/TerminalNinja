@@ -5,12 +5,14 @@ using TerminalNinja.Highlighting;
 using TerminalNinja.Input;
 using TerminalNinja.Primitives;
 using TerminalNinja.Shell.Language.Services;
+using TerminalNinja.Shell.Values;
+using TerminalNinja.Styling;
 
 namespace NinjaShellUi;
 
 /// <summary>
 /// A minimal terminal-style REPL surface: a scrolling output buffer at the top and a
-/// single-line input prompt at the bottom. Owns its own input state (no <c>TextBox</c>),
+/// multi-line input region at the bottom. Owns its own input state (no <c>TextBox</c>),
 /// so <c>Enter</c>, history navigation, and command execution all funnel through one
 /// keyboard handler.
 /// </summary>
@@ -29,6 +31,12 @@ namespace NinjaShellUi;
 /// <para>
 /// Tab triggers a completion popup overlaid above the prompt; ↑/↓ cycles through the
 /// items, Enter (or Tab) accepts and replaces the partial token, Esc dismisses.
+/// </para>
+/// <para>
+/// <c>Enter</c> submits the entire buffer (which may span multiple lines).
+/// <c>Shift+Enter</c> inserts a newline so the user can compose <c>let … in …</c> blocks,
+/// switch expressions, or pasted multi-statement scripts in place. Continuation rows
+/// show a dimmed <c>"... "</c> prefix instead of the primary <c>Prompt</c>.
 /// </para>
 /// </remarks>
 public sealed class ReplView : Control
@@ -50,6 +58,14 @@ public sealed class ReplView : Control
     private int _completionIndex;
     private int _completionAnchorCol;
 
+    // Mouse-hover state. The HoverPanel itself lives in TerminalNinja core and
+    // pushes its content onto the Application overlay stack on Show. We track
+    // the last-shown cell so identical mouse positions don't churn the overlay.
+    private readonly HoverPanel _hoverPanel = new();
+    private readonly Dictionary<int, NValue> _outputResults = new();
+    private Rect _lastBounds;
+    private (int X, int Y)? _lastMouseHoverCell;
+
     /// <summary>The prompt rendered in front of the input line. Defaults to <c>"ninja&gt; "</c>.</summary>
     public string Prompt { get; set; } = "ninja> ";
 
@@ -65,6 +81,13 @@ public sealed class ReplView : Control
 
     /// <summary>The current contents of the input buffer (without the prompt).</summary>
     public string InputBuffer => _input.ToString();
+
+    /// <summary>
+    /// Live scope used to enrich hover info with shape + data for user-defined
+    /// bindings. The host (e.g. <see cref="ShellViewModel"/>) sets this from
+    /// the evaluator's <c>Env.Bindings</c> snapshot after each evaluation.
+    /// </summary>
+    public IReadOnlyDictionary<string, NValue>? Scope { get; set; }
 
     /// <summary>Raised when the user presses Enter on a non-empty input line.</summary>
     public event Action<string>? CommandEntered;
@@ -93,11 +116,47 @@ public sealed class ReplView : Control
         InvalidationCallback?.Invoke();
     }
 
+    /// <summary>
+    /// Append the rendered output of an evaluation and remember the produced
+    /// <paramref name="value"/> alongside it. Every appended line becomes a
+    /// mouse-hover target — moving the mouse onto any of them shows the value's
+    /// shape and data in a <see cref="HoverPanel"/>. Calls with a null value
+    /// (errors, banners, status lines) skip the registry and behave like
+    /// <see cref="AppendOutput(string?)"/>.
+    /// </summary>
+    public void AppendResult(string? text, NValue? value)
+    {
+        if (string.IsNullOrEmpty(text))
+        {
+            AppendOutput(text);
+            return;
+        }
+
+        int firstLineIndex = _outputLines.Count;
+        foreach (var line in text.Split('\n'))
+        {
+            _outputLines.Add(line.TrimEnd('\r'));
+        }
+
+        if (value.HasValue)
+        {
+            // Every line of this multi-line block resolves back to the same value.
+            var resolved = value.Value;
+            for (int i = firstLineIndex; i < _outputLines.Count; i++)
+                _outputResults[i] = resolved;
+        }
+
+        ScrollToBottom();
+        InvalidationCallback?.Invoke();
+    }
+
     /// <summary>Removes every line from the output buffer.</summary>
     public void ClearOutput()
     {
         _outputLines.Clear();
+        _outputResults.Clear();
         _scrollOffset = 0;
+        HideMouseHover();
         InvalidationCallback?.Invoke();
     }
 
@@ -105,6 +164,7 @@ public sealed class ReplView : Control
     protected override void OnRender(CellBuffer buffer, Rect parentBounds)
     {
         var bounds = CalculateBounds(parentBounds);
+        _lastBounds = bounds;
         if (bounds.Width <= 0 || bounds.Height <= 0) return;
 
         // Bottom row = input prompt. Two optional info rows above it: hover + diagnostic.
@@ -502,7 +562,7 @@ public sealed class ReplView : Control
             : LanguageService.GetDiagnostics(text);
         _hover = text.Length == 0
             ? null
-            : LanguageService.GetHover(text, new Position(0, _cursorCol));
+            : LanguageService.GetHover(text, new Position(0, _cursorCol), Scope);
     }
 
     private void Submit()
@@ -548,5 +608,119 @@ public sealed class ReplView : Control
         _cursorCol = _input.Length;
         RecomputeAnalysis();
         InvalidationCallback?.Invoke();
+    }
+
+    // ─── Mouse hover ────────────────────────────────────────────────────────
+
+    /// <inheritdoc />
+    public override void OnMouseEvent(MouseEvent e)
+    {
+        if (e.Action != MouseAction.Move) return;
+        if (_lastBounds.Width <= 0 || _lastBounds.Height <= 0) return;
+
+        // Mouse left the panel entirely.
+        if (e.X < _lastBounds.X || e.X >= _lastBounds.Right
+         || e.Y < _lastBounds.Y || e.Y >= _lastBounds.Bottom)
+        {
+            HideMouseHover();
+            return;
+        }
+
+        var cell = (X: e.X, Y: e.Y);
+        if (_lastMouseHoverCell == cell) return;
+        _lastMouseHoverCell = cell;
+
+        int promptY = _lastBounds.Y + _lastBounds.Height - 1;
+
+        if (e.Y == promptY)
+        {
+            ShowInputHover(e.X);
+            return;
+        }
+
+        if (TryGetOutputValueAtRow(e.Y, out var value))
+        {
+            ShowValueHover(value, e.X, e.Y);
+            return;
+        }
+
+        HideMouseHover();
+    }
+
+    private void ShowInputHover(int mouseX)
+    {
+        int promptStartX = _lastBounds.X;
+        int inputCol = mouseX - promptStartX - Prompt.Length;
+        var text = _input.ToString();
+        if (inputCol < 0 || inputCol > text.Length)
+        {
+            HideMouseHover();
+            return;
+        }
+
+        var hover = LanguageService.GetHover(text, new Position(0, inputCol), Scope);
+        if (hover is null)
+        {
+            HideMouseHover();
+            return;
+        }
+
+        var content = BuildHoverContent(hover.Contents);
+        int anchorY = _lastBounds.Y + _lastBounds.Height - 1;
+        _hoverPanel.Placement = PlacementMode.Top; // input is the bottom row — float above.
+        _hoverPanel.ShowAt(mouseX, anchorY, content);
+    }
+
+    private void ShowValueHover(NValue value, int mouseX, int mouseY)
+    {
+        var sb = new StringBuilder();
+        sb.Append("result :: ").AppendLine(ValueFormatter.TypeName(value));
+        sb.AppendLine();
+        sb.Append("shape: ").AppendLine(ValueFormatter.Def(value));
+        sb.Append("data:  ").Append(ValueFormatter.Dump(value));
+
+        var content = BuildHoverContent(sb.ToString());
+        _hoverPanel.Placement = PlacementMode.Bottom;
+        _hoverPanel.ShowAt(mouseX, mouseY, content);
+    }
+
+    private bool TryGetOutputValueAtRow(int row, out NValue value)
+    {
+        value = NUnit.Instance;
+        int outputHeight = _lastBounds.Height
+            - 1 // prompt row
+            - (HasDiagnostic() ? 1 : 0)
+            - (_hover is not null ? 1 : 0);
+        if (outputHeight <= 0) return false;
+
+        // Row index inside the visible output region (0-based from the top of the panel).
+        int rowInPanel = row - _lastBounds.Y;
+        if (rowInPanel < 0 || rowInPanel >= outputHeight) return false;
+
+        int firstVisible = Math.Max(0, _outputLines.Count - outputHeight - _scrollOffset);
+        int lineIndex = firstVisible + rowInPanel;
+        if (lineIndex < 0 || lineIndex >= _outputLines.Count) return false;
+
+        return _outputResults.TryGetValue(lineIndex, out value!);
+    }
+
+    private void HideMouseHover()
+    {
+        if (_hoverPanel.IsOpen) _hoverPanel.Hide();
+        _lastMouseHoverCell = null;
+    }
+
+    private static UIElement BuildHoverContent(string text)
+    {
+        var tb = new TextBlock
+        {
+            Text = text,
+            Padding = new Thickness(1, 0),
+        };
+        return new Border
+        {
+            Child = tb,
+            BorderStyle = BorderStyle.Rounded(new Color(0x89, 0xDC, 0xEB)),
+        };
     }
 }

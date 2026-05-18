@@ -39,23 +39,10 @@ public static class ObjModule
             return f(args[0]);
         }, 1);
 
-    /// <summary>Canonical NinjaShell type name.</summary>
-    internal static NValue TypeOf(NValue v) => new NString(TypeName(v));
+    /// <summary>Canonical NinjaShell type name. Delegates to <see cref="ValueFormatter.TypeName"/>.</summary>
+    internal static NValue TypeOf(NValue v) => new NString(ValueFormatter.TypeName(v));
 
-    private static string TypeName(NValue v) => v switch
-    {
-        NUnit => "unit",
-        NBool => "bool",
-        NInt => "int",
-        NFloat => "float",
-        NString => "string",
-        NList => "list",
-        NRecord => "record",
-        NSeq => "seq",
-        NVariant => "variant",
-        NFunc => "fn",
-        _ => v.GetType().Name,
-    };
+    private static string TypeName(NValue v) => ValueFormatter.TypeName(v);
 
     private static NValue Size(NValue v) => v switch
     {
@@ -64,157 +51,14 @@ public static class ObjModule
         NList l => new NInt(l.Items.Length),
         NRecord r => new NInt(r.Fields.Count),
         NSeq s => new NInt(s.Items.LongCount()),
-        _ => throw new EvaluatorException($"obj.size is not defined for {TypeName(v)}"),
+        _ => throw new EvaluatorException($"obj.size is not defined for {ValueFormatter.TypeName(v)}"),
     };
 
-    /// <summary>Recursive structural pretty-printer with type annotations.</summary>
-    internal static string DumpString(NValue v)
-    {
-        var sb = new StringBuilder();
-        WriteDump(sb, v, indent: 0);
-        return sb.ToString();
-    }
+    /// <summary>Recursive structural pretty-printer with type annotations. Delegates to <see cref="ValueFormatter.Dump"/>.</summary>
+    internal static string DumpString(NValue v) => ValueFormatter.Dump(v);
 
-    private static void WriteDump(StringBuilder sb, NValue v, int indent)
-    {
-        switch (v)
-        {
-            case NUnit:
-                sb.Append("() :: unit");
-                break;
-            case NBool b:
-                sb.Append(b.Value ? "true" : "false").Append(" :: bool");
-                break;
-            case NInt i:
-                sb.Append(i.Value).Append(" :: int");
-                break;
-            case NFloat f:
-                sb.Append(f.Value.ToString(System.Globalization.CultureInfo.InvariantCulture)).Append(" :: float");
-                break;
-            case NString s:
-                sb.Append('"').Append(s.Value.Replace("\"", "\\\"")).Append('"').Append(" :: string");
-                break;
-            case NList list:
-                {
-                    if (list.Items.Length == 0) { sb.Append("[] :: list"); break; }
-                    sb.Append("[\n");
-                    for (int i = 0; i < list.Items.Length; i++)
-                    {
-                        AppendIndent(sb, indent + 1);
-                        WriteDump(sb, list.Items[i], indent + 1);
-                        if (i < list.Items.Length - 1) sb.Append(',');
-                        sb.Append('\n');
-                    }
-                    AppendIndent(sb, indent);
-                    sb.Append("] :: list");
-                    break;
-                }
-            case NRecord rec:
-                {
-                    if (rec.Fields.Count == 0) { sb.Append("{} :: record"); break; }
-                    sb.Append("{\n");
-                    int i = 0;
-                    foreach (var kv in rec.Fields)
-                    {
-                        AppendIndent(sb, indent + 1);
-                        sb.Append(kv.Key).Append(": ");
-                        WriteDump(sb, kv.Value, indent + 1);
-                        if (i < rec.Fields.Count - 1) sb.Append(',');
-                        sb.Append('\n');
-                        i++;
-                    }
-                    AppendIndent(sb, indent);
-                    sb.Append("} :: record");
-                    break;
-                }
-            case NSeq seq:
-                {
-                    var items = seq.Items.ToList();
-                    if (items.Count == 0) { sb.Append("[] :: seq"); break; }
-                    sb.Append("[\n");
-                    for (int i = 0; i < items.Count; i++)
-                    {
-                        AppendIndent(sb, indent + 1);
-                        WriteDump(sb, items[i], indent + 1);
-                        if (i < items.Count - 1) sb.Append(',');
-                        sb.Append('\n');
-                    }
-                    AppendIndent(sb, indent);
-                    sb.Append("] :: seq");
-                    break;
-                }
-            case NVariant variant:
-                {
-                    sb.Append(variant.Tag);
-                    if (variant.Items.Length > 0)
-                    {
-                        sb.Append('(');
-                        for (int i = 0; i < variant.Items.Length; i++)
-                        {
-                            if (i > 0) sb.Append(", ");
-                            WriteDump(sb, variant.Items[i], indent);
-                        }
-                        sb.Append(')');
-                    }
-                    sb.Append(" :: variant");
-                    break;
-                }
-            case NFunc fn:
-                sb.Append("<fn:").Append(fn.Arity).Append("> :: fn");
-                break;
-            default:
-                sb.Append('?').Append(v.GetType().Name).Append('?');
-                break;
-        }
-    }
-
-    /// <summary>Schema-only inspector: returns shape, not data.</summary>
-    internal static string DefString(NValue v)
-    {
-        switch (v)
-        {
-            case NRecord rec:
-                {
-                    if (rec.Fields.Count == 0) return "record { }";
-                    var sb = new StringBuilder("record {\n");
-                    int i = 0;
-                    foreach (var kv in rec.Fields)
-                    {
-                        sb.Append("  ").Append(kv.Key).Append(": ").Append(TypeName(kv.Value));
-                        if (i < rec.Fields.Count - 1) sb.Append(',');
-                        sb.Append('\n');
-                        i++;
-                    }
-                    sb.Append('}');
-                    return sb.ToString();
-                }
-            case NList list when list.Items.Length > 0:
-                {
-                    string elementType = TypeName(list.Items[0]);
-                    bool uniform = true;
-                    for (int i = 1; i < list.Items.Length; i++)
-                        if (TypeName(list.Items[i]) != elementType) { uniform = false; break; }
-                    return uniform ? $"list[{elementType}]" : "list[mixed]";
-                }
-            case NList:
-                return "list[]";
-            case NFunc fn:
-                return $"fn(arity={fn.Arity})";
-            case NSeq:
-                return "seq";
-            case NVariant variant:
-                return variant.Items.Length == 0
-                    ? $"variant {variant.Tag}"
-                    : $"variant {variant.Tag}({variant.Items.Length} items)";
-            default:
-                return TypeName(v);
-        }
-    }
-
-    private static void AppendIndent(StringBuilder sb, int level)
-    {
-        for (int i = 0; i < level; i++) sb.Append("  ");
-    }
+    /// <summary>Schema-only inspector. Delegates to <see cref="ValueFormatter.Def"/>.</summary>
+    internal static string DefString(NValue v) => ValueFormatter.Def(v);
 
     // ─── Record ↔ pairs ─────────────────────────────────────────────────────
 
