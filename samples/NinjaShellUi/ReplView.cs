@@ -72,6 +72,20 @@ public sealed class ReplView : Control
     // can use "one page" (= output rows visible) for PageUp / PageDown without
     // duplicating the layout math.
     private int _lastOutputHeight;
+    private int _lastInputTopY;
+    private int _lastInputLines;
+
+    // Selection model. Coordinates are stored in *region* space (line index within
+    // the region + column within that line), NOT screen space — so scrolling the
+    // output area doesn't move the selection. Region cells live in their own
+    // coordinate system; selections never cross from input to output or vice
+    // versa.
+    private enum SelectionRegion { None, Input, Output }
+    private SelectionRegion _selectionRegion = SelectionRegion.None;
+    private (int Row, int Col) _selectionAnchor;
+    private (int Row, int Col) _selectionHead;
+    private bool _selectionRectangular;
+    private bool _isMouseDragging;
 
     /// <summary>The prompt rendered in front of the first input row. Defaults to <c>"ninja&gt; "</c>.</summary>
     public string Prompt { get; set; } = "ninja> ";
@@ -199,6 +213,8 @@ public sealed class ReplView : Control
         var topReserved = inputLines + (diagY > -1 ? 1 : 0) + (hoverY > -1 ? 1 : 0);
         var outputHeight = Math.Max(0, bounds.Height - topReserved);
         _lastOutputHeight = outputHeight;
+        _lastInputTopY = inputTopY;
+        _lastInputLines = inputLines;
         ClampScrollOffset();
 
         var fg = Foreground;
@@ -242,7 +258,17 @@ public sealed class ReplView : Control
         {
             var row = y + (i - firstLine);
             DrawText(buffer, x, row, _outputLines[i], width, fg, bg);
+            ApplyOutputSelectionToRow(buffer, x, row, width, i);
         }
+    }
+
+    /// <summary>If the output line at <paramref name="lineIndex"/> intersects the active
+    /// selection, invert fg/bg on the selected cells of <paramref name="row"/>.</summary>
+    private void ApplyOutputSelectionToRow(CellBuffer buffer, int x, int row, int width, int lineIndex)
+    {
+        if (_selectionRegion != SelectionRegion.Output) return;
+        if (!TryGetSelectedColsForRow(lineIndex, _outputLines[lineIndex].Length, out var startCol, out var endCol)) return;
+        InvertCells(buffer, x + startCol, row, Math.Min(endCol, width) - startCol);
     }
 
     /// <summary>
@@ -302,6 +328,208 @@ public sealed class ReplView : Control
         if (_scrollOffset < 0) _scrollOffset = 0;
     }
 
+    // ─── Selection ──────────────────────────────────────────────────────────
+
+    /// <summary>True when the current selection covers at least one cell.</summary>
+    private bool HasSelection => _selectionRegion != SelectionRegion.None
+        && (_selectionAnchor.Row != _selectionHead.Row || _selectionAnchor.Col != _selectionHead.Col);
+
+    /// <summary>
+    /// Compute the [startCol, endCol) range of selected columns on
+    /// <paramref name="row"/>, within a line of <paramref name="lineLength"/>.
+    /// Returns false when this row falls outside the selection. Handles both
+    /// line-flow and rectangular selection modes.
+    /// </summary>
+    private bool TryGetSelectedColsForRow(int row, int lineLength, out int startCol, out int endCol)
+    {
+        startCol = endCol = 0;
+        if (_selectionRegion == SelectionRegion.None) return false;
+
+        int rowLo = Math.Min(_selectionAnchor.Row, _selectionHead.Row);
+        int rowHi = Math.Max(_selectionAnchor.Row, _selectionHead.Row);
+        if (row < rowLo || row > rowHi) return false;
+
+        if (_selectionRectangular)
+        {
+            int colLo = Math.Min(_selectionAnchor.Col, _selectionHead.Col);
+            int colHi = Math.Max(_selectionAnchor.Col, _selectionHead.Col);
+            startCol = Math.Min(colLo, lineLength);
+            endCol = Math.Min(colHi, lineLength);
+            return endCol > startCol;
+        }
+
+        // Line-flow: the first selected row goes from the anchor's column to EOL,
+        // intermediate rows are fully selected, the last row goes from BOL to head.
+        var (firstRow, firstCol, lastRow, lastCol) = OrderedEndpoints();
+        if (row == firstRow && row == lastRow) { startCol = firstCol; endCol = Math.Min(lastCol, lineLength); }
+        else if (row == firstRow)              { startCol = firstCol; endCol = lineLength; }
+        else if (row == lastRow)               { startCol = 0;        endCol = Math.Min(lastCol, lineLength); }
+        else                                   { startCol = 0;        endCol = lineLength; }
+        return endCol > startCol;
+    }
+
+    private (int FirstRow, int FirstCol, int LastRow, int LastCol) OrderedEndpoints()
+    {
+        if (_selectionAnchor.Row < _selectionHead.Row
+            || (_selectionAnchor.Row == _selectionHead.Row && _selectionAnchor.Col <= _selectionHead.Col))
+        {
+            return (_selectionAnchor.Row, _selectionAnchor.Col, _selectionHead.Row, _selectionHead.Col);
+        }
+        return (_selectionHead.Row, _selectionHead.Col, _selectionAnchor.Row, _selectionAnchor.Col);
+    }
+
+    /// <summary>Invert fg/bg of <paramref name="length"/> cells starting at (<paramref name="x"/>, <paramref name="y"/>).</summary>
+    private static void InvertCells(CellBuffer buffer, int x, int y, int length)
+    {
+        if ((uint)y >= (uint)buffer.Height) return;
+        for (int i = 0; i < length; i++)
+        {
+            int cx = x + i;
+            if ((uint)cx >= (uint)buffer.Width) break;
+            var c = buffer.GetCell(cx, y);
+            buffer.SetCell(cx, y, new Cell(c.Codepoint, c.Background, c.Foreground, c.Decorations, c.Flags));
+        }
+    }
+
+    /// <summary>
+    /// Build the text payload for the current selection, ready to ship to the
+    /// clipboard. Lines are joined with <c>\n</c>. Rectangular selections pad /
+    /// truncate each row to the column band.
+    /// </summary>
+    private string BuildSelectionText()
+    {
+        if (_selectionRegion == SelectionRegion.None) return string.Empty;
+
+        var source = _selectionRegion == SelectionRegion.Output
+            ? (IReadOnlyList<string>)_outputLines
+            : InputLines();
+
+        int rowLo = Math.Max(0, Math.Min(_selectionAnchor.Row, _selectionHead.Row));
+        int rowHi = Math.Min(source.Count - 1, Math.Max(_selectionAnchor.Row, _selectionHead.Row));
+        if (rowHi < rowLo) return string.Empty;
+
+        var sb = new StringBuilder();
+        for (int r = rowLo; r <= rowHi; r++)
+        {
+            if (!TryGetSelectedColsForRow(r, source[r].Length, out var s, out var e))
+            {
+                if (r != rowHi) sb.Append('\n');
+                continue;
+            }
+            sb.Append(source[r], s, e - s);
+            if (r != rowHi) sb.Append('\n');
+        }
+        return sb.ToString();
+    }
+
+    /// <summary>Lazy view of <see cref="_input"/> split on <c>\n</c>, indexed by input row.</summary>
+    private IReadOnlyList<string> InputLines() => _input.ToString().Split('\n');
+
+    private void ClearSelection()
+    {
+        if (_selectionRegion == SelectionRegion.None) return;
+        _selectionRegion = SelectionRegion.None;
+        _selectionRectangular = false;
+        _isMouseDragging = false;
+        InvalidationCallback?.Invoke();
+    }
+
+    /// <summary>Copy the current selection to <see cref="TerminalNinja.App.Application.Clipboard"/>.</summary>
+    private void CopyToClipboard()
+    {
+        if (!HasSelection) return;
+        var text = BuildSelectionText();
+        if (text.Length == 0) return;
+        TerminalNinja.App.Application.Current?.Clipboard.SetText(text);
+    }
+
+    /// <summary>
+    /// Mouse-down — start a fresh selection at the clicked cell, unless Shift
+    /// is held in which case extend the existing selection. Alt switches the
+    /// selection mode to rectangular (block).
+    /// </summary>
+    private void BeginSelection(MouseEvent e)
+    {
+        var hit = HitTest(e.X, e.Y);
+        if (hit.Region == SelectionRegion.None)
+        {
+            ClearSelection();
+            return;
+        }
+
+        // Clicking dismisses any open completion popup and hides the
+        // mouse-hover panel so they don't compete with the drag.
+        if (_completions is { Count: > 0 }) CloseCompletion();
+        HideMouseHover();
+
+        if (e.Shift && _selectionRegion == hit.Region)
+        {
+            // Shift-click — extend by moving only the head; rectangular mode
+            // is inherited from the existing selection.
+            _selectionHead = (hit.Row, hit.Col);
+        }
+        else
+        {
+            _selectionRegion = hit.Region;
+            _selectionRectangular = e.Alt;
+            _selectionAnchor = (hit.Row, hit.Col);
+            _selectionHead = (hit.Row, hit.Col);
+        }
+
+        _isMouseDragging = true;
+        InvalidationCallback?.Invoke();
+    }
+
+    /// <summary>Drag-update — move only the head; clamp to the same region as the anchor.</summary>
+    private void ExtendSelection(int mouseX, int mouseY)
+    {
+        if (_selectionRegion == SelectionRegion.None) return;
+        var hit = HitTest(mouseX, mouseY);
+        if (hit.Region != _selectionRegion) return;   // dragging out of the region is a no-op
+        if (_selectionHead.Row == hit.Row && _selectionHead.Col == hit.Col) return;
+        _selectionHead = (hit.Row, hit.Col);
+        InvalidationCallback?.Invoke();
+    }
+
+    /// <summary>
+    /// Map a screen (mouseX, mouseY) cell to a (region, row, col) tuple in the
+    /// region's own coordinate system. Returns None when the click landed
+    /// outside both regions.
+    /// </summary>
+    private (SelectionRegion Region, int Row, int Col) HitTest(int mouseX, int mouseY)
+    {
+        if (_lastBounds.Width <= 0) return (SelectionRegion.None, 0, 0);
+
+        // Input region: the bottom inputLines rows of the panel.
+        int inputBottomY = _lastBounds.Y + _lastBounds.Height - 1;
+        int inputTopY = _lastInputTopY;
+        if (mouseY >= inputTopY && mouseY <= inputBottomY)
+        {
+            int row = mouseY - inputTopY;
+            int promptWidth = Math.Max(Prompt.Length, ContinuationPrompt.Length);
+            int col = Math.Max(0, mouseX - _lastBounds.X - promptWidth);
+            // Clamp col to the row's actual length so selection can't run past EOL.
+            var lines = InputLines();
+            if (row >= 0 && row < lines.Count) col = Math.Min(col, lines[row].Length);
+            return (SelectionRegion.Input, row, col);
+        }
+
+        // Output region: everything above the input + decoration rows.
+        if (mouseY >= _lastBounds.Y && mouseY < _lastBounds.Y + _lastOutputHeight)
+        {
+            int rowInPanel = mouseY - _lastBounds.Y;
+            int firstVisible = Math.Max(0, _outputLines.Count - _lastOutputHeight - _scrollOffset);
+            int lineIndex = firstVisible + rowInPanel;
+            if (lineIndex < 0 || lineIndex >= _outputLines.Count)
+                return (SelectionRegion.None, 0, 0);
+            int col = Math.Max(0, mouseX - _lastBounds.X);
+            col = Math.Min(col, _outputLines[lineIndex].Length);
+            return (SelectionRegion.Output, lineIndex, col);
+        }
+
+        return (SelectionRegion.None, 0, 0);
+    }
+
     /// <summary>
     /// Renders one or more input rows starting at <paramref name="topY"/>. The first row
     /// uses <see cref="Prompt"/>; subsequent rows use <see cref="ContinuationPrompt"/>
@@ -340,6 +568,14 @@ public sealed class ReplView : Control
             // Slice the line's text and highlighter tokens onto this row.
             var lineText = text.Substring(offset, lineEnd - offset);
             DrawHighlightedInputLine(buffer, inputX, y, lineText, offset, allTokens, inputWidth, fg, bg);
+
+            // Selection inversion lives on top of the highlight pass so it
+            // works regardless of the per-token colour we drew underneath.
+            if (_selectionRegion == SelectionRegion.Input
+                && TryGetSelectedColsForRow(r, lineText.Length, out var selStart, out var selEnd))
+            {
+                InvertCells(buffer, inputX + selStart, y, Math.Min(selEnd, inputWidth) - selStart);
+            }
 
             // Render the cursor cell on this row if the cursor sits on this line.
             if (cursorLine == r)
@@ -571,15 +807,26 @@ public sealed class ReplView : Control
 
         switch (e.Key)
         {
+            case ConsoleKey.C when e.Ctrl:
+                // Copy — only handle when there's an active selection so plain
+                // Ctrl+C with no selection falls through to whatever the host
+                // wants (e.g. cancel-current-command in a future revision).
+                if (HasSelection) { CopyToClipboard(); return; }
+                break;
+            case ConsoleKey.Escape when HasSelection:
+                ClearSelection();
+                return;
             case ConsoleKey.Enter when e.Shift:
                 // Shift+Enter — insert a newline rather than submit. Lets the user compose
                 // multi-line expressions (let … in …, switch arms, pasted scripts).
+                ClearInputSelection();
                 _input.Insert(_cursorCol, '\n');
                 _cursorCol++;
                 RecomputeAnalysis();
                 InvalidationCallback?.Invoke();
                 return;
             case ConsoleKey.Enter:
+                ClearInputSelection();
                 Submit();
                 return;
             case ConsoleKey.Tab:
@@ -591,6 +838,7 @@ public sealed class ReplView : Control
             case ConsoleKey.Backspace:
                 if (_cursorCol > 0)
                 {
+                    ClearInputSelection();
                     _input.Remove(_cursorCol - 1, 1);
                     _cursorCol--;
                     RecomputeAnalysis();
@@ -600,6 +848,7 @@ public sealed class ReplView : Control
             case ConsoleKey.Delete:
                 if (_cursorCol < _input.Length)
                 {
+                    ClearInputSelection();
                     _input.Remove(_cursorCol, 1);
                     RecomputeAnalysis();
                     InvalidationCallback?.Invoke();
@@ -643,11 +892,18 @@ public sealed class ReplView : Control
         // Printable text input: SDL3 TEXT_INPUT delivers shifted symbols here as KeyChar.
         if (e.KeyChar >= 0x20 && e.KeyChar < 0x7F && !e.Ctrl && !e.Alt)
         {
+            ClearInputSelection();
             _input.Insert(_cursorCol, e.KeyChar);
             _cursorCol++;
             RecomputeAnalysis();
             InvalidationCallback?.Invoke();
         }
+    }
+
+    /// <summary>Drop a selection only if it lives in the input region; output selections survive editing.</summary>
+    private void ClearInputSelection()
+    {
+        if (_selectionRegion == SelectionRegion.Input) ClearSelection();
     }
 
     private bool OpenCompletion()
@@ -880,6 +1136,25 @@ public sealed class ReplView : Control
         if (e.Action == MouseAction.ScrollDown)
         {
             ScrollBy(-3);
+            return;
+        }
+
+        // Selection — left button press starts a drag, Move while dragging
+        // tracks the head, Release ends the drag (but keeps the selection so
+        // Ctrl+C can copy afterwards).
+        if (e.Button == MouseButton.Left && e.Action == MouseAction.Press)
+        {
+            BeginSelection(e);
+            return;
+        }
+        if (_isMouseDragging && e.Action == MouseAction.Move)
+        {
+            ExtendSelection(e.X, e.Y);
+            return;
+        }
+        if (e.Button == MouseButton.Left && e.Action == MouseAction.Release)
+        {
+            _isMouseDragging = false;
             return;
         }
 

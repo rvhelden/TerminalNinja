@@ -316,6 +316,11 @@ public sealed class SkiaApplication : IDisposable
             SuppressConsoleSetup = true,
         });
 
+        // Replace the headless-default ProcessClipboard with the SDL3-bridged one so
+        // copy/paste flows to the real OS clipboard. Tests / non-Skia hosts keep the
+        // process-internal default.
+        _app.Clipboard = new Sdl3Clipboard();
+
         // Application.HandleResizeEvent fires our Resize subscriber after the input pump
         // sees a ResizeEvent. The console renderer's HandleResize is a no-op for our
         // sink-backed Renderer, so we do the SDL3-specific rebuild ourselves here.

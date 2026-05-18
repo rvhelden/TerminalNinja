@@ -61,6 +61,14 @@ public sealed class Application : IDisposable
     public FocusManager FocusManager { get; }
 
     /// <summary>
+    /// Clipboard accessor. Defaults to a <see cref="ProcessClipboard"/> so
+    /// headless tests work without a real OS clipboard; host backends like
+    /// <c>TerminalNinja.Skia</c> swap in their platform-bridged implementation
+    /// during application initialization.
+    /// </summary>
+    public IClipboard Clipboard { get; set; } = new ProcessClipboard();
+
+    /// <summary>
     /// Gets the renderer for this application.
     /// </summary>
     public Renderer Renderer { get; }

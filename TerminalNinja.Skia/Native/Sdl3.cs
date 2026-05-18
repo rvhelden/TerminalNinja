@@ -185,6 +185,23 @@ internal static partial class Sdl3
     public static partial ushort SDL_GetModState();
 
     /// <summary>
+    /// Returns a pointer to a UTF-8 string with the OS clipboard contents.
+    /// Caller must <see cref="SDL_free"/> the result. Returns <see cref="IntPtr.Zero"/>
+    /// when the clipboard is empty or unavailable.
+    /// </summary>
+    [LibraryImport(Lib)]
+    public static partial IntPtr SDL_GetClipboardText();
+
+    /// <summary>Replace the OS clipboard contents with the given UTF-8 string.</summary>
+    [LibraryImport(Lib, StringMarshalling = StringMarshalling.Utf8)]
+    [return: MarshalAs(UnmanagedType.U1)]
+    public static partial bool SDL_SetClipboardText(string text);
+
+    /// <summary>Free memory that SDL allocated (e.g. clipboard text strings).</summary>
+    [LibraryImport(Lib)]
+    public static partial void SDL_free(IntPtr mem);
+
+    /// <summary>
     /// SDL3 event union. Variants are reinterpreted via <see cref="System.Runtime.CompilerServices.Unsafe.As{TFrom, TTo}(ref TFrom)"/>
     /// once <see cref="type"/> identifies which variant SDL3 wrote.
     /// </summary>
