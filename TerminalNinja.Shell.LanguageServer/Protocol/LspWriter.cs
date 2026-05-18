@@ -111,4 +111,38 @@ public sealed class LspWriter
         w.WriteNumber("character", p.Character);
         w.WriteEndObject();
     }
+
+    /// <summary>Write a <c>textDocument/documentSymbol</c> response for the given <paramref name="id"/>.</summary>
+    public void WriteDocumentSymbols(JsonElement id, IReadOnlyList<DocumentSymbol> symbols)
+    {
+        WriteResponse(id, w =>
+        {
+            w.WriteStartArray();
+            foreach (var s in symbols) WriteDocumentSymbol(w, s);
+            w.WriteEndArray();
+        });
+    }
+
+    private static void WriteDocumentSymbol(Utf8JsonWriter w, DocumentSymbol s)
+    {
+        w.WriteStartObject();
+        w.WriteString("name", s.Name);
+        if (s.Detail is not null) w.WriteString("detail", s.Detail);
+        w.WriteNumber("kind", (int)s.Kind);
+        w.WriteStartObject("range");
+        WritePosition(w, "start", s.Range.Start);
+        WritePosition(w, "end", s.Range.End);
+        w.WriteEndObject();
+        w.WriteStartObject("selectionRange");
+        WritePosition(w, "start", s.SelectionRange.Start);
+        WritePosition(w, "end", s.SelectionRange.End);
+        w.WriteEndObject();
+        if (s.Children.Count > 0)
+        {
+            w.WriteStartArray("children");
+            foreach (var child in s.Children) WriteDocumentSymbol(w, child);
+            w.WriteEndArray();
+        }
+        w.WriteEndObject();
+    }
 }

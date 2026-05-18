@@ -84,6 +84,9 @@ public sealed class LspServer
             case "textDocument/didClose":
                 HandleDidClose(message, writer);
                 break;
+            case "textDocument/documentSymbol":
+                if (hasId) HandleDocumentSymbol(idEl, message, writer);
+                break;
             default:
                 // Unknown request → MethodNotFound (-32601). Unknown notification → ignore.
                 if (hasId) writer.WriteError(idEl, -32601, $"method not supported: {method}");
@@ -99,6 +102,8 @@ public sealed class LspServer
             w.WriteStartObject("capabilities");
             // Full document sync — client sends the entire text on every change.
             w.WriteNumber("textDocumentSync", 1);
+            // Outline / breadcrumb support.
+            w.WriteBoolean("documentSymbolProvider", true);
             w.WriteEndObject();
             w.WriteStartObject("serverInfo");
             w.WriteString("name", "ninja-lsp");
@@ -138,6 +143,23 @@ public sealed class LspServer
         if (text is null) return;
         _docs.Update(uri, text);
         Publish(uri, writer);
+    }
+
+    private void HandleDocumentSymbol(JsonElement id, JsonElement message, LspWriter writer)
+    {
+        if (!message.TryGetProperty("params", out var p)
+            || !p.TryGetProperty("textDocument", out var td)
+            || !td.TryGetProperty("uri", out var uriEl))
+        {
+            writer.WriteResponse(id, w => w.WriteStartArray()); // empty array; closed below
+            return;
+        }
+        var uri = uriEl.GetString();
+        var text = uri is null ? null : _docs.GetText(uri);
+        var symbols = text is null
+            ? Array.Empty<DocumentSymbol>()
+            : LanguageService.GetDocumentSymbols(text);
+        writer.WriteDocumentSymbols(id, symbols);
     }
 
     private void HandleDidClose(JsonElement message, LspWriter writer)

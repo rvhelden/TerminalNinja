@@ -1,5 +1,7 @@
+using TerminalNinja.Shell.Ast;
 using TerminalNinja.Shell.Lexer;
 using TerminalNinja.Shell.Parser;
+using TerminalNinja.Shell.Values;
 
 namespace TerminalNinja.Shell.Language.Services;
 
@@ -47,5 +49,65 @@ public static class LanguageService
         var start = new Position(line, col);
         var end = new Position(line, col + 1);
         return new Diagnostic(new Range(start, end), DiagnosticSeverity.Error, message);
+    }
+
+    /// <summary>
+    /// Compute outline-shaped symbols for a source string. Top-level
+    /// <c>let NAME = VALUE</c> statements become Variable (or Function, when the
+    /// bound value is a lambda) symbols; top-level <c>source("path")</c> forms
+    /// become Module symbols. Source that fails to parse returns an empty list
+    /// — the LSP client also gets diagnostics, so we don't surface partial
+    /// outlines from a half-parsed tree.
+    /// </summary>
+    public static IReadOnlyList<DocumentSymbol> GetDocumentSymbols(string source)
+    {
+        ArgumentNullException.ThrowIfNull(source);
+        var symbols = new List<DocumentSymbol>();
+        try
+        {
+            var forms = NinjaParser.ParseScript(source);
+            foreach (var form in forms)
+            {
+                var sym = TryBuildSymbol(form);
+                if (sym is not null) symbols.Add(sym);
+            }
+        }
+        catch (LexerException)  { return Array.Empty<DocumentSymbol>(); }
+        catch (ParserException) { return Array.Empty<DocumentSymbol>(); }
+
+        return symbols;
+    }
+
+    private static DocumentSymbol? TryBuildSymbol(Expr form) => form switch
+    {
+        LetStatement ls => new DocumentSymbol(
+            Name: ls.Name,
+            Detail: ls.Value is Lambda lam ? $"({string.Join(", ", lam.Parameters)}) =>" : null,
+            Kind: ls.Value is Lambda ? SymbolKind.Function : SymbolKind.Variable,
+            Range: SpanToRange(ls.Span),
+            SelectionRange: SpanToRange(ls.Span),
+            Children: Array.Empty<DocumentSymbol>()),
+        SourceStatement src => new DocumentSymbol(
+            Name: BuildSourceName(src),
+            Detail: null,
+            Kind: SymbolKind.Module,
+            Range: SpanToRange(src.Span),
+            SelectionRange: SpanToRange(src.Span),
+            Children: Array.Empty<DocumentSymbol>()),
+        _ => null,
+    };
+
+    private static string BuildSourceName(SourceStatement src)
+    {
+        if (src.Path is Lit { Value: NString s }) return $"source(\"{s.Value}\")";
+        return "source(...)";
+    }
+
+    private static Range SpanToRange(Span s)
+    {
+        // 1-based source positions → 0-based LSP positions.
+        var start = new Position(Math.Max(s.StartLine - 1, 0), Math.Max(s.StartColumn - 1, 0));
+        var end = new Position(Math.Max(s.EndLine - 1, 0), Math.Max(s.EndColumn - 1, 0));
+        return new Range(start, end);
     }
 }

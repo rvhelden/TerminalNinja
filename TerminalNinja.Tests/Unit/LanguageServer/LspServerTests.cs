@@ -184,6 +184,50 @@ public class LspServerTests
         await Assert.That(responses).IsEmpty();
     }
 
+    // ─── documentSymbol ─────────────────────────────────────────────────────
+
+    [Test]
+    public async Task Initialize_Advertises_DocumentSymbolProvider()
+    {
+        var responses = RunServerAndCollect(BuildInput(Initialize()));
+        var caps = responses[0].RootElement.GetProperty("result").GetProperty("capabilities");
+        await Assert.That(caps.GetProperty("documentSymbolProvider").GetBoolean()).IsTrue();
+    }
+
+    [Test]
+    public async Task DocumentSymbol_OnLetStatement_ReturnsVariableSymbol()
+    {
+        const string uri = "file:///sym.ninja";
+        var responses = RunServerAndCollect(BuildInput(
+            Initialize(),
+            DidOpen(uri, "let answer = 42"),
+            $"{{\"jsonrpc\":\"2.0\",\"id\":42,\"method\":\"textDocument/documentSymbol\",\"params\":{{" +
+            $"\"textDocument\":{{\"uri\":\"{uri}\"}}" +
+            "}}"));
+
+        var sym = responses.Single(r =>
+            r.RootElement.TryGetProperty("id", out var idEl) && idEl.GetInt32() == 42);
+        var arr = sym.RootElement.GetProperty("result");
+        await Assert.That(arr.GetArrayLength()).IsEqualTo(1);
+        await Assert.That(arr[0].GetProperty("name").GetString()).IsEqualTo("answer");
+        await Assert.That(arr[0].GetProperty("kind").GetInt32()).IsEqualTo((int)TerminalNinja.Shell.Language.Services.SymbolKind.Variable);
+    }
+
+    [Test]
+    public async Task DocumentSymbol_OnUnknownUri_ReturnsEmptyArray()
+    {
+        var responses = RunServerAndCollect(BuildInput(
+            Initialize(),
+            "{\"jsonrpc\":\"2.0\",\"id\":5,\"method\":\"textDocument/documentSymbol\",\"params\":{" +
+            "\"textDocument\":{\"uri\":\"file:///never-opened.ninja\"}" +
+            "}}"));
+
+        var sym = responses.Single(r =>
+            r.RootElement.TryGetProperty("id", out var idEl) && idEl.GetInt32() == 5);
+        var arr = sym.RootElement.GetProperty("result");
+        await Assert.That(arr.GetArrayLength()).IsEqualTo(0);
+    }
+
     private static string Method(JsonDocument doc)
     {
         if (doc.RootElement.TryGetProperty("method", out var m) && m.ValueKind == JsonValueKind.String)
