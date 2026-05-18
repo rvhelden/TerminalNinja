@@ -1,0 +1,77 @@
+<Border xmlns="http://schemas.terminalninja.dev/xaml"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:s="clr-namespace:NinjaShellUi"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        mc:Ignorable="d"
+        d:DataContext="{d:DesignInstance Type=s:ShellViewModel}"
+        Background="#1E1E2E"
+        BorderBrush="#CDD6F4">
+    <Grid Rows="* 1" Columns="*">
+        <StackPanel Grid.Row="0" Orientation="Horizontal">
+
+            <!-- Files panel (left) — width set from code on F1 (StackPanel.FixedSize attached -->
+            <!-- properties don't accept {Binding} in the current XAML loader). -->
+            <Border x:Name="FilesPanel"
+                    StackPanel.SizeMode="Fixed" StackPanel.FixedSize="32"
+                    BorderStyle="Single"
+                    BorderBrush="#45475A"
+                    Padding="1,0,1,0">
+                <StackPanel Orientation="Vertical">
+                    <TextBlock StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1"
+                               Text=" Files"
+                               Foreground="#F9E2AF"
+                               TextDecorations="Bold" />
+                    <TextBlock StackPanel.SizeMode="Stretch"
+                               Text="{Binding FilesText}"
+                               Foreground="#CDD6F4"
+                               TextWrapping="NoWrap" />
+                </StackPanel>
+            </Border>
+
+            <!-- REPL (center) — fills the remaining horizontal space -->
+            <Border StackPanel.SizeMode="Stretch"
+                    BorderStyle="Single"
+                    BorderBrush="#45475A">
+                <ContentControl Content="{Binding Repl}" />
+            </Border>
+
+            <!-- Env + scope (right) — single column, env on top, scope below -->
+            <Border x:Name="RightPanel"
+                    StackPanel.SizeMode="Fixed" StackPanel.FixedSize="48"
+                    BorderStyle="Single"
+                    BorderBrush="#45475A"
+                    Padding="1,0,1,0">
+                <StackPanel Orientation="Vertical">
+                    <TextBlock x:Name="EnvHeader"
+                               StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1"
+                               Text=" Environment"
+                               Foreground="#F9E2AF"
+                               TextDecorations="Bold" />
+                    <TextBlock x:Name="EnvBody"
+                               StackPanel.SizeMode="Fixed" StackPanel.FixedSize="12"
+                               Text="{Binding EnvText}"
+                               Foreground="#A6E3A1"
+                               TextWrapping="NoWrap" />
+                    <TextBlock x:Name="ScopeHeader"
+                               StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1"
+                               Text=" Scope"
+                               Foreground="#F9E2AF"
+                               TextDecorations="Bold" />
+                    <TextBlock x:Name="ScopeBody"
+                               StackPanel.SizeMode="Stretch"
+                               Text="{Binding ScopeText}"
+                               Foreground="#94E2D5"
+                               TextWrapping="NoWrap" />
+                </StackPanel>
+            </Border>
+        </StackPanel>
+
+        <!-- Footer with shortcut hints -->
+        <TextBlock Grid.Row="1" Grid.Column="0"
+                   Text="{Binding ShortcutHint}"
+                   Foreground="#7F849C"
+                   Background="#181825"
+                   HorizontalTextAlignment="Center" />
+    </Grid>
+</Border>

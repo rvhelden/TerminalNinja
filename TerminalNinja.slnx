@@ -11,4 +11,5 @@
   <Project Path="TerminalNinja.Shell.LanguageServer/TerminalNinja.Shell.LanguageServer.csproj" />
   <Project Path="TerminalNinja.Wasm/TerminalNinja.Wasm.csproj" />
   <Project Path="samples/SkiaTerminal/SkiaTerminal.csproj" />
+  <Project Path="samples/NinjaShellUi/NinjaShellUi.csproj" />
 </Solution>
