@@ -200,24 +200,51 @@ public sealed class SkiaCellSink : IShapedRunSink
         // those stray pixels survive across frames — the dirty-rect renderer only re-clears
         // the bounding box of changed cells, so anything that bled left of column 0 of a
         // run never gets wiped.
+        //
+        // Box-drawing chars (─, │, corners, T-junctions, double / rounded variants) are
+        // intercepted: the font glyph for ─ typically renders ~1 px shorter than its advance
+        // width, so an N-cell horizontal border tiles as a dashed line instead of a continuous
+        // stroke. We render every box-drawing rune procedurally with primitives that span the
+        // full cell rectangle. Pure-box runs (the common case for borders) skip the shaped
+        // glyph path entirely; mixed runs draw the text blob and then overdraw the box chars
+        // so the procedural strokes cover the gap-prone glyph ink.
         _fgPaint.Color = ApplyDimmedAlpha(ToSkColor(displayFg), decorations);
-        var styled = GetStyledFont(decorations);
-        var blob = GetOrBuildBlob(text, decorations);
+
+        var (hasBox, allBox) = ClassifyBoxDrawing(text);
 
         canvas.Save();
         canvas.ClipRect(new SKRect(px, py, px + rectW, py + rectH));
         try
         {
-            if (blob is not null)
+            if (!allBox)
             {
-                canvas.DrawText(blob, px, py + _textBaseline, _fgPaint);
+                var styled = GetStyledFont(decorations);
+                var blob = GetOrBuildBlob(text, decorations);
+                if (blob is not null)
+                {
+                    canvas.DrawText(blob, px, py + _textBaseline, _fgPaint);
+                }
+                else
+                {
+                    // Fallback for edge cases where SKShaper / SKTextBlobBuilder doesn't produce
+                    // a blob (e.g. empty text after shaping). DrawShapedText reshapes inline using
+                    // the style-matched shaper.
+                    canvas.DrawShapedText(styled.Shaper, text.ToString(), px, py + _textBaseline, styled.Font, _fgPaint);
+                }
             }
-            else
+
+            if (hasBox)
             {
-                // Fallback for edge cases where SKShaper / SKTextBlobBuilder doesn't produce
-                // a blob (e.g. empty text after shaping). DrawShapedText reshapes inline using
-                // the style-matched shaper.
-                canvas.DrawShapedText(styled.Shaper, text.ToString(), px, py + _textBaseline, styled.Font, _fgPaint);
+                var col = 0;
+                foreach (var rune in text.EnumerateRunes())
+                {
+                    var cp = (uint)rune.Value;
+                    if (BoxDrawing.Handles(cp))
+                    {
+                        BoxDrawing.Draw(canvas, px + col * _cellWidth, py, _cellWidth, _cellHeight, cp, _fgPaint);
+                    }
+                    col += WidthTable.IsWide(cp) ? 2 : 1;
+                }
             }
         }
         finally
@@ -285,7 +312,16 @@ public sealed class SkiaCellSink : IShapedRunSink
             canvas.ClipRect(new SKRect(px, py, px + rectW, py + rectH));
             try
             {
-                DrawGlyph(canvas, cell.Codepoint, px, py + _textBaseline, _fgPaint);
+                if (BoxDrawing.Handles(cell.Codepoint))
+                {
+                    // Box-drawing chars render through Skia primitives, not the font glyph —
+                    // see the matching note in WriteRun for why.
+                    BoxDrawing.Draw(canvas, px, py, rectW, _cellHeight, cell.Codepoint, _fgPaint);
+                }
+                else
+                {
+                    DrawGlyph(canvas, cell.Codepoint, px, py + _textBaseline, _fgPaint);
+                }
             }
             finally
             {
@@ -325,6 +361,30 @@ public sealed class SkiaCellSink : IShapedRunSink
         }
 
         return w;
+    }
+
+    /// <summary>
+    /// One-pass classifier for box-drawing content in a run. Returns whether any rune is a
+    /// box-drawing char (drives the procedural overdraw pass) and whether every rune is one
+    /// (lets WriteRun skip the shaped-glyph path entirely — the common case for borders).
+    /// </summary>
+    private static (bool HasBox, bool AllBox) ClassifyBoxDrawing(ReadOnlySpan<char> text)
+    {
+        var hasBox = false;
+        var allBox = true;
+        foreach (var rune in text.EnumerateRunes())
+        {
+            if (BoxDrawing.Handles((uint)rune.Value))
+            {
+                hasBox = true;
+            }
+            else
+            {
+                allBox = false;
+            }
+        }
+
+        return (hasBox, hasBox && allBox);
     }
 
     private SKTextBlob? GetOrBuildBlob(ReadOnlySpan<char> text, TextDecorations decorations)

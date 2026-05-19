@@ -85,10 +85,15 @@ public static class ObjModule
     /// </summary>
     private static NValue Table(NValue v)
     {
-        if (v is NList list) return new NString(Printer.FormatRecordTable(list));
+        if (v is NList list)
+        {
+            if (Printer.IsStringListShaped(list)) return new NString(Printer.FormatStringList(list));
+            return new NString(Printer.FormatRecordTable(list));
+        }
         if (v is NSeq seq)
         {
             var materialised = new NList(ImmutableArray.CreateRange(seq.Items));
+            if (Printer.IsStringListShaped(materialised)) return new NString(Printer.FormatStringList(materialised));
             return new NString(Printer.FormatRecordTable(materialised));
         }
         if (v is NRecord rec)

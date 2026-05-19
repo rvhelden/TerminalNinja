@@ -44,6 +44,10 @@ TerminalNinja follows WPF conventions closely: dependency properties with metada
 - [TimePicker](https://rvhelden.github.io/TerminalNinja/samples/timepicker.html): time selection
 - [TreeView](https://rvhelden.github.io/TerminalNinja/samples/treeview.html): hierarchical data, expand / collapse
 
+## Shell features
+
+- [~/.ninjarc + aliases + keybindings](https://github.com/rvhelden/TerminalNinja/blob/main/docs/ninjarc.md): shell-mode aliases (`cd foo` → `fs.cd("foo")`), `alias.set` / `key.bind` modules, and the startup rc script
+
 ## Optional
 
 - [XamlClass source generator](https://github.com/rvhelden/TerminalNinja/tree/main/TerminalNinja.Generators): generates AOT-safe property accessors, control factories, and XAML code-behind — no `Activator.CreateInstance` or reflection at runtime

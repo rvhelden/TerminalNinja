@@ -1,5 +1,6 @@
 using System.Buffers;
 using System.Text.Json;
+using TerminalNinja.Shell.Language.Protocol;
 using TerminalNinja.Shell.Language.Services;
 
 namespace TerminalNinja.Shell.LanguageServer.Protocol;
@@ -181,6 +182,49 @@ public sealed class LspWriter
             w.WriteEndArray();
             w.WriteNumber("activeSignature", 0);
             w.WriteNumber("activeParameter", help.ActiveParameter);
+            w.WriteEndObject();
+        });
+    }
+
+    /// <summary>
+    /// Write a <c>textDocument/definition</c> response. Emits an LSP
+    /// <c>Location</c> (a single <c>{ uri, range }</c> object) when a
+    /// definition is found, or a literal JSON <c>null</c> when none.
+    /// </summary>
+    public void WriteDefinition(JsonElement id, string uri, Definition? definition)
+    {
+        WriteResponse(id, w =>
+        {
+            if (definition is null) { w.WriteNullValue(); return; }
+            w.WriteStartObject();
+            w.WriteString("uri", uri);
+            w.WriteStartObject("range");
+            WritePosition(w, "start", definition.NameRange.Start);
+            WritePosition(w, "end", definition.NameRange.End);
+            w.WriteEndObject();
+            w.WriteEndObject();
+        });
+    }
+
+    /// <summary>
+    /// Write a <c>textDocument/hover</c> response. A <c>null</c> hover (no symbol
+    /// under the cursor) is sent as a literal JSON <c>null</c>, which is what LSP
+    /// clients expect when there's nothing to show.
+    /// </summary>
+    public void WriteHover(JsonElement id, Hover? hover)
+    {
+        WriteResponse(id, w =>
+        {
+            if (hover is null) { w.WriteNullValue(); return; }
+            w.WriteStartObject();
+            w.WriteStartObject("contents");
+            w.WriteString("kind", "markdown");
+            w.WriteString("value", hover.Contents);
+            w.WriteEndObject();
+            w.WriteStartObject("range");
+            WritePosition(w, "start", hover.Range.Start);
+            WritePosition(w, "end", hover.Range.End);
+            w.WriteEndObject();
             w.WriteEndObject();
         });
     }

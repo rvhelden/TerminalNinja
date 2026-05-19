@@ -277,4 +277,82 @@ public class HoverPanelTests
 
         panel.IsOpen = false;
     }
+
+    // ─── Escape dismisses without exiting the app ────────────────────
+
+    [Test]
+    public async Task Escape_WhileOpen_ClosesPanel_AndDoesNotExitApp()
+    {
+        // Hover panels are non-modal overlays. The Application's built-in Escape
+        // handler closes the topmost MODAL overlay or exits the app — so without
+        // the KeyDown interception inside HoverPanel a stray Escape during hover
+        // would quit the host. Pin that we close the panel and swallow the key.
+        var backend = new QueuedInputBackend();
+        backend.Enqueue(new KeyEvent(ConsoleKey.Escape, '\x1b', Shift: false, Alt: false, Ctrl: false));
+        // Follow with a second Escape so the test can't hang if the first one
+        // failed to dismiss the hover (the second Escape would then exit cleanly).
+        backend.Enqueue(new KeyEvent(ConsoleKey.Escape, '\x1b', Shift: false, Alt: false, Ctrl: false));
+
+        using var app = new Application(new ApplicationOptions
+        {
+            Headless = true,
+            InputBackend = backend,
+        });
+        app.RootControl = new Window();
+
+        var panel = new HoverPanel { Content = new TextBlock { Text = "info" } };
+        panel.IsOpen = true;
+
+        var closedByEscape = false;
+        // After the first Escape we expect the panel to be closed; if so the second
+        // Escape exits the loop without re-firing Closed. If the first didn't close
+        // it, this would be false.
+        panel.Closed += (_, _) =>
+        {
+            if (panel.IsOpen == false) closedByEscape = true;
+        };
+
+        app.Run();
+
+        await Assert.That(closedByEscape).IsTrue();
+        await Assert.That(panel.IsOpen).IsFalse();
+        await Assert.That(app.Overlays.Count).IsEqualTo(0);
+    }
+
+    [Test]
+    public async Task Escape_WithModifier_DoesNotDismiss()
+    {
+        // Only bare Escape dismisses — Shift+Escape (and the other modifiers) pass
+        // through so the Application's normal handling runs. Application's built-in
+        // Escape check requires HasModifiers: false, so Shift+Escape doesn't exit
+        // either — we follow it with a plain Escape to let the loop terminate.
+        var backend = new QueuedInputBackend();
+        backend.Enqueue(new KeyEvent(ConsoleKey.Escape, '\x1b', Shift: true, Alt: false, Ctrl: false));
+        backend.Enqueue(new KeyEvent(ConsoleKey.Escape, '\x1b', Shift: false, Alt: false, Ctrl: false));
+
+        using var app = new Application(new ApplicationOptions
+        {
+            Headless = true,
+            InputBackend = backend,
+        });
+        app.RootControl = new Window();
+
+        var panel = new HoverPanel { Content = new TextBlock { Text = "info" } };
+        panel.IsOpen = true;
+
+        var panelWasOpenAfterShiftedEscape = false;
+        app.KeyDown += (e, _) =>
+        {
+            if (e.Key == ConsoleKey.Escape && e.Shift && panel.IsOpen)
+            {
+                panelWasOpenAfterShiftedEscape = true;
+            }
+        };
+
+        app.Run();
+
+        // While Shift+Escape was being delivered the panel was still open
+        // (the bare Escape that followed closed it and exited the loop).
+        await Assert.That(panelWasOpenAfterShiftedEscape).IsTrue();
+    }
 }

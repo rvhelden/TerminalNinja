@@ -1,0 +1,90 @@
+<Border xmlns="http://schemas.terminalninja.dev/xaml"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:s="clr-namespace:TerminalNinja.Shell.Skia"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        mc:Ignorable="d"
+        d:DataContext="{d:DesignInstance Type=s:ShellViewModel}"
+        Background="#1E1E2E"
+        BorderBrush="#CDD6F4">
+    <Grid Rows="* 1" Columns="*">
+        <StackPanel Grid.Row="0" Orientation="Horizontal">
+
+            <!-- Files panel (left). Visibility="Collapsed" yields its width back to the
+                 stretching center cell now that StackPanel honors UIElement.Visibility.
+                 Right padding is 2 (not 1) so a maximum-length filename always leaves a
+                 visible gap before the panel's right border — without it, text that fills
+                 the content column reads as if the border itself shifted, because there's
+                 no breathing room between the last character and the vertical line.
+                 FixedSize is bound so the LeftSplitter below can resize it. -->
+            <Border StackPanel.SizeMode="Fixed" StackPanel.FixedSize="{Binding FilesPanelWidth}"
+                    Visibility="{Binding FilesPanelVisibility}"
+                    BorderStyle="Single"
+                    BorderBrush="#45475A"
+                    Padding="1,0,2,0">
+                <StackPanel Orientation="Vertical">
+                    <TextBlock StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1"
+                               Text=" Files"
+                               Foreground="#F9E2AF"
+                               TextDecorations="Bold" />
+                    <TextBlock StackPanel.SizeMode="Stretch"
+                               Text="{Binding FilesText}"
+                               Foreground="#CDD6F4"
+                               TextWrapping="NoWrap" />
+                </StackPanel>
+            </Border>
+
+            <!-- Left splitter — drag to resize the Files panel. -->
+            <ContentControl StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1"
+                            Visibility="{Binding FilesPanelVisibility}"
+                            Content="{Binding LeftSplitter}" />
+
+            <!-- REPL (center) — fills the remaining horizontal space -->
+            <Border StackPanel.SizeMode="Stretch"
+                    BorderStyle="Single"
+                    BorderBrush="#45475A">
+                <ContentControl Content="{Binding Repl}" />
+            </Border>
+
+            <!-- Right splitter — drag to resize the Env+Scope panel. -->
+            <ContentControl StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1"
+                            Visibility="{Binding RightPanelVisibility}"
+                            Content="{Binding RightSplitter}" />
+
+            <!-- Env + scope (right). The wrapper Border collapses when both inner panels are
+                 collapsed (RightPanelVisibility is wired in the VM). Inner Visibility bindings
+                 toggle env / scope independently. -->
+            <Border StackPanel.SizeMode="Fixed" StackPanel.FixedSize="{Binding RightPanelWidth}"
+                    Visibility="{Binding RightPanelVisibility}"
+                    BorderStyle="Single"
+                    BorderBrush="#45475A"
+                    Padding="1,0,2,0">
+                <StackPanel Orientation="Vertical">
+                    <TextBlock StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1"
+                               Visibility="{Binding EnvPanelVisibility}"
+                               Text=" Environment"
+                               Foreground="#F9E2AF"
+                               TextDecorations="Bold" />
+                    <ContentControl StackPanel.SizeMode="Fixed" StackPanel.FixedSize="14"
+                                    Visibility="{Binding EnvPanelVisibility}"
+                                    Content="{Binding EnvList}" />
+                    <TextBlock StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1"
+                               Visibility="{Binding ScopePanelVisibility}"
+                               Text=" Scope"
+                               Foreground="#F9E2AF"
+                               TextDecorations="Bold" />
+                    <ContentControl StackPanel.SizeMode="Stretch"
+                                    Visibility="{Binding ScopePanelVisibility}"
+                                    Content="{Binding ScopeList}" />
+                </StackPanel>
+            </Border>
+        </StackPanel>
+
+        <!-- Footer with shortcut hints -->
+        <TextBlock Grid.Row="1" Grid.Column="0"
+                   Text="{Binding ShortcutHint}"
+                   Foreground="#7F849C"
+                   Background="#181825"
+                   HorizontalTextAlignment="Center" />
+    </Grid>
+</Border>

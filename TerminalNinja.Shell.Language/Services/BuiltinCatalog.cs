@@ -107,6 +107,35 @@ internal static class BuiltinCatalog
                 new BuiltinDescriptor("find", "xml.find(elem, name) -> record | unit", CompletionKind.Function),
                 new BuiltinDescriptor("find_all", "xml.find_all(elem, name) -> list", CompletionKind.Function),
                 new BuiltinDescriptor("xpath", "xml.xpath(elem, expression) -> list", CompletionKind.Function)),
+            ["http"] = ImmutableArray.Create(
+                new BuiltinDescriptor("get", "http.get(url[, options]) -> record", CompletionKind.Function,
+                    "GET an HTTP URL. Returns { status, status_text, ok, headers, body, url, elapsed_ms }. Pass { json: true } to parse a JSON response and/or serialize a JSON body."),
+                new BuiltinDescriptor("post", "http.post(url[, options]) -> record", CompletionKind.Function),
+                new BuiltinDescriptor("put", "http.put(url[, options]) -> record", CompletionKind.Function),
+                new BuiltinDescriptor("patch", "http.patch(url[, options]) -> record", CompletionKind.Function),
+                new BuiltinDescriptor("delete", "http.delete(url[, options]) -> record", CompletionKind.Function),
+                new BuiltinDescriptor("head", "http.head(url[, options]) -> record", CompletionKind.Function),
+                new BuiltinDescriptor("request", "http.request({ method, url, ... }) -> record", CompletionKind.Function),
+                new BuiltinDescriptor("download", "http.download(url, path[, options]) -> record", CompletionKind.Function,
+                    "Stream the response body to a file. Returns { status, headers, path, bytes, elapsed_ms }."),
+                new BuiltinDescriptor("stream", "http.stream(url[, options]) -> seq", CompletionKind.Function,
+                    "Lazy sequence of lines (or SSE event records when Content-Type is text/event-stream).")),
+            ["alias"] = ImmutableArray.Create(
+                new BuiltinDescriptor("set", "alias.set(name, fn)", CompletionKind.Function,
+                    "Bind a shell-mode alias: typing `name arg1 arg2` at the REPL invokes fn with each token as a string. fn must be a function; lambda wrappers are supported."),
+                new BuiltinDescriptor("unset", "alias.unset(name) -> bool", CompletionKind.Function,
+                    "Remove a shell-mode alias; returns true if a binding existed."),
+                new BuiltinDescriptor("list", "alias.list() -> record", CompletionKind.Function,
+                    "Snapshot of all registered aliases as a record of callable values."),
+                new BuiltinDescriptor("get", "alias.get(name) -> fn | unit", CompletionKind.Function,
+                    "Look up an alias; returns the callable, or unit when none is bound.")),
+            ["key"] = ImmutableArray.Create(
+                new BuiltinDescriptor("bind", "key.bind(chord, action)", CompletionKind.Function,
+                    "Bind a REPL line-editor chord (e.g. \"Ctrl+L\") to a named action. Supported actions: clear, history-prev, history-next, abort, submit, complete."),
+                new BuiltinDescriptor("unbind", "key.unbind(chord) -> bool", CompletionKind.Function,
+                    "Remove a key binding; returns true if one existed."),
+                new BuiltinDescriptor("list", "key.list() -> record", CompletionKind.Function,
+                    "Snapshot of all key bindings keyed by chord.")),
         }.ToImmutableDictionary(StringComparer.Ordinal);
 
     /// <summary>NinjaShell reserved keywords.</summary>

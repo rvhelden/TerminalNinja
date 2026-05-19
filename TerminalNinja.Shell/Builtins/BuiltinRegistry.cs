@@ -1,4 +1,5 @@
 using System.Collections.Immutable;
+using TerminalNinja.Shell.Config;
 using TerminalNinja.Shell.Runtime;
 using TerminalNinja.Shell.Values;
 
@@ -19,6 +20,24 @@ public static class BuiltinRegistry
         return env;
     }
 
+    /// <summary>
+    /// Build an <see cref="Env"/> seeded with the defaults plus the per-REPL
+    /// alias / key modules closed over <paramref name="config"/>. Use this when
+    /// the embedder owns a <see cref="NinjaConfig"/> and wants <c>alias.set</c>
+    /// / <c>key.bind</c> to mutate that specific instance.
+    /// </summary>
+    public static Env CreateDefaultEnvWith(NinjaConfig config)
+    {
+        ArgumentNullException.ThrowIfNull(config);
+        var b = ImmutableDictionary.CreateBuilder<string, NValue>(StringComparer.Ordinal);
+        foreach (var kv in Defaults) b[kv.Key] = kv.Value;
+        AliasModule.Register(b, config);
+        KeyModule.Register(b, config);
+        var env = Env.Empty;
+        foreach (var kv in b) env = env.Extend(kv.Key, kv.Value);
+        return env;
+    }
+
     private static ImmutableDictionary<string, NValue> Build()
     {
         var b = ImmutableDictionary.CreateBuilder<string, NValue>(StringComparer.Ordinal);
@@ -30,6 +49,7 @@ public static class BuiltinRegistry
         ProcModule.Register(b);
         JsonModule.Register(b);
         XmlModule.Register(b);
+        HttpModule.Register(b);
         return b.ToImmutable();
     }
 

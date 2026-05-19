@@ -1,4 +1,5 @@
 using TerminalNinja.Shell.Builtins;
+using TerminalNinja.Shell.Config;
 using TerminalNinja.Shell.Language.Services;
 using TerminalNinja.Shell.PowerShell;
 using TerminalNinja.Shell.Runtime;
@@ -24,6 +25,7 @@ public sealed class NinjaRepl
     private readonly TextWriter _output;
     private readonly TextWriter _error;
     private readonly LineAccumulator _accumulator = new();
+    private readonly NinjaConfig _config = NinjaConfig.Empty();
     private Env _env;
 
     /// <summary>Create a REPL bound to the given streams.</summary>
@@ -36,8 +38,11 @@ public sealed class NinjaRepl
         _input = input;
         _output = output;
         _error = error;
-        _env = BuiltinRegistry.CreateDefaultEnv();
+        _env = BuiltinRegistry.CreateDefaultEnvWith(_config);
+        DefaultAliases.Seed(_config, _env);
+        DefaultKeybindings.Seed(_config);
         if (PwshBridge.IsAvailable) _env = PwshBridge.Install(_env);
+        RcLoader.TryLoad(RcLoader.DefaultPath(), _env, _error);
     }
 
     /// <summary>Run the REPL until <paramref name="exitOnEof"/> is true and stdin reaches EOF.</summary>
@@ -59,7 +64,8 @@ public sealed class NinjaRepl
         // so Console.ReadLine semantics — and existing test harnesses — still work.
         if (Console.IsInputRedirected) return null;
         return new LineEditor(new ConsoleKeyReader(), _output,
-            (line, cursor) => LanguageService.GetCompletions(line, new Position(0, cursor)));
+            (line, cursor) => LanguageService.GetCompletions(line, new Position(0, cursor)),
+            _config);
     }
 
     private int RunInteractive(LineEditor editor, bool exitOnEof)
@@ -104,6 +110,12 @@ public sealed class NinjaRepl
         exitCode = 0;
         if (_accumulator.IsEmpty && line.Trim() is "exit" or "quit") { exitCode = 0; return true; }
 
+        if (_accumulator.IsEmpty && AliasInterceptor.TryIntercept(line, _config, out var inv))
+        {
+            ExecuteAlias(inv);
+            return false;
+        }
+
         var result = _accumulator.Feed(line);
         switch (result.State)
         {
@@ -137,5 +149,39 @@ public sealed class NinjaRepl
         {
             _error.WriteLine($"internal error: {ex.GetType().Name}: {ex.Message}");
         }
+    }
+
+    private void ExecuteAlias(AliasInterceptor.AliasInvocation inv)
+    {
+        try
+        {
+            var value = NinjaEvaluator.Invoke(inv.Func, inv.Args);
+            if (inv.PipelineTail is { } tail) value = EvalPipelineTail(value, tail);
+            var rendered = Printer.Format(value);
+            if (!string.IsNullOrEmpty(rendered)) _output.WriteLine(rendered);
+        }
+        catch (EvaluatorException ex)
+        {
+            _error.WriteLine($"runtime error: {ex.Message}");
+        }
+        catch (Exception ex)
+        {
+            _error.WriteLine($"internal error: {ex.GetType().Name}: {ex.Message}");
+        }
+    }
+
+    /// <summary>
+    /// Evaluate the pipeline tail captured by <see cref="AliasInterceptor"/> with
+    /// <paramref name="aliasResult"/> as the pipeline input. The result is bound to a
+    /// fresh internal name (prefixed with <c>__</c> so it can't collide with anything
+    /// a user-facing <c>let</c> could introduce) in a temporary env, and the parser
+    /// handles the rest of the line normally as <c>__pipein | &lt;tail&gt;</c>. The
+    /// temporary binding is intentionally not propagated to <see cref="_env"/>.
+    /// </summary>
+    private NValue EvalPipelineTail(NValue aliasResult, string tail)
+    {
+        const string slot = "__pipein";
+        var tempEnv = _env.Extend(slot, aliasResult);
+        return NinjaEvaluator.EvalScript(slot + " | " + tail, tempEnv).Value;
     }
 }

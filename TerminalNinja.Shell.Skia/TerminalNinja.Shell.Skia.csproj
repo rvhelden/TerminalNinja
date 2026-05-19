@@ -1,0 +1,48 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <OutputType>Exe</OutputType>
+        <TargetFramework>net11.0</TargetFramework>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+        <!-- NValue is a C# 15 discriminated union (TerminalNinja.Shell.Language uses LangVersion=preview).
+             Pattern-matching its variants here requires the preview language version too. -->
+        <LangVersion>preview</LangVersion>
+        <PublishAot>true</PublishAot>
+        <RootNamespace>TerminalNinja.Shell.Skia</RootNamespace>
+        <!-- AssemblyName intentionally left at the default (project name). The
+             XamlLayoutGenerator uses compilation.AssemblyName as the namespace
+             for the generated XamlLayouts class, so it must be a valid C#
+             identifier sequence — hyphens (e.g. "ninja-ui") would break it. -->
+        <EmitCompilerGeneratedFiles>true</EmitCompilerGeneratedFiles>
+        <RuntimeIdentifier Condition="'$(RuntimeIdentifier)' == ''">$(NETCoreSdkRuntimeIdentifier)</RuntimeIdentifier>
+        <!--
+            Skia-hosted graphical front-end for the ninja shell. Three side panels
+            (files / env / scope) framed around a custom ReplView that runs the
+            NinjaEvaluator in-process. F1/F2/F3 toggle the panel visibility; F10 exits.
+        -->
+    </PropertyGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\TerminalNinja.Skia\TerminalNinja.Skia.csproj" />
+        <ProjectReference Include="..\TerminalNinja.Shell\TerminalNinja.Shell.csproj" />
+        <ProjectReference Include="..\TerminalNinja.Generators\TerminalNinja.Generators.csproj"
+                          OutputItemType="Analyzer"
+                          ReferenceOutputAssembly="false" />
+    </ItemGroup>
+
+    <!--
+        Bundle FiraCode Nerd Font Mono Regular so the Skia shell renders the same on every
+        machine — ligatures + Nerd Font symbols without requiring a system-wide font install.
+        LogicalName flattens the manifest name so Program.cs can fetch it as a single literal
+        instead of an assembly-qualified path. OFL.txt ships alongside per the font's license.
+    -->
+    <ItemGroup>
+        <EmbeddedResource Include="Fonts\FiraCodeNerdFontMono-Regular.ttf">
+            <LogicalName>FiraCodeNerdFontMono-Regular.ttf</LogicalName>
+        </EmbeddedResource>
+        <None Include="Fonts\OFL.txt" Pack="true" PackagePath="Fonts\OFL.txt" />
+        <None Include="Fonts\README.md" Pack="true" PackagePath="Fonts\README.md" />
+    </ItemGroup>
+
+</Project>

@@ -38,16 +38,57 @@ highlighting immediately, and red squigglies under syntax errors as
 |---|---|---|
 | `ninja.languageServer.path` | `""` | Absolute path to `ninja-lsp`. Empty falls back to PATH lookup. |
 | `ninja.languageServer.trace.server` | `"off"` | `"off"` / `"messages"` / `"verbose"` — JSON-RPC trace, shown in the "NinjaShell trace" output channel. |
+| `ninja.debugAdapter.path` | `""` | Absolute path to the `ninja` executable (hosts `--dap` debug adapter). Empty falls back to PATH lookup. |
+
+## Debugging `.ninja` scripts
+
+The extension contributes a debugger of type `ninja` that drives the
+interpreter via the Debug Adapter Protocol. Supported in the MVP:
+breakpoints, pause/continue, step-over (F10), step-in (F11), step-out
+(Shift+F11), call-stack view, and the Locals scope.
+
+Quick start:
+
+1. Build / publish the `ninja` binary:
+   ```
+   dotnet publish TerminalNinja.Shell -c Release -r <rid>
+   ```
+   The published binary is at
+   `TerminalNinja.Shell/bin/Release/net11.0/<rid>/publish/ninja(.exe)`.
+   Either put it on `PATH` or set `ninja.debugAdapter.path` to its absolute path.
+
+2. Open any `.ninja` file and press **F5**. Without a `launch.json` the
+   extension synthesizes one that runs the active file. Otherwise add a
+   config like:
+   ```json
+   {
+     "type": "ninja",
+     "request": "launch",
+     "name": "Run NinjaShell file",
+     "program": "${file}",
+     "stopOnEntry": false
+   }
+   ```
+
+3. Set breakpoints by clicking the gutter (or with F9). Hit F5 to run —
+   execution pauses at the breakpoint, the call stack and Locals pane
+   populate, and the step keys behave as in any VS Code debugger.
+
+Script `stdout` / `stderr` are forwarded to the Debug Console as
+`output` events, so they don't corrupt the DAP stream.
 
 ## What works today
 
 - Syntax highlighting (keywords, strings, numbers, comments, interpolated strings, pwsh blocks).
 - Live diagnostics from lexer / parser errors with 0-based ranges.
 - Bracket pairing and auto-closing for `()` `[]` `{}` and `""`.
+- Document symbols (outline view).
+- Completion: builtin names plus `module.<member>` after `.`.
+- Signature help: parameter hints inside open parens, with active-parameter tracking on `,`.
+- Hover: signatures / docs for builtins and `module.member` paths, rendered as markdown.
+- Go-to-definition: jump from a reference to the declaring top-level `let NAME = …` (most recent shadowing definition wins).
 
 ## What's coming
 
-- Hover (signatures / docs for builtins).
-- Completion (builtin names + `module.<member>` after `.`).
-- Document symbols (outline view).
-- Go-to-definition for `let` bindings.
+- Find-all-references for `let` bindings.
+- Go-to-definition for nested `let … in …` expressions (currently only top-level lets).

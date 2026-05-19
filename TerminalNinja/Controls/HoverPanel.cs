@@ -1,6 +1,7 @@
 using System.Windows.Markup;
 using TerminalNinja.Buffers;
 using TerminalNinja.Controls.Primitives;
+using TerminalNinja.Input;
 using TerminalNinja.Primitives;
 
 namespace TerminalNinja.Controls;
@@ -173,6 +174,11 @@ public class HoverPanel : FrameworkElement
 
         SyncRootProperties();
         app.PushOverlay(_root, isModal: false, dimBackground: false);
+        // The Application's built-in Escape handler closes the topmost MODAL overlay
+        // or exits the app when no modal is active. HoverPanels are non-modal, so
+        // without this hook a stray Escape while a hover (or signature help) is
+        // showing would quit the host instead of dismissing the overlay.
+        app.KeyDown += OnAppKeyDown;
         _isOnOverlayStack = true;
         Opened?.Invoke(this, EventArgs.Empty);
     }
@@ -183,8 +189,18 @@ public class HoverPanel : FrameworkElement
         if (app == null || !_isOnOverlayStack) return;
 
         app.RemoveOverlay(_root);
+        app.KeyDown -= OnAppKeyDown;
         _isOnOverlayStack = false;
         Closed?.Invoke(this, EventArgs.Empty);
+    }
+
+    private void OnAppKeyDown(KeyEvent e, KeyEventArgs args)
+    {
+        if (args.Handled) return;
+        if (e.Key != ConsoleKey.Escape) return;
+        if (e.Shift || e.Ctrl || e.Alt) return;
+        IsOpen = false;
+        args.Handled = true;
     }
 
     private void SyncRootProperties()

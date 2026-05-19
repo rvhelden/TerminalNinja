@@ -1,4 +1,5 @@
 using System.Text.Json;
+using TerminalNinja.Shell.Language.Protocol;
 using TerminalNinja.Shell.Language.Services;
 using TerminalNinja.Shell.LanguageServer.Protocol;
 
@@ -93,6 +94,12 @@ public sealed class LspServer
             case "textDocument/signatureHelp":
                 if (hasId) HandleSignatureHelp(idEl, message, writer);
                 break;
+            case "textDocument/hover":
+                if (hasId) HandleHover(idEl, message, writer);
+                break;
+            case "textDocument/definition":
+                if (hasId) HandleDefinition(idEl, message, writer);
+                break;
             default:
                 // Unknown request → MethodNotFound (-32601). Unknown notification → ignore.
                 if (hasId) writer.WriteError(idEl, -32601, $"method not supported: {method}");
@@ -123,6 +130,10 @@ public sealed class LspServer
             w.WriteStringValue(",");
             w.WriteEndArray();
             w.WriteEndObject();
+            // Hover — markdown content describing the symbol under the cursor.
+            w.WriteBoolean("hoverProvider", true);
+            // Definition — jump from a reference to the declaring top-level `let`.
+            w.WriteBoolean("definitionProvider", true);
             w.WriteEndObject();
             w.WriteStartObject("serverInfo");
             w.WriteString("name", "ninja-lsp");
@@ -215,6 +226,58 @@ public sealed class LspServer
         }
         var cursor = new Position(lineEl.GetInt32(), charEl.GetInt32());
         writer.WriteSignatureHelp(id, LanguageService.GetSignatureHelp(text, cursor));
+    }
+
+    private void HandleDefinition(JsonElement id, JsonElement message, LspWriter writer)
+    {
+        if (!message.TryGetProperty("params", out var p)
+            || !p.TryGetProperty("textDocument", out var td)
+            || !td.TryGetProperty("uri", out var uriEl)
+            || !p.TryGetProperty("position", out var posEl))
+        {
+            writer.WriteDefinition(id, uri: "", definition: null);
+            return;
+        }
+        var uri = uriEl.GetString();
+        var text = uri is null ? null : _docs.GetText(uri);
+        if (uri is null || text is null)
+        {
+            writer.WriteDefinition(id, uri ?? "", definition: null);
+            return;
+        }
+        if (!posEl.TryGetProperty("line", out var lineEl) || !posEl.TryGetProperty("character", out var charEl))
+        {
+            writer.WriteDefinition(id, uri, definition: null);
+            return;
+        }
+        var cursor = new Position(lineEl.GetInt32(), charEl.GetInt32());
+        writer.WriteDefinition(id, uri, LanguageService.GetDefinition(text, cursor));
+    }
+
+    private void HandleHover(JsonElement id, JsonElement message, LspWriter writer)
+    {
+        if (!message.TryGetProperty("params", out var p)
+            || !p.TryGetProperty("textDocument", out var td)
+            || !td.TryGetProperty("uri", out var uriEl)
+            || !p.TryGetProperty("position", out var posEl))
+        {
+            writer.WriteHover(id, null);
+            return;
+        }
+        var uri = uriEl.GetString();
+        var text = uri is null ? null : _docs.GetText(uri);
+        if (text is null)
+        {
+            writer.WriteHover(id, null);
+            return;
+        }
+        if (!posEl.TryGetProperty("line", out var lineEl) || !posEl.TryGetProperty("character", out var charEl))
+        {
+            writer.WriteHover(id, null);
+            return;
+        }
+        var cursor = new Position(lineEl.GetInt32(), charEl.GetInt32());
+        writer.WriteHover(id, LanguageService.GetHover(text, cursor));
     }
 
     private void HandleDocumentSymbol(JsonElement id, JsonElement message, LspWriter writer)

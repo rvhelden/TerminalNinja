@@ -1,71 +1,133 @@
 {
-  "name": "ninjashell",
-  "displayName": "NinjaShell",
-  "description": "Syntax highlighting and language-server diagnostics for NinjaShell (.ninja) files.",
-  "version": "0.0.1",
-  "publisher": "terminalninja",
-  "engines": {
-    "vscode": "^1.80.0"
-  },
-  "categories": [
-    "Programming Languages"
-  ],
-  "activationEvents": [
-    "onLanguage:ninja"
-  ],
-  "main": "./out/extension.js",
-  "contributes": {
-    "languages": [
-      {
-        "id": "ninja",
-        "aliases": [
-          "NinjaShell",
-          "ninja"
-        ],
-        "extensions": [
-          ".ninja"
-        ],
-        "configuration": "./language-configuration.json"
-      }
+    "name": "ninjashell",
+    "displayName": "NinjaShell",
+    "description": "Syntax highlighting and language-server diagnostics for NinjaShell (.ninja) files.",
+    "version": "0.0.1",
+    "publisher": "terminalninja",
+    "engines": {
+        "vscode": "^1.80.0"
+    },
+    "categories": [
+        "Programming Languages"
     ],
-    "grammars": [
-      {
-        "language": "ninja",
-        "scopeName": "source.ninja",
-        "path": "./syntaxes/ninja.tmLanguage.json"
-      }
-    ],
-    "configuration": {
-      "title": "NinjaShell",
-      "properties": {
-        "ninja.languageServer.path": {
-          "type": "string",
-          "default": "",
-          "description": "Path to the ninja-lsp executable. Leave empty to look it up on PATH."
+    "icon": "images/icon.png",
+    "main": "./out/extension.js",
+    "contributes": {
+        "languages": [
+            {
+                "id": "ninja",
+                "aliases": [
+                    "NinjaShell",
+                    "ninja"
+                ],
+                "extensions": [
+                    ".ninja"
+                ],
+                "configuration": "./language-configuration.json"
+            }
+        ],
+        "grammars": [
+            {
+                "language": "ninja",
+                "scopeName": "source.ninja",
+                "path": "./syntaxes/ninja.tmLanguage.json"
+            }
+        ],
+        "configuration": {
+            "title": "NinjaShell",
+            "properties": {
+                "ninja.languageServer.path": {
+                    "type": "string",
+                    "default": "",
+                    "description": "Path to the ninja-lsp executable. Leave empty to look it up on PATH."
+                },
+                "ninja.languageServer.trace.server": {
+                    "type": "string",
+                    "enum": [
+                        "off",
+                        "messages",
+                        "verbose"
+                    ],
+                    "default": "off",
+                    "description": "Trace JSON-RPC messages between the extension and ninja-lsp."
+                },
+                "ninja.debugAdapter.path": {
+                    "type": "string",
+                    "default": "",
+                    "description": "Path to the ninja executable (which hosts the --dap debug adapter). Leave empty to look it up on PATH."
+                }
+            }
         },
-        "ninja.languageServer.trace.server": {
-          "type": "string",
-          "enum": [
-            "off",
-            "messages",
-            "verbose"
-          ],
-          "default": "off",
-          "description": "Trace JSON-RPC messages between the extension and ninja-lsp."
-        }
-      }
+        "breakpoints": [
+            {
+                "language": "ninja"
+            }
+        ],
+        "debuggers": [
+            {
+                "type": "ninja",
+                "label": "NinjaShell",
+                "languages": [
+                    "ninja"
+                ],
+                "configurationAttributes": {
+                    "launch": {
+                        "required": [
+                            "program"
+                        ],
+                        "properties": {
+                            "program": {
+                                "type": "string",
+                                "description": "Absolute path to the .ninja script to launch.",
+                                "default": "${file}"
+                            },
+                            "stopOnEntry": {
+                                "type": "boolean",
+                                "description": "Pause execution before the first statement.",
+                                "default": false
+                            }
+                        }
+                    }
+                },
+                "initialConfigurations": [
+                    {
+                        "type": "ninja",
+                        "request": "launch",
+                        "name": "Run current NinjaShell file",
+                        "program": "${file}",
+                        "stopOnEntry": false
+                    }
+                ],
+                "configurationSnippets": [
+                    {
+                        "label": "NinjaShell: Launch script",
+                        "description": "Launch the current .ninja file under the debugger.",
+                        "body": {
+                            "type": "ninja",
+                            "request": "launch",
+                            "name": "Run current NinjaShell file",
+                            "program": "^\"\\${file}\"",
+                            "stopOnEntry": false
+                        }
+                    }
+                ]
+            }
+        ]
+    },
+    "scripts": {
+        "typecheck": "tsc -p ./ --noEmit",
+        "bundle": "esbuild ./src/extension.ts --bundle --outfile=out/extension.js --external:vscode --format=cjs --platform=node --target=node18 --sourcemap",
+        "compile": "tsc -p ./ --noEmit && esbuild ./src/extension.ts --bundle --outfile=out/extension.js --external:vscode --format=cjs --platform=node --target=node18 --sourcemap && vsce package --no-dependencies",
+        "watch": "tsc -watch -p ./ --noEmit"
+    },
+    "devDependencies": {
+        "@types/node": "^25.9.0",
+        "@types/vscode": "^1.80.0",
+        "@vscode/vsce": "^3.9.1",
+        "esbuild": "^0.24.0",
+        "typescript": "^6.0.3"
+    },
+    "dependencies": {
+        "vscode-languageclient": "^9.0.1"
     }
-  },
-  "scripts": {
-    "compile": "tsc -p ./",
-    "watch": "tsc -watch -p ./"
-  },
-  "devDependencies": {
-    "@types/node": "^18.0.0",
-    "@types/vscode": "^1.80.0",
-    "typescript": "^5.3.0"
-  },
-  "dependencies": {
-    "vscode-languageclient": "^9.0.1"
-  }
 }

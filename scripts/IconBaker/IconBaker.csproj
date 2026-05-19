@@ -1,0 +1,39 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <!--
+        Tiny one-purpose CLI that bakes the NinjaShell brand icon to PNG on disk. Used to
+        regenerate editors/vscode/images/icon.png whenever the icon design is tweaked (and
+        any other place that needs a static raster of the icon).
+
+        Lives outside the main solution graph (the .slnx does not reference it) so it builds
+        even when TerminalNinja.Shell is mid-refactor. The runtime host and this baker share
+        IconRenderer.cs via the Compile Include below, so there's exactly one rendering
+        routine and visuals can never drift between the two paths.
+
+        Usage: dotnet run on this csproj passing the output path and optional size as args.
+    -->
+    <PropertyGroup>
+        <OutputType>Exe</OutputType>
+        <TargetFramework>net10.0</TargetFramework>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+        <RootNamespace>TerminalNinja.IconBaker</RootNamespace>
+        <IsPackable>false</IsPackable>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <PackageReference Include="SkiaSharp" Version="3.119.2" />
+        <PackageReference Include="SkiaSharp.NativeAssets.Win32" Version="3.119.2" />
+        <PackageReference Include="SkiaSharp.NativeAssets.Linux" Version="3.119.2" />
+    </ItemGroup>
+
+    <!--
+        Share IconRenderer.cs with the runtime host instead of forking it. Any tweak to the
+        icon design lands in one place and both the bundled PNG + live SDL window icon pick
+        it up on the next bake / next run.
+    -->
+    <ItemGroup>
+        <Compile Include="..\..\TerminalNinja.Shell.Skia\Branding\IconRenderer.cs" Link="IconRenderer.cs" />
+    </ItemGroup>
+
+</Project>
