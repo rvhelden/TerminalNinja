@@ -80,4 +80,11 @@ public sealed class ApplicationOptions
     /// own for embedded scenarios.
     /// </summary>
     public bool SuppressConsoleSetup { get; init; }
+
+    /// <summary>
+    /// When true (default), an Escape keypress with no active modal exits the event loop.
+    /// Set to false in apps where Escape must reach focused controls (e.g. to dismiss a
+    /// non-modal IntelliSense popup). Modals still close on Escape regardless of this flag.
+    /// </summary>
+    public bool EscapeQuits { get; init; } = true;
 }

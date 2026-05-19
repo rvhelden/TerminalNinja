@@ -320,6 +320,7 @@ public sealed class SkiaApplication : IDisposable
             InputBackend = _input,
             EnableMouseTracking = _options.EnableMouseTracking,
             EnableTabNavigation = _options.EnableTabNavigation,
+            EscapeQuits = _options.EscapeQuits,
             // VSync paces the loop; bypass Application's Thread.Sleep frame limiter.
             TargetFps = 1000,
             SuppressConsoleSetup = true,

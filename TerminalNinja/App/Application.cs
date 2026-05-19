@@ -621,13 +621,18 @@ public sealed class Application : IDisposable
                 {
                     RemoveOverlay(modal.Element);
                 }
-                
+
                 Invalidate();
                 return;
             }
-            
-            Exit();
-            return;
+
+            if (_options.EscapeQuits)
+            {
+                Exit();
+                return;
+            }
+            // Fall through: dispatch Esc to the focused control so non-modal overlays
+            // (e.g. the IntelliSense completion popup) can handle it themselves.
         }
         
         // Determine the input root: the topmost modal overlay if one exists,
