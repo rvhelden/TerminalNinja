@@ -45,4 +45,31 @@ internal sealed class InputHistory
 
         return _index >= 0 && _index < _entries.Count ? _entries[_index] : null;
     }
+
+    /// <summary>
+    /// Return all entries (newest first) that start with <paramref name="prefix"/>
+    /// and are strictly longer than it — i.e. candidates the ghost-suggestion overlay
+    /// can show as inline autocompletion. Duplicates are collapsed (only the most-recent
+    /// occurrence of each entry is kept). Empty <paramref name="prefix"/> returns nothing,
+    /// since we don't want ghost text on an empty input line.
+    /// </summary>
+    public IReadOnlyList<string> FindByPrefix(string prefix)
+    {
+        if (string.IsNullOrEmpty(prefix) || _entries.Count == 0)
+        {
+            return Array.Empty<string>();
+        }
+
+        var matches = new List<string>();
+        var seen = new HashSet<string>(StringComparer.Ordinal);
+        for (var i = _entries.Count - 1; i >= 0; i--)
+        {
+            var entry = _entries[i];
+            if (entry.Length <= prefix.Length) continue;
+            if (!entry.StartsWith(prefix, StringComparison.Ordinal)) continue;
+            if (!seen.Add(entry)) continue;
+            matches.Add(entry);
+        }
+        return matches;
+    }
 }

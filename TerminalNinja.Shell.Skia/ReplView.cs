@@ -51,6 +51,7 @@ public sealed class ReplView : Control
     private readonly CompletionController _completion;
     private readonly SignatureHelpController _signatureHelp = new();
     private readonly MouseHoverController _mouseHover = new();
+    private readonly HistorySuggestionController _suggestion;
 
     private ReplLayout _layout;
 
@@ -91,6 +92,7 @@ public sealed class ReplView : Control
         _outputRenderer = new OutputRenderer(_output, _selection);
         _inputRenderer = new InputRenderer(_input, _selection);
         _completion = new CompletionController(_input, Invalidate);
+        _suggestion = new HistorySuggestionController(_history);
     }
 
     /// <inheritdoc />
@@ -159,10 +161,22 @@ public sealed class ReplView : Control
         if (_layout.DiagY > -1 && _analysis.HasDiagnostic)
             StatusLineRenderer.RenderDiagnostic(buffer, bounds.X, _layout.DiagY, bounds.Width, _analysis.Diagnostics[0], Prompt.Length, bg);
 
-        _inputRenderer.Render(buffer, _layout, Prompt, ContinuationPrompt, HighlightLanguage, Theme, _analysis.Diagnostics, fg, bg);
+        var ghost = IsGhostVisible ? _suggestion.GhostSuffix : string.Empty;
+        _inputRenderer.Render(buffer, _layout, Prompt, ContinuationPrompt, HighlightLanguage, Theme, _analysis.Diagnostics, fg, bg, ghost);
 
         // Completion + signature popups render on the overlay stack via their controllers.
     }
+
+    /// <summary>
+    /// Ghost text is only painted when the cursor sits at end-of-buffer on a single-line input
+    /// AND no completion popup is open. The popup would otherwise visually fight the ghost,
+    /// and ghost-text mid-buffer or on continuation rows would be misleading.
+    /// </summary>
+    private bool IsGhostVisible =>
+        _suggestion.HasSuggestion
+        && !_completion.IsOpen
+        && _input.CursorCol == _input.Length
+        && _input.Text.IndexOf('\n') < 0;
 
     // ─── Key handling ───────────────────────────────────────────────────────
 
@@ -192,6 +206,7 @@ public sealed class ReplView : Control
             if (_mouseHover.IsOpen) { _mouseHover.Hide(); Invalidate(); return; }
             if (_signatureHelp.IsOpen) { _signatureHelp.Hide(); Invalidate(); return; }
             if (!_completion.IsOpen && _selection.HasSelection) { ClearSelection(); return; }
+            if (!_completion.IsOpen && IsGhostVisible) { _suggestion.Clear(); Invalidate(); return; }
         }
 
         // Ctrl+Space — on-demand hover at the cursor. The inline hover status
@@ -237,6 +252,7 @@ public sealed class ReplView : Control
                 _input.Insert(_input.CursorCol, '\n');
                 _input.CursorCol++;
                 RecomputeAnalysis();
+                RefreshSuggestion();
                 Invalidate();
                 return;
             case ConsoleKey.Enter:
@@ -244,9 +260,10 @@ public sealed class ReplView : Control
                 Submit();
                 return;
             case ConsoleKey.Tab:
-                OpenCompletion();
-                // Always swallow Tab here — the host intercepts Tab via KeyDown
-                // and routes through TryHandleCompletionTab for focus-nav fallback.
+                // Funnel Tab through the same path the host uses (popup-accept →
+                // ghost-accept → open popup) so behavior is identical whether the
+                // host intercepts via KeyDown or the key lands here directly.
+                TryHandleCompletionTab();
                 return;
             case ConsoleKey.Backspace:
                 if (_input.CursorCol > 0)
@@ -256,6 +273,7 @@ public sealed class ReplView : Control
                     _input.CursorCol--;
                     RecomputeAnalysis();
                     RefreshCompletion();
+                    RefreshSuggestion();
                     Invalidate();
                 }
                 return;
@@ -266,6 +284,7 @@ public sealed class ReplView : Control
                     _input.Remove(_input.CursorCol, 1);
                     RecomputeAnalysis();
                     RefreshCompletion();
+                    RefreshSuggestion();
                     Invalidate();
                 }
                 return;
@@ -273,6 +292,9 @@ public sealed class ReplView : Control
                 if (_input.CursorCol > 0) { _input.CursorCol--; RecomputeAnalysis(); RefreshCompletion(); Invalidate(); }
                 return;
             case ConsoleKey.RightArrow:
+                // At end-of-buffer with a visible ghost suggestion, Right accepts the
+                // next whitespace-delimited word from the ghost — fish-style.
+                if (TryAcceptGhostNextWord()) return;
                 if (_input.CursorCol < _input.Length) { _input.CursorCol++; RecomputeAnalysis(); RefreshCompletion(); Invalidate(); }
                 return;
             case ConsoleKey.Home when e.Ctrl:
@@ -294,9 +316,13 @@ public sealed class ReplView : Control
                 Invalidate();
                 return;
             case ConsoleKey.UpArrow:
+                // While a ghost suggestion is visible, Up/Down cycle through the matching
+                // history entries (newest-first in the candidate list, so Up = older).
+                if (IsGhostVisible) { _suggestion.Cycle(+1); Invalidate(); return; }
                 MoveUpOrHistoryBack();
                 return;
             case ConsoleKey.DownArrow:
+                if (IsGhostVisible) { _suggestion.Cycle(-1); Invalidate(); return; }
                 MoveDownOrHistoryForward();
                 return;
             case ConsoleKey.PageUp:
@@ -321,6 +347,7 @@ public sealed class ReplView : Control
             // was showing yet, or closes it when the current prefix has no
             // matches — so typing `en` lands you on `env` with no Tab needed.
             RefreshCompletion();
+            RefreshSuggestion();
             Invalidate();
         }
     }
@@ -336,9 +363,48 @@ public sealed class ReplView : Control
         {
             _completion.Accept();
             RecomputeAnalysis();
+            RefreshSuggestion();
             return true;
         }
+        if (TryAcceptGhostAll()) return true;
         return OpenCompletion();
+    }
+
+    /// <summary>
+    /// Replace the buffer with the full ghost suggestion when one is visible. Returns true
+    /// if a suggestion was accepted, false otherwise. Called from Tab (accept-all) and the
+    /// host Tab handler — the visible-ghost guard means it's a no-op mid-buffer or while
+    /// the completion popup is open.
+    /// </summary>
+    private bool TryAcceptGhostAll()
+    {
+        if (!IsGhostVisible) return false;
+        var accepted = _suggestion.AcceptAll();
+        if (accepted is null) return false;
+        _input.Replace(accepted);
+        RecomputeAnalysis();
+        RefreshCompletion();
+        RefreshSuggestion();
+        Invalidate();
+        return true;
+    }
+
+    /// <summary>
+    /// Walk the next whitespace-delimited word of the ghost suggestion into the buffer.
+    /// Used by Right-arrow at end-of-buffer so the user can opt into one word at a time
+    /// instead of taking the whole suggestion.
+    /// </summary>
+    private bool TryAcceptGhostNextWord()
+    {
+        if (!IsGhostVisible) return false;
+        var accepted = _suggestion.AcceptNextWord();
+        if (accepted is null) return false;
+        _input.Replace(accepted);
+        RecomputeAnalysis();
+        RefreshCompletion();
+        RefreshSuggestion();
+        Invalidate();
+        return true;
     }
 
     private bool OpenCompletion()
@@ -353,6 +419,14 @@ public sealed class ReplView : Control
         if (_layout.IsEmpty) return;
         _completion.Refresh(Scope, _layout);
     }
+
+    /// <summary>
+    /// Recompute the ghost-text candidate set from the current input. Cheap — runs after
+    /// every edit so the suggestion tracks the prefix in real time. The suggestion is only
+    /// surfaced visually when <see cref="IsGhostVisible"/> is true; we still keep the
+    /// candidate set fresh so accept/cycle work the moment the cursor lands at end-of-buffer.
+    /// </summary>
+    private void RefreshSuggestion() => _suggestion.Refresh(_input.Text);
 
     private void ShowCursorHover()
     {
@@ -673,6 +747,7 @@ public sealed class ReplView : Control
         _input.CursorCol += normalised.Length;
         RecomputeAnalysis();
         RefreshCompletion();
+        RefreshSuggestion();
         Invalidate();
     }
 
@@ -685,6 +760,7 @@ public sealed class ReplView : Control
         _history.ResetCursor();
         _analysis.Reset();
         _signatureHelp.Hide();
+        _suggestion.Clear();
 
         // Echo the buffer back into the output with prompts in front of each line so the
         // history reads like a transcript. Continuation rows use ContinuationPrompt to
@@ -750,6 +826,7 @@ public sealed class ReplView : Control
         _input.Replace(entry ?? string.Empty);
         RecomputeAnalysis();
         RefreshCompletion();
+        RefreshSuggestion();
         Invalidate();
     }
 

@@ -13,6 +13,7 @@ namespace TerminalNinja.Shell.Skia;
 internal sealed class InputRenderer
 {
     private static readonly Color DimContinuationFg = new(0x6C, 0x70, 0x86);
+    private static readonly Color GhostFg = new(0x58, 0x5B, 0x70);
     private static readonly Color ErrorFg = new(0xF3, 0x8B, 0xA8);
 
     private readonly InputBuffer _input;
@@ -33,7 +34,8 @@ internal sealed class InputRenderer
         SyntaxTheme theme,
         IReadOnlyList<Diagnostic> diagnostics,
         Color fg,
-        Color bg)
+        Color bg,
+        string ghostSuffix = "")
     {
         var allTokens = TokenizeOrNull(highlightLanguage);
         var text = _input.Text;
@@ -75,6 +77,20 @@ internal sealed class InputRenderer
                 && _selection.TryGetSelectedColsForRow(r, lineText.Length, out var selStart, out var selEnd))
             {
                 CellPaint.InvertCells(buffer, inputX + selStart, y, Math.Min(selEnd, inputWidth) - selStart);
+            }
+
+            // Ghost text (history autosuggestion). Painted on the cursor row right after the
+            // line text, before cursor inversion, so the cursor lands on the first ghost cell
+            // and inverts it naturally. Caller is responsible for only passing a non-empty
+            // ghostSuffix when the cursor is at end-of-buffer and the buffer is single-line.
+            if (ghostSuffix.Length > 0 && cursorLine == r)
+            {
+                var ghostX = inputX + lineText.Length;
+                var availableWidth = inputX + inputWidth - ghostX;
+                if (availableWidth > 0)
+                {
+                    CellPaint.DrawText(buffer, ghostX, y, ghostSuffix, availableWidth, GhostFg, bg);
+                }
             }
 
             if (cursorLine == r)
