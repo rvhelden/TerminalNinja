@@ -44,9 +44,11 @@ jobs:
           fi
 
           # --exit-insignificant-commits makes versionize exit 1 when nothing since the
-          # last release warrants a bump. That's a legitimate no-op, not a failure — skip
-          # the publish steps instead of failing the job. Any other exit 1 (dirty tree,
-          # bad config, ...) must still fail, so match on the message as well as the code.
+          # last release warrants a bump. That's a legitimate no-op, not a failure: only
+          # the commit+tag push is skipped, while pack/push still publish the version
+          # already in the csproj — which is how an existing tag that never reached NuGet
+          # gets published. Any other exit 1 (dirty tree, bad config, ...) must still fail,
+          # so match on the message as well as the code.
           set +e
           versionize --workingDir TerminalNinja --exit-insignificant-commits $PRE_FLAG 2>&1 | tee "$RUNNER_TEMP/versionize.log"
           code=${PIPESTATUS[0]}
@@ -55,7 +57,7 @@ jobs:
           if [ "$code" -eq 0 ]; then
             echo "bumped=true" >> "$GITHUB_OUTPUT"
           elif [ "$code" -eq 1 ] && grep -q "Version was not affected by commits" "$RUNNER_TEMP/versionize.log"; then
-            echo "::notice::No version-affecting commits since the last release — nothing to publish."
+            echo "::notice::No version-affecting commits since the last release — no bump or tag; publishing the existing version as-is (--skip-duplicate makes this a no-op if NuGet already has it)."
             echo "bumped=false" >> "$GITHUB_OUTPUT"
           else
             exit "$code"

@@ -46,10 +46,13 @@
     <ProjectReference Include="..\TerminalNinja.Generators\TerminalNinja.Generators.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
   </ItemGroup>
 
-  <!-- Include MSBuild targets in the NuGet package so consuming projects auto-import them -->
+  <!-- Include MSBuild targets in the NuGet package so consuming projects auto-import them.
+       Forward slashes only: on Linux '\' is a legal filename character rather than a
+       directory separator, so a trailing backslash doesn't close the folder and the entry
+       no longer matches the exact 'buildTransitive/$(PackageId).targets' path NU5129 wants. -->
   <ItemGroup>
-    <None Include="build\TerminalNinja.targets" Pack="true" PackagePath="build\" />
-    <None Include="build\TerminalNinja.targets" Pack="true" PackagePath="buildTransitive\" />
+    <None Include="build/TerminalNinja.targets" Pack="true" PackagePath="build/TerminalNinja.targets" />
+    <None Include="build/TerminalNinja.targets" Pack="true" PackagePath="buildTransitive/TerminalNinja.targets" />
   </ItemGroup>
 
   <!-- Include README and icon in the package -->
