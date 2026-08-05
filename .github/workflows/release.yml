@@ -36,14 +36,33 @@ jobs:
         run: dotnet tool install --global Versionize
 
       - name: Bump version
+        id: bump
         run: |
           PRE_FLAG=""
           if [ -n "${{ inputs.prerelease }}" ]; then
             PRE_FLAG="--pre-release ${{ inputs.prerelease }}"
           fi
-          versionize --workingDir TerminalNinja --exit-insignificant-commits $PRE_FLAG
+
+          # --exit-insignificant-commits makes versionize exit 1 when nothing since the
+          # last release warrants a bump. That's a legitimate no-op, not a failure — skip
+          # the publish steps instead of failing the job. Any other exit 1 (dirty tree,
+          # bad config, ...) must still fail, so match on the message as well as the code.
+          set +e
+          versionize --workingDir TerminalNinja --exit-insignificant-commits $PRE_FLAG 2>&1 | tee "$RUNNER_TEMP/versionize.log"
+          code=${PIPESTATUS[0]}
+          set -e
+
+          if [ "$code" -eq 0 ]; then
+            echo "bumped=true" >> "$GITHUB_OUTPUT"
+          elif [ "$code" -eq 1 ] && grep -q "Version was not affected by commits" "$RUNNER_TEMP/versionize.log"; then
+            echo "::notice::No version-affecting commits since the last release — nothing to publish."
+            echo "bumped=false" >> "$GITHUB_OUTPUT"
+          else
+            exit "$code"
+          fi
 
       - name: Push commit and tag
+        if: steps.bump.outputs.bumped == 'true'
         run: git push --follow-tags
 
       - name: Login to NuGet (Trusted Publishing)
