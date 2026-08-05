@@ -148,20 +148,6 @@ dotnet run --project TerminalNinja.Terminal.Tests/TerminalNinja.Terminal.Tests.c
 dotnet pack TerminalNinja/TerminalNinja.csproj -c Release
 ```
 
-## Publishing to NuGet
-
-Releases are cut manually: run the **Release** workflow from the Actions tab (workflow dispatch),
-optionally passing a pre-release identifier such as `alpha`, `beta`, or `rc`.
-
-The workflow uses [Versionize](https://github.com/versionize/versionize) to compute the semver bump
-from Conventional Commit messages, update `CHANGELOG.md`, and create the release commit and tag —
-so the tag is a *result* of the release, not its trigger. It then builds, tests, packs, and pushes to
-NuGet.org. Runs where no commit warrants a bump skip the commit and tag, and publish the version
-already in the csproj.
-
-Authentication uses [NuGet Trusted Publishing](https://learn.microsoft.com/nuget/nuget-org/trusted-publishing)
-(OIDC) via the `nuget-release` environment — there is no long-lived API key stored in the repository.
-
 ## Learning XAML
 
 TerminalNinja follows WPF conventions closely. If you're new to XAML, data binding, or the control model, the official Microsoft WPF docs are a great starting point:
