@@ -1,7 +1,7 @@
 # TerminalNinja
 
 [![NuGet](https://img.shields.io/nuget/v/TerminalNinja.svg)](https://www.nuget.org/packages/TerminalNinja)
-[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://github.com/rvhelden/TerminalNinja/blob/main/LICENSE)
 
 A WPF-inspired terminal UI framework for .NET 10, built native AOT-first.
 
@@ -17,6 +17,7 @@ A WPF-inspired terminal UI framework for .NET 10, built native AOT-first.
 - **30+ controls** — Grid, ListBox, ComboBox, TabControl, TreeView, DataGrid, DatePicker, and more
 - **Modal dialogs** — `ShowDialogAsync()` with overlay stack and dimmed background
 - **Keyboard and mouse input** — focus management, tab navigation, hit testing
+- **Embedded terminal** — `TerminalView` hosts a real shell via ConPTY (Windows) or a Unix PTY
 - **Native AOT** — ~20ms startup, 18MB memory footprint. Source generators for property accessors, control factories, and XAML code-behind
 - **Zero-allocation rendering** — cell-level diffing with packed 8-byte cell structures
 - **Cross-platform** — Windows (VT100) and Unix terminal support
@@ -64,18 +65,22 @@ app.Run();
 ## Project Structure
 
 ```
-TerminalNinja/              Core framework library
-TerminalNinja.Generators/   Source generators (PropertyAccessor, ControlFactory, XamlClass)
-TerminalNinja.Wasm/         Browser WASM module for the playground
-TerminalNinja.Cli/          CLI snapshot tool
-TerminalNinja.Tests/        Test suite
-Sample/                     Sample app with navigable demo screens
-docs/                       GitHub Pages site + XAML playground
+TerminalNinja/                Core framework library
+TerminalNinja.Generators/     Source generators (PropertyAccessor, ControlFactory, XamlClass)
+TerminalNinja.Terminal/       Embedded terminal emulator control (ConPTY / Unix PTY backends)
+TerminalNinja.Wasm/           Browser WASM module for the playground
+TerminalNinja.Cli/            CLI snapshot tool
+TerminalNinja.Tests/          Core library test suite
+TerminalNinja.Terminal.Tests/ Terminal emulator test suite
+Sample/                       Sample app with navigable demo screens
+docs/                         GitHub Pages site + XAML playground
 ```
+
+Only `TerminalNinja` is published to NuGet; the other projects support it or demonstrate it.
 
 ## Samples
 
-The `Sample/` project includes 24 demo screens accessible from a main menu:
+The `Sample/` project includes 25 demo screens accessible from a main menu:
 
 | Sample | Description |
 |--------|-------------|
@@ -100,6 +105,7 @@ The `Sample/` project includes 24 demo screens accessible from a main menu:
 | **ScrollViewer** | Scrollable content regions |
 | **StackPanel Layout** | Vertical/horizontal stacking, Auto/Fixed/Stretch modes |
 | **TabControl** | Tabbed content with keyboard navigation |
+| **Terminal** | Embedded terminal emulator hosting a real shell |
 | **TextInput** | Text editing with selection and clipboard support |
 | **TimePicker** | Time selection control |
 | **TreeView** | Hierarchical data with expand/collapse |
@@ -118,33 +124,43 @@ app.ThemeName = "Dracula";     // Dracula color scheme
 app.ThemeName = "GruvboxDark"; // Gruvbox dark palette
 ```
 
-Custom themes can be loaded from XAML files:
+Custom themes can be loaded from a XAML file or a XAML string:
 
 ```csharp
-Application.LoadThemeFromFile("MyTheme.xaml");
+app.LoadThemeFromFile("MyTheme.xaml");
+app.LoadThemeFromXaml(xamlString);
 ```
 
 ## Building
 
 ```bash
-dotnet build                                          # Build all projects
-dotnet run --project Sample/Sample.csproj             # Run the sample app
-dotnet run --project TerminalNinja.Tests              # Run tests
-dotnet pack TerminalNinja/TerminalNinja.csproj -c Release  # Create NuGet package
+# Build all projects
+dotnet build
+
+# Run the sample app
+dotnet run --project Sample/Sample.csproj
+
+# Run tests — TUnit on .NET 10 runs via `dotnet run`, not `dotnet test`
+dotnet run --project TerminalNinja.Tests/TerminalNinja.Tests.csproj
+dotnet run --project TerminalNinja.Terminal.Tests/TerminalNinja.Terminal.Tests.csproj
+
+# Create the NuGet package
+dotnet pack TerminalNinja/TerminalNinja.csproj -c Release
 ```
 
 ## Publishing to NuGet
 
-Packages are published automatically via GitHub Actions when a version tag is pushed:
+Releases are cut manually: run the **Release** workflow from the Actions tab (workflow dispatch),
+optionally passing a pre-release identifier such as `alpha`, `beta`, or `rc`.
 
-```bash
-git tag v0.1.0
-git push origin v0.1.0
-```
+The workflow uses [Versionize](https://github.com/versionize/versionize) to compute the semver bump
+from Conventional Commit messages, update `CHANGELOG.md`, and create the release commit and tag —
+so the tag is a *result* of the release, not its trigger. It then builds, tests, packs, and pushes to
+NuGet.org. Runs where no commit warrants a bump skip the commit and tag, and publish the version
+already in the csproj.
 
-This triggers the workflow to build, test, pack, and publish to NuGet.org. Requires a `NUGET_API_KEY` secret configured in the repository.
-
-You can also trigger a publish manually from the Actions tab using workflow dispatch.
+Authentication uses [NuGet Trusted Publishing](https://learn.microsoft.com/nuget/nuget-org/trusted-publishing)
+(OIDC) via the `nuget-release` environment — there is no long-lived API key stored in the repository.
 
 ## Learning XAML
 
@@ -159,16 +175,15 @@ Most WPF concepts (dependency properties, `{Binding}`, styles, `Grid`/`StackPane
 
 If you're using Claude Code, Copilot, Cursor, or another AI assistant to build on TerminalNinja:
 
-- **[AGENTS.md](AGENTS.md)** — architecture, conventions, DP patterns, theming checklist, test patterns
+- **[AGENTS.md](https://github.com/rvhelden/TerminalNinja/blob/main/AGENTS.md)** — architecture, conventions, DP patterns, theming checklist, test patterns
 - **[docs/llms.txt](https://rvhelden.github.io/TerminalNinja/llms.txt)** — curated link index for AI ingestion
-- **[Sample/](Sample/)** — 24 control demos; point your AI at these as ground-truth usage examples
+- **[Sample/](https://github.com/rvhelden/TerminalNinja/tree/main/Sample)** — 25 control demos; point your AI at these as ground-truth usage examples
 
 ## Requirements
 
-- .NET 10.0 SDK
-- C# 13 language features
+- .NET 10.0 SDK (the library builds at the SDK's default language version)
 - Windows 10+ (VT100 support) or Unix terminal
 
 ## License
 
-[MIT](LICENSE)
+[MIT](https://github.com/rvhelden/TerminalNinja/blob/main/LICENSE)
