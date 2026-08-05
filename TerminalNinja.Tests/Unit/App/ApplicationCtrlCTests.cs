@@ -241,16 +241,17 @@ public class ApplicationCtrlCTests
             return;
         }
 
-        // Probe whether the setter works in this environment. In CI (e.g. GitHub
-        // Actions) the getter may succeed while the setter throws IOException
-        // because stdin is redirected. The backend swallows that IOException,
-        // so we can't tell from outside whether the value was actually changed —
-        // probe here and skip the strict assertion if the setter is a no-op.
+        // Probe whether the setter actually takes effect in this environment. In CI
+        // the setter may throw IOException (Windows, no console handle) *or* silently
+        // no-op while the getter keeps returning false (Unix, redirected stdin). Both
+        // make the strict assertion meaningless, so round-trip a flipped value and
+        // only assert when the change is observable.
         bool setterWorks;
         try
         {
+            System.Console.TreatControlCAsInput = !previousValue;
+            setterWorks = System.Console.TreatControlCAsInput == !previousValue;
             System.Console.TreatControlCAsInput = previousValue;
-            setterWorks = true;
         }
         catch (IOException)
         {

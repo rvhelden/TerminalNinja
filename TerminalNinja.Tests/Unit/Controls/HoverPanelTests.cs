@@ -325,9 +325,14 @@ public class HoverPanelTests
         // Only bare Escape dismisses — Shift+Escape (and the other modifiers) pass
         // through so the Application's normal handling runs. Application's built-in
         // Escape check requires HasModifiers: false, so Shift+Escape doesn't exit
-        // either — we follow it with a plain Escape to let the loop terminate.
+        // either, and the panel stays open.
         var backend = new QueuedInputBackend();
         backend.Enqueue(new KeyEvent(ConsoleKey.Escape, '\x1b', Shift: true, Alt: false, Ctrl: false));
+        // Bare Escape #1 is swallowed by the still-open panel (Handled: true), so it
+        // does NOT exit the loop — Escape #2 is what quits, now that closing the panel
+        // has unhooked its KeyDown handler. Without the second one Run() would spin
+        // forever on the drained queue.
+        backend.Enqueue(new KeyEvent(ConsoleKey.Escape, '\x1b', Shift: false, Alt: false, Ctrl: false));
         backend.Enqueue(new KeyEvent(ConsoleKey.Escape, '\x1b', Shift: false, Alt: false, Ctrl: false));
 
         using var app = new Application(new ApplicationOptions

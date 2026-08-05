@@ -2,6 +2,11 @@ using System.Collections.ObjectModel;
 
 namespace TerminalNinja.Tests.Unit.Controls;
 
+// Opening the drop-down pushes a Popup onto Application.Current's overlay stack.
+// Application.Current is a static singleton, so running these tests alongside the
+// other Application-touching classes lets a ComboBox popup land on another test's
+// app and skew its Overlays count. Serialize on the same constraint key.
+[NotInParallel("ApplicationSingleton")]
 public class ComboBoxTests
 {
     #region Default Values
