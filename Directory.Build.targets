@@ -13,6 +13,5 @@
 <Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
 
   <Import Project="TerminalNinja/build/TerminalNinja.targets" />
-  <Import Project="TerminalNinja.Skia/build/TerminalNinja.Skia.targets" />
 
 </Project>

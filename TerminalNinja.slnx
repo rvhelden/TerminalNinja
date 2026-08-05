@@ -1,19 +1,10 @@
 <Solution>
   <Project Path="Sample/Sample.csproj" />
   <Project Path="TerminalNinja.Tests/TerminalNinja.Tests.csproj" />
-  <Project Path="TerminalNinja.Skia.Tests/TerminalNinja.Skia.Tests.csproj" />
   <Project Path="TerminalNinja.Terminal.Tests/TerminalNinja.Terminal.Tests.csproj" />
-  <Project Path="TerminalNinja.Shell.Language.Tests/TerminalNinja.Shell.Language.Tests.csproj" />
-  <Project Path="TerminalNinja.Shell.Tests/TerminalNinja.Shell.Tests.csproj" />
-  <Project Path="TerminalNinja.Shell.LanguageServer.Tests/TerminalNinja.Shell.LanguageServer.Tests.csproj" />
   <Project Path="TerminalNinja/TerminalNinja.csproj" />
-  <Project Path="TerminalNinja.Skia/TerminalNinja.Skia.csproj" />
   <Project Path="TerminalNinja.Terminal/TerminalNinja.Terminal.csproj" />
   <Project Path="TerminalNinja.Generators/TerminalNinja.Generators.csproj" />
   <Project Path="TerminalNinja.Cli/TerminalNinja.Cli.csproj" />
-  <Project Path="TerminalNinja.Shell.Language/TerminalNinja.Shell.Language.csproj" />
-  <Project Path="TerminalNinja.Shell/TerminalNinja.Shell.csproj" />
-  <Project Path="TerminalNinja.Shell.LanguageServer/TerminalNinja.Shell.LanguageServer.csproj" />
   <Project Path="TerminalNinja.Wasm/TerminalNinja.Wasm.csproj" />
-  <Project Path="TerminalNinja.Shell.Skia/TerminalNinja.Shell.Skia.csproj" />
 </Solution>

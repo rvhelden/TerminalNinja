@@ -15,11 +15,7 @@ This document provides essential information for AI coding agents working in the
     - `TerminalNinja.Cli/` - Program for generating a single frame for the given xaml
     - `TerminalNinja.Generators/` - Source generators (ControlFactory, PropertyAccessor, XamlClass)
     - `TerminalNinja.Tests/` - Tests for the core `TerminalNinja` library
-    - `TerminalNinja.Skia.Tests/` - Tests for `TerminalNinja.Skia`
     - `TerminalNinja.Terminal.Tests/` - Tests for `TerminalNinja.Terminal`
-    - `TerminalNinja.Shell.Language.Tests/` - Tests for `TerminalNinja.Shell.Language` (lexer, parser, AST)
-    - `TerminalNinja.Shell.Tests/` - Tests for `TerminalNinja.Shell` (runtime, builtins, REPL)
-    - `TerminalNinja.Shell.LanguageServer.Tests/` - Tests for `TerminalNinja.Shell.LanguageServer`
     - `Sample/` - Sample console application demonstrating XAML usage (one screen per control)
     - `docs/` - Interactive documentation (GitHub Pages with playground using TerminalNinja.Wasm)
 
@@ -50,11 +46,7 @@ Tests are split across one project per production project. Pick the one that mat
 | Test project | Covers |
 |---|---|
 | `TerminalNinja.Tests` | Core `TerminalNinja` library (Controls, Buffers, XAML, etc.) |
-| `TerminalNinja.Skia.Tests` | `TerminalNinja.Skia` |
 | `TerminalNinja.Terminal.Tests` | `TerminalNinja.Terminal` |
-| `TerminalNinja.Shell.Language.Tests` | `TerminalNinja.Shell.Language` (lexer, parser, AST) |
-| `TerminalNinja.Shell.Tests` | `TerminalNinja.Shell` (runtime, builtins, REPL) |
-| `TerminalNinja.Shell.LanguageServer.Tests` | `TerminalNinja.Shell.LanguageServer` |
 
 ```bash
 # Build entire solution
@@ -62,11 +54,7 @@ dotnet build
 
 # Run tests for a single test project (NOTE: use dotnet run, not dotnet test — .NET 10 + TUnit requires this)
 dotnet run --project TerminalNinja.Tests/TerminalNinja.Tests.csproj
-dotnet run --project TerminalNinja.Skia.Tests/TerminalNinja.Skia.Tests.csproj
 dotnet run --project TerminalNinja.Terminal.Tests/TerminalNinja.Terminal.Tests.csproj
-dotnet run --project TerminalNinja.Shell.Language.Tests/TerminalNinja.Shell.Language.Tests.csproj
-dotnet run --project TerminalNinja.Shell.Tests/TerminalNinja.Shell.Tests.csproj
-dotnet run --project TerminalNinja.Shell.LanguageServer.Tests/TerminalNinja.Shell.LanguageServer.Tests.csproj
 
 # Run tests for a specific class
 dotnet run --project TerminalNinja.Tests/TerminalNinja.Tests.csproj --treenode-filter "/*/*/CheckBoxTests/*"
