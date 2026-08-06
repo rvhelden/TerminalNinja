@@ -2,6 +2,7 @@ using System.Collections;
 using System.Collections.ObjectModel;
 using System.Windows.Markup;
 using TerminalNinja.Buffers;
+using TerminalNinja.Input;
 using TerminalNinja.Primitives;
 
 namespace TerminalNinja.Controls.Charts;
@@ -20,6 +21,11 @@ namespace TerminalNinja.Controls.Charts;
 /// notice marks any remainder. <see cref="ChartBase.ShowAxes"/>,
 /// <see cref="ChartBase.ShowGrid"/> and <see cref="ChartBase.ShowLegend"/> have no
 /// effect on this chart.
+///
+/// The chart is interactive: it is focusable, the arrow keys (and Home/End) move the
+/// node selection in node order, and a left click selects the clicked box. The
+/// selected node is highlighted and exposed through <see cref="SelectedIndex"/> and
+/// <see cref="SelectedNode"/>, both of which are two-way bindable.
 /// </summary>
 [ContentProperty("GraphNodes")]
 public sealed class NodeGraph : ChartBase
@@ -37,6 +43,12 @@ public sealed class NodeGraph : ChartBase
     private double[] _layoutX = [];
     private double[] _layoutY = [];
     private int _layoutSignature;
+
+    /// <summary>Node box rects from the last render, used to map clicks to nodes.</summary>
+    private Rect[] _renderedBoxes = [];
+
+    /// <summary>Guards the SelectedIndex/SelectedNode two-way sync against re-entrancy.</summary>
+    private bool _syncing;
 
     public NodeGraph()
     {
@@ -64,6 +76,16 @@ public sealed class NodeGraph : ChartBase
         DependencyProperty.Register(nameof(LayoutIterations), typeof(int), typeof(NodeGraph),
             new FrameworkPropertyMetadata(60, affectsRender: true, propertyChangedCallback: null,
                 coerceValueCallback: (_, value) => Math.Clamp((int)value!, 1, MaxIterations)));
+
+    public static readonly DependencyProperty SelectedIndexProperty =
+        DependencyProperty.Register(nameof(SelectedIndex), typeof(int), typeof(NodeGraph),
+            new FrameworkPropertyMetadata(-1, affectsRender: true,
+                propertyChangedCallback: OnSelectedIndexChanged) { BindsTwoWayByDefault = true });
+
+    public static readonly DependencyProperty SelectedNodeProperty =
+        DependencyProperty.Register(nameof(SelectedNode), typeof(object), typeof(NodeGraph),
+            new FrameworkPropertyMetadata(null, affectsRender: true,
+                propertyChangedCallback: OnSelectedNodeChanged) { BindsTwoWayByDefault = true });
 
     // ─── CLR Property Wrappers ───────────────────────────────────────
 
@@ -97,11 +119,131 @@ public sealed class NodeGraph : ChartBase
         set => SetValue(LayoutIterationsProperty, value);
     }
 
+    /// <summary>Index of the selected node in the effective node list (-1 = none). Two-way bindable.</summary>
+    public int SelectedIndex
+    {
+        get => (int)GetValue(SelectedIndexProperty)!;
+        set => SetValue(SelectedIndexProperty, value);
+    }
+
+    /// <summary>The selected node, kept in sync with <see cref="SelectedIndex"/>. Two-way bindable.</summary>
+    public object? SelectedNode
+    {
+        get => GetValue(SelectedNodeProperty);
+        set => SetValue(SelectedNodeProperty, value);
+    }
+
     private List<GraphNode> EffectiveNodes =>
         GraphNodesSource != null ? [.. Enumerate<GraphNode>(GraphNodesSource)] : [.. _nodes];
 
     private List<GraphEdge> EffectiveEdges =>
         GraphEdgesSource != null ? [.. Enumerate<GraphEdge>(GraphEdgesSource)] : [.. _edges];
+
+    /// <summary>The nodes that are actually laid out and selectable (capped at <see cref="MaxLayoutNodes"/>).</summary>
+    private List<GraphNode> SelectableNodes
+    {
+        get
+        {
+            var nodes = EffectiveNodes;
+            return nodes.Count > MaxLayoutNodes ? nodes.GetRange(0, MaxLayoutNodes) : nodes;
+        }
+    }
+
+    // ─── Selection sync ──────────────────────────────────────────────
+
+    private static void OnSelectedIndexChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
+    {
+        var graph = (NodeGraph)d;
+        if (graph._syncing)
+        {
+            return;
+        }
+
+        var nodes = graph.SelectableNodes;
+        var index = (int)e.NewValue!;
+        graph._syncing = true;
+        // SetValueInternal, not the public setter: the setter goes through SetValue, which clears
+        // any binding on SelectedNode, so a two-way {Binding SelectedNode} would be destroyed the
+        // first time the user moved the selection. This keeps the expression and still raises the
+        // change so the binding writes back.
+        graph.SetValueInternal(SelectedNodeProperty, index >= 0 && index < nodes.Count ? nodes[index] : null);
+        graph._syncing = false;
+    }
+
+    private static void OnSelectedNodeChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
+    {
+        var graph = (NodeGraph)d;
+        if (graph._syncing)
+        {
+            return;
+        }
+
+        var nodes = graph.SelectableNodes;
+        var index = -1;
+        for (var i = 0; i < nodes.Count; i++)
+        {
+            if (ReferenceEquals(nodes[i], e.NewValue))
+            {
+                index = i;
+                break;
+            }
+        }
+
+        graph._syncing = true;
+        graph.SetValueInternal(SelectedIndexProperty, index);
+        graph._syncing = false;
+    }
+
+    // ─── Input ───────────────────────────────────────────────────────
+
+    /// <inheritdoc />
+    public override void OnKeyEvent(KeyEvent e)
+    {
+        var count = SelectableNodes.Count;
+        if (count <= 0)
+        {
+            return;
+        }
+
+        var current = SelectedIndex;
+        switch (e.Key)
+        {
+            case ConsoleKey.UpArrow:
+            case ConsoleKey.LeftArrow:
+                SelectedIndex = current < 0 ? count - 1 : Math.Max(0, current - 1);
+                break;
+            case ConsoleKey.DownArrow:
+            case ConsoleKey.RightArrow:
+                SelectedIndex = current < 0 ? 0 : Math.Min(count - 1, current + 1);
+                break;
+            case ConsoleKey.Home:
+                SelectedIndex = 0;
+                break;
+            case ConsoleKey.End:
+                SelectedIndex = count - 1;
+                break;
+        }
+    }
+
+    /// <inheritdoc />
+    public override void OnMouseEvent(MouseEvent e)
+    {
+        if (e is not { Action: MouseAction.Press, Button: MouseButton.Left })
+        {
+            return;
+        }
+
+        // Hit-test against the node boxes captured during the last render.
+        for (var i = 0; i < _renderedBoxes.Length; i++)
+        {
+            var box = _renderedBoxes[i];
+            if (e.X >= box.X && e.X < box.Right && e.Y >= box.Y && e.Y < box.Bottom)
+            {
+                SelectedIndex = i;
+                return;
+            }
+        }
+    }
 
     // ─── Force-directed layout ───────────────────────────────────────
 
@@ -262,6 +404,7 @@ public sealed class NodeGraph : ChartBase
         var allNodes = EffectiveNodes;
         if (allNodes.Count == 0)
         {
+            _renderedBoxes = [];
             DrawString(buffer, bounds.X + 1, bounds.Y, "(no nodes)", Foreground, Background, bounds.Width - 2);
             return;
         }
@@ -317,11 +460,18 @@ public sealed class NodeGraph : ChartBase
             boxes[i] = new Rect(boxX, boxY, boxW, boxH);
         }
 
+        _renderedBoxes = boxes;
+
         DrawEdges(buffer, plot, boxes, edges, edgeColors);
 
+        var selectedBg = EffectiveSelectionBackground;
         for (var i = 0; i < nodes.Count; i++)
         {
-            DrawNodeBox(buffer, boxes[i], Label(nodes[i]), ColorForSeries(i, nodes[i].Color));
+            var selected = i == SelectedIndex;
+            DrawNodeBox(buffer, boxes[i], Label(nodes[i]),
+                border: ColorForSeries(i, nodes[i].Color),
+                labelFg: selected ? SelectedForeground : Foreground,
+                bg: selected ? selectedBg : Background);
         }
 
         if (truncatedCount > 0)
@@ -370,7 +520,7 @@ public sealed class NodeGraph : ChartBase
 
     private static int PixelY(Rect box, Rect plot) => (box.Y - plot.Y + box.Height / 2) * 4 + 2;
 
-    private void DrawNodeBox(CellBuffer buffer, Rect box, string label, Color border)
+    private static void DrawNodeBox(CellBuffer buffer, Rect box, string label, Color border, Color labelFg, Color bg)
     {
         if (box.Width < 2 || box.Height < 2)
         {
@@ -378,30 +528,30 @@ public sealed class NodeGraph : ChartBase
         }
 
         // Interior first: overpaints any edge lines passing under the box.
-        buffer.FillRect(box.Intersect(new Rect(0, 0, buffer.Width, buffer.Height)), new Cell(' ', Foreground, Background));
+        buffer.FillRect(box.Intersect(new Rect(0, 0, buffer.Width, buffer.Height)), new Cell(' ', labelFg, bg));
 
         var right = box.Right - 1;
         var bottom = box.Bottom - 1;
         for (var xx = box.X + 1; xx < right; xx++)
         {
-            buffer.SetChar(xx, box.Y, '─', border, Background);
-            buffer.SetChar(xx, bottom, '─', border, Background);
+            buffer.SetChar(xx, box.Y, '─', border, bg);
+            buffer.SetChar(xx, bottom, '─', border, bg);
         }
 
         for (var yy = box.Y + 1; yy < bottom; yy++)
         {
-            buffer.SetChar(box.X, yy, '│', border, Background);
-            buffer.SetChar(right, yy, '│', border, Background);
+            buffer.SetChar(box.X, yy, '│', border, bg);
+            buffer.SetChar(right, yy, '│', border, bg);
         }
 
-        buffer.SetChar(box.X, box.Y, '┌', border, Background);
-        buffer.SetChar(right, box.Y, '┐', border, Background);
-        buffer.SetChar(box.X, bottom, '└', border, Background);
-        buffer.SetChar(right, bottom, '┘', border, Background);
+        buffer.SetChar(box.X, box.Y, '┌', border, bg);
+        buffer.SetChar(right, box.Y, '┐', border, bg);
+        buffer.SetChar(box.X, bottom, '└', border, bg);
+        buffer.SetChar(right, bottom, '┘', border, bg);
 
         if (box.Height >= 3)
         {
-            DrawString(buffer, box.X + 1, box.Y + 1, label, Foreground, Background, box.Width - 2);
+            DrawString(buffer, box.X + 1, box.Y + 1, label, labelFg, bg, box.Width - 2);
         }
     }
 }

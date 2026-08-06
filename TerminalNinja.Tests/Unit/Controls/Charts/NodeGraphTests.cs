@@ -35,31 +35,7 @@ public class NodeGraphTests
         return false;
     }
 
-    private static bool ContainsText(CellBuffer buffer, string text)
-    {
-        for (var y = 0; y < buffer.Height; y++)
-        {
-            for (var x = 0; x + text.Length <= buffer.Width; x++)
-            {
-                var match = true;
-                for (var i = 0; i < text.Length; i++)
-                {
-                    if (buffer.GetCell(x + i, y).Codepoint != text[i])
-                    {
-                        match = false;
-                        break;
-                    }
-                }
-
-                if (match)
-                {
-                    return true;
-                }
-            }
-        }
-
-        return false;
-    }
+    private static bool ContainsText(CellBuffer buffer, string text) => FindText(buffer, text).X >= 0;
 
     private static bool ContainsBraille(CellBuffer buffer)
     {
@@ -169,6 +145,169 @@ public class NodeGraphTests
 
         graph.LayoutIterations = 5000;
         await Assert.That(graph.LayoutIterations).IsEqualTo(200);
+    }
+
+    private static KeyEvent Key(ConsoleKey key) => new(key, '\0', false, false, false);
+
+    /// <summary>Finds the top-left buffer coordinate of <paramref name="text"/>, or (-1,-1).</summary>
+    private static (int X, int Y) FindText(CellBuffer buffer, string text)
+    {
+        for (var y = 0; y < buffer.Height; y++)
+        {
+            for (var x = 0; x + text.Length <= buffer.Width; x++)
+            {
+                var match = true;
+                for (var i = 0; i < text.Length; i++)
+                {
+                    if (buffer.GetCell(x + i, y).Codepoint != text[i])
+                    {
+                        match = false;
+                        break;
+                    }
+                }
+
+                if (match)
+                {
+                    return (x, y);
+                }
+            }
+        }
+
+        return (-1, -1);
+    }
+
+    [Test]
+    public async Task DownArrow_MovesSelectionAndSyncsSelectedNode()
+    {
+        var graph = ThreeNodeGraph();
+
+        graph.OnKeyEvent(Key(ConsoleKey.DownArrow));
+        await Assert.That(graph.SelectedIndex).IsEqualTo(0);
+        await Assert.That(graph.SelectedNode).IsSameReferenceAs(graph.GraphNodes[0]);
+
+        graph.OnKeyEvent(Key(ConsoleKey.DownArrow));
+        await Assert.That(graph.SelectedIndex).IsEqualTo(1);
+        await Assert.That(graph.SelectedNode).IsSameReferenceAs(graph.GraphNodes[1]);
+    }
+
+    [Test]
+    public async Task ArrowKeys_ClampAtEnds()
+    {
+        var graph = ThreeNodeGraph();
+
+        graph.OnKeyEvent(Key(ConsoleKey.End));
+        await Assert.That(graph.SelectedIndex).IsEqualTo(2);
+
+        graph.OnKeyEvent(Key(ConsoleKey.RightArrow)); // clamps at last
+        await Assert.That(graph.SelectedIndex).IsEqualTo(2);
+
+        graph.OnKeyEvent(Key(ConsoleKey.Home));
+        await Assert.That(graph.SelectedIndex).IsEqualTo(0);
+
+        graph.OnKeyEvent(Key(ConsoleKey.UpArrow)); // clamps at first
+        await Assert.That(graph.SelectedIndex).IsEqualTo(0);
+    }
+
+    [Test]
+    public async Task SettingSelectedNode_SyncsSelectedIndex()
+    {
+        var graph = ThreeNodeGraph();
+
+        graph.SelectedNode = graph.GraphNodes[2];
+
+        await Assert.That(graph.SelectedIndex).IsEqualTo(2);
+    }
+
+    [Test]
+    public async Task Click_OnNodeBox_SelectsThatNode()
+    {
+        using var buffer = new CellBuffer(W, H);
+        var graph = ThreeNodeGraph();
+        graph.Render(buffer, new Rect(0, 0, W, H));
+
+        var (x, y) = FindText(buffer, "api");
+        await Assert.That(x).IsGreaterThanOrEqualTo(0);
+
+        graph.OnMouseEvent(new MouseEvent(x, y, MouseButton.Left, MouseAction.Press));
+
+        await Assert.That(graph.SelectedNode).IsSameReferenceAs(graph.GraphNodes[1]);
+        await Assert.That(graph.SelectedIndex).IsEqualTo(1);
+    }
+
+    [Test]
+    public async Task Click_OutsideAllBoxes_KeepsSelection()
+    {
+        using var buffer = new CellBuffer(W, H);
+        var graph = ThreeNodeGraph();
+        graph.Title = "Topology"; // row 0 is the title, never a node box
+        graph.SelectedIndex = 1;
+        graph.Render(buffer, new Rect(0, 0, W, H));
+
+        graph.OnMouseEvent(new MouseEvent(W - 1, 0, MouseButton.Left, MouseAction.Press));
+
+        await Assert.That(graph.SelectedIndex).IsEqualTo(1);
+    }
+
+    [Test]
+    public async Task Render_SelectedNode_UsesSelectionBackground()
+    {
+        using var buffer = new CellBuffer(W, H);
+        var graph = ThreeNodeGraph();
+        graph.IsFocused = true;
+        graph.SelectedIndex = 0;
+
+        graph.Render(buffer, new Rect(0, 0, W, H));
+
+        var highlighted = false;
+        for (var y = 0; y < H; y++)
+        {
+            for (var x = 0; x < W; x++)
+            {
+                if (buffer.GetCell(x, y).Background == new Color(38, 79, 120))
+                {
+                    highlighted = true;
+                }
+            }
+        }
+
+        await Assert.That(highlighted).IsTrue();
+    }
+
+    internal sealed class SelectionViewModel : TerminalNinja.Xaml.Mvvm.ViewModelBase
+    {
+        private object? _selected;
+
+        public object? Selected
+        {
+            get => _selected;
+            set => SetProperty(ref _selected, value);
+        }
+    }
+
+    [Test]
+    public async Task TwoWayBinding_SelectedNode_SurvivesRepeatedSelectionMoves()
+    {
+        var vm = new SelectionViewModel();
+        const string xaml = """
+            <NodeGraph xmlns="http://schemas.terminalninja.dev/xaml"
+                       SelectedNode="{Binding Selected}">
+                <GraphNode Id="a" Name="a" />
+                <GraphNode Id="b" Name="b" />
+                <GraphNode Id="c" Name="c" />
+            </NodeGraph>
+            """;
+        var graph = TerminalXaml.Load<NodeGraph>(xaml, vm);
+
+        // Each move must keep writing through the binding; SetValue instead of
+        // SetValueInternal in the sync callbacks would break it after the first move.
+        graph.OnKeyEvent(Key(ConsoleKey.DownArrow));
+        await Assert.That(vm.Selected).IsSameReferenceAs(graph.GraphNodes[0]);
+
+        graph.OnKeyEvent(Key(ConsoleKey.DownArrow));
+        await Assert.That(vm.Selected).IsSameReferenceAs(graph.GraphNodes[1]);
+
+        graph.OnKeyEvent(Key(ConsoleKey.DownArrow));
+        await Assert.That(vm.Selected).IsSameReferenceAs(graph.GraphNodes[2]);
     }
 
     [Test]
