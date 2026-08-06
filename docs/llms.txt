@@ -34,6 +34,7 @@ TerminalNinja follows WPF conventions closely: dependency properties with metada
 - [Image](https://rvhelden.github.io/TerminalNinja/samples/image.html): image rendering in the terminal
 - [ListBox](https://rvhelden.github.io/TerminalNinja/samples/listbox.html): `ObservableCollection`, add / remove, custom `UserControl`
 - [ListView](https://rvhelden.github.io/TerminalNinja/samples/listview.html): multi-column list with custom columns
+- [NodeGraph](https://rvhelden.github.io/TerminalNinja/samples/nodegraph.html): topology graph, force-directed auto-layout, selectable nodes
 - [NumberPicker](https://rvhelden.github.io/TerminalNinja/samples/numberpicker.html): numeric input with increment / decrement
 - [ProgressBar](https://rvhelden.github.io/TerminalNinja/samples/progressbar.html): determinate, indeterminate, custom-character
 - [RadioButton](https://rvhelden.github.io/TerminalNinja/samples/radiobutton.html): grouped selection

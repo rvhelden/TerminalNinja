@@ -16,11 +16,11 @@ Refined via intake questions:
 
 ## Acceptance criteria
 
-- [ ] A `NodeGraph : ChartBase` control renders a set of nodes (boxes with labels) and directed edges (connectors) from bound `GraphNodes` / `GraphEdges` collections.
-- [ ] Node positions are auto-computed via a force-directed (Fruchterman-Reingold-style) layout and snapped to the cell grid — no manual coordinates required.
-- [ ] `GraphNode` and `GraphEdge` are `[BindableObject]` POCOs, XAML-instantiable (registered in the generator's `AdditionalFactoryTypes`).
-- [ ] Selection works: click a node and arrow-key navigation, with `SelectedIndex` / `SelectedNode` two-way bindable via `SetValueInternal` (following FlameGraph/TraceChart patterns).
-- [ ] Themed across all 3 themes (Dark, Dracula, GruvboxDark), with a sample screen and a docs page.
+- [x] A `NodeGraph : ChartBase` control renders a set of nodes (boxes with labels) and directed edges (connectors) from bound `GraphNodes` / `GraphEdges` collections.
+- [x] Node positions are auto-computed via a force-directed (Fruchterman-Reingold-style) layout and snapped to the cell grid — no manual coordinates required.
+- [x] `GraphNode` and `GraphEdge` are `[BindableObject]` POCOs, XAML-instantiable (registered in the generator's `AdditionalFactoryTypes`).
+- [x] Selection works: click a node and arrow-key navigation, with `SelectedIndex` / `SelectedNode` two-way bindable via `SetValueInternal` (following FlameGraph/TraceChart patterns).
+- [x] Themed across all 3 themes (Dark, Dracula, GruvboxDark), with a sample screen and a docs page (+ playground entry per explicit user request).
 
 ## Out of scope (MVP)
 
