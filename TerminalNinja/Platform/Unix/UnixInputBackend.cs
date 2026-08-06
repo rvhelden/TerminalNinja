@@ -63,15 +63,13 @@ public sealed class UnixInputBackend : Input.IInputBackend
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
 
-        if (_mouseTrackingEnabled)
-        {
-            return;
-        }
-
-        // Enable ANSI mouse tracking
-        // SGR mode (1006) for extended coordinates + Any-event tracking (1003)
-        System.Console.Write("\e[?1003h\e[?1006h");
-
+        // Intentionally does NOT emit the tracking sequences. Input here is read through
+        // System.Console.ReadKey, which cannot parse mouse reports: with any-event tracking on
+        // (\e[?1003h), every pointer movement arrives as an SGR escape sequence
+        // (\e[<Cb;Cx;Cy M) and ReadKey decodes the coordinate digits as ordinary key presses — a
+        // '3' in a coordinate becomes ConsoleKey.D3, and so on. Because TryRead never produces a
+        // MouseEvent anyway, enabling tracking delivers no mouse input and only corrupts the
+        // keyboard stream. Leave it off until a raw-mode reader can parse these sequences.
         _mouseTrackingEnabled = true;
     }
 
@@ -79,14 +77,7 @@ public sealed class UnixInputBackend : Input.IInputBackend
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
 
-        if (!_mouseTrackingEnabled)
-        {
-            return;
-        }
-
-        // Disable ANSI mouse tracking
-        System.Console.Write("\e[?1003l\e[?1006l");
-
+        // Nothing was emitted by EnableMouseTracking, so there is nothing to turn off.
         _mouseTrackingEnabled = false;
     }
 
