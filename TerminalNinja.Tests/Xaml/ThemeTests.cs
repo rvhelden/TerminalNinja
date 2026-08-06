@@ -310,6 +310,7 @@ public class ThemeTests : IDisposable
         var hasLineChartStyle = theme.TryGetValue(typeof(global::TerminalNinja.Controls.Charts.LineChart), out _);
         var hasTraceChartStyle = theme.TryGetValue(typeof(global::TerminalNinja.Controls.Charts.TraceChart), out _);
         var hasFlameGraphStyle = theme.TryGetValue(typeof(global::TerminalNinja.Controls.Charts.FlameGraph), out _);
+        var hasNodeGraphStyle = theme.TryGetValue(typeof(global::TerminalNinja.Controls.Charts.NodeGraph), out _);
 
         // Assert
         await Assert.That(hasTextBlockStyle).IsTrue();
@@ -322,6 +323,7 @@ public class ThemeTests : IDisposable
         await Assert.That(hasLineChartStyle).IsTrue();
         await Assert.That(hasTraceChartStyle).IsTrue();
         await Assert.That(hasFlameGraphStyle).IsTrue();
+        await Assert.That(hasNodeGraphStyle).IsTrue();
     }
 
     #endregion

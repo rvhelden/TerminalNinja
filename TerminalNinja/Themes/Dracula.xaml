@@ -323,5 +323,12 @@
         <Setter Property="GridColor" Value="{StaticResource ThemeChartGridColor}" />
         <Setter Property="LegendColor" Value="{StaticResource ThemeChartLegendColor}" />
     </Style>
+    <Style TargetType="NodeGraph">
+        <Setter Property="Foreground" Value="{StaticResource ThemeChartForegroundColor}" />
+        <Setter Property="Background" Value="{StaticResource ThemeChartBackgroundColor}" />
+        <Setter Property="AxisColor" Value="{StaticResource ThemeChartAxisColor}" />
+        <Setter Property="GridColor" Value="{StaticResource ThemeChartGridColor}" />
+        <Setter Property="LegendColor" Value="{StaticResource ThemeChartLegendColor}" />
+    </Style>
 
 </ResourceDictionary>
