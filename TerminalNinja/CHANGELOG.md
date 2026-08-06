@@ -2,6 +2,17 @@
 
 All notable changes to this project will be documented in this file. See [versionize](https://github.com/versionize/versionize) for commit guidelines.
 
+<a name="1.3.0"></a>
+## [1.3.0](https://www.github.com/rvhelden/TerminalNinja/releases/tag/v1.3.0) (2026-08-06)
+
+### Features
+
+* **charts:** add GraphNode and GraphEdge data models ([1bd3ab8](https://www.github.com/rvhelden/TerminalNinja/commit/1bd3ab8d670027f1c0c693bac36225dcf202d56c))
+* **nodegraph:** add NodeGraph control with deterministic force layout ([bcbe086](https://www.github.com/rvhelden/TerminalNinja/commit/bcbe08630dda83f1ff280b13ca1cc411d8b32037))
+* **nodegraph:** add selection with keyboard and mouse navigation ([29ad3a8](https://www.github.com/rvhelden/TerminalNinja/commit/29ad3a8c57ebf8f91e954129da256ba900207683))
+* **theming:** add NodeGraph implicit style to all themes ([8f73573](https://www.github.com/rvhelden/TerminalNinja/commit/8f735738215e6f298529301b782f43066c4ae8f9))
+* **tracechart:** add RowSpacing to separate spans vertically ([33a50f8](https://www.github.com/rvhelden/TerminalNinja/commit/33a50f856d4275dfe65de86ca5f8e198e6aa638a))
+
 <a name="1.2.0"></a>
 ## [1.2.0](https://www.github.com/rvhelden/TerminalNinja/releases/tag/v1.2.0) (2026-08-06)
 
