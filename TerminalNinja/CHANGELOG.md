@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [versionize](https://github.com/versionize/versionize) for commit guidelines.
 
+<a name="1.1.0"></a>
+## [1.1.0](https://www.github.com/rvhelden/TerminalNinja/releases/tag/v1.1.0) (2026-08-06)
+
+### Features
+
+* **charts:** add bar, line, trace, and flame graph visualizations ([063fff5](https://www.github.com/rvhelden/TerminalNinja/commit/063fff52acf24d6494e0ffbe04f2c92d89a4f26a))
+
 <a name="1.0.0"></a>
 ## [1.0.0](https://www.github.com/rvhelden/TerminalNinja/releases/tag/v1.0.0) (2026-08-05)
 
