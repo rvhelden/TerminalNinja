@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [versionize](https://github.com/versionize/versionize) for commit guidelines.
 
+<a name="1.2.0"></a>
+## [1.2.0](https://www.github.com/rvhelden/TerminalNinja/releases/tag/v1.2.0) (2026-08-06)
+
+### Features
+
+* **charts:** x-axis labels for line chart and interactive selection for all charts ([bbeef1b](https://www.github.com/rvhelden/TerminalNinja/commit/bbeef1b7d28b4e3953990bdc02abb0f1c57e1239))
+* **tracechart:** make the waterfall interactive with row selection ([d1f48a1](https://www.github.com/rvhelden/TerminalNinja/commit/d1f48a140662efdbaee371db104cc108675c2115))
+
 <a name="1.1.0"></a>
 ## [1.1.0](https://www.github.com/rvhelden/TerminalNinja/releases/tag/v1.1.0) (2026-08-06)
 

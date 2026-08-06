@@ -19,7 +19,7 @@
 
   <!-- NuGet package metadata -->
   <PropertyGroup>
-    <Version>1.1.0</Version>
+    <Version>1.2.0</Version>
     <PackageId>TerminalNinja</PackageId>
     <Authors>Ronald van Helden</Authors>
     <Company>Wortell</Company>
