@@ -277,8 +277,11 @@ public sealed class TraceChart : ChartBase
             var y = rowTop + r;
             var selected = r == SelectedIndex;
 
+            var spanColor = ColorForSeries(r, span.Color);
             var rowBg = selected ? selectedBg : Background;
-            var labelFg = selected ? SelectedForeground : Foreground;
+            // The label takes the span's own colour so it matches its bar; a selected row uses the
+            // selection foreground for contrast against the highlight.
+            var labelFg = selected ? SelectedForeground : spanColor;
 
             // Fill the whole row behind the content when selected.
             if (selected)
@@ -299,8 +302,7 @@ public sealed class TraceChart : ChartBase
             // Duration bar.
             var startNorm = (span.StartMs - tMin) / span2;
             var endNorm = (span.StartMs + Math.Max(0, span.DurationMs) - tMin) / span2;
-            var color = ColorForSeries(r, span.Color);
-            DrawBar(buffer, timeX, y, timeW, startNorm, endNorm, color, rowBg);
+            DrawBar(buffer, timeX, y, timeW, startNorm, endNorm, spanColor, rowBg);
         }
     }
 
