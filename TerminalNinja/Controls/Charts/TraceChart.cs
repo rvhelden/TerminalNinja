@@ -118,7 +118,11 @@ public sealed class TraceChart : ChartBase
         var rows = chart.BuildRows();
         var index = (int)e.NewValue!;
         chart._syncing = true;
-        chart.SelectedSpan = index >= 0 && index < rows.Count ? rows[index].Span : null;
+        // SetValueInternal, not the public setter: the setter goes through SetValue, which clears
+        // any binding on SelectedSpan, so a two-way {Binding SelectedSpan} would be destroyed the
+        // first time the user moved the selection. This keeps the expression and still raises the
+        // change so the binding writes back.
+        chart.SetValueInternal(SelectedSpanProperty, index >= 0 && index < rows.Count ? rows[index].Span : null);
         chart._syncing = false;
     }
 
@@ -142,7 +146,7 @@ public sealed class TraceChart : ChartBase
         }
 
         chart._syncing = true;
-        chart.SelectedIndex = index;
+        chart.SetValueInternal(SelectedIndexProperty, index);
         chart._syncing = false;
     }
 
