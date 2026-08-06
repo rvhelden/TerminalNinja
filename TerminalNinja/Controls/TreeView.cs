@@ -152,7 +152,7 @@ public sealed class TreeView : Control
             if (y < 0 || y >= buffer.Height) continue;
 
             var isSelected = item == SelectedItem;
-            var fg = isSelected ? SelectedForeground : Foreground;
+            var fg = isSelected ? SelectedForeground : (item.HeaderForeground ?? Foreground);
             var bg = isSelected ? SelectedBackground : Background;
 
             // Fill row background if selected

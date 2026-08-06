@@ -55,6 +55,14 @@ public class TreeViewItem : ContentControl
     /// <summary>Gets whether this node has child items.</summary>
     public bool HasItems => _items.Count > 0;
 
+    /// <summary>
+    /// Optional per-node header colour. When set, the owning <see cref="TreeView"/> draws this
+    /// node's header in this colour instead of its own <c>Foreground</c> (the selected node still
+    /// uses the tree's selection colours). A plain property rather than a dependency property
+    /// because nodes are built in code, not bound.
+    /// </summary>
+    public Color? HeaderForeground { get; set; }
+
     /// <summary>Gets the header text for display.</summary>
     internal string HeaderText => Header?.ToString() ?? "";
 }
