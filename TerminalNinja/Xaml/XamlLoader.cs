@@ -33,6 +33,7 @@ internal sealed class XamlLoader
     [
         "TerminalNinja.Controls",
         "TerminalNinja.Controls.Primitives",
+        "TerminalNinja.Controls.Charts",
         "TerminalNinja.Documents",
         "TerminalNinja.Primitives",
         "TerminalNinja.Styling",

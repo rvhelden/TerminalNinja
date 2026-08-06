@@ -305,6 +305,12 @@ public class ThemeTests : IDisposable
         var hasButtonStyle = theme.TryGetValue(typeof(Button), out var btnStyle);
         var hasBorderStyle = theme.TryGetValue(typeof(global::TerminalNinja.Controls.Border), out var borderStyle);
 
+        // Chart controls
+        var hasBarChartStyle = theme.TryGetValue(typeof(global::TerminalNinja.Controls.Charts.BarChart), out _);
+        var hasLineChartStyle = theme.TryGetValue(typeof(global::TerminalNinja.Controls.Charts.LineChart), out _);
+        var hasTraceChartStyle = theme.TryGetValue(typeof(global::TerminalNinja.Controls.Charts.TraceChart), out _);
+        var hasFlameGraphStyle = theme.TryGetValue(typeof(global::TerminalNinja.Controls.Charts.FlameGraph), out _);
+
         // Assert
         await Assert.That(hasTextBlockStyle).IsTrue();
         await Assert.That(hasButtonStyle).IsTrue();
@@ -312,6 +318,10 @@ public class ThemeTests : IDisposable
         await Assert.That(tbStyle).IsTypeOf<Style>();
         await Assert.That(btnStyle).IsTypeOf<Style>();
         await Assert.That(borderStyle).IsTypeOf<Style>();
+        await Assert.That(hasBarChartStyle).IsTrue();
+        await Assert.That(hasLineChartStyle).IsTrue();
+        await Assert.That(hasTraceChartStyle).IsTrue();
+        await Assert.That(hasFlameGraphStyle).IsTrue();
     }
 
     #endregion
@@ -420,7 +430,7 @@ public class ThemeTests : IDisposable
     public async Task ThemeResourceKeys_Has34Constants()
     {
         var allKeys = GetAllThemeResourceKeys();
-        await Assert.That(allKeys.Count).IsEqualTo(58);
+        await Assert.That(allKeys.Count).IsEqualTo(63);
     }
 
     /// <summary>

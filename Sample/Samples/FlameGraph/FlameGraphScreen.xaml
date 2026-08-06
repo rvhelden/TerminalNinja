@@ -1,0 +1,24 @@
+<Border xmlns="http://schemas.terminalninja.dev/xaml"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        BorderStyle="Rounded">
+    <StackPanel Orientation="Vertical">
+        <TextBlock StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1"
+                   Text=" Flame Graph" Padding="2,0,0,0" />
+        <TextBlock StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1" Text="" />
+
+        <FlameGraph StackPanel.SizeMode="Stretch" Title="  CPU profile (self+child samples)">
+            <FlameNode Name="main" Value="100">
+                <FlameNode Name="parseRequest" Value="25">
+                    <FlameNode Name="decodeJson" Value="18" />
+                </FlameNode>
+                <FlameNode Name="handleQuery" Value="60">
+                    <FlameNode Name="sqlExec" Value="40">
+                        <FlameNode Name="ioWait" Value="30" />
+                    </FlameNode>
+                    <FlameNode Name="mapRows" Value="15" />
+                </FlameNode>
+                <FlameNode Name="writeResponse" Value="15" />
+            </FlameNode>
+        </FlameGraph>
+    </StackPanel>
+</Border>

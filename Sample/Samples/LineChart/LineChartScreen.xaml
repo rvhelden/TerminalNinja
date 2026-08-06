@@ -1,0 +1,32 @@
+<Border xmlns="http://schemas.terminalninja.dev/xaml"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        BorderStyle="Rounded">
+    <StackPanel Orientation="Vertical">
+        <TextBlock StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1"
+                   Text=" Line Chart" Padding="2,0,0,0" />
+        <TextBlock StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1" Text="" />
+
+        <LineChart StackPanel.SizeMode="Stretch" Title="  Request latency (ms)" ShowMarkers="True">
+            <ChartSeries Name="p50">
+                <ChartDataPoint Value="12" />
+                <ChartDataPoint Value="18" />
+                <ChartDataPoint Value="9" />
+                <ChartDataPoint Value="22" />
+                <ChartDataPoint Value="15" />
+                <ChartDataPoint Value="28" />
+                <ChartDataPoint Value="19" />
+                <ChartDataPoint Value="24" />
+            </ChartSeries>
+            <ChartSeries Name="p99">
+                <ChartDataPoint Value="40" />
+                <ChartDataPoint Value="55" />
+                <ChartDataPoint Value="35" />
+                <ChartDataPoint Value="70" />
+                <ChartDataPoint Value="60" />
+                <ChartDataPoint Value="85" />
+                <ChartDataPoint Value="50" />
+                <ChartDataPoint Value="72" />
+            </ChartSeries>
+        </LineChart>
+    </StackPanel>
+</Border>

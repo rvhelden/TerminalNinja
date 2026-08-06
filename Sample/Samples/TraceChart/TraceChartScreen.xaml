@@ -1,0 +1,20 @@
+<Border xmlns="http://schemas.terminalninja.dev/xaml"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        BorderStyle="Rounded">
+    <StackPanel Orientation="Vertical">
+        <TextBlock StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1"
+                   Text=" Trace Chart (waterfall)" Padding="2,0,0,0" />
+        <TextBlock StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1" Text="" />
+
+        <TraceChart StackPanel.SizeMode="Stretch" Title="  GET /api/order/42" LabelWidth="18">
+            <TraceSpan Name="http.request" StartMs="0" DurationMs="120">
+                <TraceSpan Name="auth" StartMs="2" DurationMs="15" />
+                <TraceSpan Name="db.query" StartMs="20" DurationMs="60">
+                    <TraceSpan Name="connect" StartMs="20" DurationMs="8" />
+                    <TraceSpan Name="exec" StartMs="30" DurationMs="45" />
+                </TraceSpan>
+                <TraceSpan Name="serialize" StartMs="85" DurationMs="30" />
+            </TraceSpan>
+        </TraceChart>
+    </StackPanel>
+</Border>

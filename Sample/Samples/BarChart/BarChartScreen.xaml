@@ -1,0 +1,45 @@
+<Border xmlns="http://schemas.terminalninja.dev/xaml"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        BorderStyle="Rounded">
+    <StackPanel Orientation="Vertical">
+        <TextBlock StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1"
+                   Text=" Bar Chart" Padding="2,0,0,0" />
+        <TextBlock StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1" Text="" />
+
+        <BarChart StackPanel.SizeMode="Stretch" Title="  Quarterly revenue (grouped)" BarMode="Grouped">
+            <ChartSeries Name="2024">
+                <ChartDataPoint Label="Q1" Value="42" />
+                <ChartDataPoint Label="Q2" Value="55" />
+                <ChartDataPoint Label="Q3" Value="30" />
+                <ChartDataPoint Label="Q4" Value="70" />
+            </ChartSeries>
+            <ChartSeries Name="2025">
+                <ChartDataPoint Label="Q1" Value="35" />
+                <ChartDataPoint Label="Q2" Value="60" />
+                <ChartDataPoint Label="Q3" Value="48" />
+                <ChartDataPoint Label="Q4" Value="90" />
+            </ChartSeries>
+        </BarChart>
+
+        <BarChart StackPanel.SizeMode="Stretch" Title="  Traffic sources (stacked)" BarMode="Stacked">
+            <ChartSeries Name="Direct">
+                <ChartDataPoint Label="Mon" Value="20" />
+                <ChartDataPoint Label="Tue" Value="28" />
+                <ChartDataPoint Label="Wed" Value="24" />
+                <ChartDataPoint Label="Thu" Value="32" />
+            </ChartSeries>
+            <ChartSeries Name="Search">
+                <ChartDataPoint Label="Mon" Value="30" />
+                <ChartDataPoint Label="Tue" Value="26" />
+                <ChartDataPoint Label="Wed" Value="34" />
+                <ChartDataPoint Label="Thu" Value="40" />
+            </ChartSeries>
+            <ChartSeries Name="Social">
+                <ChartDataPoint Label="Mon" Value="12" />
+                <ChartDataPoint Label="Tue" Value="18" />
+                <ChartDataPoint Label="Wed" Value="15" />
+                <ChartDataPoint Label="Thu" Value="22" />
+            </ChartSeries>
+        </BarChart>
+    </StackPanel>
+</Border>

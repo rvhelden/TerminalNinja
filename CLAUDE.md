@@ -80,8 +80,9 @@ TerminalNinja is a WPF-like terminal UI framework with XAML support:
 - **DependencySystem**: DependencyObject, DependencyProperty, PropertyMetadata, FrameworkPropertyMetadata, Expression
 - **Controls**: Visual, UIElement, FrameworkElement, Control, Panel, StackPanel, Grid, ContentControl, ContentPresenter, Window, UserControl, ItemsControl, ItemsPresenter, Selector, ListBox, ListBoxItem, ComboBox, ComboBoxItem, ButtonBase, Button, CheckBox, RadioButton, TextBlock, TextBox, Border, ScrollViewer, TabControl, TabItem, TreeView, TreeViewItem, ListView, ListViewItem, ListViewColumn, FontIcon, ProgressBar, NumberPicker, DatePicker, TimePicker, DateTimePicker
     - `Controls.Primitives`: Popup, PopupRoot
+    - `Controls.Charts`: ChartBase, BarChart, LineChart, TraceChart, FlameGraph + data models (ChartSeries, ChartDataPoint, TraceSpan, FlameNode), AxisScale, BarMode. Data models are plain `[BindableObject]` POCOs also listed in the generators' `AdditionalFactoryTypes` so they are XAML-instantiable.
 - **Primitives**: Color, Size, Size2D, Rect, Thickness, GridLength, Alignment, SelectionMode, ScrollBarVisibility, TextAlignment, TextWrapping, TextTrimming
-- **Buffers**: CellBuffer (with CopyRegionTo for ScrollViewer), DirtyRect
+- **Buffers**: CellBuffer (with CopyRegionTo for ScrollViewer), DirtyRect, BrailleCanvas (2×4 sub-cell drawing for line charts)
 - **Styling**: Style, Setter, BorderStyle, BorderChars
 - **Resources**: ResourceDictionary (with MergedDictionaries)
 - **Themes**: ThemeResourceKeys, Dark.xaml, Dracula.xaml, GruvboxDark.xaml + custom theme loading via `Application.LoadThemeFromFile/LoadThemeFromXaml`

@@ -52,6 +52,128 @@ export const SAMPLES = [
   },
 
   {
+    id: "barchart",
+    title: "Bar Chart",
+    description: "Grouped and stacked bars with sub-cell precision, axes, and legend.",
+    docPage: "./samples/barchart.html",
+    xaml: `<Window xmlns="http://schemas.terminalninja.dev/xaml" Title="Bar Chart">
+    <Border BorderStyle="Rounded">
+        <StackPanel Orientation="Vertical">
+            <TextBlock StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1"
+                       Text=" Bar Chart" Padding="2,0,0,0" />
+            <TextBlock StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1" Text="" />
+            <BarChart StackPanel.SizeMode="Stretch" Title="  Quarterly revenue" BarMode="Grouped">
+                <ChartSeries Name="2024">
+                    <ChartDataPoint Label="Q1" Value="42" />
+                    <ChartDataPoint Label="Q2" Value="55" />
+                    <ChartDataPoint Label="Q3" Value="30" />
+                    <ChartDataPoint Label="Q4" Value="70" />
+                </ChartSeries>
+                <ChartSeries Name="2025">
+                    <ChartDataPoint Label="Q1" Value="35" />
+                    <ChartDataPoint Label="Q2" Value="60" />
+                    <ChartDataPoint Label="Q3" Value="48" />
+                    <ChartDataPoint Label="Q4" Value="90" />
+                </ChartSeries>
+            </BarChart>
+        </StackPanel>
+    </Border>
+</Window>`
+  },
+
+  {
+    id: "linechart",
+    title: "Line Chart",
+    description: "Multi-series line charts drawn with a high-resolution braille canvas.",
+    docPage: "./samples/linechart.html",
+    xaml: `<Window xmlns="http://schemas.terminalninja.dev/xaml" Title="Line Chart">
+    <Border BorderStyle="Rounded">
+        <StackPanel Orientation="Vertical">
+            <TextBlock StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1"
+                       Text=" Line Chart" Padding="2,0,0,0" />
+            <TextBlock StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1" Text="" />
+            <LineChart StackPanel.SizeMode="Stretch" Title="  Request latency (ms)" ShowMarkers="True">
+                <ChartSeries Name="p50">
+                    <ChartDataPoint Value="12" />
+                    <ChartDataPoint Value="18" />
+                    <ChartDataPoint Value="9" />
+                    <ChartDataPoint Value="22" />
+                    <ChartDataPoint Value="15" />
+                    <ChartDataPoint Value="28" />
+                    <ChartDataPoint Value="19" />
+                </ChartSeries>
+                <ChartSeries Name="p99">
+                    <ChartDataPoint Value="40" />
+                    <ChartDataPoint Value="55" />
+                    <ChartDataPoint Value="35" />
+                    <ChartDataPoint Value="70" />
+                    <ChartDataPoint Value="60" />
+                    <ChartDataPoint Value="85" />
+                    <ChartDataPoint Value="50" />
+                </ChartSeries>
+            </LineChart>
+        </StackPanel>
+    </Border>
+</Window>`
+  },
+
+  {
+    id: "tracechart",
+    title: "Trace Chart",
+    description: "Distributed-trace waterfall of nested spans on a shared time axis.",
+    docPage: "./samples/tracechart.html",
+    xaml: `<Window xmlns="http://schemas.terminalninja.dev/xaml" Title="Trace Chart">
+    <Border BorderStyle="Rounded">
+        <StackPanel Orientation="Vertical">
+            <TextBlock StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1"
+                       Text=" Trace Chart" Padding="2,0,0,0" />
+            <TextBlock StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1" Text="" />
+            <TraceChart StackPanel.SizeMode="Stretch" Title="  GET /api/order/42" LabelWidth="18">
+                <TraceSpan Name="http.request" StartMs="0" DurationMs="120">
+                    <TraceSpan Name="auth" StartMs="2" DurationMs="15" />
+                    <TraceSpan Name="db.query" StartMs="20" DurationMs="60">
+                        <TraceSpan Name="connect" StartMs="20" DurationMs="8" />
+                        <TraceSpan Name="exec" StartMs="30" DurationMs="45" />
+                    </TraceSpan>
+                    <TraceSpan Name="serialize" StartMs="85" DurationMs="30" />
+                </TraceSpan>
+            </TraceChart>
+        </StackPanel>
+    </Border>
+</Window>`
+  },
+
+  {
+    id: "flamegraph",
+    title: "Flame Graph",
+    description: "Hierarchical profiler frames sized by value, icicle layout.",
+    docPage: "./samples/flamegraph.html",
+    xaml: `<Window xmlns="http://schemas.terminalninja.dev/xaml" Title="Flame Graph">
+    <Border BorderStyle="Rounded">
+        <StackPanel Orientation="Vertical">
+            <TextBlock StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1"
+                       Text=" Flame Graph" Padding="2,0,0,0" />
+            <TextBlock StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1" Text="" />
+            <FlameGraph StackPanel.SizeMode="Stretch" Title="  CPU profile">
+                <FlameNode Name="main" Value="100">
+                    <FlameNode Name="parseRequest" Value="25">
+                        <FlameNode Name="decodeJson" Value="18" />
+                    </FlameNode>
+                    <FlameNode Name="handleQuery" Value="60">
+                        <FlameNode Name="sqlExec" Value="40">
+                            <FlameNode Name="ioWait" Value="30" />
+                        </FlameNode>
+                        <FlameNode Name="mapRows" Value="15" />
+                    </FlameNode>
+                    <FlameNode Name="writeResponse" Value="15" />
+                </FlameNode>
+            </FlameGraph>
+        </StackPanel>
+    </Border>
+</Window>`
+  },
+
+  {
     id: "button",
     title: "Button",
     description: "Button controls with styling, hover colors, and tab navigation.",

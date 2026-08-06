@@ -248,4 +248,23 @@ public static class ThemeResourceKeys
 
     /// <summary>ColorPicker hover border color.</summary>
     public const string ColorPickerHoverColor = "ThemeColorPickerHoverColor";
+
+    // ────────────────────────────────────────────────────────────────
+    //  Charts (BarChart, LineChart, TraceChart, FlameGraph)
+    // ────────────────────────────────────────────────────────────────
+
+    /// <summary>Chart text color (title, labels, tick values).</summary>
+    public const string ChartForegroundColor = "ThemeChartForegroundColor";
+
+    /// <summary>Chart plot background color.</summary>
+    public const string ChartBackgroundColor = "ThemeChartBackgroundColor";
+
+    /// <summary>Chart axis line color.</summary>
+    public const string ChartAxisColor = "ThemeChartAxisColor";
+
+    /// <summary>Chart grid line color.</summary>
+    public const string ChartGridColor = "ThemeChartGridColor";
+
+    /// <summary>Chart legend text color.</summary>
+    public const string ChartLegendColor = "ThemeChartLegendColor";
 }

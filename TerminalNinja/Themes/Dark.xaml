@@ -70,6 +70,13 @@
     <Color x:Key="ThemeColorPickerFocusColor">#569cd6</Color>
     <Color x:Key="ThemeColorPickerHoverColor">#dcdcaa</Color>
 
+    <!-- Chart colors -->
+    <Color x:Key="ThemeChartForegroundColor">#d4d4d4</Color>
+    <Color x:Key="ThemeChartBackgroundColor">Transparent</Color>
+    <Color x:Key="ThemeChartAxisColor">#787878</Color>
+    <Color x:Key="ThemeChartGridColor">#3c3c3c</Color>
+    <Color x:Key="ThemeChartLegendColor">#a0a0a0</Color>
+
     <!-- Picker colors -->
     <Color x:Key="ThemePickerBackgroundColor">#3c3c3c</Color>
     <Color x:Key="ThemePickerForegroundColor">#d4d4d4</Color>
@@ -279,6 +286,36 @@
         <Setter Property="Foreground" Value="{StaticResource ThemePickerForegroundColor}" />
         <Setter Property="FocusColor" Value="{StaticResource ThemePickerFocusColor}" />
         <Setter Property="HoverColor" Value="{StaticResource ThemePickerHoverColor}" />
+    </Style>
+
+    <!-- Chart styles -->
+    <Style TargetType="BarChart">
+        <Setter Property="Foreground" Value="{StaticResource ThemeChartForegroundColor}" />
+        <Setter Property="Background" Value="{StaticResource ThemeChartBackgroundColor}" />
+        <Setter Property="AxisColor" Value="{StaticResource ThemeChartAxisColor}" />
+        <Setter Property="GridColor" Value="{StaticResource ThemeChartGridColor}" />
+        <Setter Property="LegendColor" Value="{StaticResource ThemeChartLegendColor}" />
+    </Style>
+    <Style TargetType="LineChart">
+        <Setter Property="Foreground" Value="{StaticResource ThemeChartForegroundColor}" />
+        <Setter Property="Background" Value="{StaticResource ThemeChartBackgroundColor}" />
+        <Setter Property="AxisColor" Value="{StaticResource ThemeChartAxisColor}" />
+        <Setter Property="GridColor" Value="{StaticResource ThemeChartGridColor}" />
+        <Setter Property="LegendColor" Value="{StaticResource ThemeChartLegendColor}" />
+    </Style>
+    <Style TargetType="TraceChart">
+        <Setter Property="Foreground" Value="{StaticResource ThemeChartForegroundColor}" />
+        <Setter Property="Background" Value="{StaticResource ThemeChartBackgroundColor}" />
+        <Setter Property="AxisColor" Value="{StaticResource ThemeChartAxisColor}" />
+        <Setter Property="GridColor" Value="{StaticResource ThemeChartGridColor}" />
+        <Setter Property="LegendColor" Value="{StaticResource ThemeChartLegendColor}" />
+    </Style>
+    <Style TargetType="FlameGraph">
+        <Setter Property="Foreground" Value="{StaticResource ThemeChartForegroundColor}" />
+        <Setter Property="Background" Value="{StaticResource ThemeChartBackgroundColor}" />
+        <Setter Property="AxisColor" Value="{StaticResource ThemeChartAxisColor}" />
+        <Setter Property="GridColor" Value="{StaticResource ThemeChartGridColor}" />
+        <Setter Property="LegendColor" Value="{StaticResource ThemeChartLegendColor}" />
     </Style>
 
 </ResourceDictionary>

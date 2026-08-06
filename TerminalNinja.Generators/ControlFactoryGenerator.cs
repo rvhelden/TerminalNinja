@@ -37,7 +37,12 @@ public sealed class ControlFactoryGenerator : IIncrementalGenerator
         "ListViewColumn",
         "DataGridTextColumn",
         "DataGridCheckBoxColumn",
-        "DataGridTemplateColumn"
+        "DataGridTemplateColumn",
+        // Chart data models — plain POCOs that are declared inline in XAML.
+        "ChartSeries",
+        "ChartDataPoint",
+        "TraceSpan",
+        "FlameNode"
     };
 
     /// <summary>
