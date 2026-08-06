@@ -45,6 +45,8 @@ public abstract class DataGridColumn
 
     /// <summary>
     /// Renders a single cell for this column into the buffer.
+    /// Protected internal so applications can define custom column types
+    /// (e.g. per-cell colours or graphical cells) without forking the framework.
     /// </summary>
     /// <param name="buffer">The cell buffer to render into.</param>
     /// <param name="x">The X coordinate of the cell.</param>
@@ -53,6 +55,6 @@ public abstract class DataGridColumn
     /// <param name="dataItem">The data item for this row.</param>
     /// <param name="fg">The foreground color.</param>
     /// <param name="bg">The background color.</param>
-    internal abstract void RenderCell(CellBuffer buffer, int x, int y, int width,
+    protected internal abstract void RenderCell(CellBuffer buffer, int x, int y, int width,
         object? dataItem, Color fg, Color bg);
 }

@@ -245,8 +245,10 @@ public abstract class Selector : ItemsControl
 
     /// <summary>
     /// Returns the effective list of data items (ItemsSource cast to list, or Items).
+    /// Protected so derived selectors (e.g. DataGrid) can render rows in the same
+    /// order that <see cref="SelectedIndex"/> indexes.
     /// </summary>
-    private List<object> GetEffectiveItems()
+    protected List<object> GetEffectiveItems()
     {
         var source = ItemsSource ?? Items;
         var list = new List<object>();

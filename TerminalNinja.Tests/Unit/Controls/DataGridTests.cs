@@ -135,6 +135,59 @@ public class DataGridTests
 
     #endregion
 
+    #region Scrolling
+
+    [Test]
+    public async Task Render_SelectionBelowViewport_ScrollsIntoView()
+    {
+        var dg = new DataGrid();
+        dg.Columns.Add(new DataGridTextColumn { Header = "X", Width = 10 });
+        dg.ItemsSource = new ObservableCollection<string> { "A", "B", "C", "D", "E" };
+        dg.SelectedIndex = 4;
+
+        // Height 4 = 2 header rows + 2 visible data rows.
+        using var buffer = new CellBuffer(15, 4);
+        dg.Render(buffer, new Rect(0, 0, 15, 4));
+
+        // The viewport shows the last two items, with the selection on the bottom row.
+        await Assert.That(buffer.GetCell(0, 2).Codepoint).IsEqualTo('D');
+        await Assert.That(buffer.GetCell(0, 3).Codepoint).IsEqualTo('E');
+    }
+
+    [Test]
+    public async Task Render_SelectionBackAboveViewport_ScrollsBackUp()
+    {
+        var dg = new DataGrid();
+        dg.Columns.Add(new DataGridTextColumn { Header = "X", Width = 10 });
+        dg.ItemsSource = new ObservableCollection<string> { "A", "B", "C", "D", "E" };
+        dg.SelectedIndex = 4;
+
+        using var buffer = new CellBuffer(15, 4);
+        dg.Render(buffer, new Rect(0, 0, 15, 4));
+
+        dg.SelectedIndex = 0;
+        dg.Render(buffer, new Rect(0, 0, 15, 4));
+
+        await Assert.That(buffer.GetCell(0, 2).Codepoint).IsEqualTo('A');
+        await Assert.That(buffer.GetCell(0, 3).Codepoint).IsEqualTo('B');
+    }
+
+    [Test]
+    public async Task Render_Scrolled_HeaderStaysFixed()
+    {
+        var dg = new DataGrid();
+        dg.Columns.Add(new DataGridTextColumn { Header = "Name", Width = 10 });
+        dg.ItemsSource = new ObservableCollection<string> { "A", "B", "C", "D", "E" };
+        dg.SelectedIndex = 4;
+
+        using var buffer = new CellBuffer(15, 4);
+        dg.Render(buffer, new Rect(0, 0, 15, 4));
+
+        await Assert.That(buffer.GetCell(0, 0).Codepoint).IsEqualTo('N');
+    }
+
+    #endregion
+
     #region Keyboard
 
     [Test]

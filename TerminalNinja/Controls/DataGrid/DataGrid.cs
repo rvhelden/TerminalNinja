@@ -167,6 +167,24 @@ public sealed class DataGrid : Selector
         return widths;
     }
 
+    // ─── Scrolling ───────────────────────────────────────────────────
+
+    private int _scrollOffset;
+
+    /// <summary>
+    /// Adjusts the scroll offset so the selected row stays inside the viewport,
+    /// matching the ListBox's internal scrolling behaviour.
+    /// </summary>
+    private void EnsureSelectedVisible(int viewportHeight)
+    {
+        if (SelectedIndex < 0 || viewportHeight <= 0) return;
+
+        if (SelectedIndex < _scrollOffset)
+            _scrollOffset = SelectedIndex;
+        else if (SelectedIndex >= _scrollOffset + viewportHeight)
+            _scrollOffset = SelectedIndex - viewportHeight + 1;
+    }
+
     // ─── Rendering ───────────────────────────────────────────────────
 
     private const int HeaderRowCount = 2;
@@ -219,12 +237,20 @@ public sealed class DataGrid : Selector
             }
         }
 
-        // Data rows — delegate cell rendering to each column
-        var items = new List<object>();
-        foreach (var kvp in _itemContainers) items.Add(kvp.Key);
+        // Data rows — delegate cell rendering to each column.
+        // Iterated in effective-items order (the order SelectedIndex indexes), not
+        // _itemContainers order: the containers live in a plain Dictionary whose order
+        // is not guaranteed once items have been removed and re-added.
+        var items = GetEffectiveItems();
+        var viewportHeight = bounds.Height - HeaderRowCount;
 
-        for (var row = 0; row < items.Count && bounds.Y + HeaderRowCount + row < bounds.Bottom; row++)
+        // Keep the selected row inside the viewport, then clamp so the last page fills.
+        EnsureSelectedVisible(viewportHeight);
+        _scrollOffset = Math.Clamp(_scrollOffset, 0, Math.Max(0, items.Count - Math.Max(viewportHeight, 1)));
+
+        for (var visibleRow = 0; visibleRow < viewportHeight && _scrollOffset + visibleRow < items.Count; visibleRow++)
         {
+            var row = _scrollOffset + visibleRow;
             var item = items[row];
             var isSelected = _itemContainers.TryGetValue(item, out var container) &&
                              container is ISelectableContainer sc && sc.IsSelected;
@@ -234,7 +260,7 @@ public sealed class DataGrid : Selector
             var dataItem = _itemContainers.TryGetValue(item, out var cnt) && cnt is ListViewItem lvi
                 ? lvi.Content ?? item : item;
 
-            var rowY = bounds.Y + HeaderRowCount + row;
+            var rowY = bounds.Y + HeaderRowCount + visibleRow;
             if (isSelected)
             {
                 var rowRect = new Rect(bounds.X, rowY, bounds.Width, 1).Intersect(new Rect(0, 0, buffer.Width, buffer.Height));
@@ -305,6 +331,22 @@ public sealed class DataGrid : Selector
     }
 
     // ─── Input ───────────────────────────────────────────────────────
+
+    /// <inheritdoc />
+    public override void OnMouseEvent(MouseEvent e)
+    {
+        switch (e.Action)
+        {
+            case MouseAction.ScrollUp:
+                _scrollOffset = Math.Max(0, _scrollOffset - 3);
+                InvalidateVisual();
+                break;
+            case MouseAction.ScrollDown:
+                _scrollOffset = Math.Min(Math.Max(0, ItemsPanel.Children.Count - 1), _scrollOffset + 3);
+                InvalidateVisual();
+                break;
+        }
+    }
 
     public override void OnKeyEvent(KeyEvent e)
     {

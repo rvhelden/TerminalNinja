@@ -16,7 +16,7 @@ public class DataGridTemplateColumn : DataGridColumn
     public DataTemplate? CellTemplate { get; set; }
 
     /// <inheritdoc />
-    internal override void RenderCell(CellBuffer buffer, int x, int y, int width,
+    protected internal override void RenderCell(CellBuffer buffer, int x, int y, int width,
         object? dataItem, Color fg, Color bg)
     {
         if (CellTemplate == null)

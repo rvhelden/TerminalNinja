@@ -14,7 +14,7 @@ public class DataGridCheckBoxColumn : DataGridBoundColumn
     private const string Unchecked = "[ ]";
 
     /// <inheritdoc />
-    internal override void RenderCell(CellBuffer buffer, int x, int y, int width,
+    protected internal override void RenderCell(CellBuffer buffer, int x, int y, int width,
         object? dataItem, Color fg, Color bg)
     {
         var value = GetBindingValue(dataItem);

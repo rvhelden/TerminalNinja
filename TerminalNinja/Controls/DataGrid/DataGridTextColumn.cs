@@ -10,7 +10,7 @@ namespace TerminalNinja.Controls;
 public class DataGridTextColumn : DataGridBoundColumn
 {
     /// <inheritdoc />
-    internal override void RenderCell(CellBuffer buffer, int x, int y, int width,
+    protected internal override void RenderCell(CellBuffer buffer, int x, int y, int width,
         object? dataItem, Color fg, Color bg)
     {
         var text = GetBindingValue(dataItem)?.ToString() ?? dataItem?.ToString() ?? "";
