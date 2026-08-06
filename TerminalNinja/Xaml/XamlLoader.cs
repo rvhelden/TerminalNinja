@@ -801,7 +801,8 @@ internal sealed class XamlLoader
 
         var propType = accessor.Value.PropertyType;
 
-        // Single child — set the property directly
+        // Single child — set the property directly, or add to a read-only collection
+        // property (e.g. <NodeGraph.GraphEdges> with one edge).
         var childElements = element.Elements().ToList();
         if (childElements.Count == 1)
         {
@@ -809,6 +810,10 @@ internal sealed class XamlLoader
             if (accessor.Value.CanWrite)
             {
                 accessor.Value.Setter!(instance, childInstance);
+            }
+            else
+            {
+                AddToCollection(accessor.Value.Getter(instance), childInstance);
             }
         }
         else if (childElements.Count > 1)
