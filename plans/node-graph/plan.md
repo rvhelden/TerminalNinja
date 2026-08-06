@@ -27,6 +27,14 @@ Theming reuses existing `ThemeChart*` keys (no new constants) — add `<Style Ta
 - Layout space: **normalized** unit space, reproject to cells on resize. (Default.)
 - Overlap: acceptable for MVP (legibility-only requirement).
 
+## Amendments (from user-approved plan analysis, 2026-08-06)
+
+- **Edge colors**: `BrailleCanvas.Blit` takes ONE foreground color per blit — bucket edges by effective color (default `AxisColor` when `GraphEdge.Color` is `Transparent`), one canvas per bucket.
+- **`[ContentProperty]`**: `GraphNode` uses `[ContentProperty("Name")]` (it has no children — do not copy the siblings' `"Children"`); `GraphEdge` has no content property.
+- **Pinned caps**: `LayoutIterations` default **60**, coerce-clamped **[1, 200]**; `MaxLayoutNodes` = **500** (`private const`).
+- **Inherited chrome**: `ShowAxes`/`ShowGrid`/`ShowLegend` are ignored by `OnRender` (meaningless for a node graph); docs page must say so.
+- **Empty state**: draw `"(no nodes)"` when the effective node list is empty (mirrors `TraceChart`'s `"(no spans)"`).
+
 ## Tasks
 
 ### Task 1 — GraphNode / GraphEdge data models

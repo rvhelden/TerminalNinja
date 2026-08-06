@@ -42,7 +42,9 @@ public sealed class ControlFactoryGenerator : IIncrementalGenerator
         "ChartSeries",
         "ChartDataPoint",
         "TraceSpan",
-        "FlameNode"
+        "FlameNode",
+        "GraphNode",
+        "GraphEdge"
     };
 
     /// <summary>
