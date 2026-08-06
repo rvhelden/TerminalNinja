@@ -137,6 +137,7 @@ public class TraceChartTests
     public async Task LeftClick_SelectsClickedRow()
     {
         var chart = ThreeSpans();
+        chart.RowSpacing = 0; // one row per span for a predictable layout
         using var buffer = new CellBuffer(W, H);
         chart.Render(buffer, new Rect(0, 0, W, H));
 
@@ -147,9 +148,52 @@ public class TraceChartTests
     }
 
     [Test]
+    public async Task Click_OnGapRow_SelectsSpanAbove()
+    {
+        var chart = ThreeSpans(); // RowSpacing = 1 (default): stride of 2
+        using var buffer = new CellBuffer(W, H);
+        chart.Render(buffer, new Rect(0, 0, W, H));
+
+        // Header y=0; span rows at y=1,3,5; gaps at y=2,4. Clicking the gap at y=2 selects span 0.
+        chart.OnMouseEvent(new MouseEvent(3, 2, MouseButton.Left, MouseAction.Press));
+        await Assert.That(chart.SelectedIndex).IsEqualTo(0);
+
+        // Clicking the second span row (y=3) selects span 1.
+        chart.OnMouseEvent(new MouseEvent(3, 3, MouseButton.Left, MouseAction.Press));
+        await Assert.That(chart.SelectedIndex).IsEqualTo(1);
+    }
+
+    [Test]
+    public async Task RowSpacing_InsertsBlankRowsBetweenSpans()
+    {
+        var chart = ThreeSpans();
+        chart.RowSpacing = 1;
+        using var buffer = new CellBuffer(W, H);
+        chart.Render(buffer, new Rect(0, 0, W, H));
+
+        // Rows that contain a bar block, sorted; consecutive spans are two rows apart.
+        var barRows = new List<int>();
+        for (var y = 0; y < H; y++)
+        {
+            for (var x = 0; x < W; x++)
+            {
+                if (buffer.GetCell(x, y).Codepoint == '█')
+                {
+                    barRows.Add(y);
+                    break;
+                }
+            }
+        }
+
+        await Assert.That(barRows.Count).IsGreaterThanOrEqualTo(2);
+        await Assert.That(barRows[1] - barRows[0]).IsEqualTo(2);
+    }
+
+    [Test]
     public async Task SelectedRow_IsHighlighted()
     {
         var chart = ThreeSpans();
+        chart.RowSpacing = 0;
         chart.IsFocused = true;
         chart.SelectedIndex = 1;
 

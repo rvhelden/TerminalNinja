@@ -25,9 +25,10 @@ public sealed class TraceChart : ChartBase
 {
     // Left-eighth blocks give sub-cell precision on a bar's right edge: char = 0x2590 - eighths.
 
-    /// <summary>Absolute Y of the first data row and the number of rows drawn, from the last render — used to map clicks to rows.</summary>
+    /// <summary>Absolute Y of the first data row, the number of rows drawn, and the per-span vertical stride, from the last render — used to map clicks to rows.</summary>
     private int _rowTop;
     private int _rowCount;
+    private int _rowStride = 1;
 
     /// <summary>Guards the SelectedIndex/SelectedSpan two-way sync against re-entrancy.</summary>
     private bool _syncing;
@@ -50,6 +51,10 @@ public sealed class TraceChart : ChartBase
     public static readonly DependencyProperty LabelWidthProperty =
         DependencyProperty.Register(nameof(LabelWidth), typeof(int), typeof(TraceChart),
             new FrameworkPropertyMetadata(24, affectsRender: true));
+
+    public static readonly DependencyProperty RowSpacingProperty =
+        DependencyProperty.Register(nameof(RowSpacing), typeof(int), typeof(TraceChart),
+            new FrameworkPropertyMetadata(1, affectsRender: true));
 
     public static readonly DependencyProperty SelectedIndexProperty =
         DependencyProperty.Register(nameof(SelectedIndex), typeof(int), typeof(TraceChart),
@@ -78,6 +83,13 @@ public sealed class TraceChart : ChartBase
     {
         get => (int)GetValue(LabelWidthProperty)!;
         set => SetValue(LabelWidthProperty, value);
+    }
+
+    /// <summary>Number of blank rows inserted between consecutive spans. Default 1.</summary>
+    public int RowSpacing
+    {
+        get => (int)GetValue(RowSpacingProperty)!;
+        set => SetValue(RowSpacingProperty, value);
     }
 
     /// <summary>Index of the selected row in the flattened span list (-1 = none). Two-way bindable.</summary>
@@ -188,8 +200,15 @@ public sealed class TraceChart : ChartBase
         }
 
         // Map the click's Y to a data row using the layout captured during the last render.
-        var row = e.Y - _rowTop;
-        if (row >= 0 && row < _rowCount)
+        // Clicking a gap row selects the span above it.
+        var rel = e.Y - _rowTop;
+        if (rel < 0)
+        {
+            return;
+        }
+
+        var row = rel / _rowStride;
+        if (row < _rowCount)
         {
             SelectedIndex = row;
         }
@@ -263,18 +282,37 @@ public sealed class TraceChart : ChartBase
             rowTop += 1;
         }
 
-        // Capture layout for click hit-testing / key clamping.
+        // Capture layout for click hit-testing / key clamping. Each span occupies one row plus
+        // RowSpacing blank rows beneath it.
+        var spacing = Math.Max(0, RowSpacing);
+        var stride = 1 + spacing;
+        var avail = bounds.Bottom - rowTop;
+        var maxFit = avail <= 0 ? 0 : (avail + spacing) / stride;
         _rowTop = rowTop;
-        _rowCount = Math.Min(rows.Count, Math.Max(0, bounds.Bottom - rowTop));
+        _rowStride = stride;
+        _rowCount = Math.Min(rows.Count, maxFit);
 
         // Selection highlight is brighter when the chart holds focus.
         var selectedBg = EffectiveSelectionBackground;
+
+        // Continuous gutter separator so it stays unbroken across the spacing gaps.
+        if (ShowAxes && _rowCount > 0)
+        {
+            var lastY = rowTop + (_rowCount - 1) * stride;
+            for (var y = rowTop; y <= lastY; y++)
+            {
+                if (buffer.IsInBounds(bounds.X + gutter, y))
+                {
+                    buffer.SetChar(bounds.X + gutter, y, '│', AxisColor, Background);
+                }
+            }
+        }
 
         var span2 = tMax - tMin;
         for (var r = 0; r < _rowCount; r++)
         {
             var (span, depth) = rows[r];
-            var y = rowTop + r;
+            var y = rowTop + r * stride;
             var selected = r == SelectedIndex;
 
             var spanColor = ColorForSeries(r, span.Color);
