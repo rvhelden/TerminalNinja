@@ -71,7 +71,9 @@
           <tr><td><code>Spans</code></td><td>IList&lt;TraceSpan&gt;</td><td>Inline span collection (content property).</td></tr>
           <tr><td><code>SpansSource</code></td><td>IEnumerable</td><td>Bound span collection; overrides <code>Spans</code>.</td></tr>
           <tr><td><code>LabelWidth</code></td><td>int</td><td>Width (cells) of the left gutter holding span names.</td></tr>
-          <tr><td><code>SelectedSpan</code></td><td>object</td><td>Two-way selection hook (reserved for interaction).</td></tr>
+          <tr><td><code>SelectedIndex</code></td><td>int</td><td>Index of the selected row in the flattened span list (-1 = none). Two-way bindable.</td></tr>
+          <tr><td><code>SelectedSpan</code></td><td>object</td><td>The selected span, kept in sync with <code>SelectedIndex</code>. Two-way bindable.</td></tr>
+          <tr><td><code>SelectedBackground / SelectedForeground</code></td><td>Color</td><td>Colors of the highlighted selected row.</td></tr>
         </tbody>
       </table>
       <p class="section-copy">
@@ -109,13 +111,24 @@
     </section>
 
     <section class="panel doc-section">
+      <h2>Interactivity</h2>
+      <p class="section-copy">
+        The waterfall is focusable and selectable. Give it focus (Tab, or click it) and use
+        <strong>↑/↓</strong> — plus <strong>Home/End</strong> — to move the row selection, or click a
+        row directly. The selected row is highlighted (brighter while the chart holds focus) and both
+        <code>SelectedIndex</code> and <code>SelectedSpan</code> update two-way, so you can bind them
+        to a details pane:
+      </p>
+      <pre><code class="language-xml">&lt;TraceChart SpansSource="{Binding Spans}"
+            SelectedSpan="{Binding Selected, Mode=TwoWay}" /&gt;</code></pre>
+
       <h2>Key Concepts</h2>
       <ul>
         <li>All spans share one time axis; a bar's position encodes <code>StartMs</code>.</li>
         <li>Nested <code>Children</code> are flattened; depth drives label indentation.</li>
         <li>Bar right-edges use left-eighth blocks for sub-cell duration precision.</li>
         <li>Row colors come from the theme palette, overridable via <code>TraceSpan.Color</code>.</li>
-        <li>Bind live traces through <code>SpansSource</code>.</li>
+        <li>Bind live traces through <code>SpansSource</code>; drive/observe selection via <code>SelectedIndex</code>/<code>SelectedSpan</code>.</li>
       </ul>
     </section>
 

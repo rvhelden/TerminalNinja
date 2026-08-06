@@ -7,7 +7,7 @@
         <TextBlock StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1" Text="" />
 
         <LineChart StackPanel.SizeMode="Stretch" Title="  Request latency (ms)" ShowMarkers="True">
-            <ChartSeries Name="p50">
+            <ChartSeries Name="p50" Color="#4EC9B0">
                 <ChartDataPoint Value="12" />
                 <ChartDataPoint Value="18" />
                 <ChartDataPoint Value="9" />
@@ -17,7 +17,7 @@
                 <ChartDataPoint Value="19" />
                 <ChartDataPoint Value="24" />
             </ChartSeries>
-            <ChartSeries Name="p99">
+            <ChartSeries Name="p99" Color="#F48771">
                 <ChartDataPoint Value="40" />
                 <ChartDataPoint Value="55" />
                 <ChartDataPoint Value="35" />

@@ -4,7 +4,9 @@
     <StackPanel Orientation="Vertical">
         <TextBlock StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1"
                    Text=" Trace Chart (waterfall)" Padding="2,0,0,0" />
-        <TextBlock StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1" Text="" />
+        <TextBlock StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1"
+                   Text="  Tab to focus, then ↑/↓ (or click) to select a span"
+                   Padding="2,0,0,0" />
 
         <TraceChart StackPanel.SizeMode="Stretch" Title="  GET /api/order/42" LabelWidth="18">
             <TraceSpan Name="http.request" StartMs="0" DurationMs="120">

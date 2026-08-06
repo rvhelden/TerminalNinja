@@ -75,6 +75,100 @@ public class TraceChartTests
         await Assert.That(ContainsChar(buffer, '█')).IsFalse();
     }
 
+    private static TraceChart ThreeSpans()
+    {
+        var chart = new TraceChart();
+        chart.Spans.Add(new TraceSpan { Name = "a", StartMs = 0, DurationMs = 10 });
+        chart.Spans.Add(new TraceSpan { Name = "b", StartMs = 10, DurationMs = 20 });
+        chart.Spans.Add(new TraceSpan { Name = "c", StartMs = 30, DurationMs = 15 });
+        return chart;
+    }
+
+    private static KeyEvent Key(ConsoleKey key) => new(key, '\0', false, false, false);
+
+    [Test]
+    public async Task IsFocusable()
+    {
+        await Assert.That(new TraceChart().Focusable).IsTrue();
+    }
+
+    [Test]
+    public async Task DownArrow_MovesSelectionAndSyncsSelectedSpan()
+    {
+        var chart = ThreeSpans();
+        using var buffer = new CellBuffer(W, H);
+        chart.Render(buffer, new Rect(0, 0, W, H)); // captures row layout
+
+        chart.OnKeyEvent(Key(ConsoleKey.DownArrow));
+        await Assert.That(chart.SelectedIndex).IsEqualTo(0);
+        await Assert.That(chart.SelectedSpan).IsSameReferenceAs(chart.Spans[0]);
+
+        chart.OnKeyEvent(Key(ConsoleKey.DownArrow));
+        await Assert.That(chart.SelectedIndex).IsEqualTo(1);
+        await Assert.That(chart.SelectedSpan).IsSameReferenceAs(chart.Spans[1]);
+    }
+
+    [Test]
+    public async Task UpArrow_StopsAtFirstRow_EndGoesToLast()
+    {
+        var chart = ThreeSpans();
+        using var buffer = new CellBuffer(W, H);
+        chart.Render(buffer, new Rect(0, 0, W, H));
+
+        chart.OnKeyEvent(Key(ConsoleKey.End));
+        await Assert.That(chart.SelectedIndex).IsEqualTo(2);
+
+        chart.OnKeyEvent(Key(ConsoleKey.UpArrow));
+        chart.OnKeyEvent(Key(ConsoleKey.UpArrow));
+        chart.OnKeyEvent(Key(ConsoleKey.UpArrow)); // clamps at 0
+        await Assert.That(chart.SelectedIndex).IsEqualTo(0);
+    }
+
+    [Test]
+    public async Task SettingSelectedSpan_SyncsSelectedIndex()
+    {
+        var chart = ThreeSpans();
+
+        chart.SelectedSpan = chart.Spans[2];
+        await Assert.That(chart.SelectedIndex).IsEqualTo(2);
+    }
+
+    [Test]
+    public async Task LeftClick_SelectsClickedRow()
+    {
+        var chart = ThreeSpans();
+        using var buffer = new CellBuffer(W, H);
+        chart.Render(buffer, new Rect(0, 0, W, H));
+
+        // Header row occupies y=0; data rows start at y=1. Click the 3rd data row (index 2).
+        chart.OnMouseEvent(new MouseEvent(3, 3, MouseButton.Left, MouseAction.Press));
+        await Assert.That(chart.SelectedIndex).IsEqualTo(2);
+        await Assert.That(chart.SelectedSpan).IsSameReferenceAs(chart.Spans[2]);
+    }
+
+    [Test]
+    public async Task SelectedRow_IsHighlighted()
+    {
+        var chart = ThreeSpans();
+        chart.IsFocused = true;
+        chart.SelectedIndex = 1;
+
+        using var buffer = new CellBuffer(W, H);
+        chart.Render(buffer, new Rect(0, 0, W, H));
+
+        // The selected row (index 1, at y=2 after the header) is painted with SelectedBackground.
+        var highlighted = false;
+        for (var x = 0; x < W; x++)
+        {
+            if (buffer.GetCell(x, 2).Background == new Color(38, 79, 120))
+            {
+                highlighted = true;
+            }
+        }
+
+        await Assert.That(highlighted).IsTrue();
+    }
+
     [Test]
     public async Task Xaml_WithNestedSpans_FlattensChildren()
     {
