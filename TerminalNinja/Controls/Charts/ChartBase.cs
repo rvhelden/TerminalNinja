@@ -33,6 +33,14 @@ public abstract class ChartBase : FrameworkElement
         new(244, 135, 113),  // salmon
     ];
 
+    /// <summary>
+    /// All charts are focusable so they can be selected and navigated with the keyboard.
+    /// </summary>
+    protected ChartBase()
+    {
+        Focusable = true;
+    }
+
     // ─── Dependency Properties ───────────────────────────────────────
 
     public static readonly DependencyProperty WidthProperty =
@@ -82,6 +90,14 @@ public abstract class ChartBase : FrameworkElement
     public static readonly DependencyProperty SeriesPaletteProperty =
         DependencyProperty.Register(nameof(SeriesPalette), typeof(IList<Color>), typeof(ChartBase),
             new FrameworkPropertyMetadata(null, affectsRender: true));
+
+    public static readonly DependencyProperty SelectedBackgroundProperty =
+        DependencyProperty.Register(nameof(SelectedBackground), typeof(Color), typeof(ChartBase),
+            new FrameworkPropertyMetadata(new Color(38, 79, 120), affectsRender: true));
+
+    public static readonly DependencyProperty SelectedForegroundProperty =
+        DependencyProperty.Register(nameof(SelectedForeground), typeof(Color), typeof(ChartBase),
+            new FrameworkPropertyMetadata(new Color(255, 255, 255), affectsRender: true));
 
     // ─── CLR Property Wrappers ───────────────────────────────────────
 
@@ -171,6 +187,28 @@ public abstract class ChartBase : FrameworkElement
         get => (IList<Color>?)GetValue(SeriesPaletteProperty);
         set => SetValue(SeriesPaletteProperty, value);
     }
+
+    /// <summary>Background color of the selected item/row. Default is a muted blue.</summary>
+    public Color SelectedBackground
+    {
+        get => (Color)GetValue(SelectedBackgroundProperty)!;
+        set => SetValue(SelectedBackgroundProperty, value);
+    }
+
+    /// <summary>Text color used on the selected item/row. Default is white.</summary>
+    public Color SelectedForeground
+    {
+        get => (Color)GetValue(SelectedForegroundProperty)!;
+        set => SetValue(SelectedForegroundProperty, value);
+    }
+
+    // ─── Selection helpers ───────────────────────────────────────────
+
+    /// <summary>The selection background, shown brighter while the chart holds focus.</summary>
+    protected Color EffectiveSelectionBackground => IsFocused ? SelectedBackground : Dim(SelectedBackground);
+
+    /// <summary>Returns a dimmed (55%) variant of a color, used for unfocused selection.</summary>
+    protected static Color Dim(Color c) => new((byte)(c.R * 0.55), (byte)(c.G * 0.55), (byte)(c.B * 0.55));
 
     // ─── Palette ─────────────────────────────────────────────────────
 

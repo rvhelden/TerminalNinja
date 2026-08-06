@@ -34,8 +34,10 @@
         lines. Each series is rendered into a <strong>braille canvas</strong> (2×4 dots per cell),
         giving smooth curves at four times the vertical and twice the horizontal resolution of a
         plain cell. Points are spread evenly along the x axis by index; the y axis auto-scales
-        unless <code>YMin</code>/<code>YMax</code> are set. Provide data inline or bind
-        <code>SeriesSource</code>.
+        unless <code>YMin</code>/<code>YMax</code> are set. Give each <code>ChartDataPoint</code> a
+        <code>Label</code> (e.g. a date) and it is drawn along the bottom as an x-axis label, thinned
+        to fit. The chart is also focusable — <strong>←/→</strong> (or a click) moves a crosshair to
+        inspect a point. Provide data inline or bind <code>SeriesSource</code>.
       </p>
     </section>
 
@@ -49,18 +51,18 @@
       </div>
       <div class="preview-tab-content" data-tab="source">
         <div class="preview-source">
-          <pre><code class="language-xml">&lt;LineChart Title="Request latency (ms)" ShowMarkers="True"&gt;
-    &lt;ChartSeries Name="p50"&gt;
-        &lt;ChartDataPoint Value="12" /&gt;
-        &lt;ChartDataPoint Value="18" /&gt;
-        &lt;ChartDataPoint Value="9" /&gt;
-        &lt;ChartDataPoint Value="22" /&gt;
+          <pre><code class="language-xml">&lt;LineChart Title="Latency by day (ms)" ShowMarkers="True"&gt;
+    &lt;ChartSeries Name="p50" Color="#4EC9B0"&gt;
+        &lt;ChartDataPoint Label="Mon" Value="12" /&gt;
+        &lt;ChartDataPoint Label="Tue" Value="18" /&gt;
+        &lt;ChartDataPoint Label="Wed" Value="9" /&gt;
+        &lt;ChartDataPoint Label="Thu" Value="22" /&gt;
     &lt;/ChartSeries&gt;
-    &lt;ChartSeries Name="p99"&gt;
-        &lt;ChartDataPoint Value="40" /&gt;
-        &lt;ChartDataPoint Value="55" /&gt;
-        &lt;ChartDataPoint Value="35" /&gt;
-        &lt;ChartDataPoint Value="70" /&gt;
+    &lt;ChartSeries Name="p99" Color="#F48771"&gt;
+        &lt;ChartDataPoint Label="Mon" Value="40" /&gt;
+        &lt;ChartDataPoint Label="Tue" Value="55" /&gt;
+        &lt;ChartDataPoint Label="Wed" Value="35" /&gt;
+        &lt;ChartDataPoint Label="Thu" Value="70" /&gt;
     &lt;/ChartSeries&gt;
 &lt;/LineChart&gt;</code></pre>
         </div>
@@ -75,10 +77,22 @@
           <tr><td><code>Series</code></td><td>IList&lt;ChartSeries&gt;</td><td>Inline series collection (content property).</td></tr>
           <tr><td><code>SeriesSource</code></td><td>IEnumerable</td><td>Bound series collection; overrides <code>Series</code>.</td></tr>
           <tr><td><code>ShowMarkers</code></td><td>bool</td><td>Draw a marker at each data point.</td></tr>
+          <tr><td><code>ShowXLabels</code></td><td>bool</td><td>Draw x-axis labels from each point's <code>Label</code> (default true; only reserves a row when labels exist).</td></tr>
+          <tr><td><code>SelectedIndex</code></td><td>int</td><td>Selected point index (-1 = none); marked with a crosshair. Two-way bindable.</td></tr>
           <tr><td><code>YMin / YMax</code></td><td>double</td><td>Explicit y-axis bounds; NaN (default) auto-scales.</td></tr>
           <tr><td><code>ShowAxes / ShowGrid / ShowLegend</code></td><td>bool</td><td>Toggle chart chrome.</td></tr>
         </tbody>
       </table>
+    </section>
+
+    <section class="panel doc-section">
+      <h2>Interactivity</h2>
+      <p class="section-copy">
+        Give the chart focus (Tab, or click it) and use <strong>←/→</strong> (plus
+        <strong>Home/End</strong>) to move a vertical crosshair across the data points, or click near
+        a point to jump to it. <code>SelectedIndex</code> updates two-way, so you can show the
+        selected day's values elsewhere. The selected point's x label is emphasized.
+      </p>
     </section>
 
     <section class="panel doc-section">

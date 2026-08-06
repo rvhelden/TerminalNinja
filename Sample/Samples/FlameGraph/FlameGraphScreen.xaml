@@ -4,7 +4,9 @@
     <StackPanel Orientation="Vertical">
         <TextBlock StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1"
                    Text=" Flame Graph" Padding="2,0,0,0" />
-        <TextBlock StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1" Text="" />
+        <TextBlock StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1"
+                   Text="  Tab to focus, then ↑/↓/←/→ (or click) to walk frames"
+                   Padding="2,0,0,0" />
 
         <FlameGraph StackPanel.SizeMode="Stretch" Title="  CPU profile (self+child samples)">
             <FlameNode Name="main" Value="100">

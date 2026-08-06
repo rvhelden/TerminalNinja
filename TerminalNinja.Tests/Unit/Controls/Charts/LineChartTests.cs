@@ -86,6 +86,117 @@ public class LineChartTests
         await Assert.That(sawColor).IsTrue();
     }
 
+    private static bool ContainsChar(CellBuffer buffer, char c)
+    {
+        for (var y = 0; y < buffer.Height; y++)
+        {
+            for (var x = 0; x < buffer.Width; x++)
+            {
+                if (buffer.GetCell(x, y).Codepoint == c)
+                {
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
+    [Test]
+    public async Task Render_WithPointLabels_DrawsXAxisLabelsAndTicks()
+    {
+        using var buffer = new CellBuffer(W, H);
+        var series = new ChartSeries { Name = "s" };
+        foreach (var (label, value) in new[] { ("Mon", 12.0), ("Tue", 18.0), ("Wed", 9.0), ("Thu", 22.0) })
+        {
+            series.Values.Add(new ChartDataPoint { Label = label, Value = value });
+        }
+
+        var chart = new LineChart();
+        chart.Series.Add(series);
+        chart.Render(buffer, new Rect(0, 0, W, H));
+
+        await Assert.That(ContainsChar(buffer, '┬')).IsTrue();       // axis tick under a labeled point
+        await Assert.That(ContainsChar(buffer, 'M')).IsTrue();       // "Mon"
+    }
+
+    [Test]
+    public async Task Render_ShowXLabelsFalse_OmitsLabels()
+    {
+        using var buffer = new CellBuffer(W, H);
+        var series = new ChartSeries { Name = "s" };
+        series.Values.Add(new ChartDataPoint { Label = "Mon", Value = 12 });
+        series.Values.Add(new ChartDataPoint { Label = "Tue", Value = 18 });
+
+        var chart = new LineChart { ShowXLabels = false };
+        chart.Series.Add(series);
+        chart.Render(buffer, new Rect(0, 0, W, H));
+
+        await Assert.That(ContainsChar(buffer, '┬')).IsFalse();
+    }
+
+    private static KeyEvent Key(ConsoleKey key) => new(key, '\0', false, false, false);
+
+    [Test]
+    public async Task IsFocusable()
+    {
+        await Assert.That(new LineChart().Focusable).IsTrue();
+    }
+
+    [Test]
+    public async Task RightArrow_MovesPointSelection()
+    {
+        var chart = LineOf(1, 5, 2, 8, 3);
+
+        chart.OnKeyEvent(Key(ConsoleKey.RightArrow));
+        await Assert.That(chart.SelectedIndex).IsEqualTo(0);
+        chart.OnKeyEvent(Key(ConsoleKey.RightArrow));
+        await Assert.That(chart.SelectedIndex).IsEqualTo(1);
+        chart.OnKeyEvent(Key(ConsoleKey.End));
+        await Assert.That(chart.SelectedIndex).IsEqualTo(4);
+    }
+
+    [Test]
+    public async Task Click_SelectsNearestPoint()
+    {
+        var chart = LineOf(1, 5, 2, 8, 3); // 5 points
+        chart.ShowAxes = false;            // plotX = 0, plotW = 40
+
+        using var buffer = new CellBuffer(40, H);
+        chart.Render(buffer, new Rect(0, 0, 40, H));
+
+        chart.OnMouseEvent(new MouseEvent(39, 5, MouseButton.Left, MouseAction.Press)); // far right → last
+        await Assert.That(chart.SelectedIndex).IsEqualTo(4);
+
+        chart.OnMouseEvent(new MouseEvent(0, 5, MouseButton.Left, MouseAction.Press)); // far left → first
+        await Assert.That(chart.SelectedIndex).IsEqualTo(0);
+    }
+
+    [Test]
+    public async Task SelectedPoint_DrawsCrosshairWhenFocused()
+    {
+        var chart = LineOf(1, 5, 2, 8, 3);
+        chart.IsFocused = true;
+        chart.SelectedIndex = 2;
+
+        using var buffer = new CellBuffer(40, H);
+        chart.Render(buffer, new Rect(0, 0, 40, H));
+
+        var crosshair = false;
+        for (var y = 0; y < H; y++)
+        {
+            for (var x = 0; x < 40; x++)
+            {
+                if (buffer.GetCell(x, y).Background == new Color(38, 79, 120))
+                {
+                    crosshair = true;
+                }
+            }
+        }
+
+        await Assert.That(crosshair).IsTrue();
+    }
+
     [Test]
     public async Task Xaml_WithInlineSeries_PopulatesData()
     {

@@ -2,6 +2,7 @@ using System.Collections;
 using System.Collections.ObjectModel;
 using System.Windows.Markup;
 using TerminalNinja.Buffers;
+using TerminalNinja.Input;
 using TerminalNinja.Primitives;
 
 namespace TerminalNinja.Controls.Charts;
@@ -47,7 +48,8 @@ public sealed class BarChart : ChartBase
 
     public static readonly DependencyProperty SelectedIndexProperty =
         DependencyProperty.Register(nameof(SelectedIndex), typeof(int), typeof(BarChart),
-            new FrameworkPropertyMetadata(-1, affectsRender: true) { BindsTwoWayByDefault = true });
+            new FrameworkPropertyMetadata(-1, affectsRender: true,
+                propertyChangedCallback: OnSelectedIndexChanged) { BindsTwoWayByDefault = true });
 
     public static readonly DependencyProperty SelectedItemProperty =
         DependencyProperty.Register(nameof(SelectedItem), typeof(object), typeof(BarChart),
@@ -86,14 +88,14 @@ public sealed class BarChart : ChartBase
         set => SetValue(ShowValuesProperty, value);
     }
 
-    /// <summary>Selected category index (-1 = none). Reserved for interaction; two-way bindable.</summary>
+    /// <summary>Selected category index (-1 = none). Two-way bindable; navigate with the arrow keys or click.</summary>
     public int SelectedIndex
     {
         get => (int)GetValue(SelectedIndexProperty)!;
         set => SetValue(SelectedIndexProperty, value);
     }
 
-    /// <summary>Selected category value. Reserved for interaction; two-way bindable.</summary>
+    /// <summary>The selected category label, kept in sync with <see cref="SelectedIndex"/>. Two-way bindable.</summary>
     public object? SelectedItem
     {
         get => GetValue(SelectedItemProperty);
@@ -102,6 +104,97 @@ public sealed class BarChart : ChartBase
 
     private List<ChartSeries> EffectiveSeries =>
         SeriesSource != null ? [.. Enumerate<ChartSeries>(SeriesSource)] : [.. _series];
+
+    private int CategoryCount()
+    {
+        var count = 0;
+        foreach (var s in EffectiveSeries)
+        {
+            count = Math.Max(count, s.Values.Count);
+        }
+
+        return count;
+    }
+
+    // Category slot geometry captured from the last render, for click hit-testing.
+    // For a vertical chart the slot runs along X; for horizontal, along Y.
+    private bool _vertical = true;
+    private int _catCount;
+    private int _slotOrigin;
+    private int _slotSize;
+    private bool _syncing;
+
+    // ─── Selection ───────────────────────────────────────────────────
+
+    private static void OnSelectedIndexChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
+    {
+        var chart = (BarChart)d;
+        if (chart._syncing)
+        {
+            return;
+        }
+
+        var index = (int)e.NewValue!;
+        var series = chart.EffectiveSeries;
+        object? item = null;
+        if (index >= 0 && series.Count > 0 && index < series[0].Values.Count)
+        {
+            var label = series[0].Values[index].Label;
+            item = string.IsNullOrEmpty(label) ? index : label;
+        }
+
+        chart._syncing = true;
+        chart.SelectedItem = item;
+        chart._syncing = false;
+    }
+
+    /// <inheritdoc />
+    public override void OnKeyEvent(KeyEvent e)
+    {
+        var count = CategoryCount();
+        if (count <= 0)
+        {
+            return;
+        }
+
+        // Categories run horizontally for vertical bars, vertically for horizontal bars.
+        var prev = Orientation == Orientation.Vertical ? ConsoleKey.LeftArrow : ConsoleKey.UpArrow;
+        var next = Orientation == Orientation.Vertical ? ConsoleKey.RightArrow : ConsoleKey.DownArrow;
+        var current = SelectedIndex;
+
+        if (e.Key == prev)
+        {
+            SelectedIndex = current < 0 ? count - 1 : Math.Max(0, current - 1);
+        }
+        else if (e.Key == next)
+        {
+            SelectedIndex = current < 0 ? 0 : Math.Min(count - 1, current + 1);
+        }
+        else if (e.Key == ConsoleKey.Home)
+        {
+            SelectedIndex = 0;
+        }
+        else if (e.Key == ConsoleKey.End)
+        {
+            SelectedIndex = count - 1;
+        }
+    }
+
+    /// <inheritdoc />
+    public override void OnMouseEvent(MouseEvent e)
+    {
+        if (e is not { Action: MouseAction.Press, Button: MouseButton.Left } || _slotSize <= 0)
+        {
+            return;
+        }
+
+        var coord = _vertical ? e.X : e.Y;
+        var index = (coord - _slotOrigin) / _slotSize;
+        if (index >= 0 && index < _catCount)
+        {
+            SelectedIndex = index;
+        }
+    }
 
     // ─── Rendering ───────────────────────────────────────────────────
 
@@ -266,10 +359,24 @@ public sealed class BarChart : ChartBase
             slotW = 1;
         }
 
+        // Capture geometry for click hit-testing.
+        _vertical = true;
+        _catCount = categoryCount;
+        _slotOrigin = plotX;
+        _slotSize = slotW;
+        var selBg = EffectiveSelectionBackground;
+
         for (var c = 0; c < categoryCount; c++)
         {
             var slotX = plotX + c * slotW;
             var barsW = Math.Max(1, slotW - 1); // leave a 1-col gap between categories
+            var selected = c == SelectedIndex;
+
+            // Highlight band behind the selected category slot (bars overpaint their own cells).
+            if (selected)
+            {
+                buffer.FillRect(new Rect(slotX, plotTop, slotW, axisRow - plotTop), new Cell(' ', SelectedForeground, selBg));
+            }
 
             if (BarMode == BarMode.Stacked)
             {
@@ -293,14 +400,16 @@ public sealed class BarChart : ChartBase
                 }
             }
 
-            // Category label centered under the slot.
+            // Category label centered under the slot (highlighted when selected).
             if (ShowAxes && c < FirstSeriesLabels(series).Count)
             {
                 var label = FirstSeriesLabels(series)[c];
                 if (!string.IsNullOrEmpty(label))
                 {
                     var lx = slotX + Math.Max(0, (barsW - label.Length) / 2);
-                    DrawString(buffer, lx, xLabelRow, label, Foreground, Background, slotW);
+                    var labelFg = selected ? SelectedForeground : Foreground;
+                    var labelBg = selected ? selBg : Background;
+                    DrawString(buffer, lx, xLabelRow, label, labelFg, labelBg, slotW);
                 }
             }
         }
@@ -438,14 +547,28 @@ public sealed class BarChart : ChartBase
             slotH = 1;
         }
 
+        // Capture geometry for click hit-testing.
+        _vertical = false;
+        _catCount = categoryCount;
+        _slotOrigin = plotTop;
+        _slotSize = slotH;
+        var selBg = EffectiveSelectionBackground;
+
         for (var c = 0; c < categoryCount; c++)
         {
             var slotY = plotTop + c * slotH;
             var barsH = Math.Max(1, slotH); // rows available for this category's bars
+            var selected = c == SelectedIndex;
+
+            // Highlight band behind the selected category row.
+            if (selected)
+            {
+                buffer.FillRect(new Rect(area.X, slotY, area.Width, Math.Min(slotH, plotBottom - slotY)), new Cell(' ', SelectedForeground, selBg));
+            }
 
             if (ShowAxes && c < labels.Count && !string.IsNullOrEmpty(labels[c]))
             {
-                DrawString(buffer, area.X, slotY, labels[c], Foreground, Background, labelWidth);
+                DrawString(buffer, area.X, slotY, labels[c], selected ? SelectedForeground : Foreground, selected ? selBg : Background, labelWidth);
             }
 
             if (BarMode == BarMode.Stacked)

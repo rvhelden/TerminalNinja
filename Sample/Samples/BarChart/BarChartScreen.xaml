@@ -4,7 +4,9 @@
     <StackPanel Orientation="Vertical">
         <TextBlock StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1"
                    Text=" Bar Chart" Padding="2,0,0,0" />
-        <TextBlock StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1" Text="" />
+        <TextBlock StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1"
+                   Text="  Tab to focus, then ←/→ (or click) to select a category"
+                   Padding="2,0,0,0" />
 
         <BarChart StackPanel.SizeMode="Stretch" Title="  Quarterly revenue (grouped)" BarMode="Grouped">
             <ChartSeries Name="2024">

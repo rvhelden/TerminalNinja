@@ -82,9 +82,21 @@
           <tr><td><code>Orientation</code></td><td>Orientation</td><td><code>Vertical</code> (default) or <code>Horizontal</code>.</td></tr>
           <tr><td><code>ShowValues</code></td><td>bool</td><td>Draw each bar's numeric value at its tip.</td></tr>
           <tr><td><code>ShowAxes / ShowGrid / ShowLegend</code></td><td>bool</td><td>Toggle chart chrome.</td></tr>
-          <tr><td><code>SelectedIndex / SelectedItem</code></td><td>int / object</td><td>Two-way selection hooks (reserved for interaction).</td></tr>
+          <tr><td><code>SelectedIndex</code></td><td>int</td><td>Selected category index (-1 = none). Two-way bindable.</td></tr>
+          <tr><td><code>SelectedItem</code></td><td>object</td><td>The selected category's label, kept in sync with <code>SelectedIndex</code>. Two-way bindable.</td></tr>
         </tbody>
       </table>
+    </section>
+
+    <section class="panel doc-section">
+      <h2>Interactivity</h2>
+      <p class="section-copy">
+        The chart is focusable. Give it focus (Tab, or click) and use the arrow keys to move the
+        category selection — <strong>←/→</strong> for vertical bars, <strong>↑/↓</strong> for
+        horizontal — plus <strong>Home/End</strong>; or click a category directly. The selected
+        category is highlighted (brighter while focused) and <code>SelectedIndex</code>/
+        <code>SelectedItem</code> update two-way.
+      </p>
     </section>
 
     <section class="panel doc-section">

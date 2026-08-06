@@ -73,7 +73,7 @@
         <thead><tr><th>Property</th><th>Type</th><th>Description</th></tr></thead>
         <tbody>
           <tr><td><code>Root</code></td><td>FlameNode</td><td>Root frame of the graph (content property).</td></tr>
-          <tr><td><code>SelectedNode</code></td><td>object</td><td>Two-way selection hook (reserved for interaction).</td></tr>
+          <tr><td><code>SelectedNode</code></td><td>object</td><td>The selected frame. Navigate with the arrow keys or click. Two-way bindable.</td></tr>
           <tr><td><code>Title</code></td><td>string</td><td>Optional heading drawn along the top edge.</td></tr>
         </tbody>
       </table>
@@ -115,6 +115,19 @@
     };
 }</code></pre>
       <pre><code class="language-xml">&lt;FlameGraph Root="{Binding Profile}" /&gt;</code></pre>
+    </section>
+
+    <section class="panel doc-section">
+      <h2>Interactivity</h2>
+      <p class="section-copy">
+        The graph is focusable and walkable. Give it focus (Tab, or click) and use the arrow keys to
+        move through the call tree — <strong>↓</strong> into the first child, <strong>↑</strong> to the
+        parent, <strong>←/→</strong> across siblings — or click any frame. The selected frame is
+        highlighted (brighter while focused) and <code>SelectedNode</code> updates two-way, ready to
+        drive a details pane.
+      </p>
+      <pre><code class="language-xml">&lt;FlameGraph Root="{Binding Profile}"
+            SelectedNode="{Binding Selected, Mode=TwoWay}" /&gt;</code></pre>
     </section>
 
     <section class="panel doc-section">

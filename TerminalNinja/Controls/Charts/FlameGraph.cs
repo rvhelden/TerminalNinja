@@ -1,5 +1,6 @@
 using System.Windows.Markup;
 using TerminalNinja.Buffers;
+using TerminalNinja.Input;
 using TerminalNinja.Primitives;
 
 namespace TerminalNinja.Controls.Charts;
@@ -10,10 +11,21 @@ namespace TerminalNinja.Controls.Charts;
 /// children laid out proportionally in the row beneath their parent. Widths use eighth-
 /// blocks for sub-cell precision. Set the tree via <see cref="Root"/> (the content
 /// property), which may also be bound.
+///
+/// The graph is interactive: it is focusable, the arrow keys walk the tree (Up = parent,
+/// Down = first child, Left/Right = siblings), and a left click selects the frame under the
+/// cursor. The selected frame is highlighted and exposed via <see cref="SelectedNode"/>
+/// (two-way bindable).
 /// </summary>
 [ContentProperty("Root")]
 public sealed class FlameGraph : ChartBase
 {
+    /// <summary>A laid-out frame from the last render, used for navigation and hit-testing.</summary>
+    private readonly record struct FrameEntry(FlameNode Node, int Depth, int X, int W, FlameNode? Parent);
+
+    private readonly List<FrameEntry> _frames = [];
+    private int _flameTop;
+
     public FlameGraph()
     {
         DefaultStyleKey = typeof(FlameGraph);
@@ -38,11 +50,118 @@ public sealed class FlameGraph : ChartBase
         set => SetValue(RootProperty, value);
     }
 
-    /// <summary>Selected frame. Reserved for interaction; two-way bindable.</summary>
+    /// <summary>The selected frame. Navigate with the arrow keys or click. Two-way bindable.</summary>
     public object? SelectedNode
     {
         get => GetValue(SelectedNodeProperty);
         set => SetValue(SelectedNodeProperty, value);
+    }
+
+    // ─── Input ───────────────────────────────────────────────────────
+
+    /// <inheritdoc />
+    public override void OnKeyEvent(KeyEvent e)
+    {
+        if (_frames.Count == 0)
+        {
+            return;
+        }
+
+        if (SelectedNode is not FlameNode sel || FindEntry(sel) is not { } entry)
+        {
+            SelectedNode = Root;
+            return;
+        }
+
+        switch (e.Key)
+        {
+            case ConsoleKey.UpArrow:
+                if (entry.Parent != null)
+                {
+                    SelectedNode = entry.Parent;
+                }
+
+                break;
+            case ConsoleKey.DownArrow:
+                var child = FirstChildOf(entry.Node);
+                if (child != null)
+                {
+                    SelectedNode = child;
+                }
+
+                break;
+            case ConsoleKey.LeftArrow:
+                var prev = SiblingAtDepth(entry, -1);
+                if (prev != null)
+                {
+                    SelectedNode = prev;
+                }
+
+                break;
+            case ConsoleKey.RightArrow:
+                var next = SiblingAtDepth(entry, +1);
+                if (next != null)
+                {
+                    SelectedNode = next;
+                }
+
+                break;
+        }
+    }
+
+    /// <inheritdoc />
+    public override void OnMouseEvent(MouseEvent e)
+    {
+        if (e is not { Action: MouseAction.Press, Button: MouseButton.Left })
+        {
+            return;
+        }
+
+        var depth = e.Y - _flameTop;
+        foreach (var f in _frames)
+        {
+            if (f.Depth == depth && e.X >= f.X && e.X < f.X + f.W)
+            {
+                SelectedNode = f.Node;
+                return;
+            }
+        }
+    }
+
+    private FrameEntry? FindEntry(FlameNode node)
+    {
+        foreach (var f in _frames)
+        {
+            if (ReferenceEquals(f.Node, node))
+            {
+                return f;
+            }
+        }
+
+        return null;
+    }
+
+    private FlameNode? FirstChildOf(FlameNode node)
+    {
+        FrameEntry? best = null;
+        foreach (var f in _frames)
+        {
+            if (ReferenceEquals(f.Parent, node) && (best == null || f.X < best.Value.X))
+            {
+                best = f;
+            }
+        }
+
+        return best?.Node;
+    }
+
+    private FlameNode? SiblingAtDepth(FrameEntry entry, int direction)
+    {
+        // Frames on the same row, ordered left-to-right.
+        var sameDepth = _frames.Where(f => f.Depth == entry.Depth).OrderBy(f => f.X).ToList();
+        var idx = sameDepth.FindIndex(f => ReferenceEquals(f.Node, entry.Node));
+        var target = idx + direction;
+        return target >= 0 && target < sameDepth.Count ? sameDepth[target].Node : null;
     }
 
     // ─── Rendering ───────────────────────────────────────────────────
@@ -50,6 +169,8 @@ public sealed class FlameGraph : ChartBase
     /// <inheritdoc />
     protected override void OnRender(CellBuffer buffer, Rect parentBounds)
     {
+        _frames.Clear();
+
         var bounds = CalculateBounds(parentBounds).Intersect(new Rect(0, 0, buffer.Width, buffer.Height));
         if (bounds.Width <= 0 || bounds.Height <= 0)
         {
@@ -78,10 +199,11 @@ public sealed class FlameGraph : ChartBase
             return;
         }
 
-        RenderNode(buffer, root, depth: 0, xStart: bounds.X, widthCells: bounds.Width, top: top, maxRows: rowCount);
+        _flameTop = top;
+        RenderNode(buffer, root, depth: 0, xStart: bounds.X, widthCells: bounds.Width, top: top, maxRows: rowCount, parent: null);
     }
 
-    private void RenderNode(CellBuffer buffer, FlameNode node, int depth, double xStart, double widthCells, int top, int maxRows)
+    private void RenderNode(CellBuffer buffer, FlameNode node, int depth, double xStart, double widthCells, int top, int maxRows, FlameNode? parent)
     {
         if (depth >= maxRows || widthCells < 1.0 / 8)
         {
@@ -89,8 +211,11 @@ public sealed class FlameGraph : ChartBase
         }
 
         var row = top + depth;
-        var color = ColorForNode(node, depth);
-        DrawFrame(buffer, (int)Math.Round(xStart), xStart, widthCells, row, node.Name, color);
+        var xCell = (int)Math.Round(xStart);
+        var selected = ReferenceEquals(node, SelectedNode);
+        var color = selected ? EffectiveSelectionBackground : ColorForNode(node, depth);
+        var wCell = DrawFrame(buffer, xStart, widthCells, row, node.Name, color, selected);
+        _frames.Add(new FrameEntry(node, depth, xCell, Math.Max(1, wCell), parent));
 
         // Lay out children proportionally within this node's width.
         var parentValue = EffectiveValue(node);
@@ -103,12 +228,12 @@ public sealed class FlameGraph : ChartBase
         foreach (var child in node.Children)
         {
             var childWidth = EffectiveValue(child) / parentValue * widthCells;
-            RenderNode(buffer, child, depth + 1, childX, childWidth, top, maxRows);
+            RenderNode(buffer, child, depth + 1, childX, childWidth, top, maxRows, node);
             childX += childWidth;
         }
     }
 
-    private void DrawFrame(CellBuffer buffer, int xCell, double xStart, double widthCells, int row, string name, Color color)
+    private int DrawFrame(CellBuffer buffer, double xStart, double widthCells, int row, string name, Color color, bool selected)
     {
         var startEighths = (int)Math.Round(xStart * 8);
         var endEighths = (int)Math.Round((xStart + widthCells) * 8);
@@ -138,9 +263,13 @@ public sealed class FlameGraph : ChartBase
         // Overlay the label on top of the frame, if it fits.
         if (fullCells >= 2 && !string.IsNullOrEmpty(name))
         {
-            var textColor = Luminance(color) > 0.55 ? new Color(0, 0, 0) : new Color(255, 255, 255);
+            var textColor = selected
+                ? SelectedForeground
+                : Luminance(color) > 0.55 ? new Color(0, 0, 0) : new Color(255, 255, 255);
             DrawLabelOverBar(buffer, startCol + 1, row, name, textColor, color, fullCells - 1);
         }
+
+        return fullCells + (rem > 0 ? 1 : 0);
     }
 
     private static void DrawLabelOverBar(CellBuffer buffer, int x, int y, string text, Color fg, Color bg, int maxWidth)

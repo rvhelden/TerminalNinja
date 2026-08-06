@@ -2,6 +2,7 @@ using System.Collections;
 using System.Collections.ObjectModel;
 using System.Windows.Markup;
 using TerminalNinja.Buffers;
+using TerminalNinja.Input;
 using TerminalNinja.Primitives;
 
 namespace TerminalNinja.Controls.Charts;
@@ -43,6 +44,14 @@ public sealed class LineChart : ChartBase
         DependencyProperty.Register(nameof(YMax), typeof(double), typeof(LineChart),
             new FrameworkPropertyMetadata(double.NaN, affectsRender: true));
 
+    public static readonly DependencyProperty ShowXLabelsProperty =
+        DependencyProperty.Register(nameof(ShowXLabels), typeof(bool), typeof(LineChart),
+            new FrameworkPropertyMetadata(true, affectsRender: true));
+
+    public static readonly DependencyProperty SelectedIndexProperty =
+        DependencyProperty.Register(nameof(SelectedIndex), typeof(int), typeof(LineChart),
+            new FrameworkPropertyMetadata(-1, affectsRender: true) { BindsTwoWayByDefault = true });
+
     // ─── CLR Property Wrappers ───────────────────────────────────────
 
     /// <summary>The inline collection of series. Used when <see cref="SeriesSource"/> is null.</summary>
@@ -76,8 +85,92 @@ public sealed class LineChart : ChartBase
         set => SetValue(YMaxProperty, value);
     }
 
+    /// <summary>
+    /// Whether to draw x-axis labels along the bottom, taken from each
+    /// <see cref="ChartDataPoint.Label"/> (e.g. dates). A label row is only reserved when at
+    /// least one point carries a label; labels are thinned to fit without overlapping.
+    /// Default is true.
+    /// </summary>
+    public bool ShowXLabels
+    {
+        get => (bool)GetValue(ShowXLabelsProperty)!;
+        set => SetValue(ShowXLabelsProperty, value);
+    }
+
+    /// <summary>
+    /// Index of the selected data point along the x axis (-1 = none). A vertical crosshair
+    /// marks the selection. Two-way bindable; move it with Left/Right or click.
+    /// </summary>
+    public int SelectedIndex
+    {
+        get => (int)GetValue(SelectedIndexProperty)!;
+        set => SetValue(SelectedIndexProperty, value);
+    }
+
     private List<ChartSeries> EffectiveSeries =>
         SeriesSource != null ? [.. Enumerate<ChartSeries>(SeriesSource)] : [.. _series];
+
+    private int PointCount()
+    {
+        var count = 0;
+        foreach (var s in EffectiveSeries)
+        {
+            count = Math.Max(count, s.Values.Count);
+        }
+
+        return count;
+    }
+
+    // Plot geometry captured from the last render, for click hit-testing / crosshair.
+    private int _plotX;
+    private int _plotW;
+    private int _pointCount;
+
+    // ─── Input ───────────────────────────────────────────────────────
+
+    /// <inheritdoc />
+    public override void OnKeyEvent(KeyEvent e)
+    {
+        var count = PointCount();
+        if (count <= 0)
+        {
+            return;
+        }
+
+        var current = SelectedIndex;
+        switch (e.Key)
+        {
+            case ConsoleKey.LeftArrow:
+                SelectedIndex = current < 0 ? count - 1 : Math.Max(0, current - 1);
+                break;
+            case ConsoleKey.RightArrow:
+                SelectedIndex = current < 0 ? 0 : Math.Min(count - 1, current + 1);
+                break;
+            case ConsoleKey.Home:
+                SelectedIndex = 0;
+                break;
+            case ConsoleKey.End:
+                SelectedIndex = count - 1;
+                break;
+        }
+    }
+
+    /// <inheritdoc />
+    public override void OnMouseEvent(MouseEvent e)
+    {
+        if (e is not { Action: MouseAction.Press, Button: MouseButton.Left } || _plotW <= 1 || _pointCount <= 0)
+        {
+            return;
+        }
+
+        // Snap the click to the nearest point along the x axis.
+        var fx = (double)(e.X - _plotX) / (_plotW - 1);
+        var index = (int)Math.Round(Math.Clamp(fx, 0, 1) * (_pointCount - 1));
+        if (index >= 0 && index < _pointCount)
+        {
+            SelectedIndex = index;
+        }
+    }
 
     // ─── Rendering ───────────────────────────────────────────────────
 
@@ -125,10 +218,15 @@ public sealed class LineChart : ChartBase
         var max = double.IsFinite(YMax) ? YMax : dataMax;
         var scale = AxisScale.Create(min, max, maxTicks: 5);
 
+        // Reserve a bottom row for x-axis labels only when the points carry labels.
+        var xLabels = XAxisLabels(series);
+        var showX = ShowXLabels && xLabels.Exists(l => !string.IsNullOrEmpty(l));
+
         var labelWidth = ShowAxes ? MaxTickLabelWidth(scale) : 0;
         var axisCol = bounds.X + labelWidth;
         var plotX = axisCol + (ShowAxes ? 1 : 0);
-        var axisRow = bottom - 1;
+        var xLabelRow = showX ? bottom - 1 : -1;
+        var axisRow = showX ? bottom - 2 : bottom - 1;
         var plotTop = top;
         var plotW = bounds.Right - plotX;
         var plotH = axisRow - plotTop;
@@ -139,6 +237,27 @@ public sealed class LineChart : ChartBase
         }
 
         DrawGridAndAxes(buffer, scale, axisCol, plotX, plotTop, axisRow, bounds.Right, bounds.X, labelWidth);
+
+        // Capture geometry for click hit-testing / crosshair, then draw the crosshair band
+        // behind the lines so the braille (blitted with a transparent background) shows through.
+        _plotX = plotX;
+        _plotW = plotW;
+        _pointCount = maxPoints;
+
+        var crosshairX = -1;
+        if (SelectedIndex >= 0 && SelectedIndex < maxPoints)
+        {
+            var fx = maxPoints > 1 ? (double)SelectedIndex / (maxPoints - 1) : 0.0;
+            crosshairX = plotX + (int)Math.Round(fx * (plotW - 1));
+            var selBg = EffectiveSelectionBackground;
+            for (var y = plotTop; y < axisRow; y++)
+            {
+                if (buffer.IsInBounds(crosshairX, y))
+                {
+                    buffer.SetChar(crosshairX, y, ' ', SelectedForeground, selBg);
+                }
+            }
+        }
 
         // Draw each series into its own braille canvas so lines get 2×4 resolution.
         var pxW = plotW * 2;
@@ -181,6 +300,99 @@ public sealed class LineChart : ChartBase
             }
 
             canvas.Blit(buffer, plotX, plotTop, ColorForSeries(s, series[s].Color));
+        }
+
+        if (showX)
+        {
+            DrawXLabels(buffer, xLabels, plotX, plotW, xLabelRow, axisRow);
+
+            // Emphasize the selected point's x label.
+            if (crosshairX >= 0 && SelectedIndex < xLabels.Count && !string.IsNullOrEmpty(xLabels[SelectedIndex]))
+            {
+                var lbl = xLabels[SelectedIndex];
+                var start = Math.Clamp(crosshairX - lbl.Length / 2, plotX, plotX + Math.Max(0, plotW - lbl.Length));
+                DrawString(buffer, start, xLabelRow, lbl, SelectedForeground, EffectiveSelectionBackground, plotW);
+            }
+        }
+    }
+
+    /// <summary>Labels for the x axis, taken from the series that has the most points.</summary>
+    private static List<string> XAxisLabels(List<ChartSeries> series)
+    {
+        var labels = new List<string>();
+        var best = -1;
+        foreach (var s in series)
+        {
+            if (s.Values.Count > best)
+            {
+                best = s.Values.Count;
+                labels = s.Values.Select(p => p.Label ?? "").ToList();
+            }
+        }
+
+        return labels;
+    }
+
+    /// <summary>
+    /// Draws x-axis labels centered under their data points, thinning them so they never
+    /// overlap, and marks each drawn label's column with a tick on the axis line.
+    /// </summary>
+    private void DrawXLabels(CellBuffer buffer, List<string> labels, int plotX, int plotW, int xLabelRow, int axisRow)
+    {
+        var count = labels.Count;
+        if (count == 0 || plotW <= 0)
+        {
+            return;
+        }
+
+        var maxLen = 1;
+        foreach (var l in labels)
+        {
+            maxLen = Math.Max(maxLen, l.Length);
+        }
+
+        // How many labels fit side by side, keeping a gap between them.
+        var maxLabels = Math.Max(2, plotW / (maxLen + 2));
+
+        var indices = new List<int>();
+        if (count <= maxLabels)
+        {
+            for (var i = 0; i < count; i++)
+            {
+                indices.Add(i);
+            }
+        }
+        else
+        {
+            // Evenly spaced, always including the first and last point.
+            for (var k = 0; k < maxLabels; k++)
+            {
+                var idx = (int)Math.Round((double)k / (maxLabels - 1) * (count - 1));
+                if (indices.Count == 0 || indices[^1] != idx)
+                {
+                    indices.Add(idx);
+                }
+            }
+        }
+
+        foreach (var idx in indices)
+        {
+            var label = labels[idx];
+            if (string.IsNullOrEmpty(label))
+            {
+                continue;
+            }
+
+            var fx = count > 1 ? (double)idx / (count - 1) : 0.0;
+            var cellX = plotX + (int)Math.Round(fx * (plotW - 1));
+
+            if (ShowAxes && buffer.IsInBounds(cellX, axisRow))
+            {
+                buffer.SetChar(cellX, axisRow, '┬', AxisColor, Background);
+            }
+
+            var start = Math.Clamp(cellX - label.Length / 2, plotX, plotX + Math.Max(0, plotW - label.Length));
+            DrawString(buffer, start, xLabelRow, label, Foreground, Background, plotW);
         }
     }
 

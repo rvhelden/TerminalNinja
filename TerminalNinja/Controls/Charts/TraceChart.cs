@@ -35,7 +35,6 @@ public sealed class TraceChart : ChartBase
     public TraceChart()
     {
         DefaultStyleKey = typeof(TraceChart);
-        Focusable = true;
         _spans.CollectionChanged += OnDataCollectionChanged;
     }
 
@@ -61,14 +60,6 @@ public sealed class TraceChart : ChartBase
         DependencyProperty.Register(nameof(SelectedSpan), typeof(object), typeof(TraceChart),
             new FrameworkPropertyMetadata(null, affectsRender: true,
                 propertyChangedCallback: OnSelectedSpanChanged) { BindsTwoWayByDefault = true });
-
-    public static readonly DependencyProperty SelectedBackgroundProperty =
-        DependencyProperty.Register(nameof(SelectedBackground), typeof(Color), typeof(TraceChart),
-            new FrameworkPropertyMetadata(new Color(38, 79, 120), affectsRender: true));
-
-    public static readonly DependencyProperty SelectedForegroundProperty =
-        DependencyProperty.Register(nameof(SelectedForeground), typeof(Color), typeof(TraceChart),
-            new FrameworkPropertyMetadata(new Color(255, 255, 255), affectsRender: true));
 
     // ─── CLR Property Wrappers ───────────────────────────────────────
 
@@ -101,20 +92,6 @@ public sealed class TraceChart : ChartBase
     {
         get => GetValue(SelectedSpanProperty);
         set => SetValue(SelectedSpanProperty, value);
-    }
-
-    /// <summary>Background color of the selected row. Default is a muted blue.</summary>
-    public Color SelectedBackground
-    {
-        get => (Color)GetValue(SelectedBackgroundProperty)!;
-        set => SetValue(SelectedBackgroundProperty, value);
-    }
-
-    /// <summary>Text color of the selected row's label. Default is white.</summary>
-    public Color SelectedForeground
-    {
-        get => (Color)GetValue(SelectedForegroundProperty)!;
-        set => SetValue(SelectedForegroundProperty, value);
     }
 
     private List<TraceSpan> EffectiveSpans =>
@@ -287,7 +264,7 @@ public sealed class TraceChart : ChartBase
         _rowCount = Math.Min(rows.Count, Math.Max(0, bounds.Bottom - rowTop));
 
         // Selection highlight is brighter when the chart holds focus.
-        var selectedBg = IsFocused ? SelectedBackground : Dim(SelectedBackground);
+        var selectedBg = EffectiveSelectionBackground;
 
         var span2 = tMax - tMin;
         for (var r = 0; r < _rowCount; r++)
@@ -353,8 +330,6 @@ public sealed class TraceChart : ChartBase
             }
         }
     }
-
-    private static Color Dim(Color c) => new((byte)(c.R * 0.55), (byte)(c.G * 0.55), (byte)(c.B * 0.55));
 
     /// <summary>
     /// Flattens the span tree into rows. When a span has children, their depth is derived

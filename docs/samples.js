@@ -84,7 +84,7 @@ export const SAMPLES = [
   {
     id: "linechart",
     title: "Line Chart",
-    description: "Multi-series line charts drawn with a high-resolution braille canvas.",
+    description: "Multi-series line charts with date x-labels, drawn on a braille canvas.",
     docPage: "./samples/linechart.html",
     xaml: `<Window xmlns="http://schemas.terminalninja.dev/xaml" Title="Line Chart">
     <Border BorderStyle="Rounded">
@@ -92,24 +92,24 @@ export const SAMPLES = [
             <TextBlock StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1"
                        Text=" Line Chart" Padding="2,0,0,0" />
             <TextBlock StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1" Text="" />
-            <LineChart StackPanel.SizeMode="Stretch" Title="  Request latency (ms)" ShowMarkers="True">
-                <ChartSeries Name="p50">
-                    <ChartDataPoint Value="12" />
-                    <ChartDataPoint Value="18" />
-                    <ChartDataPoint Value="9" />
-                    <ChartDataPoint Value="22" />
-                    <ChartDataPoint Value="15" />
-                    <ChartDataPoint Value="28" />
-                    <ChartDataPoint Value="19" />
+            <LineChart StackPanel.SizeMode="Stretch" Title="  Latency by day (ms)" ShowMarkers="True">
+                <ChartSeries Name="p50" Color="#4EC9B0">
+                    <ChartDataPoint Label="Mon" Value="12" />
+                    <ChartDataPoint Label="Tue" Value="18" />
+                    <ChartDataPoint Label="Wed" Value="9" />
+                    <ChartDataPoint Label="Thu" Value="22" />
+                    <ChartDataPoint Label="Fri" Value="15" />
+                    <ChartDataPoint Label="Sat" Value="28" />
+                    <ChartDataPoint Label="Sun" Value="19" />
                 </ChartSeries>
-                <ChartSeries Name="p99">
-                    <ChartDataPoint Value="40" />
-                    <ChartDataPoint Value="55" />
-                    <ChartDataPoint Value="35" />
-                    <ChartDataPoint Value="70" />
-                    <ChartDataPoint Value="60" />
-                    <ChartDataPoint Value="85" />
-                    <ChartDataPoint Value="50" />
+                <ChartSeries Name="p99" Color="#F48771">
+                    <ChartDataPoint Label="Mon" Value="40" />
+                    <ChartDataPoint Label="Tue" Value="55" />
+                    <ChartDataPoint Label="Wed" Value="35" />
+                    <ChartDataPoint Label="Thu" Value="70" />
+                    <ChartDataPoint Label="Fri" Value="60" />
+                    <ChartDataPoint Label="Sat" Value="85" />
+                    <ChartDataPoint Label="Sun" Value="50" />
                 </ChartSeries>
             </LineChart>
         </StackPanel>

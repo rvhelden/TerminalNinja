@@ -79,6 +79,81 @@ public class FlameGraphTests
         await Assert.That(ContainsChar(buffer, '█')).IsFalse();
     }
 
+    private static KeyEvent Key(ConsoleKey key) => new(key, '\0', false, false, false);
+
+    private static (FlameGraph Chart, FlameNode Root, FlameNode A, FlameNode B) TwoChildren()
+    {
+        var a = new FlameNode { Name = "a", Value = 60 };
+        var b = new FlameNode { Name = "b", Value = 40 };
+        var root = new FlameNode { Name = "main", Value = 100 };
+        root.Children.Add(a);
+        root.Children.Add(b);
+        return (new FlameGraph { Root = root, Title = "" }, root, a, b);
+    }
+
+    [Test]
+    public async Task IsFocusable()
+    {
+        await Assert.That(new FlameGraph().Focusable).IsTrue();
+    }
+
+    [Test]
+    public async Task Arrows_WalkTheTree()
+    {
+        var (chart, root, a, b) = TwoChildren();
+        using var buffer = new CellBuffer(40, H);
+        chart.Render(buffer, new Rect(0, 0, 40, H)); // populates the frame layout
+
+        chart.OnKeyEvent(Key(ConsoleKey.DownArrow)); // no selection → root
+        await Assert.That(chart.SelectedNode).IsSameReferenceAs(root);
+
+        chart.OnKeyEvent(Key(ConsoleKey.DownArrow)); // first child
+        await Assert.That(chart.SelectedNode).IsSameReferenceAs(a);
+
+        chart.OnKeyEvent(Key(ConsoleKey.RightArrow)); // next sibling
+        await Assert.That(chart.SelectedNode).IsSameReferenceAs(b);
+
+        chart.OnKeyEvent(Key(ConsoleKey.LeftArrow)); // previous sibling
+        await Assert.That(chart.SelectedNode).IsSameReferenceAs(a);
+
+        chart.OnKeyEvent(Key(ConsoleKey.UpArrow)); // parent
+        await Assert.That(chart.SelectedNode).IsSameReferenceAs(root);
+    }
+
+    [Test]
+    public async Task Click_SelectsFrameUnderCursor()
+    {
+        var (chart, _, _, b) = TwoChildren();
+        using var buffer = new CellBuffer(40, H);
+        chart.Render(buffer, new Rect(0, 0, 40, H));
+
+        // Depth 1 is at y=1 (no title). b occupies roughly x∈[24,40).
+        chart.OnMouseEvent(new MouseEvent(30, 1, MouseButton.Left, MouseAction.Press));
+        await Assert.That(chart.SelectedNode).IsSameReferenceAs(b);
+    }
+
+    [Test]
+    public async Task SelectedFrame_IsHighlightedWhenFocused()
+    {
+        var (chart, _, a, _) = TwoChildren();
+        chart.IsFocused = true;
+        chart.SelectedNode = a;
+
+        using var buffer = new CellBuffer(40, H);
+        chart.Render(buffer, new Rect(0, 0, 40, H));
+
+        var highlighted = false;
+        for (var x = 0; x < 40; x++)
+        {
+            if (buffer.GetCell(x, 1).Background == new Color(38, 79, 120))
+            {
+                highlighted = true;
+            }
+        }
+
+        await Assert.That(highlighted).IsTrue();
+    }
+
     [Test]
     public async Task Xaml_WithNestedNodes_BuildsTree()
     {

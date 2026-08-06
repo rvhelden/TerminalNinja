@@ -123,6 +123,84 @@ public class BarChartTests
         await Assert.That(sawBlue).IsTrue();
     }
 
+    private static BarChart LabeledSeries()
+    {
+        var series = new ChartSeries { Name = "s" };
+        foreach (var (label, value) in new[] { ("Q1", 42.0), ("Q2", 55.0), ("Q3", 30.0), ("Q4", 70.0) })
+        {
+            series.Values.Add(new ChartDataPoint { Label = label, Value = value });
+        }
+
+        var chart = new BarChart();
+        chart.Series.Add(series);
+        return chart;
+    }
+
+    private static KeyEvent Key(ConsoleKey key) => new(key, '\0', false, false, false);
+
+    [Test]
+    public async Task IsFocusable()
+    {
+        await Assert.That(new BarChart().Focusable).IsTrue();
+    }
+
+    [Test]
+    public async Task RightArrow_MovesCategory_AndSyncsSelectedItemLabel()
+    {
+        var chart = LabeledSeries();
+
+        chart.OnKeyEvent(Key(ConsoleKey.RightArrow));
+        await Assert.That(chart.SelectedIndex).IsEqualTo(0);
+        await Assert.That(chart.SelectedItem).IsEqualTo("Q1");
+
+        chart.OnKeyEvent(Key(ConsoleKey.RightArrow));
+        await Assert.That(chart.SelectedIndex).IsEqualTo(1);
+        await Assert.That(chart.SelectedItem).IsEqualTo("Q2");
+
+        chart.OnKeyEvent(Key(ConsoleKey.End));
+        await Assert.That(chart.SelectedIndex).IsEqualTo(3);
+        await Assert.That(chart.SelectedItem).IsEqualTo("Q4");
+    }
+
+    [Test]
+    public async Task Click_SelectsCategory()
+    {
+        var chart = LabeledSeries();
+        chart.ShowAxes = false; // plotX = 0 so slots are predictable
+        chart.ShowLegend = false;
+
+        using var buffer = new CellBuffer(40, H);
+        chart.Render(buffer, new Rect(0, 0, 40, H)); // 4 categories → slotW = 10
+
+        chart.OnMouseEvent(new MouseEvent(25, 5, MouseButton.Left, MouseAction.Press)); // 25/10 = 2
+        await Assert.That(chart.SelectedIndex).IsEqualTo(2);
+    }
+
+    [Test]
+    public async Task SelectedCategory_IsHighlightedWhenFocused()
+    {
+        var chart = LabeledSeries();
+        chart.IsFocused = true;
+        chart.SelectedIndex = 1;
+
+        using var buffer = new CellBuffer(40, H);
+        chart.Render(buffer, new Rect(0, 0, 40, H));
+
+        var highlighted = false;
+        for (var y = 0; y < H; y++)
+        {
+            for (var x = 0; x < 40; x++)
+            {
+                if (buffer.GetCell(x, y).Background == new Color(38, 79, 120))
+                {
+                    highlighted = true;
+                }
+            }
+        }
+
+        await Assert.That(highlighted).IsTrue();
+    }
+
     [Test]
     public async Task Xaml_WithInlineSeries_PopulatesData()
     {
