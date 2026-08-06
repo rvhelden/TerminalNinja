@@ -60,6 +60,10 @@ public class ListBox : Selector
         DependencyProperty.Register(nameof(ShowSelectionIndicator), typeof(bool), typeof(ListBox),
             new FrameworkPropertyMetadata(true, affectsRender: true));
 
+    public static readonly DependencyProperty ShowFocusBorderProperty =
+        DependencyProperty.Register(nameof(ShowFocusBorder), typeof(bool), typeof(ListBox),
+            new FrameworkPropertyMetadata(true, affectsRender: true));
+
     /// <summary>
     /// Gets or sets the background color for selected items.
     /// Applied to <see cref="ListBoxItem.SelectedBackground"/> on generated containers.
@@ -98,6 +102,18 @@ public class ListBox : Selector
     {
         get => (bool)GetValue(ShowSelectionIndicatorProperty)!;
         set => SetValue(ShowSelectionIndicatorProperty, value);
+    }
+
+    /// <summary>
+    /// Gets or sets whether a focus border is drawn around the list when it is focused. Default is
+    /// true. The border recolours the cells on the list's edges, which overpaints content sitting
+    /// in the first/last row or column; set false when the list is already framed by an outer
+    /// Border so the focus rule does not tint edge content.
+    /// </summary>
+    public bool ShowFocusBorder
+    {
+        get => (bool)GetValue(ShowFocusBorderProperty)!;
+        set => SetValue(ShowFocusBorderProperty, value);
     }
 
     // ─── Container generation overrides ──────────────────────────────
@@ -331,7 +347,7 @@ public class ListBox : Selector
         }
 
         // Draw focus border when focused
-        if (IsFocused && bounds is { Width: >= 2, Height: >= 2 })
+        if (IsFocused && ShowFocusBorder && bounds is { Width: >= 2, Height: >= 2 })
         {
             DrawFocusBorder(buffer, bounds, FocusColor);
         }
