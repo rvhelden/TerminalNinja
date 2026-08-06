@@ -208,6 +208,12 @@ public sealed class TextBox : Control
     private int _lastKnownTextWidth;
     private int _lastKnownTextHeight;
 
+    /// <summary>
+    /// Fallback for a TextBox living outside an <see cref="App.Application"/> (bare controls in
+    /// tests). With an application present, copy/paste routes through
+    /// <see cref="App.Application.Clipboard"/> so the OS clipboard (OSC 52 on a terminal host)
+    /// is reached; this field only mirrors the last copy for the no-application case.
+    /// </summary>
     private static string _internalClipboard = "";
 
     /// <summary>Gets or sets the caret (cursor) position in the text.</summary>
@@ -665,7 +671,9 @@ public sealed class TextBox : Control
     {
         if (_selectionLength > 0)
         {
-            _internalClipboard = SelectedText;
+            var text = SelectedText;
+            _internalClipboard = text;
+            App.Application.Current?.Clipboard.SetText(text);
         }
     }
 
@@ -677,9 +685,16 @@ public sealed class TextBox : Control
 
     private void PasteFromClipboard()
     {
-        if (!string.IsNullOrEmpty(_internalClipboard))
+        var text = App.Application.Current?.Clipboard.GetText();
+
+        if (string.IsNullOrEmpty(text))
         {
-            InsertText(_internalClipboard);
+            text = _internalClipboard;
+        }
+
+        if (!string.IsNullOrEmpty(text))
+        {
+            InsertText(text);
         }
     }
 

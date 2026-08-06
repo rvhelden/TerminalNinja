@@ -45,8 +45,48 @@ public class ClipboardTests
     public async Task Application_DefaultClipboard_IsProcessClipboard()
     {
         // Headless host gets the in-process default; the Skia host swaps in
-        // Sdl3Clipboard during SkiaApplication.Initialize.
+        // Sdl3Clipboard during SkiaApplication.Initialize, and a real terminal
+        // host gets Osc52Clipboard in the Application constructor.
         using var app = new TerminalNinja.App.Application(new TerminalNinja.App.ApplicationOptions { Headless = true });
         await Assert.That(app.Clipboard).IsTypeOf<ProcessClipboard>();
+    }
+
+    [Test]
+    public async Task Osc52_SetText_EmitsTheEscapeSequence()
+    {
+        using var output = new StringWriter();
+        IClipboard clipboard = new Osc52Clipboard(output);
+
+        clipboard.SetText("hi");
+
+        // base64("hi") == "aGk="
+        await Assert.That(output.ToString()).IsEqualTo("\x1b]52;c;aGk=\x07");
+    }
+
+    [Test]
+    public async Task Osc52_GetText_ReturnsTheLastSetValue()
+    {
+        // Reading the OS clipboard back needs an OSC 52 query most emulators refuse;
+        // the cache keeps in-app copy/paste round-tripping.
+        using var output = new StringWriter();
+        IClipboard clipboard = new Osc52Clipboard(output);
+
+        await Assert.That(clipboard.GetText()).IsNull();
+
+        clipboard.SetText("payload");
+        await Assert.That(clipboard.GetText()).IsEqualTo("payload");
+    }
+
+    [Test]
+    public async Task Osc52_SetText_EncodesUtf8()
+    {
+        using var output = new StringWriter();
+        IClipboard clipboard = new Osc52Clipboard(output);
+
+        clipboard.SetText("héllo");
+
+        var payload = output.ToString().Replace("\x1b]52;c;", "").Replace("\x07", "");
+        var decoded = System.Text.Encoding.UTF8.GetString(Convert.FromBase64String(payload));
+        await Assert.That(decoded).IsEqualTo("héllo");
     }
 }
