@@ -85,6 +85,39 @@
     </section>
 
     <section class="panel doc-section">
+      <h2>Data Binding</h2>
+      <p class="section-copy">
+        A flame graph has a single tree, so bind the <code>Root</code> property to a
+        <code>FlameNode</code> on your ViewModel. Reassigning <code>Root</code> (via
+        <code>SetProperty</code>) pushes the new tree and re-renders. Data classes and ViewModels
+        must be <code>public</code> or <code>internal</code> so the AOT source generator can bind them.
+      </p>
+      <pre><code class="language-csharp">public sealed class ProfileViewModel : ViewModelBase
+{
+    public FlameNode Profile
+    {
+        get;
+        set => SetProperty(ref field, value);
+    } = Build();
+
+    // Reloading the profile swaps the whole tree and re-renders.
+    public void Reload() => Profile = Build();
+
+    private static FlameNode Build() => new()
+    {
+        Name = "main", Value = 100,
+        Children =
+        {
+            new FlameNode { Name = "handleQuery", Value = 60,
+                Children = { new FlameNode { Name = "sqlExec", Value = 40 } } },
+            new FlameNode { Name = "writeResponse", Value = 15 },
+        }
+    };
+}</code></pre>
+      <pre><code class="language-xml">&lt;FlameGraph Root="{Binding Profile}" /&gt;</code></pre>
+    </section>
+
+    <section class="panel doc-section">
       <h2>Key Concepts</h2>
       <ul>
         <li>Frame width is proportional to <code>Value</code> relative to the root.</li>

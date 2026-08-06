@@ -82,6 +82,38 @@
     </section>
 
     <section class="panel doc-section">
+      <h2>Data Binding</h2>
+      <p class="section-copy">
+        Bind a collection of series from a ViewModel to <code>SeriesSource</code>. The chart
+        subscribes to <code>INotifyCollectionChanged</code>, so adding or removing a series
+        re-renders automatically — ideal for a live dashboard. Data classes and ViewModels must be
+        <code>public</code> or <code>internal</code> so the AOT source generator can bind them.
+      </p>
+      <pre><code class="language-csharp">public sealed class LatencyViewModel : ViewModelBase
+{
+    public ObservableCollection&lt;ChartSeries&gt; Metrics { get; } =
+    [
+        new ChartSeries { Name = "p50",
+            Values = { new() { Value = 12 }, new() { Value = 18 }, new() { Value = 9 } } },
+        new ChartSeries { Name = "p99",
+            Values = { new() { Value = 40 }, new() { Value = 55 }, new() { Value = 35 } } },
+    ];
+
+    // Swapping a whole series in re-renders the chart automatically.
+    public void ShowP999() =&gt; Metrics.Add(new ChartSeries
+    {
+        Name = "p999",
+        Values = { new() { Value = 90 }, new() { Value = 120 }, new() { Value = 80 } }
+    });
+}</code></pre>
+      <pre><code class="language-xml">&lt;LineChart SeriesSource="{Binding Metrics}" ShowMarkers="True" /&gt;</code></pre>
+      <p class="section-copy">
+        Note: <code>ChartSeries.Values</code> is a plain list; to push a new point onto a live
+        series, replace the series (or reassign its values) rather than mutating the existing list.
+      </p>
+    </section>
+
+    <section class="panel doc-section">
       <h2>Key Concepts</h2>
       <ul>
         <li>Lines are drawn with a <code>BrailleCanvas</code> for crisp 2×4 sub-cell resolution.</li>

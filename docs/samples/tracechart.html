@@ -82,6 +82,33 @@
     </section>
 
     <section class="panel doc-section">
+      <h2>Data Binding</h2>
+      <p class="section-copy">
+        Bind a collection of spans from a ViewModel to <code>SpansSource</code>. The chart
+        subscribes to <code>INotifyCollectionChanged</code>, so streaming spans in as a trace
+        completes re-renders the waterfall automatically. Data classes and ViewModels must be
+        <code>public</code> or <code>internal</code> so the AOT source generator can bind them.
+      </p>
+      <pre><code class="language-csharp">public sealed class TraceViewModel : ViewModelBase
+{
+    public ObservableCollection&lt;TraceSpan&gt; Spans { get; } =
+    [
+        new TraceSpan { Name = "http.request", StartMs = 0, DurationMs = 120 },
+        new TraceSpan { Name = "auth", StartMs = 2, DurationMs = 15, Depth = 1 },
+    ];
+
+    // Spans arriving from a live trace re-render the waterfall automatically.
+    public void OnSpanReceived(string name, double start, double duration, int depth) =&gt;
+        Spans.Add(new TraceSpan { Name = name, StartMs = start, DurationMs = duration, Depth = depth });
+}</code></pre>
+      <pre><code class="language-xml">&lt;TraceChart SpansSource="{Binding Spans}" LabelWidth="18" /&gt;</code></pre>
+      <p class="section-copy">
+        A bound span list is flattened as-is; set each span's <code>Depth</code> to control
+        indentation, or supply a nested tree via <code>Children</code> and let the chart derive it.
+      </p>
+    </section>
+
+    <section class="panel doc-section">
       <h2>Key Concepts</h2>
       <ul>
         <li>All spans share one time axis; a bar's position encodes <code>StartMs</code>.</li>
