@@ -61,6 +61,28 @@ public sealed class BindingExpression : BindingExpressionBase, IDisposable
     /// </summary>
     public bool HasExplicitSource => _binding.Source != null;
 
+    /// <summary>
+    /// The binding's mode with <see cref="BindingMode.Default"/> resolved against the target
+    /// property's metadata: <see cref="BindingMode.TwoWay"/> when the property was registered with
+    /// <see cref="FrameworkPropertyMetadata.BindsTwoWayByDefault"/>, otherwise
+    /// <see cref="BindingMode.OneWay"/>. Every mode decision below goes through this rather than
+    /// reading <c>_binding.Mode</c> directly, so an unspecified mode honours the target's default.
+    /// </summary>
+    private BindingMode EffectiveMode
+    {
+        get
+        {
+            if (_binding.Mode != BindingMode.Default)
+            {
+                return _binding.Mode;
+            }
+
+            return TargetProperty?.DefaultMetadata is FrameworkPropertyMetadata { BindsTwoWayByDefault: true }
+                ? BindingMode.TwoWay
+                : BindingMode.OneWay;
+        }
+    }
+
     // ────────────────────────────────────────────────────────────────
     //  Expression lifecycle (called by DependencyObject)
     // ────────────────────────────────────────────────────────────────
@@ -233,7 +255,7 @@ public sealed class BindingExpression : BindingExpressionBase, IDisposable
     private void Activate()
     {
         // For OneWay and TwoWay, subscribe to source changes
-        if (_binding.Mode != BindingMode.OneTime && _resolvedSource != null)
+        if (EffectiveMode != BindingMode.OneTime && _resolvedSource != null)
         {
             _observer = new PropertyPathObserver(_sourcePath, _resolvedSource, OnSourceChanged);
         }
@@ -242,7 +264,7 @@ public sealed class BindingExpression : BindingExpressionBase, IDisposable
         UpdateTarget();
 
         // For TwoWay, subscribe to target changes
-        if (_binding.Mode == BindingMode.TwoWay && Target is INotifyPropertyChanged inpc)
+        if (EffectiveMode == BindingMode.TwoWay && Target is INotifyPropertyChanged inpc)
         {
             inpc.PropertyChanged += OnTargetPropertyChanged;
         }
@@ -309,7 +331,7 @@ public sealed class BindingExpression : BindingExpressionBase, IDisposable
     /// </summary>
     private void UpdateSource()
     {
-        if (_isUpdating || _binding.Mode != BindingMode.TwoWay)
+        if (_isUpdating || EffectiveMode != BindingMode.TwoWay)
         {
             return;
         }

@@ -12,6 +12,16 @@ public class FrameworkPropertyMetadata : PropertyMetadata
     /// </summary>
     public bool AffectsRender { get; }
 
+    /// <summary>
+    /// Gets whether a binding targeting this property binds two-way when its
+    /// <c>Mode</c> is left at <see cref="TerminalNinja.Xaml.Binding.BindingMode.Default"/>.
+    /// Mirrors WPF's <c>FrameworkPropertyMetadata.BindsTwoWayByDefault</c>; set it for
+    /// user-editable state such as a selector's selected item, so a plain
+    /// <c>{Binding SelectedItem}</c> writes back to the source without needing an explicit
+    /// <c>Mode=TwoWay</c>.
+    /// </summary>
+    public bool BindsTwoWayByDefault { get; init; }
+
     public FrameworkPropertyMetadata() { }
 
     public FrameworkPropertyMetadata(object? defaultValue)

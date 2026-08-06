@@ -15,12 +15,23 @@ public abstract class Selector : ItemsControl
     public static readonly DependencyProperty SelectedIndexProperty =
         DependencyProperty.Register(nameof(SelectedIndex), typeof(int), typeof(Selector),
             new FrameworkPropertyMetadata(-1, affectsRender: true,
-                propertyChangedCallback: OnSelectedIndexChanged));
+                propertyChangedCallback: OnSelectedIndexChanged)
+            {
+                // The user drives selection with the keyboard/mouse, so a plain
+                // {Binding SelectedIndex} must flow that change back to the view model.
+                BindsTwoWayByDefault = true,
+            });
 
     public static readonly DependencyProperty SelectedItemProperty =
         DependencyProperty.Register(nameof(SelectedItem), typeof(object), typeof(Selector),
             new FrameworkPropertyMetadata(null, affectsRender: true,
-                propertyChangedCallback: OnSelectedItemChanged));
+                propertyChangedCallback: OnSelectedItemChanged)
+            {
+                // As above: selection is user state, so {Binding SelectedItem} defaults to
+                // two-way, matching WPF's Selector. Without this the view model's value is
+                // pushed back onto the control on the next refresh, snapping the selection home.
+                BindsTwoWayByDefault = true,
+            });
 
     public static readonly DependencyProperty SelectionModeProperty =
         DependencyProperty.Register(nameof(SelectionMode), typeof(SelectionMode), typeof(Selector),
@@ -145,7 +156,12 @@ public abstract class Selector : ItemsControl
         var index = items.IndexOf(item);
         if (index >= 0)
         {
-            SelectedIndex = index;
+            // SetValueInternal, not the public SelectedIndex setter: the latter goes through
+            // SetValue, which clears any binding on SelectedIndex, so a two-way {Binding
+            // SelectedIndex} would be destroyed by the first click. SetValueInternal still runs
+            // the OnSelectedIndexChanged callback (index↔item sync) and raises PropertyChanged so
+            // the binding writes back — it just keeps the expression attached.
+            SetValueInternal(SelectedIndexProperty, index);
         }
     }
 

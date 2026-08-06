@@ -22,9 +22,13 @@ public sealed class Binding : BindingBase
     public object? Source { get; set; }
     
     /// <summary>
-    /// The binding mode (OneWay, TwoWay, OneTime).
+    /// The binding mode (Default, OneWay, TwoWay, OneTime). When left at
+    /// <see cref="BindingMode.Default"/>, the effective mode is taken from the target property's
+    /// metadata — <see cref="BindingMode.TwoWay"/> for properties registered with
+    /// <see cref="TerminalNinja.DependencySystem.FrameworkPropertyMetadata.BindsTwoWayByDefault"/>,
+    /// otherwise <see cref="BindingMode.OneWay"/>.
     /// </summary>
-    public BindingMode Mode { get; set; } = BindingMode.OneWay;
+    public BindingMode Mode { get; set; } = BindingMode.Default;
 
     /// <summary>
     /// An optional <see cref="IValueConverter"/> to apply during binding.

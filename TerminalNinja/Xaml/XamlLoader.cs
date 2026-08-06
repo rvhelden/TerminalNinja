@@ -1294,7 +1294,7 @@ internal sealed class XamlLoader
         }
 
         string? path = null;
-        var mode = BindingMode.OneWay;
+        var mode = BindingMode.Default;
         IValueConverter? converter = null;
         object? converterParameter = null;
         RelativeSource? relativeSource = null;
