@@ -174,6 +174,38 @@ export const SAMPLES = [
   },
 
   {
+    id: "nodegraph",
+    title: "Node Graph",
+    description: "Topology graph with force-directed auto-layout and selectable nodes.",
+    docPage: "./samples/nodegraph.html",
+    xaml: `<Window xmlns="http://schemas.terminalninja.dev/xaml" Title="Node Graph">
+    <Border BorderStyle="Rounded">
+        <StackPanel Orientation="Vertical">
+            <TextBlock StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1"
+                       Text=" Node Graph" Padding="2,0,0,0" />
+            <TextBlock StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1" Text="" />
+            <NodeGraph StackPanel.SizeMode="Stretch" Title="  Service topology">
+                <GraphNode Id="lb" Name="load balancer" />
+                <GraphNode Id="web1" Name="web-1" />
+                <GraphNode Id="web2" Name="web-2" />
+                <GraphNode Id="api" Name="api" />
+                <GraphNode Id="db" Name="postgres" />
+                <GraphNode Id="cache" Name="redis" />
+                <NodeGraph.GraphEdges>
+                    <GraphEdge From="lb" To="web1" />
+                    <GraphEdge From="lb" To="web2" />
+                    <GraphEdge From="web1" To="api" />
+                    <GraphEdge From="web2" To="api" />
+                    <GraphEdge From="api" To="db" />
+                    <GraphEdge From="api" To="cache" />
+                </NodeGraph.GraphEdges>
+            </NodeGraph>
+        </StackPanel>
+    </Border>
+</Window>`
+  },
+
+  {
     id: "button",
     title: "Button",
     description: "Button controls with styling, hover colors, and tab navigation.",

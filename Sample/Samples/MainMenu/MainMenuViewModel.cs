@@ -22,6 +22,7 @@ public class MainMenuViewModel : ViewModelBase
         "Line Chart",
         "Trace Chart",
         "Flame Graph",
+        "Node Graph",
         "DataGrid",
         "ColorPicker",
         "Image",

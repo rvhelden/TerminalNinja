@@ -1,0 +1,33 @@
+<Border xmlns="http://schemas.terminalninja.dev/xaml"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        BorderStyle="Rounded">
+    <StackPanel Orientation="Vertical">
+        <TextBlock StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1"
+                   Text=" Node Graph" Padding="2,0,0,0" />
+        <TextBlock StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1"
+                   Text="  Tab to focus, then arrows/Home/End (or click) to select nodes"
+                   Padding="2,0,0,0" />
+
+        <NodeGraph StackPanel.SizeMode="Stretch" Title="  Service topology">
+            <GraphNode Id="lb" Name="load balancer" />
+            <GraphNode Id="web1" Name="web-1" />
+            <GraphNode Id="web2" Name="web-2" />
+            <GraphNode Id="api" Name="api" />
+            <GraphNode Id="db" Name="postgres" />
+            <GraphNode Id="cache" Name="redis" />
+            <GraphNode Id="queue" Name="rabbitmq" />
+            <GraphNode Id="worker" Name="worker" />
+            <NodeGraph.GraphEdges>
+                <GraphEdge From="lb" To="web1" />
+                <GraphEdge From="lb" To="web2" />
+                <GraphEdge From="web1" To="api" />
+                <GraphEdge From="web2" To="api" />
+                <GraphEdge From="api" To="db" />
+                <GraphEdge From="api" To="cache" />
+                <GraphEdge From="api" To="queue" />
+                <GraphEdge From="queue" To="worker" />
+                <GraphEdge From="worker" To="db" />
+            </NodeGraph.GraphEdges>
+        </NodeGraph>
+    </StackPanel>
+</Border>

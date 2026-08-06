@@ -95,6 +95,7 @@ public class ShellViewModel : ViewModelBase, IDisposable
             "Line Chart" => TerminalXaml.Load<Border>(XamlLayouts.LineChartScreen),
             "Trace Chart" => TerminalXaml.Load<Border>(XamlLayouts.TraceChartScreen),
             "Flame Graph" => TerminalXaml.Load<Border>(XamlLayouts.FlameGraphScreen),
+            "Node Graph" => TerminalXaml.Load<Border>(XamlLayouts.NodeGraphScreen),
             "DataGrid" => TerminalXaml.Load<Border>(XamlLayouts.DataGridScreen, new Samples.DataGrid.DataGridViewModel()),
             "ColorPicker" => TerminalXaml.Load<Border>(XamlLayouts.ColorPickerScreen),
             "FilePicker" => TerminalXaml.Load<Border>(XamlLayouts.FilePickerScreen, new Samples.FilePicker.FilePickerViewModel()),
