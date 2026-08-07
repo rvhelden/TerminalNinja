@@ -15,6 +15,12 @@ namespace TerminalNinja.Controls;
 /// and <see cref="DataGridTemplateColumn"/>.
 /// Sort indicators (&#x25B2;/&#x25BC;) are shown in headers for sortable columns.
 /// </para>
+/// <para>
+/// Keyboard: Up/Down move one row, PageUp/PageDown move one viewport of rows — whatever is
+/// currently on screen, so a grid showing thirty rows pages by thirty — and Home/End jump to the
+/// first and last row. The page keys turn the page under the selection rather than scrolling the
+/// minimum needed to keep it visible, so the selected row holds its position on screen.
+/// </para>
 /// </summary>
 [ContentProperty("Items")]
 [RuntimeNameProperty("Name")]
@@ -382,12 +388,10 @@ public sealed class DataGrid : Selector
                 SelectedIndex = Math.Max(SelectedIndex - 1, 0);
                 break;
             case ConsoleKey.PageDown:
-                // Moves the selection a whole page and lets EnsureSelectedVisible carry the
-                // viewport with it, so the row under the cursor keeps its position on screen.
-                SelectedIndex = Math.Min(SelectedIndex + page, count - 1);
+                MoveByPage(page, count);
                 break;
             case ConsoleKey.PageUp:
-                SelectedIndex = Math.Max(SelectedIndex - page, 0);
+                MoveByPage(-page, count);
                 break;
             case ConsoleKey.Home:
                 SelectedIndex = 0;
@@ -396,6 +400,28 @@ public sealed class DataGrid : Selector
                 SelectedIndex = count - 1;
                 break;
         }
+    }
+
+    /// <summary>
+    /// Moves the selection by <paramref name="delta"/> rows and turns the page under it.
+    /// </summary>
+    /// <remarks>
+    /// The scroll offset is moved with the selection rather than left to
+    /// <see cref="EnsureSelectedVisible"/>, which only ever scrolls the minimum needed to keep the
+    /// selected row on screen. That is right for the arrow keys and wrong for these: paging down
+    /// by ten would advance the selection ten rows but the window only one, leaving the cursor
+    /// pinned to the bottom edge while the rows crawled past it.
+    ///
+    /// Keeping the selection at the same offset within the viewport is what makes a page turn
+    /// read as a page turn: the row under the cursor stays where the eye left it. The render pass
+    /// clamps the offset, so paging into the last page still fills the viewport.
+    /// </remarks>
+    private void MoveByPage(int delta, int count)
+    {
+        var offsetInViewport = SelectedIndex - _scrollOffset;
+
+        SelectedIndex = Math.Clamp(SelectedIndex + delta, 0, count - 1);
+        _scrollOffset = Math.Max(0, SelectedIndex - offsetInViewport);
     }
 
     // ─── Helpers ─────────────────────────────────────────────────────
