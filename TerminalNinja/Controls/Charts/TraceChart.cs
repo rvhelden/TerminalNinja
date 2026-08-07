@@ -15,10 +15,13 @@ namespace TerminalNinja.Controls.Charts;
 /// depth. Modeled on Grafana's traces panel. Data can be supplied inline via
 /// <see cref="Spans"/> or bound through <see cref="SpansSource"/>.
 ///
-/// The chart is interactive: it is focusable, the Up/Down arrows (and Home/End) move the
-/// row selection, and a left click selects the clicked row. The selected row is highlighted
-/// and exposed through <see cref="SelectedIndex"/> and <see cref="SelectedSpan"/>, both of
-/// which are two-way bindable.
+/// The chart is interactive: it is focusable, the Up/Down arrows (plus PageUp/PageDown and
+/// Home/End) move the row selection, and a left click selects the clicked row. The selected row
+/// is highlighted and exposed through <see cref="SelectedIndex"/> and <see cref="SelectedSpan"/>,
+/// both of which are two-way bindable.
+///
+/// A trace taller than the control scrolls to follow the selection, and the gutter header
+/// reports the visible range, so every span stays reachable however long the trace is.
 /// </summary>
 [ContentProperty("Spans")]
 public sealed class TraceChart : ChartBase
@@ -29,6 +32,15 @@ public sealed class TraceChart : ChartBase
     private int _rowTop;
     private int _rowCount;
     private int _rowStride = 1;
+
+    /// <summary>Index of the topmost drawn span; the chart scrolls to keep the selection in view.</summary>
+    /// <remarks>
+    /// Without this the chart drew only the spans that fit and dropped the rest with no sign that
+    /// it had: an 85-span transaction showed its first thirty, and because the key handler clamped
+    /// to the drawn count, End could not reach the others either. They were not merely off screen,
+    /// they were unreachable.
+    /// </remarks>
+    private int _firstVisible;
 
     /// <summary>Guards the SelectedIndex/SelectedSpan two-way sync against re-entrancy.</summary>
     private bool _syncing;
@@ -167,12 +179,15 @@ public sealed class TraceChart : ChartBase
     /// <inheritdoc />
     public override void OnKeyEvent(KeyEvent e)
     {
-        var count = Math.Min(BuildRows().Count, _rowCount > 0 ? _rowCount : int.MaxValue);
+        // Every span, not just the drawn ones. Clamping to what fit on screen is what made the
+        // spans past the first page unreachable.
+        var count = BuildRows().Count;
         if (count <= 0)
         {
             return;
         }
 
+        var page = Math.Max(1, _rowCount);
         var current = SelectedIndex;
         switch (e.Key)
         {
@@ -181,6 +196,12 @@ public sealed class TraceChart : ChartBase
                 break;
             case ConsoleKey.DownArrow:
                 SelectedIndex = current < 0 ? 0 : Math.Min(count - 1, current + 1);
+                break;
+            case ConsoleKey.PageUp:
+                SelectedIndex = Math.Max(0, (current < 0 ? 0 : current) - page);
+                break;
+            case ConsoleKey.PageDown:
+                SelectedIndex = Math.Min(count - 1, (current < 0 ? 0 : current) + page);
                 break;
             case ConsoleKey.Home:
                 SelectedIndex = 0;
@@ -210,7 +231,8 @@ public sealed class TraceChart : ChartBase
         var row = rel / _rowStride;
         if (row < _rowCount)
         {
-            SelectedIndex = row;
+            // Offset by the scroll position: row 0 on screen is not span 0 once scrolled.
+            SelectedIndex = _firstVisible + row;
         }
     }
 
@@ -273,6 +295,7 @@ public sealed class TraceChart : ChartBase
 
         // Time axis header.
         var rowTop = top;
+        var headerY = ShowAxes ? rowTop : -1;
         if (ShowAxes)
         {
             DrawString(buffer, bounds.X, rowTop, "span", Foreground, Background, gutter);
@@ -291,6 +314,30 @@ public sealed class TraceChart : ChartBase
         _rowTop = rowTop;
         _rowStride = stride;
         _rowCount = Math.Min(rows.Count, maxFit);
+
+        // Scroll so the selection is on screen, then clamp so the last page is not half empty.
+        var selected1 = SelectedIndex;
+        if (maxFit > 0 && selected1 >= 0)
+        {
+            if (selected1 < _firstVisible)
+            {
+                _firstVisible = selected1;
+            }
+            else if (selected1 >= _firstVisible + maxFit)
+            {
+                _firstVisible = selected1 - maxFit + 1;
+            }
+        }
+
+        _firstVisible = Math.Clamp(_firstVisible, 0, Math.Max(0, rows.Count - maxFit));
+
+        // Say so when the chart is a window onto something longer. Without it a scrolled trace
+        // looks exactly like a complete one that happens to start in the middle.
+        if (headerY >= 0 && _rowCount < rows.Count)
+        {
+            var position = $"span {_firstVisible + 1}-{_firstVisible + _rowCount}/{rows.Count}";
+            DrawString(buffer, bounds.X, headerY, position, Foreground, Background, gutter);
+        }
 
         // Selection highlight is brighter when the chart holds focus.
         var selectedBg = EffectiveSelectionBackground;
@@ -311,11 +358,14 @@ public sealed class TraceChart : ChartBase
         var span2 = tMax - tMin;
         for (var r = 0; r < _rowCount; r++)
         {
-            var (span, depth) = rows[r];
+            // The absolute index is what selection, colour and hit-testing are all keyed on;
+            // using the row offset would recolour every span as the chart scrolled.
+            var index = _firstVisible + r;
+            var (span, depth) = rows[index];
             var y = rowTop + r * stride;
-            var selected = r == SelectedIndex;
+            var selected = index == SelectedIndex;
 
-            var spanColor = ColorForSeries(r, span.Color);
+            var spanColor = ColorForSeries(index, span.Color);
             var rowBg = selected ? selectedBg : Background;
             // The label takes the span's own colour so it matches its bar; a selected row uses the
             // selection foreground for contrast against the highlight.

@@ -83,6 +83,23 @@ public class Window : ContentControl
     /// </summary>
     public bool IsModal { get; private set; }
 
+    /// <summary>
+    /// Whether opening the dialog moves focus on into its first focusable child. Defaults to true.
+    /// </summary>
+    /// <remarks>
+    /// A <see cref="Window"/> is <see cref="UIElement.Focusable"/> — it inherits
+    /// <see cref="Control"/> — and sorts ahead of everything it contains, but it does not override
+    /// <see cref="UIElement.OnKeyEvent"/>. Focusing the window itself therefore drops every
+    /// keystroke on the floor: a dialog whose only content is a <see cref="TextBox"/> could not be
+    /// typed into until the user pressed Tab.
+    ///
+    /// Set this to false on a <see cref="Window"/> subclass that overrides
+    /// <see cref="UIElement.OnKeyEvent"/> and drives its own content — the built-in
+    /// <see cref="FilePicker"/>, <see cref="FolderPicker"/> and <see cref="ColorPickerDialog"/> all
+    /// do — otherwise the keys it expects to handle go to a child instead.
+    /// </remarks>
+    public bool FocusesContentOnOpen { get; set; } = true;
+
     // ─── Modal Dialog Support ────────────────────────────────────────
 
     /// <summary>
@@ -115,6 +132,15 @@ public class Window : ContentControl
         // Focus the dialog window itself — it is Focusable (inherits from Control)
         // so key events dispatched via FocusManager will reach OnKeyEvent.
         app.FocusManager.SetFocus(this);
+
+        // Unless the window handles keys itself, step on to its first focusable child, exactly as
+        // Tab would: the window sorts first in tab order but has no OnKeyEvent of its own, so
+        // leaving focus here would swallow every keystroke. A dialog with no focusable content
+        // wraps back round to the window, which is the old behaviour.
+        if (FocusesContentOnOpen)
+        {
+            app.FocusManager.FocusNext(this, app.Renderer.Viewport);
+        }
 
         return _dialogTcs.Task;
     }

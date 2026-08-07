@@ -231,4 +231,139 @@ public class TraceChartTests
         await Assert.That(chart.Spans[0].Children.Count).IsEqualTo(2);
         await Assert.That(chart.Spans[0].Children[1].Name).IsEqualTo("query");
     }
+
+    // ─── Scrolling a trace taller than the control ───────────────────
+
+    /// <summary>A trace with far more spans than any sane control height.</summary>
+    private static TraceChart ManySpans(int count = 85)
+    {
+        var chart = new TraceChart { RowSpacing = 0 };
+        for (var i = 0; i < count; i++)
+        {
+            chart.Spans.Add(new TraceSpan { Name = $"span{i:00}", StartMs = i * 10, DurationMs = 5 });
+        }
+
+        return chart;
+    }
+
+    private static bool ContainsText(CellBuffer buffer, string text)
+    {
+        for (var y = 0; y < buffer.Height; y++)
+        {
+            for (var x = 0; x + text.Length <= buffer.Width; x++)
+            {
+                var match = true;
+                for (var i = 0; i < text.Length; i++)
+                {
+                    if (buffer.GetCell(x + i, y).Codepoint != text[i])
+                    {
+                        match = false;
+                        break;
+                    }
+                }
+
+                if (match)
+                {
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
+    [Test]
+    public async Task End_ReachesTheLastSpan_EvenWhenItDoesNotFit()
+    {
+        // The key handler used to clamp to the drawn row count, which made every span past the
+        // first screenful unreachable rather than merely off screen.
+        using var buffer = new CellBuffer(W, H);
+        var chart = ManySpans();
+
+        chart.Render(buffer, new Rect(0, 0, W, H));
+        chart.OnKeyEvent(Key(ConsoleKey.End));
+
+        await Assert.That(chart.SelectedIndex).IsEqualTo(84);
+    }
+
+    [Test]
+    public async Task Render_ScrollsTheSelectionIntoView()
+    {
+        using var buffer = new CellBuffer(W, H);
+        var chart = ManySpans();
+
+        chart.Render(buffer, new Rect(0, 0, W, H));
+        chart.OnKeyEvent(Key(ConsoleKey.End));
+        chart.Render(buffer, new Rect(0, 0, W, H));
+
+        await Assert.That(ContainsText(buffer, "span84")).IsTrue();
+        await Assert.That(ContainsText(buffer, "span00")).IsFalse();
+    }
+
+    [Test]
+    public async Task Render_ScrollsBackToTheTop()
+    {
+        using var buffer = new CellBuffer(W, H);
+        var chart = ManySpans();
+
+        chart.Render(buffer, new Rect(0, 0, W, H));
+        chart.OnKeyEvent(Key(ConsoleKey.End));
+        chart.Render(buffer, new Rect(0, 0, W, H));
+        chart.OnKeyEvent(Key(ConsoleKey.Home));
+        chart.Render(buffer, new Rect(0, 0, W, H));
+
+        await Assert.That(ContainsText(buffer, "span00")).IsTrue();
+    }
+
+    [Test]
+    public async Task Render_WhenScrollable_ReportsTheVisibleRange()
+    {
+        using var buffer = new CellBuffer(W, H);
+
+        ManySpans().Render(buffer, new Rect(0, 0, W, H));
+
+        await Assert.That(ContainsText(buffer, "/85")).IsTrue();
+    }
+
+    [Test]
+    public async Task Render_WhenEverythingFits_KeepsThePlainHeader()
+    {
+        using var buffer = new CellBuffer(W, H);
+
+        ThreeSpans().Render(buffer, new Rect(0, 0, W, H));
+
+        await Assert.That(ContainsText(buffer, "span")).IsTrue();
+        await Assert.That(ContainsText(buffer, "/3")).IsFalse();
+    }
+
+    [Test]
+    public async Task PageDown_MovesByAScreenful()
+    {
+        using var buffer = new CellBuffer(W, H);
+        var chart = ManySpans();
+
+        chart.Render(buffer, new Rect(0, 0, W, H));
+        chart.OnKeyEvent(Key(ConsoleKey.Home));
+        var before = chart.SelectedIndex;
+        chart.OnKeyEvent(Key(ConsoleKey.PageDown));
+
+        await Assert.That(chart.SelectedIndex).IsGreaterThan(before + 1);
+        await Assert.That(chart.SelectedIndex).IsLessThanOrEqualTo(84);
+    }
+
+    [Test]
+    public async Task Click_SelectsTheSpanUnderTheCursor_WhenScrolled()
+    {
+        using var buffer = new CellBuffer(W, H);
+        var chart = ManySpans();
+
+        chart.Render(buffer, new Rect(0, 0, W, H));
+        chart.OnKeyEvent(Key(ConsoleKey.End));
+        chart.Render(buffer, new Rect(0, 0, W, H));
+
+        // The top data row is no longer span 0, so a click there must not select span 0.
+        chart.OnMouseEvent(new MouseEvent(2, 2, MouseButton.Left, MouseAction.Press));
+
+        await Assert.That(chart.SelectedIndex).IsGreaterThan(0);
+    }
 }

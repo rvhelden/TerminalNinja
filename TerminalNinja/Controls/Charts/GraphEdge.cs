@@ -22,4 +22,14 @@ public sealed class GraphEdge
     /// <see cref="Color.Transparent"/> the chart's axis color is used.
     /// </summary>
     public Color Color { get; set; } = Color.Transparent;
+
+    /// <summary>
+    /// Optional short text drawn at the middle of the edge line, in the edge's color.
+    /// </summary>
+    /// <remarks>
+    /// Keep it to a few characters — a rate, a count, a protocol. The label is drawn over the
+    /// line but under the node boxes, so a box always wins the cells it occupies, and a label
+    /// that would not fit between them is simply not drawn rather than overlapping one.
+    /// </remarks>
+    public string Label { get; set; } = "";
 }

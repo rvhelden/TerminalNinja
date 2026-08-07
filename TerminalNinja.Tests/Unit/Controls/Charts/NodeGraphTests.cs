@@ -329,4 +329,157 @@ public class NodeGraphTests
         await Assert.That(graph.GraphEdges.Count).IsEqualTo(1);
         await Assert.That(graph.GraphEdges[0].To).IsEqualTo("db");
     }
+
+    // ─── Edge labels ─────────────────────────────────────────────────
+
+    /// <summary>Two short-labeled nodes, so the midpoint between them is clear of both boxes.</summary>
+    private static NodeGraph LabeledPair(string label)
+    {
+        var graph = new NodeGraph();
+        graph.GraphNodes.Add(new GraphNode { Id = "a", Name = "a" });
+        graph.GraphNodes.Add(new GraphNode { Id = "b", Name = "b" });
+        graph.GraphEdges.Add(new GraphEdge { From = "a", To = "b", Label = label });
+        return graph;
+    }
+
+    [Test]
+    public async Task Render_WithEdgeLabel_DrawsIt()
+    {
+        using var buffer = new CellBuffer(W, H);
+
+        LabeledPair("42%").Render(buffer, new Rect(0, 0, W, H));
+
+        await Assert.That(ContainsText(buffer, "42%")).IsTrue();
+    }
+
+    [Test]
+    public async Task Render_WithoutEdgeLabel_DrawsNoCaption()
+    {
+        using var buffer = new CellBuffer(W, H);
+
+        LabeledPair("").Render(buffer, new Rect(0, 0, W, H));
+
+        await Assert.That(ContainsText(buffer, "x")).IsFalse();
+    }
+
+    [Test]
+    public async Task Render_EdgeLabel_UsesTheEdgeColor()
+    {
+        using var buffer = new CellBuffer(W, H);
+        var graph = new NodeGraph();
+        graph.GraphNodes.Add(new GraphNode { Id = "a", Name = "a" });
+        graph.GraphNodes.Add(new GraphNode { Id = "b", Name = "b" });
+        graph.GraphEdges.Add(new GraphEdge { From = "a", To = "b", Label = "9%", Color = new Color(255, 0, 0) });
+
+        graph.Render(buffer, new Rect(0, 0, W, H));
+
+        var (x, y) = FindText(buffer, "9%");
+        await Assert.That(x).IsGreaterThanOrEqualTo(0);
+        await Assert.That(buffer.GetCell(x, y).Foreground).IsEqualTo(new Color(255, 0, 0));
+    }
+
+    [Test]
+    public async Task Render_EdgeLabelWiderThanThePlot_IsSkipped()
+    {
+        using var buffer = new CellBuffer(W, H);
+
+        // Must not throw, and must not leave a fragment behind.
+        LabeledPair(new string('z', W + 10)).Render(buffer, new Rect(0, 0, W, H));
+
+        await Assert.That(ContainsText(buffer, "zz")).IsFalse();
+    }
+
+    [Test]
+    public async Task Render_EdgeLabel_GivesWayToTheNodeBoxes()
+    {
+        // A cramped plot puts the midpoint inside a box. Boxes are drawn after labels, so an
+        // unskipped label would be half-eaten — it must be dropped whole instead, leaving no
+        // fragment of itself anywhere on the buffer.
+        using var buffer = new CellBuffer(14, 8);
+        var graph = new NodeGraph();
+        graph.GraphNodes.Add(new GraphNode { Id = "a", Name = "aaaaaaaa" });
+        graph.GraphNodes.Add(new GraphNode { Id = "b", Name = "bbbbbbbb" });
+        graph.GraphEdges.Add(new GraphEdge { From = "a", To = "b", Label = "99%" });
+
+        graph.Render(buffer, new Rect(0, 0, 14, 8));
+
+        await Assert.That(ContainsText(buffer, "99%")).IsFalse();
+        await Assert.That(ContainsChar(buffer, '%')).IsFalse();
+    }
+
+    [Test]
+    public async Task Render_LabeledEdges_StaysDeterministic()
+    {
+        using var first = new CellBuffer(W, H);
+        using var second = new CellBuffer(W, H);
+
+        LabeledPair("7%").Render(first, new Rect(0, 0, W, H));
+        LabeledPair("7%").Render(second, new Rect(0, 0, W, H));
+
+        for (var y = 0; y < H; y++)
+        {
+            for (var x = 0; x < W; x++)
+            {
+                await Assert.That(second.GetCell(x, y)).IsEqualTo(first.GetCell(x, y));
+            }
+        }
+    }
+
+    [Test]
+    public async Task Render_CrossingEdges_LetTheLaterOneWinTheSharedCells()
+    {
+        // A graph is a hub: every edge crosses near the center. If the blit order did not follow
+        // the data, a caller's one highlighted edge could be painted over by the rest and left
+        // with a cell or two — which is exactly what unspecified Dictionary order used to do.
+        using var buffer = new CellBuffer(W, H);
+        var graph = new NodeGraph();
+        foreach (var id in new[] { "hub", "a", "b", "c", "d" })
+        {
+            graph.GraphNodes.Add(new GraphNode { Id = id, Name = id });
+        }
+
+        var grey = new Color(120, 120, 120);
+        var red = new Color(220, 100, 100);
+
+        graph.GraphEdges.Add(new GraphEdge { From = "hub", To = "a", Color = grey });
+        graph.GraphEdges.Add(new GraphEdge { From = "hub", To = "b", Color = grey });
+        graph.GraphEdges.Add(new GraphEdge { From = "hub", To = "c", Color = grey });
+        graph.GraphEdges.Add(new GraphEdge { From = "hub", To = "d", Color = red });
+
+        graph.Render(buffer, new Rect(0, 0, W, H));
+
+        var redCells = 0;
+        for (var y = 0; y < H; y++)
+        {
+            for (var x = 0; x < W; x++)
+            {
+                var cell = buffer.GetCell(x, y);
+                if (cell.Codepoint is > 0x2800 and <= 0x28FF && cell.Foreground == red)
+                {
+                    redCells++;
+                }
+            }
+        }
+
+        // The last edge is drawn over the others, so its line survives as a line.
+        await Assert.That(redCells).IsGreaterThan(1);
+    }
+
+    [Test]
+    public async Task Xaml_EdgeLabel_Parses()
+    {
+        const string xaml = """
+            <NodeGraph xmlns="http://schemas.terminalninja.dev/xaml">
+                <GraphNode Id="web" Name="Web" />
+                <GraphNode Id="db" Name="Db" />
+                <NodeGraph.GraphEdges>
+                    <GraphEdge From="web" To="db" Label="1.2%" />
+                </NodeGraph.GraphEdges>
+            </NodeGraph>
+            """;
+
+        var graph = TerminalXaml.Load<NodeGraph>(xaml);
+
+        await Assert.That(graph.GraphEdges[0].Label).IsEqualTo("1.2%");
+    }
 }

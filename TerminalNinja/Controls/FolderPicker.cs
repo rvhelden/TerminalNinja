@@ -33,6 +33,8 @@ public sealed class FolderPicker : Window
         _fileSystem = fileSystem ?? new RealFileSystem();
         _currentPath = _fileSystem.GetCurrentDirectory();
         DefaultStyleKey = typeof(FolderPicker);
+        // This dialog drives its own list from OnKeyEvent, so focus must stay on the window.
+        FocusesContentOnOpen = false;
         Title = "Select Folder";
         Width = Size.Absolute(50);
         Height = Size.Absolute(16);

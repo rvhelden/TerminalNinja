@@ -35,6 +35,8 @@ public sealed class FilePicker : Window
         _fileSystem = fileSystem ?? new RealFileSystem();
         _currentPath = _fileSystem.GetCurrentDirectory();
         DefaultStyleKey = typeof(FilePicker);
+        // This dialog drives its own list from OnKeyEvent, so focus must stay on the window.
+        FocusesContentOnOpen = false;
         Title = "Select File";
         Width = Size.Absolute(50);
         Height = Size.Absolute(18);

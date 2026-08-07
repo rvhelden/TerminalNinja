@@ -30,6 +30,8 @@ public sealed class ColorPickerDialog : Window
     public ColorPickerDialog(Color initialColor)
     {
         DefaultStyleKey = typeof(ColorPickerDialog);
+        // This dialog drives its own gradient from OnKeyEvent, so focus must stay on the window.
+        FocusesContentOnOpen = false;
         Title = "Pick a Color";
         Width = Size.Absolute(GradientWidth + 4); // +2 border +2 padding
         Height = Size.Absolute(GradientCellHeight + 8); // gradient + hue bar + preview + buttons + borders

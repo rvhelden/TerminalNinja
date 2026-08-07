@@ -238,6 +238,76 @@ public class WindowDialogTests
         await task;
     }
 
+    // ─── Focus on open ───────────────────────────────────────────────
+
+    [Test]
+    public async Task ShowDialogAsync_MovesFocusIntoTheContent()
+    {
+        using var app = new Application(new ApplicationOptions { Headless = true });
+        app.RootControl = new Window();
+
+        var input = new TextBox();
+        var dialog = new Window
+        {
+            Width = Size.Absolute(40),
+            Height = Size.Absolute(5),
+            Content = input
+        };
+
+        var task = dialog.ShowDialogAsync();
+
+        // Not the window: it is focusable and sorts first, but has no OnKeyEvent, so focus
+        // resting there would drop every keystroke.
+        await Assert.That(app.FocusManager.FocusedElement).IsEqualTo(input);
+
+        dialog.CloseDialog();
+        await task;
+    }
+
+    [Test]
+    public async Task ShowDialogAsync_WithNoFocusableContent_FocusesTheWindow()
+    {
+        using var app = new Application(new ApplicationOptions { Headless = true });
+        app.RootControl = new Window();
+
+        var dialog = new Window
+        {
+            Width = Size.Absolute(40),
+            Height = Size.Absolute(5),
+            Content = new TextBlock { Text = "nothing to focus" }
+        };
+
+        var task = dialog.ShowDialogAsync();
+
+        await Assert.That(app.FocusManager.FocusedElement).IsEqualTo(dialog);
+
+        dialog.CloseDialog();
+        await task;
+    }
+
+    [Test]
+    public async Task ShowDialogAsync_WhenFocusesContentOnOpenIsFalse_KeepsFocusOnTheWindow()
+    {
+        using var app = new Application(new ApplicationOptions { Headless = true });
+        app.RootControl = new Window();
+
+        var dialog = new Window
+        {
+            Width = Size.Absolute(40),
+            Height = Size.Absolute(5),
+            Content = new TextBox(),
+            FocusesContentOnOpen = false
+        };
+
+        var task = dialog.ShowDialogAsync();
+
+        // The opt-out a Window subclass that handles its own keys relies on.
+        await Assert.That(app.FocusManager.FocusedElement).IsEqualTo(dialog);
+
+        dialog.CloseDialog();
+        await task;
+    }
+
     // ─── Close via Window.Close() ────────────────────────────────────
 
     [Test]

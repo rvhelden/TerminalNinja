@@ -10,7 +10,8 @@ namespace TerminalNinja.Controls.Charts;
 /// <summary>
 /// A node graph for topologies and networks: each <see cref="GraphNode"/> is drawn as a
 /// small labeled box and each <see cref="GraphEdge"/> as a braille line connecting the
-/// boxes it references by <see cref="GraphNode.Id"/>. Node positions are computed
+/// boxes it references by <see cref="GraphNode.Id"/>, optionally captioned at its midpoint
+/// with <see cref="GraphEdge.Label"/>. Node positions are computed
 /// automatically with a deterministic force-directed (Fruchterman–Reingold) layout —
 /// no coordinates are supplied by the caller. Data can be supplied inline via
 /// <see cref="GraphNodes"/> / <see cref="GraphEdges"/> or bound through
@@ -437,12 +438,14 @@ public sealed class NodeGraph : ChartBase
         var allEdges = EffectiveEdges;
         var edges = new List<(int From, int To)>(allEdges.Count);
         var edgeColors = new List<Color>(allEdges.Count);
+        var edgeLabels = new List<string>(allEdges.Count);
         foreach (var edge in allEdges)
         {
             if (indexById.TryGetValue(edge.From, out var from) && indexById.TryGetValue(edge.To, out var to) && from != to)
             {
                 edges.Add((from, to));
                 edgeColors.Add(edge.Color.IsTransparent ? AxisColor : edge.Color);
+                edgeLabels.Add(edge.Label);
             }
         }
 
@@ -463,6 +466,7 @@ public sealed class NodeGraph : ChartBase
         _renderedBoxes = boxes;
 
         DrawEdges(buffer, plot, boxes, edges, edgeColors);
+        DrawEdgeLabels(buffer, plot, boxes, edges, edgeColors, edgeLabels);
 
         var selectedBg = EffectiveSelectionBackground;
         for (var i = 0; i < nodes.Count; i++)
@@ -487,17 +491,37 @@ public sealed class NodeGraph : ChartBase
     /// Draws every edge as a braille line between box centers. Lines are grouped by
     /// color because a <see cref="BrailleCanvas"/> blits in a single color.
     /// </summary>
+    /// <remarks>
+    /// Where two edges cross, the one later in the collection wins the shared cells, and the
+    /// groups are blitted in order of the last edge that joined each — so ordering the data
+    /// puts an edge on top. This is a contract, not an accident: it used to fall out of
+    /// <see cref="Dictionary{TKey,TValue}"/> enumeration order, which is unspecified, and it
+    /// mattered. A graph is usually a hub, so every edge crosses near the center; a caller that
+    /// listed its one failing edge first had it painted over by the healthy majority and left
+    /// with a single visible cell.
+    /// </remarks>
     private static void DrawEdges(CellBuffer buffer, Rect plot, Rect[] boxes, List<(int From, int To)> edges, List<Color> edgeColors)
     {
-        Dictionary<Color, BrailleCanvas>? canvases = null;
+        if (edges.Count == 0)
+        {
+            return;
+        }
+
+        var order = new List<Color>();
+        var canvases = new Dictionary<Color, BrailleCanvas>();
+
         for (var e = 0; e < edges.Count; e++)
         {
-            canvases ??= [];
-            if (!canvases.TryGetValue(edgeColors[e], out var canvas))
+            var color = edgeColors[e];
+            if (!canvases.TryGetValue(color, out var canvas))
             {
-                canvas = new BrailleCanvas(plot.Width, plot.Height);
-                canvases[edgeColors[e]] = canvas;
+                canvases[color] = canvas = new BrailleCanvas(plot.Width, plot.Height);
             }
+
+            // Re-rank the group to this edge's position, so "last edge wins" holds for colors
+            // whose first edge came early but whose last one came late.
+            order.Remove(color);
+            order.Add(color);
 
             var (from, to) = edges[e];
             canvas.Line(
@@ -505,14 +529,63 @@ public sealed class NodeGraph : ChartBase
                 PixelX(boxes[to], plot), PixelY(boxes[to], plot));
         }
 
-        if (canvases == null)
+        foreach (var color in order)
         {
-            return;
+            canvases[color].Blit(buffer, plot.X, plot.Y, color);
         }
+    }
 
-        foreach (var (color, canvas) in canvases)
+    /// <summary>
+    /// Draws each labeled edge's <see cref="GraphEdge.Label"/> at the midpoint between the two
+    /// boxes it joins, in the edge's own color.
+    /// </summary>
+    /// <remarks>
+    /// A label is skipped rather than clipped when it would not fit: over a node box (the boxes
+    /// are drawn afterwards and would eat half of it, leaving a fragment that reads as corruption),
+    /// over a label already placed (two short edges in a dense graph land on the same cells), or
+    /// outside the plot. Losing a number is recoverable; a half-drawn one is not readable at all.
+    /// </remarks>
+    private void DrawEdgeLabels(
+        CellBuffer buffer,
+        Rect plot,
+        Rect[] boxes,
+        List<(int From, int To)> edges,
+        List<Color> edgeColors,
+        List<string> edgeLabels)
+    {
+        List<Rect>? placed = null;
+
+        for (var e = 0; e < edges.Count; e++)
         {
-            canvas.Blit(buffer, plot.X, plot.Y, color);
+            var label = edgeLabels[e];
+            if (string.IsNullOrEmpty(label) || label.Length > plot.Width)
+            {
+                continue;
+            }
+
+            var (from, to) = edges[e];
+            var midX = (boxes[from].X + boxes[from].Width / 2 + boxes[to].X + boxes[to].Width / 2) / 2;
+            var midY = (boxes[from].Y + boxes[from].Height / 2 + boxes[to].Y + boxes[to].Height / 2) / 2;
+
+            var rect = new Rect(midX - label.Length / 2, midY, label.Length, 1);
+            if (rect.X < plot.X || rect.Right > plot.Right || rect.Y < plot.Y || rect.Y >= plot.Bottom)
+            {
+                continue;
+            }
+
+            if (Array.Exists(boxes, box => box.Overlaps(rect)))
+            {
+                continue;
+            }
+
+            placed ??= [];
+            if (placed.Exists(other => other.Overlaps(rect)))
+            {
+                continue;
+            }
+
+            placed.Add(rect);
+            DrawString(buffer, rect.X, rect.Y, label, edgeColors[e], Background, label.Length);
         }
     }
 

@@ -172,6 +172,17 @@ public sealed class DataGrid : Selector
     private int _scrollOffset;
 
     /// <summary>
+    /// Data rows visible at the last render, which is the distance PageUp/PageDown move by.
+    /// </summary>
+    /// <remarks>
+    /// Only the render pass knows this: the grid is sized against the bounds its parent hands
+    /// down, and key handling never sees them. Zero until the first render, where the page keys
+    /// fall back to a single row — a grid that has not been drawn has no page to move by, and
+    /// guessing one would scroll to somewhere the user cannot predict.
+    /// </remarks>
+    private int _viewportHeight;
+
+    /// <summary>
     /// Adjusts the scroll offset so the selected row stays inside the viewport,
     /// matching the ListBox's internal scrolling behaviour.
     /// </summary>
@@ -243,6 +254,9 @@ public sealed class DataGrid : Selector
         // is not guaranteed once items have been removed and re-added.
         var items = GetEffectiveItems();
         var viewportHeight = bounds.Height - HeaderRowCount;
+
+        // Remembered for the page keys, which run outside the render pass.
+        _viewportHeight = Math.Max(0, viewportHeight);
 
         // Keep the selected row inside the viewport, then clamp so the last page fills.
         EnsureSelectedVisible(viewportHeight);
@@ -350,8 +364,14 @@ public sealed class DataGrid : Selector
 
     public override void OnKeyEvent(KeyEvent e)
     {
-        var count = ItemsPanel.Children.Count;
+        // The effective items, not ItemsPanel.Children: SelectedIndex indexes the former, and the
+        // two diverge whenever a container has not been realised for every item. End landing on
+        // the wrong row is the visible symptom.
+        var count = GetEffectiveItems().Count;
         if (count == 0) return;
+
+        // A page is what is on screen. Falls back to one row before the first render.
+        var page = Math.Max(1, _viewportHeight);
 
         switch (e.Key)
         {
@@ -360,6 +380,14 @@ public sealed class DataGrid : Selector
                 break;
             case ConsoleKey.UpArrow:
                 SelectedIndex = Math.Max(SelectedIndex - 1, 0);
+                break;
+            case ConsoleKey.PageDown:
+                // Moves the selection a whole page and lets EnsureSelectedVisible carry the
+                // viewport with it, so the row under the cursor keeps its position on screen.
+                SelectedIndex = Math.Min(SelectedIndex + page, count - 1);
+                break;
+            case ConsoleKey.PageUp:
+                SelectedIndex = Math.Max(SelectedIndex - page, 0);
                 break;
             case ConsoleKey.Home:
                 SelectedIndex = 0;
