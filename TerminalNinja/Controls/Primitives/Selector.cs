@@ -156,14 +156,24 @@ public abstract class Selector : ItemsControl
         var index = items.IndexOf(item);
         if (index >= 0)
         {
-            // SetValueInternal, not the public SelectedIndex setter: the latter goes through
-            // SetValue, which clears any binding on SelectedIndex, so a two-way {Binding
-            // SelectedIndex} would be destroyed by the first click. SetValueInternal still runs
-            // the OnSelectedIndexChanged callback (index↔item sync) and raises PropertyChanged so
-            // the binding writes back — it just keeps the expression attached.
-            SetValueInternal(SelectedIndexProperty, index);
+            SetCurrentSelectedIndex(index);
         }
     }
+
+    /// <summary>
+    /// Moves the selection the way the control's own input must: the new index is published and a
+    /// two-way binding writes it back, but the binding itself survives.
+    /// </summary>
+    /// <remarks>
+    /// Every key and mouse path in a <see cref="Selector"/> subclass has to go through this rather
+    /// than the public <see cref="SelectedIndex"/> setter. That setter is
+    /// <see cref="DependencyObject.SetValue"/>, which detaches the expression — "a local value
+    /// overrides a binding", as in WPF — so the very first arrow key would delete the binding it
+    /// was meant to drive, and the control and its view model would disagree from then on with
+    /// nothing reported anywhere.
+    /// </remarks>
+    protected void SetCurrentSelectedIndex(int index) =>
+        SetCurrentValue(SelectedIndexProperty, index);
 
     /// <summary>
     /// Called internally to select a specific container element.

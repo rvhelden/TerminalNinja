@@ -174,25 +174,27 @@ public class ListBox : Selector
     // ─── Keyboard navigation ─────────────────────────────────────────
 
     /// <inheritdoc />
-    public override void OnKeyEvent(KeyEvent e)
+    public override bool OnKeyEvent(KeyEvent e)
     {
         switch (e.Key)
         {
             case ConsoleKey.DownArrow:
                 MoveSelection(1);
-                break;
+                return true;
             case ConsoleKey.UpArrow:
                 MoveSelection(-1);
-                break;
+                return true;
             case ConsoleKey.Home:
                 SelectFirst();
-                break;
+                return true;
             case ConsoleKey.End:
                 SelectLast();
-                break;
+                return true;
             case ConsoleKey.Enter or ConsoleKey.Spacebar:
                 ItemActivated?.Invoke(this, EventArgs.Empty);
-                break;
+                return true;
+            default:
+                return false;
         }
     }
 
@@ -220,7 +222,7 @@ public class ListBox : Selector
             newIndex = count - 1;
         }
 
-        SelectedIndex = newIndex;
+        SetCurrentSelectedIndex(newIndex);
         ScrollSelectedIntoView();
     }
 
@@ -231,7 +233,7 @@ public class ListBox : Selector
     {
         if (ItemsPanel.Children.Count > 0)
         {
-            SelectedIndex = 0;
+            SetCurrentSelectedIndex(0);
             ScrollSelectedIntoView();
         }
     }
@@ -244,7 +246,7 @@ public class ListBox : Selector
         var count = ItemsPanel.Children.Count;
         if (count > 0)
         {
-            SelectedIndex = count - 1;
+            SetCurrentSelectedIndex(count - 1);
             ScrollSelectedIntoView();
         }
     }

@@ -60,17 +60,17 @@ public sealed class FlameGraph : ChartBase
     // ─── Input ───────────────────────────────────────────────────────
 
     /// <inheritdoc />
-    public override void OnKeyEvent(KeyEvent e)
+    public override bool OnKeyEvent(KeyEvent e)
     {
         if (_frames.Count == 0)
         {
-            return;
+            return false;
         }
 
         if (SelectedNode is not FlameNode sel || FindEntry(sel) is not { } entry)
         {
             SelectedNode = Root;
-            return;
+            return true;
         }
 
         switch (e.Key)
@@ -81,7 +81,7 @@ public sealed class FlameGraph : ChartBase
                     SelectedNode = entry.Parent;
                 }
 
-                break;
+                return true;
             case ConsoleKey.DownArrow:
                 var child = FirstChildOf(entry.Node);
                 if (child != null)
@@ -89,7 +89,7 @@ public sealed class FlameGraph : ChartBase
                     SelectedNode = child;
                 }
 
-                break;
+                return true;
             case ConsoleKey.LeftArrow:
                 var prev = SiblingAtDepth(entry, -1);
                 if (prev != null)
@@ -97,7 +97,7 @@ public sealed class FlameGraph : ChartBase
                     SelectedNode = prev;
                 }
 
-                break;
+                return true;
             case ConsoleKey.RightArrow:
                 var next = SiblingAtDepth(entry, +1);
                 if (next != null)
@@ -105,7 +105,9 @@ public sealed class FlameGraph : ChartBase
                     SelectedNode = next;
                 }
 
-                break;
+                return true;
+            default:
+                return false;
         }
     }
 

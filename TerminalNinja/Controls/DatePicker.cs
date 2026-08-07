@@ -153,9 +153,9 @@ public sealed class DatePicker : Control
 
     // ─── Input ───────────────────────────────────────────────────────
 
-    public override void OnKeyEvent(KeyEvent e)
+    public override bool OnKeyEvent(KeyEvent e)
     {
-        if (!IsEnabled) return;
+        if (!IsEnabled) return false;
 
         // Auto-create date if null when user starts editing
         SelectedDate ??= DateTime.Today;
@@ -173,7 +173,7 @@ public sealed class DatePicker : Control
                 if (_editField < 2) _editField++;
             }
             InvalidateVisual();
-            return;
+            return true;
         }
 
         // Commit partial digit buffer on field change
@@ -182,6 +182,8 @@ public sealed class DatePicker : Control
             ApplyDigitBuffer(date);
             _digitBuffer = "";
         }
+
+        var handled = true;
 
         switch (e.Key)
         {
@@ -197,9 +199,14 @@ public sealed class DatePicker : Control
             case ConsoleKey.DownArrow:
                 AdjustField(-1);
                 break;
+
+            default:
+                handled = false;
+                break;
         }
 
         InvalidateVisual();
+        return handled;
     }
 
     public override void OnGotFocus()

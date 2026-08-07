@@ -392,42 +392,44 @@ public class ScrollViewer : ContentControl
     // ─── Input Handling ──────────────────────────────────────────────
 
     /// <inheritdoc />
-    public override void OnKeyEvent(KeyEvent e)
+    public override bool OnKeyEvent(KeyEvent e)
     {
         switch (e)
         {
             case { Key: ConsoleKey.UpArrow } when CanScrollVertically:
                 ScrollToVerticalOffset(VerticalOffset - 1);
-                break;
+                return true;
             case { Key: ConsoleKey.DownArrow } when CanScrollVertically:
                 ScrollToVerticalOffset(VerticalOffset + 1);
-                break;
+                return true;
             case { Key: ConsoleKey.LeftArrow } when CanScrollHorizontally:
                 ScrollToHorizontalOffset(HorizontalOffset - 1);
-                break;
+                return true;
             case { Key: ConsoleKey.RightArrow } when CanScrollHorizontally:
                 ScrollToHorizontalOffset(HorizontalOffset + 1);
-                break;
+                return true;
             case { Key: ConsoleKey.PageUp } when CanScrollVertically:
                 ScrollToVerticalOffset(VerticalOffset - _viewportHeight);
-                break;
+                return true;
             case { Key: ConsoleKey.PageDown } when CanScrollVertically:
                 ScrollToVerticalOffset(VerticalOffset + _viewportHeight);
-                break;
+                return true;
             case { Key: ConsoleKey.Home, Ctrl: true }:
                 ScrollToVerticalOffset(0);
                 ScrollToHorizontalOffset(0);
-                break;
+                return true;
             case { Key: ConsoleKey.End, Ctrl: true }:
                 ScrollToVerticalOffset(ScrollableHeight);
                 ScrollToHorizontalOffset(ScrollableWidth);
-                break;
+                return true;
             case { Key: ConsoleKey.Home } when CanScrollVertically:
                 ScrollToVerticalOffset(0);
-                break;
+                return true;
             case { Key: ConsoleKey.End } when CanScrollVertically:
                 ScrollToVerticalOffset(ScrollableHeight);
-                break;
+                return true;
+            default:
+                return false;
         }
     }
 

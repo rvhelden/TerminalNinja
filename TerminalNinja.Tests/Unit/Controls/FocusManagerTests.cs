@@ -30,7 +30,11 @@ public class FocusManagerTests
         public override void OnLostFocus() => LostFocusCount++;
         public override void OnMouseEnter() => MouseEnterCount++;
         public override void OnMouseLeave() => MouseLeaveCount++;
-        public override void OnKeyEvent(KeyEvent e) => ReceivedKeyEvents.Add(e);
+        public override bool OnKeyEvent(KeyEvent e)
+        {
+            ReceivedKeyEvents.Add(e);
+            return true;
+        }
         public override void OnMouseEvent(MouseEvent e) => ReceivedMouseEvents.Add(e);
         
         public override Size2D GetPreferredSize(Rect parent) => new(_bounds.Width, _bounds.Height);

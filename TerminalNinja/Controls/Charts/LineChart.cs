@@ -129,12 +129,12 @@ public sealed class LineChart : ChartBase
     // ─── Input ───────────────────────────────────────────────────────
 
     /// <inheritdoc />
-    public override void OnKeyEvent(KeyEvent e)
+    public override bool OnKeyEvent(KeyEvent e)
     {
         var count = PointCount();
         if (count <= 0)
         {
-            return;
+            return false;
         }
 
         var current = SelectedIndex;
@@ -142,16 +142,18 @@ public sealed class LineChart : ChartBase
         {
             case ConsoleKey.LeftArrow:
                 SelectedIndex = current < 0 ? count - 1 : Math.Max(0, current - 1);
-                break;
+                return true;
             case ConsoleKey.RightArrow:
                 SelectedIndex = current < 0 ? 0 : Math.Min(count - 1, current + 1);
-                break;
+                return true;
             case ConsoleKey.Home:
                 SelectedIndex = 0;
-                break;
+                return true;
             case ConsoleKey.End:
                 SelectedIndex = count - 1;
-                break;
+                return true;
+            default:
+                return false;
         }
     }
 

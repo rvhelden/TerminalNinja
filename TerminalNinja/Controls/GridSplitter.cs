@@ -114,17 +114,19 @@ public sealed class GridSplitter : Control
     }
 
     /// <inheritdoc />
-    public override void OnKeyEvent(KeyEvent e)
+    public override bool OnKeyEvent(KeyEvent e)
     {
         int step = e.Shift ? Math.Max(Step, 4) : Step;
         switch (e.Key)
         {
             case ConsoleKey.LeftArrow:
                 Resized?.Invoke(-step);
-                return;
+                return true;
             case ConsoleKey.RightArrow:
                 Resized?.Invoke(+step);
-                return;
+                return true;
+            default:
+                return false;
         }
     }
 }

@@ -118,9 +118,9 @@ public sealed class ColorPicker : Control
 
     // ─── Input ───────────────────────────────────────────────────────
 
-    public override void OnKeyEvent(KeyEvent e)
+    public override bool OnKeyEvent(KeyEvent e)
     {
-        if (!IsEnabled) return;
+        if (!IsEnabled) return false;
 
         // Hex digit entry
         var ch = char.ToUpperInvariant(e.KeyChar);
@@ -135,7 +135,7 @@ public sealed class ColorPicker : Control
                 _isEditingHex = false;
             }
             InvalidateVisual();
-            return;
+            return true;
         }
 
         if (e.Key == ConsoleKey.Backspace && _isEditingHex)
@@ -143,7 +143,7 @@ public sealed class ColorPicker : Control
             if (_hexBuffer.Length > 0) _hexBuffer = _hexBuffer[..^1];
             if (_hexBuffer.Length == 0) _isEditingHex = false;
             InvalidateVisual();
-            return;
+            return true;
         }
 
         if (e.Key == ConsoleKey.Escape && _isEditingHex)
@@ -151,14 +151,17 @@ public sealed class ColorPicker : Control
             _hexBuffer = "";
             _isEditingHex = false;
             InvalidateVisual();
-            return;
+            return true;
         }
 
         // Enter/Space: open the full color picker dialog
         if (e.Key is ConsoleKey.Enter or ConsoleKey.Spacebar)
         {
             OpenColorDialog();
+            return true;
         }
+
+        return false;
     }
 
     public override void OnGotFocus()

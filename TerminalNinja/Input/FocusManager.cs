@@ -264,10 +264,9 @@ public sealed class FocusManager
     /// Handles a keyboard event by dispatching it to the focused element.
     /// </summary>
     /// <param name="keyEvent">The keyboard event to handle.</param>
-    public void HandleKeyEvent(KeyEvent keyEvent)
-    {
-        FocusedElement?.OnKeyEvent(keyEvent);
-    }
+    /// <returns>True if the focused element consumed the key.</returns>
+    public bool HandleKeyEvent(KeyEvent keyEvent) =>
+        FocusedElement?.OnKeyEvent(keyEvent) ?? false;
     
     /// <summary>
     /// Recursively collects all focusable elements from the UI tree

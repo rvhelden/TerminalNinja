@@ -147,10 +147,15 @@ public sealed class CheckBox : ButtonBase
     // ─── Input ───────────────────────────────────────────────────────
 
     /// <inheritdoc />
-    public override void OnKeyEvent(KeyEvent e)
+    public override bool OnKeyEvent(KeyEvent e)
     {
-        if (e.Key is ConsoleKey.Enter or ConsoleKey.Spacebar)
-            Toggle();
+        if (e.Key is not (ConsoleKey.Enter or ConsoleKey.Spacebar))
+        {
+            return false;
+        }
+
+        Toggle();
+        return true;
     }
 
     /// <inheritdoc />

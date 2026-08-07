@@ -72,6 +72,10 @@ public sealed class TextBox : Control
         DependencyProperty.Register(nameof(PlaceholderText), typeof(string), typeof(TextBox),
             new FrameworkPropertyMetadata("", affectsRender: true));
 
+    public static readonly DependencyProperty ShowBorderProperty =
+        DependencyProperty.Register(nameof(ShowBorder), typeof(bool), typeof(TextBox),
+            new FrameworkPropertyMetadata(true, affectsRender: true));
+
     public static readonly DependencyProperty PlaceholderForegroundProperty =
         DependencyProperty.Register(nameof(PlaceholderForeground), typeof(Color), typeof(TextBox),
             new FrameworkPropertyMetadata(Color.DarkGray, affectsRender: true));
@@ -185,6 +189,27 @@ public sealed class TextBox : Control
         set => SetValue(PlaceholderTextProperty, value);
     }
 
+    /// <summary>
+    /// Whether the box draws its own rounded frame. Defaults to true.
+    /// </summary>
+    /// <remarks>
+    /// The frame costs a cell on every side, so a bordered <see cref="TextBox"/> needs three rows
+    /// before it shows a single character of text — set this false for a single-row input: a
+    /// filter bar, a search field inside a dialog that already has a border of its own, an inline
+    /// edit in a grid cell. With no frame the caret is the only focus cue, so give such a box a
+    /// <see cref="Control.Background"/> or a surrounding <see cref="Border"/> if it needs to be
+    /// visible when empty and unfocused.
+    /// </remarks>
+    public bool ShowBorder
+    {
+        get => (bool)GetValue(ShowBorderProperty)!;
+        set => SetValue(ShowBorderProperty, value);
+    }
+
+    /// <inheritdoc />
+    /// <remarks>A read-only or disabled box types nothing, so it claims nothing.</remarks>
+    public override bool WantsTextInput => IsEnabled && !IsReadOnly;
+
     /// <summary>Gets or sets the color for placeholder text.</summary>
     public Color PlaceholderForeground
     {
@@ -287,17 +312,18 @@ public sealed class TextBox : Control
         buffer.FillRect(clipped, bgCell);
 
         // Draw border
-        if (bounds is { Width: >= 2, Height: >= 2 })
+        var inset = ShowBorder ? 1 : 0;
+        if (ShowBorder && bounds is { Width: >= 2, Height: >= 2 })
         {
             var border = BorderStyle.Rounded(borderColor);
             DrawBorder(buffer, bounds, border.Chars, borderColor);
         }
 
         // Calculate text area (inside border and padding)
-        var textX = bounds.X + 1 + Padding.Left;
-        var textY = bounds.Y + 1 + Padding.Top;
-        var textWidth = Math.Max(0, bounds.Width - 2 - Padding.HorizontalTotal);
-        var textHeight = Math.Max(0, bounds.Height - 2 - Padding.VerticalTotal);
+        var textX = bounds.X + inset + Padding.Left;
+        var textY = bounds.Y + inset + Padding.Top;
+        var textWidth = Math.Max(0, bounds.Width - (inset * 2) - Padding.HorizontalTotal);
+        var textHeight = Math.Max(0, bounds.Height - (inset * 2) - Padding.VerticalTotal);
         _lastKnownTextWidth = textWidth;
         _lastKnownTextHeight = textHeight;
 
@@ -838,9 +864,14 @@ public sealed class TextBox : Control
     // ─── Input Handling ──────────────────────────────────────────────
 
     /// <inheritdoc />
-    public override void OnKeyEvent(KeyEvent e)
+    public override bool OnKeyEvent(KeyEvent e)
     {
-        if (!IsEnabled) return;
+        if (!IsEnabled) return false;
+
+        // Assume the key is ours and let the one branch that does nothing say otherwise. A text
+        // box must claim what it consumes, or a bare letter typed into it also fires whatever
+        // global shortcut the application binds to that letter.
+        var handled = true;
 
         switch (e)
         {
@@ -904,11 +935,19 @@ public sealed class TextBox : Control
                 {
                     InsertText(e.KeyChar.ToString());
                 }
+                else
+                {
+                    // Not a printable character and no case matched — Escape, Enter on a
+                    // single-line box, F5. Leave it for the application: this is how a dialog
+                    // still closes on Escape and commits on Enter while the box holds focus.
+                    handled = false;
+                }
 
                 break;
         }
 
         InvalidateVisual();
+        return handled;
     }
 
     /// <inheritdoc />
@@ -927,15 +966,16 @@ public sealed class TextBox : Control
     private int ScreenPositionToCaretIndex(int screenX, int screenY)
     {
         // This is approximate — uses last known text area position
-        // The text area starts after border (1) + padding
+        // The text area starts after the border (1 cell, if drawn) + padding
         // We don't have access to bounds here, so estimate from scroll offset
-        var textAreaStartX = 1 + Padding.Left; // relative to control left edge
+        var inset = ShowBorder ? 1 : 0;
+        var textAreaStartX = inset + Padding.Left; // relative to control left edge
         var col = screenX - textAreaStartX + _scrollOffsetX;
         col = Math.Clamp(col, 0, Text.Length);
 
         if (AcceptsReturn)
         {
-            var textAreaStartY = 1 + Padding.Top;
+            var textAreaStartY = inset + Padding.Top;
             var line = screenY - textAreaStartY + _scrollOffsetY;
             var lines = SplitIntoLines(Text.AsSpan());
             line = Math.Clamp(line, 0, lines.Count - 1);

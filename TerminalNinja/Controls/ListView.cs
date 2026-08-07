@@ -343,25 +343,27 @@ public sealed class ListView : Selector
     // ─── Input ───────────────────────────────────────────────────────
 
     /// <inheritdoc />
-    public override void OnKeyEvent(KeyEvent e)
+    public override bool OnKeyEvent(KeyEvent e)
     {
         var count = ItemsPanel.Children.Count;
-        if (count == 0) return;
+        if (count == 0) return false;
 
         switch (e.Key)
         {
             case ConsoleKey.DownArrow:
                 SelectedIndex = Math.Min(SelectedIndex + 1, count - 1);
-                break;
+                return true;
             case ConsoleKey.UpArrow:
                 SelectedIndex = Math.Max(SelectedIndex - 1, 0);
-                break;
+                return true;
             case ConsoleKey.Home:
                 SelectedIndex = 0;
-                break;
+                return true;
             case ConsoleKey.End:
                 SelectedIndex = count - 1;
-                break;
+                return true;
+            default:
+                return false;
         }
     }
 

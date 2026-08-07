@@ -155,9 +155,9 @@ public sealed class TimePicker : Control
 
     // ─── Input ───────────────────────────────────────────────────────
 
-    public override void OnKeyEvent(KeyEvent e)
+    public override bool OnKeyEvent(KeyEvent e)
     {
-        if (!IsEnabled) return;
+        if (!IsEnabled) return false;
 
         SelectedTime ??= TimeSpan.Zero;
         var t = SelectedTime.Value;
@@ -172,10 +172,12 @@ public sealed class TimePicker : Control
                 if (_editField < FieldCount - 1) _editField++;
             }
             InvalidateVisual();
-            return;
+            return true;
         }
 
         if (_digitBuffer.Length > 0) { ApplyDigitBuffer(t); _digitBuffer = ""; }
+
+        var handled = true;
 
         switch (e.Key)
         {
@@ -191,8 +193,14 @@ public sealed class TimePicker : Control
             case ConsoleKey.DownArrow:
                 AdjustField(-1);
                 break;
+
+            default:
+                handled = false;
+                break;
         }
+
         InvalidateVisual();
+        return handled;
     }
 
     public override void OnGotFocus()

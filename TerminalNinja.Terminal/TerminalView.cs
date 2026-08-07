@@ -130,24 +130,32 @@ public sealed class TerminalView : UIElement
     }
 
     /// <inheritdoc />
-    public override void OnKeyEvent(KeyEvent keyEvent)
+    public override bool OnKeyEvent(KeyEvent keyEvent)
     {
         if (_backend is null || !_backend.IsRunning)
         {
-            return;
+            return false;
         }
 
         var bytes = KeyEventEncoder.Encode(keyEvent);
         if (bytes is null)
         {
-            return;
+            return false;
         }
 
         // Fire-and-forget. WriteAsync on a healthy backend completes quickly (a queued
         // write to the master pipe); failures here mean the child process has died, and
         // a subsequent backend event will flip IsRunning so we stop trying.
         _ = WriteToBackendAsync(bytes);
+
+        // Anything the encoder could turn into bytes belongs to the child process: an
+        // embedded terminal is where the host's shortcuts must stop.
+        return true;
     }
+
+    /// <inheritdoc />
+    /// <remarks>Everything typed here is for the child process, not the host application.</remarks>
+    public override bool WantsTextInput => _backend?.IsRunning == true;
 
     private async Task WriteToBackendAsync(byte[] bytes)
     {

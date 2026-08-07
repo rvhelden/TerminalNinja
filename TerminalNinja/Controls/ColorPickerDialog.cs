@@ -139,7 +139,7 @@ public sealed class ColorPickerDialog : Window
 
     // ─── Input ───────────────────────────────────────────────────────
 
-    public override void OnKeyEvent(KeyEvent e)
+    public override bool OnKeyEvent(KeyEvent e)
     {
         // Hex digit entry
         var ch = char.ToUpperInvariant(e.KeyChar);
@@ -155,7 +155,7 @@ public sealed class ColorPickerDialog : Window
                 _isEditingHex = false;
             }
             InvalidateVisual();
-            return;
+            return true;
         }
 
         if (e.Key == ConsoleKey.Backspace && _isEditingHex)
@@ -163,8 +163,10 @@ public sealed class ColorPickerDialog : Window
             if (_hexBuffer.Length > 0) _hexBuffer = _hexBuffer[..^1];
             if (_hexBuffer.Length == 0) _isEditingHex = false;
             InvalidateVisual();
-            return;
+            return true;
         }
+
+        var handled = true;
 
         switch (e.Key)
         {
@@ -210,14 +212,19 @@ public sealed class ColorPickerDialog : Window
 
             case ConsoleKey.Enter:
                 DialogResult = true;
-                return;
+                return true;
 
             case ConsoleKey.Escape:
                 DialogResult = false;
-                return;
+                return true;
+
+            default:
+                handled = false;
+                break;
         }
 
         InvalidateVisual();
+        return handled;
     }
 
     private void UpdateColorFromHsl()

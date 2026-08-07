@@ -232,13 +232,16 @@ public sealed class Button : ButtonBase
     /// <summary>
     /// Handles keyboard events when the button has focus.
     /// </summary>
-    public override void OnKeyEvent(KeyEvent e)
+    public override bool OnKeyEvent(KeyEvent e)
     {
         // Trigger click on Enter or Space
         if (e.Key is ConsoleKey.Enter or ConsoleKey.Spacebar)
         {
             RaiseClick();
+            return true;
         }
+
+        return false;
     }
     
     /// <summary>

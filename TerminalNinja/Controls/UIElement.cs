@@ -102,7 +102,36 @@ public abstract class UIElement : Visual
     /// Handles keyboard input when this element has focus.
     /// </summary>
     /// <param name="e">The keyboard event data.</param>
-    public virtual void OnKeyEvent(KeyEvent e) { }
+    /// <returns>
+    /// True if the element consumed the key, which stops it reaching the application's global
+    /// shortcut handler. False — the default — lets it through.
+    /// </returns>
+    /// <remarks>
+    /// Returning a verdict is what makes a focused text field safe. Keys reach the focused element
+    /// first and the application's <c>KeyDown</c> hook second, so an unclaimed key still triggers a
+    /// global shortcut, while a <see cref="TextBox"/> holding focus swallows the letters it is
+    /// being typed into instead of firing "q for quit" on the fourth character of "query".
+    ///
+    /// Claim only what was acted on. A control that returns true for every key it is offered
+    /// silently disables every shortcut in the application while it holds focus.
+    /// </remarks>
+    public virtual bool OnKeyEvent(KeyEvent e) => false;
+
+    /// <summary>
+    /// Whether this element is currently accepting typed characters, so the application should
+    /// offer it printable keys before its own shortcuts. Defaults to false.
+    /// </summary>
+    /// <remarks>
+    /// A terminal application's shortcuts are usually bare letters, and a bare letter is also what
+    /// someone types into a field. Without this the two are indistinguishable: typing "query" into
+    /// a focused box fires whatever "q" is bound to, which is why an inline input previously had to
+    /// be a modal — the application could only tell the difference by knowing a dialog was open.
+    ///
+    /// Only printable characters with no Ctrl or Alt are diverted. Arrows, Enter, Escape, Tab and
+    /// every chord still reach the application first, so a text field cannot capture the shortcuts
+    /// that close or commit it.
+    /// </remarks>
+    public virtual bool WantsTextInput => false;
 
     /// <summary>
     /// Handles mouse events that occur within this element's bounds.

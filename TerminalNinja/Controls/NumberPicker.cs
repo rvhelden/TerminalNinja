@@ -156,9 +156,9 @@ public sealed class NumberPicker : Control
 
     // ─── Input ───────────────────────────────────────────────────────
 
-    public override void OnKeyEvent(KeyEvent e)
+    public override bool OnKeyEvent(KeyEvent e)
     {
-        if (!IsEnabled) return;
+        if (!IsEnabled) return false;
 
         // Numeric direct entry
         if (e.KeyChar >= '0' && e.KeyChar <= '9')
@@ -166,7 +166,7 @@ public sealed class NumberPicker : Control
             _isDirectEntry = true;
             _inputBuffer += e.KeyChar;
             InvalidateVisual();
-            return;
+            return true;
         }
 
         if (e.KeyChar == '.' && DecimalPlaces > 0 && !_inputBuffer.Contains('.'))
@@ -174,7 +174,7 @@ public sealed class NumberPicker : Control
             _isDirectEntry = true;
             _inputBuffer += '.';
             InvalidateVisual();
-            return;
+            return true;
         }
 
         if (e.Key == ConsoleKey.Backspace && _isDirectEntry)
@@ -185,14 +185,14 @@ public sealed class NumberPicker : Control
                 if (_inputBuffer.Length == 0) _isDirectEntry = false;
             }
             InvalidateVisual();
-            return;
+            return true;
         }
 
         // Commit direct entry on Enter or navigation
         if (_isDirectEntry && e.Key is ConsoleKey.Enter)
         {
             CommitDirectEntry();
-            return;
+            return true;
         }
 
         // If in direct entry and a non-digit key is pressed, commit first
@@ -200,6 +200,8 @@ public sealed class NumberPicker : Control
         {
             CommitDirectEntry();
         }
+
+        var handled = true;
 
         switch (e.Key)
         {
@@ -221,9 +223,14 @@ public sealed class NumberPicker : Control
             case ConsoleKey.End:
                 Value = Maximum;
                 break;
+
+            default:
+                handled = false;
+                break;
         }
 
         InvalidateVisual();
+        return handled;
     }
 
     public override void OnLostFocus()

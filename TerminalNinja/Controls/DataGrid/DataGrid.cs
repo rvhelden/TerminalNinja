@@ -368,13 +368,13 @@ public sealed class DataGrid : Selector
         }
     }
 
-    public override void OnKeyEvent(KeyEvent e)
+    public override bool OnKeyEvent(KeyEvent e)
     {
         // The effective items, not ItemsPanel.Children: SelectedIndex indexes the former, and the
         // two diverge whenever a container has not been realised for every item. End landing on
         // the wrong row is the visible symptom.
         var count = GetEffectiveItems().Count;
-        if (count == 0) return;
+        if (count == 0) return false;
 
         // A page is what is on screen. Falls back to one row before the first render.
         var page = Math.Max(1, _viewportHeight);
@@ -382,23 +382,25 @@ public sealed class DataGrid : Selector
         switch (e.Key)
         {
             case ConsoleKey.DownArrow:
-                SelectedIndex = Math.Min(SelectedIndex + 1, count - 1);
-                break;
+                SetCurrentSelectedIndex(Math.Min(SelectedIndex + 1, count - 1));
+                return true;
             case ConsoleKey.UpArrow:
-                SelectedIndex = Math.Max(SelectedIndex - 1, 0);
-                break;
+                SetCurrentSelectedIndex(Math.Max(SelectedIndex - 1, 0));
+                return true;
             case ConsoleKey.PageDown:
                 MoveByPage(page, count);
-                break;
+                return true;
             case ConsoleKey.PageUp:
                 MoveByPage(-page, count);
-                break;
+                return true;
             case ConsoleKey.Home:
-                SelectedIndex = 0;
-                break;
+                SetCurrentSelectedIndex(0);
+                return true;
             case ConsoleKey.End:
-                SelectedIndex = count - 1;
-                break;
+                SetCurrentSelectedIndex(count - 1);
+                return true;
+            default:
+                return false;
         }
     }
 
@@ -420,7 +422,7 @@ public sealed class DataGrid : Selector
     {
         var offsetInViewport = SelectedIndex - _scrollOffset;
 
-        SelectedIndex = Math.Clamp(SelectedIndex + delta, 0, count - 1);
+        SetCurrentSelectedIndex(Math.Clamp(SelectedIndex + delta, 0, count - 1));
         _scrollOffset = Math.Max(0, SelectedIndex - offsetInViewport);
     }
 

@@ -210,19 +210,21 @@ public sealed class RadioButton : ButtonBase
     // ─── Input ───────────────────────────────────────────────────────
 
     /// <inheritdoc />
-    public override void OnKeyEvent(KeyEvent e)
+    public override bool OnKeyEvent(KeyEvent e)
     {
         switch (e.Key)
         {
             case ConsoleKey.Enter or ConsoleKey.Spacebar:
                 Check();
-                break;
+                return true;
             case ConsoleKey.DownArrow or ConsoleKey.RightArrow:
                 FocusSibling(1);
-                break;
+                return true;
             case ConsoleKey.UpArrow or ConsoleKey.LeftArrow:
                 FocusSibling(-1);
-                break;
+                return true;
+            default:
+                return false;
         }
     }
 

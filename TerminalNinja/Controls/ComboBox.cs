@@ -275,7 +275,7 @@ public sealed class ComboBox : Selector
     // ─── Input ───────────────────────────────────────────────────────
 
     /// <inheritdoc />
-    public override void OnKeyEvent(KeyEvent e)
+    public override bool OnKeyEvent(KeyEvent e)
     {
         if (IsDropDownOpen)
         {
@@ -283,22 +283,24 @@ public sealed class ComboBox : Selector
             {
                 case ConsoleKey.DownArrow:
                     MoveSelection(1);
-                    break;
+                    return true;
                 case ConsoleKey.UpArrow:
                     MoveSelection(-1);
-                    break;
+                    return true;
                 case ConsoleKey.Home:
                     SelectFirst();
-                    break;
+                    return true;
                 case ConsoleKey.End:
                     SelectLast();
-                    break;
+                    return true;
                 case ConsoleKey.Enter or ConsoleKey.Spacebar:
                     IsDropDownOpen = false;
-                    break;
+                    return true;
                 case ConsoleKey.Escape:
                     IsDropDownOpen = false;
-                    break;
+                    return true;
+                default:
+                    return false;
             }
         }
         else
@@ -307,13 +309,15 @@ public sealed class ComboBox : Selector
             {
                 case ConsoleKey.DownArrow:
                     MoveSelection(1);
-                    break;
+                    return true;
                 case ConsoleKey.UpArrow:
                     MoveSelection(-1);
-                    break;
+                    return true;
                 case ConsoleKey.Enter or ConsoleKey.Spacebar:
                     IsDropDownOpen = true;
-                    break;
+                    return true;
+                default:
+                    return false;
             }
         }
     }
@@ -351,20 +355,20 @@ public sealed class ComboBox : Selector
         if (count == 0) return;
 
         var newIndex = Math.Clamp(SelectedIndex + delta, 0, count - 1);
-        SelectedIndex = newIndex;
+        SetCurrentSelectedIndex(newIndex);
     }
 
     private void SelectFirst()
     {
         if (ItemsPanel.Children.Count > 0)
-            SelectedIndex = 0;
+            SetCurrentSelectedIndex(0);
     }
 
     private void SelectLast()
     {
         var count = ItemsPanel.Children.Count;
         if (count > 0)
-            SelectedIndex = count - 1;
+            SetCurrentSelectedIndex(count - 1);
     }
 
     // ─── Drawing Helpers ─────────────────────────────────────────────

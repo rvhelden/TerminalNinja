@@ -245,7 +245,7 @@ public sealed class FolderPicker : Window
 
     // ─── Input ───────────────────────────────────────────────────────
 
-    public override void OnKeyEvent(KeyEvent e)
+    public override bool OnKeyEvent(KeyEvent e)
     {
         if (_searchMode)
         {
@@ -256,6 +256,10 @@ public sealed class FolderPicker : Window
             HandleNormalInput(e);
         }
         InvalidateVisual();
+
+        // A modal picker owns the keyboard for as long as it is open — it browses with the
+        // arrows, filters on any character and closes on Escape — so every key is claimed.
+        return true;
     }
 
     public override void OnMouseEvent(MouseEvent e)

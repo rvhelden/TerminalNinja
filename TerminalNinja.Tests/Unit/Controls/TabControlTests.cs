@@ -1,4 +1,5 @@
 using System.Collections.ObjectModel;
+using TerminalNinja.App;
 
 namespace TerminalNinja.Tests.Unit.Controls;
 
@@ -11,6 +12,84 @@ public class TabControlTests
     {
         var tc = new TabControl();
         await Assert.That(tc.Focusable).IsTrue();
+    }
+
+    [Test]
+    public async Task TabIndex_Default_SortsTheStripLast()
+    {
+        // The strip is at the top of its own subtree, so with the inherited TabIndex 0 the focus
+        // search always landed on it and the content below never saw an arrow key. It stays
+        // focusable — Tab can still reach it — it just goes last.
+        var tc = new TabControl();
+        await Assert.That(tc.TabIndex).IsEqualTo(int.MaxValue);
+    }
+
+    #endregion
+
+    #region Focus follows the selected tab
+
+    [Test]
+    [NotInParallel("ApplicationSingleton")]
+    public async Task FocusSearch_LandsOnTheTabContent_NotTheStrip()
+    {
+        using var app = new Application(new ApplicationOptions { Headless = true });
+
+        var inner = new ListBox();
+        var tc = new TabControl();
+        tc.Items.Add(new TabItem { Header = "one", Content = inner });
+        app.RootControl = tc;
+
+        // GetChildrenWithBounds reports the selected tab only, and the default is -1 until the
+        // first render auto-selects; select explicitly so the search has content to find.
+        tc.SelectedIndex = 0;
+
+        app.FocusManager.FocusNext(tc, new Rect(0, 0, 80, 24));
+
+        await Assert.That(app.FocusManager.FocusedElement).IsEqualTo(inner);
+    }
+
+    [Test]
+    [NotInParallel("ApplicationSingleton")]
+    public async Task ChangingTab_MovesFocusOutOfTheTabThatLeft()
+    {
+        using var app = new Application(new ApplicationOptions { Headless = true });
+
+        var first = new ListBox();
+        var second = new ListBox();
+        var tc = new TabControl();
+        tc.Items.Add(new TabItem { Header = "one", Content = first });
+        tc.Items.Add(new TabItem { Header = "two", Content = second });
+        app.RootControl = tc;
+
+        app.FocusManager.SetFocus(first);
+        tc.SelectedIndex = 1;
+
+        // Left alone, focus would still be on `first`, which GetChildrenWithBounds no longer
+        // reports — it would keep taking keys while the visible list sat inert.
+        await Assert.That(app.FocusManager.FocusedElement).IsNotEqualTo(first);
+    }
+
+    [Test]
+    [NotInParallel("ApplicationSingleton")]
+    public async Task ChangingTab_LeavesFocusElsewhereAlone()
+    {
+        using var app = new Application(new ApplicationOptions { Headless = true });
+
+        var outside = new ListBox();
+        var tc = new TabControl();
+        tc.Items.Add(new TabItem { Header = "one", Content = new ListBox() });
+        tc.Items.Add(new TabItem { Header = "two", Content = new ListBox() });
+
+        var root = new StackPanel();
+        root.Children.Add(outside);
+        root.Children.Add(tc);
+        app.RootControl = root;
+
+        app.FocusManager.SetFocus(outside);
+        tc.SelectedIndex = 1;
+
+        // A tab changed by an application-level shortcut must not yank focus out of a sidebar.
+        await Assert.That(app.FocusManager.FocusedElement).IsEqualTo(outside);
     }
 
     [Test]

@@ -149,12 +149,12 @@ public sealed class BarChart : ChartBase
     }
 
     /// <inheritdoc />
-    public override void OnKeyEvent(KeyEvent e)
+    public override bool OnKeyEvent(KeyEvent e)
     {
         var count = CategoryCount();
         if (count <= 0)
         {
-            return;
+            return false;
         }
 
         // Categories run horizontally for vertical bars, vertically for horizontal bars.
@@ -178,6 +178,12 @@ public sealed class BarChart : ChartBase
         {
             SelectedIndex = count - 1;
         }
+        else
+        {
+            return false;
+        }
+
+        return true;
     }
 
     /// <inheritdoc />

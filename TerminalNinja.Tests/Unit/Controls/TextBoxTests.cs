@@ -407,6 +407,51 @@ public class TextBoxTests
     }
 
     [Test]
+    public async Task ShowBorder_Default_IsTrue()
+    {
+        var tb = new TextBox();
+        await Assert.That(tb.ShowBorder).IsTrue();
+    }
+
+    [Test]
+    public async Task Render_WithoutBorder_FitsASingleRow()
+    {
+        // The whole point of the property: with a frame a TextBox needs three rows before any
+        // text appears, so a one-row filter bar or an inline grid edit was impossible.
+        var tb = new TextBox { Text = "Hello", ShowBorder = false };
+
+        using var buffer = new CellBuffer(20, 1);
+        tb.Render(buffer, new Rect(0, 0, 20, 1));
+
+        await Assert.That(buffer.GetCell(0, 0).Codepoint).IsEqualTo('H');
+        await Assert.That(buffer.GetCell(4, 0).Codepoint).IsEqualTo('o');
+    }
+
+    [Test]
+    public async Task Render_WithoutBorder_DrawsNoFrame()
+    {
+        var tb = new TextBox { Text = "Hi", ShowBorder = false };
+
+        using var buffer = new CellBuffer(20, 3);
+        tb.Render(buffer, new Rect(0, 0, 20, 3));
+
+        // Text at the origin, and the cell the rounded frame's corner would have taken is blank.
+        await Assert.That(buffer.GetCell(0, 0).Codepoint).IsEqualTo('H');
+        await Assert.That(buffer.GetCell(19, 2).Codepoint).IsEqualTo(' ');
+    }
+
+    [Test]
+    public async Task Render_WithBorder_StillInsetsByOne()
+    {
+        var tb = new TextBox { Text = "Hi" };
+
+        using var buffer = new CellBuffer(20, 3);
+        tb.Render(buffer, new Rect(0, 0, 20, 3));
+
+        await Assert.That(buffer.GetCell(1, 1).Codepoint).IsEqualTo('H');
+    }
+
+    [Test]
     public async Task Render_Focused_ShowsCursor()
     {
         var tb = new TextBox { Text = "Hello" };

@@ -59,10 +59,36 @@ public class DependencyObject : INotifyPropertyChanged
     }
 
     /// <summary>
+    /// Sets a dependency property's value <em>without</em> clearing any active expression, so a
+    /// binding attached to it survives and writes the new value back to its source.
+    /// </summary>
+    /// <remarks>
+    /// This is what a control must use when its own input handling changes one of its properties.
+    /// <see cref="SetValue"/> is for a caller stating "this property is now this value, and stop
+    /// listening to whatever was driving it" — which is the right meaning for application code and
+    /// exactly the wrong one for a keypress: an arrow key moving a selection is the control
+    /// reporting a change, not overriding the binding that is supposed to observe it.
+    ///
+    /// Same role and same name as WPF's <c>SetCurrentValue</c>. The absence of it is why arrowing a
+    /// <see cref="Controls.Primitives.Selector"/> used to silently destroy a two-way
+    /// <c>SelectedIndex</c> binding on the first keypress, leaving the control and its view model
+    /// permanently disagreeing with no error anywhere.
+    /// </remarks>
+    public void SetCurrentValue(DependencyProperty dp, object? value)
+    {
+        ArgumentNullException.ThrowIfNull(dp);
+        SetValueCore(dp, value);
+    }
+
+    /// <summary>
     /// Sets the value of a dependency property without clearing any active expression.
     /// Used by <see cref="Expression"/> subclasses to push their computed value
     /// into the property system while keeping the expression attached.
     /// </summary>
+    /// <remarks>
+    /// The internal spelling of <see cref="SetCurrentValue"/>, kept because the property system's
+    /// own call sites read better as "internal" than as "current value".
+    /// </remarks>
     internal void SetValueInternal(DependencyProperty dp, object? value)
     {
         ArgumentNullException.ThrowIfNull(dp);

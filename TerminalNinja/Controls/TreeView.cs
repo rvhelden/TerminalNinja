@@ -535,14 +535,16 @@ public sealed class TreeView : Control
     // ─── Input ───────────────────────────────────────────────────────
 
     /// <inheritdoc />
-    public override void OnKeyEvent(KeyEvent e)
+    public override bool OnKeyEvent(KeyEvent e)
     {
         var nodes = FlattenVisibleNodes();
-        if (nodes.Count == 0) return;
+        if (nodes.Count == 0) return false;
 
         var currentIdx = SelectedItem != null
             ? nodes.FindIndex(n => n.Item == SelectedItem)
             : -1;
+
+        var handled = true;
 
         switch (e.Key)
         {
@@ -595,9 +597,14 @@ public sealed class TreeView : Control
                 if (nodes.Count > 0)
                     SelectedItem = nodes[^1].Item;
                 break;
+
+            default:
+                handled = false;
+                break;
         }
 
         InvalidateVisual();
+        return handled;
     }
 
     /// <inheritdoc />

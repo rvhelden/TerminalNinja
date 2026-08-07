@@ -624,6 +624,23 @@ public sealed class Application : IDisposable
     /// </summary>
     private void HandleKeyEvent(KeyEvent keyEvent)
     {
+        // A focused text field gets first refusal on the characters being typed into it, ahead of
+        // the application's own shortcuts. In a terminal application those shortcuts are bare
+        // letters, and without this the 'q' in "query" quits: an inline input was impossible, and
+        // any typing surface had to be modal so the application could tell the two cases apart.
+        //
+        // Deliberately narrow. Only printable characters with no Ctrl or Alt divert, so arrows,
+        // Enter, Escape, Tab and every chord still reach KeyDown first — a field cannot swallow
+        // the keys that commit or dismiss it, and a control that merely uses the arrow keys does
+        // not get to shadow a global binding.
+        if (keyEvent is { KeyChar: >= ' ', Ctrl: false, Alt: false }
+            && FocusManager.FocusedElement is { WantsTextInput: true } typing
+            && typing.OnKeyEvent(keyEvent))
+        {
+            Invalidate();
+            return;
+        }
+
         // Allow custom handling first
         if (KeyDown is not null)
         {

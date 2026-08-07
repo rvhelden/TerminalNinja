@@ -18,6 +18,13 @@ public sealed class TabControl : Selector
     public TabControl()
     {
         DefaultStyleKey = typeof(TabControl);
+
+        // Sort last in tab order rather than first. The strip sits at the top of its own subtree
+        // and FocusManager orders by TabIndex then Y, so with the inherited 0 the control always
+        // won the focus search — focus landed on the strip and every key, including up and down,
+        // went to OnKeyEvent here, which handles only left and right. The list the user was
+        // looking at never saw a key. The strip is still reachable, just after its content.
+        TabIndex = int.MaxValue;
     }
 
     // ─── Dependency Properties ───────────────────────────────────────
@@ -51,6 +58,50 @@ public sealed class TabControl : Selector
     }
 
     // ─── Container Generation ────────────────────────────────────────
+
+    /// <summary>
+    /// Moves focus out of the tab that just left, so keys follow the content on screen.
+    /// </summary>
+    /// <remarks>
+    /// <see cref="GetChildrenWithBounds"/> reports only the selected tab's content, so after a tab
+    /// change a focused element in the old tab is no longer reachable from anywhere — yet
+    /// <see cref="Input.FocusManager"/> still holds it and still delivers keys to it. The symptom is
+    /// nasty: the list on screen sits inert while the arrow keys drive an invisible one behind it.
+    ///
+    /// Only focus that was inside this control is moved. A tab changed from elsewhere — a shortcut
+    /// handled at application level while focus sits in a sidebar — leaves that focus alone.
+    /// </remarks>
+    protected override void OnSelectionChanged(IList<object> removed, IList<object> added)
+    {
+        base.OnSelectionChanged(removed, added);
+
+        var focusManager = App.Application.Current?.FocusManager;
+        if (focusManager?.FocusedElement is not { } focused || ReferenceEquals(focused, this))
+        {
+            return;
+        }
+
+        // Was the focus inside the tab that just left? Walk up rather than down: the old subtree
+        // is exactly what is no longer enumerable from here.
+        var insideThisControl = false;
+        for (Visual? ancestor = focused; ancestor is not null; ancestor = ancestor.Parent)
+        {
+            if (ReferenceEquals(ancestor, this))
+            {
+                insideThisControl = true;
+                break;
+            }
+        }
+
+        if (!insideThisControl)
+        {
+            return;
+        }
+
+        var viewport = App.Application.Current?.Renderer?.Viewport ?? default;
+        focusManager.ClearFocus();
+        focusManager.FocusNext(this, viewport);
+    }
 
     /// <inheritdoc />
     protected override bool IsItemItsOwnContainer(object item) => item is TabItem;
@@ -127,8 +178,10 @@ public sealed class TabControl : Selector
         var tabs = GetTabItems();
         if (tabs.Count == 0) return;
 
-        // Auto-select first tab if none selected
-        if (SelectedIndex < 0) SelectedIndex = 0;
+        // Auto-select first tab if none selected. SetCurrentSelectedIndex, not the setter: this
+        // runs during render, and detaching a two-way SelectedIndex binding on the first paint
+        // would break it before the user had touched anything.
+        if (SelectedIndex < 0) SetCurrentSelectedIndex(0);
 
         var accentColor = IsFocused ? FocusColor : Foreground;
         var mutedFg = DimColor(Foreground);
@@ -249,25 +302,27 @@ public sealed class TabControl : Selector
     // ─── Input ───────────────────────────────────────────────────────
 
     /// <inheritdoc />
-    public override void OnKeyEvent(KeyEvent e)
+    public override bool OnKeyEvent(KeyEvent e)
     {
         var count = ItemsPanel.Children.Count;
-        if (count == 0) return;
+        if (count == 0) return false;
 
         switch (e.Key)
         {
             case ConsoleKey.RightArrow:
-                SelectedIndex = Math.Min(SelectedIndex + 1, count - 1);
-                break;
+                SetCurrentSelectedIndex(Math.Min(SelectedIndex + 1, count - 1));
+                return true;
             case ConsoleKey.LeftArrow:
-                SelectedIndex = Math.Max(SelectedIndex - 1, 0);
-                break;
+                SetCurrentSelectedIndex(Math.Max(SelectedIndex - 1, 0));
+                return true;
             case ConsoleKey.Home:
-                SelectedIndex = 0;
-                break;
+                SetCurrentSelectedIndex(0);
+                return true;
             case ConsoleKey.End:
-                SelectedIndex = count - 1;
-                break;
+                SetCurrentSelectedIndex(count - 1);
+                return true;
+            default:
+                return false;
         }
     }
 
