@@ -272,13 +272,17 @@ public sealed class DataGrid : Selector
         {
             var row = _scrollOffset + visibleRow;
             var item = items[row];
-            var isSelected = _itemContainers.TryGetValue(item, out var container) &&
-                             container is ISelectableContainer sc && sc.IsSelected;
+
+            // From the selection itself, not from a container's IsSelected flag. Virtualized
+            // there are no containers to ask — the grid renders cells straight from the items —
+            // and the row index is the source of truth that SelectedIndex already indexes.
+            var isSelected = row == SelectedIndex;
             var fg = isSelected ? SelectedForeground : Foreground;
             var bg = isSelected ? SelectedBackground : Background;
 
-            var dataItem = _itemContainers.TryGetValue(item, out var cnt) && cnt is ListViewItem lvi
-                ? lvi.Content ?? item : item;
+            // Unwrapped from the item, for the same reason: a ListViewItem placed directly in the
+            // collection is its own container, so the content is reachable without the dictionary.
+            var dataItem = item is ListViewItem lvi ? lvi.Content ?? item : item;
 
             var rowY = bounds.Y + HeaderRowCount + visibleRow;
             if (isSelected)

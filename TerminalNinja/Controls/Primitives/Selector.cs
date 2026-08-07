@@ -258,20 +258,5 @@ public abstract class Selector : ItemsControl
     /// Protected so derived selectors (e.g. DataGrid) can render rows in the same
     /// order that <see cref="SelectedIndex"/> indexes.
     /// </summary>
-    protected List<object> GetEffectiveItems()
-    {
-        var source = ItemsSource ?? Items;
-        var list = new List<object>();
-        if (source != null)
-        {
-            foreach (var item in source)
-            {
-                if (item != null)
-                {
-                    list.Add(item);
-                }
-            }
-        }
-        return list;
-    }
+    protected List<object> GetEffectiveItems() => EffectiveItems;
 }

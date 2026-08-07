@@ -203,7 +203,9 @@ public class ListBox : Selector
     /// </summary>
     private void MoveSelection(int delta)
     {
-        var count = ItemsPanel.Children.Count;
+        // EffectiveItems, not ItemsPanel.Children: virtualized, the children are the screenful
+        // currently realised, so selection would stop at the bottom of the first page.
+        var count = EffectiveItems.Count;
         if (count == 0)
         {
             return;
@@ -231,7 +233,7 @@ public class ListBox : Selector
     /// </summary>
     private void SelectFirst()
     {
-        if (ItemsPanel.Children.Count > 0)
+        if (EffectiveItems.Count > 0)
         {
             SetCurrentSelectedIndex(0);
             ScrollSelectedIntoView();
@@ -243,7 +245,7 @@ public class ListBox : Selector
     /// </summary>
     private void SelectLast()
     {
-        var count = ItemsPanel.Children.Count;
+        var count = EffectiveItems.Count;
         if (count > 0)
         {
             SetCurrentSelectedIndex(count - 1);
@@ -297,7 +299,7 @@ public class ListBox : Selector
                 InvalidateVisual();
                 break;
             case MouseAction.ScrollDown:
-                _scrollOffset = Math.Min(Math.Max(0, ItemsPanel.Children.Count - 1), _scrollOffset + 3);
+                _scrollOffset = Math.Min(Math.Max(0, EffectiveItems.Count - 1), _scrollOffset + 3);
                 InvalidateVisual();
                 break;
         }
@@ -331,19 +333,26 @@ public class ListBox : Selector
         var bgCell = new Cell(' ', Foreground, Background);
         buffer.FillRect(clipped, bgCell);
 
-        var children = ItemsPanel.Children;
+        var itemCount = EffectiveItems.Count;
         var viewportHeight = bounds.Height;
 
         // Ensure selected item is visible
         EnsureSelectedVisible(viewportHeight);
 
         // Clamp scroll offset
-        _scrollOffset = Math.Clamp(_scrollOffset, 0, Math.Max(0, children.Count - viewportHeight));
+        _scrollOffset = Math.Clamp(_scrollOffset, 0, Math.Max(0, itemCount - viewportHeight));
 
-        // Render only the visible items
-        for (var i = 0; i < viewportHeight && _scrollOffset + i < children.Count; i++)
+        // Build containers for the window about to be drawn. Unvirtualized this is a no-op and
+        // the children are already the whole list, which is why the loop below indexes them
+        // relative to the realised start rather than absolutely.
+        RealizeRange(_scrollOffset, viewportHeight);
+
+        var children = ItemsPanel.Children;
+        var firstChild = IsVirtualizing ? 0 : _scrollOffset;
+
+        for (var i = 0; i < viewportHeight && firstChild + i < children.Count; i++)
         {
-            var child = children[_scrollOffset + i];
+            var child = children[firstChild + i];
             var itemBounds = new Rect(bounds.X, bounds.Y + i, bounds.Width, 1);
             child.Render(buffer, itemBounds);
         }

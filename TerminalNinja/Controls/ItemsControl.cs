@@ -32,6 +32,11 @@ public class ItemsControl : Control
             new FrameworkPropertyMetadata(null, affectsRender: true,
                 propertyChangedCallback: (d, _) => ((ItemsControl)d).RefreshItems()));
 
+    public static readonly DependencyProperty IsVirtualizingProperty =
+        DependencyProperty.Register(nameof(IsVirtualizing), typeof(bool), typeof(ItemsControl),
+            new FrameworkPropertyMetadata(false, affectsRender: true,
+                propertyChangedCallback: (d, _) => ((ItemsControl)d).RefreshItems()));
+
     public static readonly DependencyProperty ItemsPanelProperty =
         DependencyProperty.Register(nameof(ItemsPanel), typeof(Panel), typeof(ItemsControl),
             new FrameworkPropertyMetadata(null, affectsRender: true,
@@ -57,6 +62,67 @@ public class ItemsControl : Control
     }
 
     private readonly ObservableCollection<object> _items = new();
+
+    /// <summary>
+    /// The item list, materialised. Null when it must be rebuilt.
+    /// </summary>
+    /// <remarks>
+    /// Rebuilding it per call meant a full allocation and walk of the collection on every frame —
+    /// <see cref="DataGrid"/> asks for it once per render — which is most of what "no
+    /// virtualization" actually cost on a long list.
+    /// </remarks>
+    private List<object>? _effectiveItems;
+
+    /// <summary>
+    /// Whether the current source announces its own changes, and so can be cached safely.
+    /// </summary>
+    /// <remarks>
+    /// A plain <see cref="IEnumerable"/> can be mutated with nothing raised, and the old
+    /// re-enumerate-every-time behaviour quietly tolerated that. Caching such a source would turn
+    /// a working screen into a stale one, so it is left uncached; anything observable — including
+    /// this control's own <see cref="Items"/> — is cached and invalidated on notification.
+    /// </remarks>
+    private bool SourceIsObservable => ItemsSource is null or INotifyCollectionChanged;
+
+    /// <summary>Drops the materialised item list so the next read rebuilds it.</summary>
+    protected void InvalidateItems() => _effectiveItems = null;
+
+    /// <summary>
+    /// The items to display, in order, materialised as a list.
+    /// </summary>
+    /// <remarks>
+    /// This is the order <c>SelectedIndex</c> indexes and the order rows render in — not
+    /// <see cref="_itemContainers"/>, whose dictionary order is not guaranteed, and not
+    /// <c>ItemsPanel.Children</c>, which under virtualization holds only the realised window.
+    /// </remarks>
+    protected List<object> EffectiveItems
+    {
+        get
+        {
+            if (_effectiveItems is { } cached && SourceIsObservable)
+            {
+                return cached;
+            }
+
+            var list = new List<object>();
+            var source = ItemsSource ?? Items;
+
+            if (source != null)
+            {
+                foreach (var item in source)
+                {
+                    if (item != null)
+                    {
+                        list.Add(item);
+                    }
+                }
+            }
+
+            _effectiveItems = list;
+            return list;
+        }
+    }
+
     
     /// <summary>
     /// Maps data items to their generated UI containers.
@@ -110,6 +176,109 @@ public class ItemsControl : Control
     {
         get => (DataTemplate?)GetValue(ItemTemplateProperty);
         set => SetValue(ItemTemplateProperty, value);
+    }
+
+    /// <summary>
+    /// Whether containers are created only for the items currently on screen.
+    /// </summary>
+    /// <remarks>
+    /// Off by default, because a bare <see cref="ItemsControl"/> renders every child it has and
+    /// has no notion of a viewport — virtualizing it would simply hide most of the list. It is on
+    /// by default in <see cref="ListBox"/> and <see cref="DataGrid"/>, which scroll and already
+    /// draw only the rows that fit.
+    ///
+    /// Unvirtualized, a container is built for every item up front: ten thousand rows meant ten
+    /// thousand live controls to show the thirty that fit. Virtualized, the control calls
+    /// <see cref="RealizeRange"/> for the window it is about to draw and
+    /// <c>ItemsPanel.Children</c> holds only that window — so a consumer must index the children
+    /// relative to the realised range, not by absolute item index.
+    /// </remarks>
+    public bool IsVirtualizing
+    {
+        get => (bool)GetValue(IsVirtualizingProperty)!;
+        set => SetValue(IsVirtualizingProperty, value);
+    }
+
+    /// <summary>The index of the first realised item, or 0 when nothing is realised.</summary>
+    protected int RealizedStart { get; private set; }
+
+    /// <summary>
+    /// Ensures the panel holds containers for exactly <paramref name="count"/> items starting at
+    /// <paramref name="start"/>, and nothing else.
+    /// </summary>
+    /// <remarks>
+    /// Containers already realised for items still in the window are reused rather than rebuilt,
+    /// so scrolling by a row recreates one container, not a screenful — and a container that
+    /// carries state a template put there survives the scroll.
+    ///
+    /// A no-op when <see cref="IsVirtualizing"/> is false, so a control can call it
+    /// unconditionally before rendering.
+    /// </remarks>
+    protected void RealizeRange(int start, int count)
+    {
+        if (!IsVirtualizing)
+        {
+            return;
+        }
+
+        var items = EffectiveItems;
+        start = Math.Clamp(start, 0, Math.Max(0, items.Count - 1));
+        count = Math.Clamp(count, 0, Math.Max(0, items.Count - start));
+
+        // Drop containers for items that have scrolled out of the window. Done first so a long
+        // jump does not hold both windows at once.
+        if (_itemContainers.Count > 0)
+        {
+            List<object>? evicted = null;
+            foreach (var item in _itemContainers.Keys)
+            {
+                var index = items.IndexOf(item);
+                if (index < start || index >= start + count)
+                {
+                    (evicted ??= []).Add(item);
+                }
+            }
+
+            if (evicted is not null)
+            {
+                foreach (var item in evicted)
+                {
+                    if (_itemContainers.Remove(item, out var container))
+                    {
+                        ItemsPanel.Children.Remove(container);
+                    }
+                }
+            }
+        }
+
+        // Realise the window in order. Children is rebuilt positionally rather than patched:
+        // the window is one screenful, so the cost is trivial next to getting the order wrong.
+        ItemsPanel.Children.Clear();
+
+        for (var i = 0; i < count; i++)
+        {
+            var item = items[start + i];
+
+            if (!_itemContainers.TryGetValue(item, out var container))
+            {
+                container = GenerateContainer(item);
+                if (container is null)
+                {
+                    continue;
+                }
+
+                _itemContainers[item] = container;
+            }
+            else
+            {
+                // Reused: its selection state may have moved on since it was built.
+                PrepareContainerForItem(container, item);
+            }
+
+            ItemsPanel.Children.Add(container);
+        }
+
+        RealizedStart = start;
     }
 
     /// <summary>
@@ -175,6 +344,17 @@ public class ItemsControl : Control
     /// </summary>
     private void OnCollectionChanged(object? sender, NotifyCollectionChangedEventArgs e)
     {
+        InvalidateItems();
+
+        // Virtualized, there is no per-item container to insert, move or drop — the next render
+        // realises whatever window is current. Incremental patching here would be work spent on
+        // containers that mostly do not exist.
+        if (IsVirtualizing)
+        {
+            InvalidateVisual();
+            return;
+        }
+
         switch (e.Action)
         {
             case NotifyCollectionChangedAction.Add:
@@ -285,8 +465,20 @@ public class ItemsControl : Control
             return;
         }
 
+        InvalidateItems();
+
         ItemsPanel.Children.Clear();
         _itemContainers.Clear();
+        RealizedStart = 0;
+
+        // Virtualized, the containers are the render pass's business: it calls RealizeRange for
+        // the window it is about to draw. Building them all here is exactly what virtualization
+        // exists to avoid.
+        if (IsVirtualizing)
+        {
+            InvalidateVisual();
+            return;
+        }
 
         var source = ItemsSource ?? Items;
         if (source == null)

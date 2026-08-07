@@ -84,23 +84,41 @@ public class AsyncRelayCommand : ICommand
             completionScheduler);
     }
 
+    /// <summary>
+    /// Ends the run: reports the failure if there was one, then clears the executing flag.
+    /// </summary>
+    /// <remarks>
+    /// The handler runs <em>before</em> the flag clears, so "no longer executing" means finished
+    /// including its failure handling. Clearing first left a window in which a caller watching
+    /// <see cref="IsExecuting"/> or <see cref="CanExecuteChanged"/> saw the command as done while
+    /// the exception had not been reported yet — a race that showed up as an intermittently null
+    /// captured exception, which reads as "the handler never fired".
+    ///
+    /// The flag clears in a finally so a throwing handler — or the rethrow below when there is no
+    /// handler — cannot leave the command stuck as permanently executing.
+    /// </remarks>
     private void Complete(Exception? exception)
     {
-        _isExecuting = false;
-        RaiseCanExecuteChanged();
+        try
+        {
+            if (exception is null)
+            {
+                return;
+            }
 
-        if (exception is null)
-        {
-            return;
+            if (_onException is not null)
+            {
+                _onException(exception);
+            }
+            else
+            {
+                throw exception;
+            }
         }
-
-        if (_onException is not null)
+        finally
         {
-            _onException(exception);
-        }
-        else
-        {
-            throw exception;
+            _isExecuting = false;
+            RaiseCanExecuteChanged();
         }
     }
 
