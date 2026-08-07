@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [versionize](https://github.com/versionize/versionize) for commit guidelines.
 
+<a name="1.4.0"></a>
+## [1.4.0](https://www.github.com/rvhelden/TerminalNinja/releases/tag/v1.4.0) (2026-08-07)
+
+### Features
+
+* Introduce Dispatcher, async commands, data-bound TreeView, and Unix mouse input ([85fb5c3](https://www.github.com/rvhelden/TerminalNinja/commit/85fb5c361b07a207d7c36711697701feec75f8c2))
+
 <a name="1.3.0"></a>
 ## [1.3.0](https://www.github.com/rvhelden/TerminalNinja/releases/tag/v1.3.0) (2026-08-06)
 
