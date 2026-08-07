@@ -48,23 +48,34 @@ public sealed class XamlLayoutGenerator : IIncrementalGenerator
             .Where(static info => info.Content != null)
             .Collect();
 
-        var combined = context.CompilationProvider.Combine(xamlFiles);
+        // The namespace for the generated XamlLayouts class (and the fallback resource-name
+        // prefix) is the project's RootNamespace, not the assembly name — they differ when a
+        // project sets a custom AssemblyName (e.g. a lowercase binary name), and generating
+        // into a namespace named after the binary puts the manifests where no code lives.
+        var rootNamespace = context.AnalyzerConfigOptionsProvider
+            .Select(static (provider, _) =>
+                provider.GlobalOptions.TryGetValue("build_property.RootNamespace", out var ns)
+                && !string.IsNullOrWhiteSpace(ns)
+                    ? ns
+                    : null);
+
+        var combined = context.CompilationProvider.Combine(xamlFiles).Combine(rootNamespace);
 
         context.RegisterSourceOutput(combined, Execute);
     }
 
     private static void Execute(SourceProductionContext context,
-        (Compilation Compilation, ImmutableArray<XamlLayoutFileInfo> XamlFiles) input)
+        ((Compilation Compilation, ImmutableArray<XamlLayoutFileInfo> XamlFiles) Left, string? RootNamespace) input)
     {
-        var compilation = input.Compilation;
-        var xamlFiles = input.XamlFiles;
+        var compilation = input.Left.Compilation;
+        var xamlFiles = input.Left.XamlFiles;
 
         if (xamlFiles.IsDefaultOrEmpty)
         {
             return;
         }
 
-        var assemblyName = compilation.AssemblyName ?? "Generated";
+        var rootNamespace = input.RootNamespace ?? compilation.AssemblyName ?? "Generated";
 
         // Phase 1: Parse all XAML files and collect metadata
         var layouts = new List<XamlLayoutModel>();
@@ -74,7 +85,7 @@ public sealed class XamlLayoutGenerator : IIncrementalGenerator
         {
             try
             {
-                var model = ParseXamlFile(xamlFile, assemblyName);
+                var model = ParseXamlFile(xamlFile, rootNamespace);
                 if (model != null)
                 {
                     layouts.Add(model);
@@ -163,7 +174,7 @@ public sealed class XamlLayoutGenerator : IIncrementalGenerator
             }).ToArray();
 
             var scriptObject = new ScriptObject();
-            scriptObject.Add("namespace", assemblyName);
+            scriptObject.Add("namespace", rootNamespace);
             scriptObject.Add("layouts", layoutModels);
 
             var templateContext = new TemplateContext();
@@ -192,7 +203,7 @@ public sealed class XamlLayoutGenerator : IIncrementalGenerator
     /// Parses a single XAML file to extract its metadata: resource name, x:Class, field name,
     /// and raw dependency references.
     /// </summary>
-    private static XamlLayoutModel? ParseXamlFile(XamlLayoutFileInfo xamlFile, string assemblyName)
+    private static XamlLayoutModel? ParseXamlFile(XamlLayoutFileInfo xamlFile, string rootNamespace)
     {
         if (string.IsNullOrWhiteSpace(xamlFile.Content))
         {
@@ -221,7 +232,7 @@ public sealed class XamlLayoutGenerator : IIncrementalGenerator
         {
             // Fallback: use filename only
             var fileName = Path.GetFileName(xamlFile.FilePath);
-            resourceName = $"{assemblyName}.{fileName}";
+            resourceName = $"{rootNamespace}.{fileName}";
         }
 
         // Determine x:Class (if present)
@@ -332,7 +343,7 @@ public sealed class XamlLayoutGenerator : IIncrementalGenerator
             // Convert relative path to resource name convention
             // e.g., "Themes/Default.xaml" → "{AssemblyName}.Themes.Default.xaml"
             var normalized = source.Replace('/', '.').Replace('\\', '.');
-            var dictResourceName = $"{assemblyName}.{normalized}";
+            var dictResourceName = $"{rootNamespace}.{normalized}";
             rawDependencies.Add(new RawDependency(DependencyKind.MergedDictionary, dictResourceName));
         }
 

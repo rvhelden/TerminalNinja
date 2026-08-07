@@ -117,6 +117,31 @@ public readonly struct AxisScale
         return Trim(value);
     }
 
+    /// <summary>
+    /// Formats a duration in milliseconds for display, promoting to seconds/minutes/hours
+    /// instead of the numeric k/M suffixes — 3996.7 reads as "4s", not "4kms".
+    /// </summary>
+    public static string FormatDurationMs(double ms)
+    {
+        var abs = Math.Abs(ms);
+        if (abs >= 3_600_000)
+        {
+            return Trim(ms / 3_600_000) + "h";
+        }
+
+        if (abs >= 60_000)
+        {
+            return Trim(ms / 60_000) + "m";
+        }
+
+        if (abs >= 1_000)
+        {
+            return Trim(ms / 1_000) + "s";
+        }
+
+        return Trim(ms) + "ms";
+    }
+
     private static string Trim(double value)
     {
         // Up to two decimals, no trailing zeros.

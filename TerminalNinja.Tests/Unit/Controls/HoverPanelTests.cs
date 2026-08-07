@@ -297,6 +297,7 @@ public class HoverPanelTests
         {
             Headless = true,
             InputBackend = backend,
+            EscapeQuits = true, // the second Escape is this test's exit hatch
         });
         app.RootControl = new Window();
 
@@ -339,6 +340,7 @@ public class HoverPanelTests
         {
             Headless = true,
             InputBackend = backend,
+            EscapeQuits = true, // the final Escape is this test's exit hatch
         });
         app.RootControl = new Window();
 

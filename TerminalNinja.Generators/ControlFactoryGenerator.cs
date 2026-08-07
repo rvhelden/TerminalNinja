@@ -92,6 +92,14 @@ public sealed class ControlFactoryGenerator : IIncrementalGenerator
             return null;
         }
 
+        // Honour the opt-out: [SkipFactoryRegistration] marks a type (typically a view model
+        // with constructor dependencies) that is never instantiated from XAML. Property
+        // accessors are still generated, so binding keeps working.
+        if (symbol.GetAttributes().Any(a => a.AttributeClass?.Name == "SkipFactoryRegistrationAttribute"))
+        {
+            return null;
+        }
+
         // Check if it implements IControl
         if (GeneratorHelper.IsTargetType(symbol))
         {

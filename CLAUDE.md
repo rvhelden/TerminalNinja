@@ -25,6 +25,11 @@ Native AOT compilation is a core requirement. All code must be compatible:
 - No `Activator.CreateInstance`, `System.Reflection.Emit`, expression trees, `Type.GetType(string)`
 - Use source generators for property accessors, control factories, and XAML code-behind
 - All types auto-discovered by generators — no manual registration needed
+- The control-factory generator registers every non-abstract bindable type (including
+  `ViewModelBase` subclasses) with a `static () => new T()` factory, which requires a
+  parameterless constructor. Apply `[SkipFactoryRegistration]` (TerminalNinja.Aot) to view
+  models with constructor dependencies that are never instantiated from XAML — property
+  accessors for binding are still generated.
 
 ## Feature Development Process
 
@@ -88,9 +93,10 @@ TerminalNinja is a WPF-like terminal UI framework with XAML support:
 - **Themes**: ThemeResourceKeys, Dark.xaml, Dracula.xaml, GruvboxDark.xaml + custom theme loading via `Application.LoadThemeFromFile/LoadThemeFromXaml`
 - **XAML**: TerminalXaml, XamlLoader, Binding system (Binding, BindingExpression, PropertyPath, RelativeSource), IValueConverter, ViewModelBase, TypeConverters
 - **Aot**: PropertyAccessorRegistry, ControlFactoryRegistry, TypeNameRegistry, TypeConverterRegistry, ContentPropertyRegistry
-- **App**: Application (event loop, theme loading, overlay stack, focus management)
+- **App**: Application (event loop, theme loading, overlay stack, focus management), Dispatcher (cross-thread work marshalled to the top of each frame via `Application.Dispatcher.Post`), DispatcherSynchronizationContext (installed by `Application.Run` so await continuations resume on the UI thread; ProcessTick-driven hosts call `Application.InstallSynchronizationContext()`)
+- **Commands**: ICommand (custom, not System.Windows.Input), RelayCommand, AsyncRelayCommand (disables while running, completes via the current SynchronizationContext)
 - **Input**: InputReader, KeyEvent, MouseEvent, FocusManager
-- **Rendering/Ansi/Console/Platform**: Terminal rendering infrastructure
+- **Rendering/Ansi/Console/Platform**: Terminal rendering infrastructure, FrameCapture (renders a control tree into a CellBuffer and returns it as plain text or ANSI — the way to verify a layout headlessly from a script or test)
 
 ### Key Design Patterns
 
@@ -214,10 +220,19 @@ All CLR namespaces mapped to `http://schemas.terminalninja.dev/xaml` via `XmlnsD
 ### Loading XAML
 
 ```csharp
-var window = TerminalXaml.Parse<Window>(xamlString);
-var window = TerminalXaml.LoadFromFile<Window>("DemoLayout.xaml");
+// From a generated layout manifest (the usual path — one IXamlLayout field per .xaml file,
+// generated into the project's RootNamespace as {RootNamespace}.XamlLayouts):
+var window = TerminalXaml.Load<Window>(XamlLayouts.ShellLayout, viewModel);
+
+// From a raw XAML string or stream:
+var window = TerminalXaml.Load<Window>(xamlString);
+var window = TerminalXaml.LoadFromStream<Window>(stream, dataContext);
 window.Show();
 ```
+
+There is no `TerminalXaml.Parse<T>` or `TerminalXaml.LoadFromFile<T>`. Only `.xaml` files are
+globbed by `TerminalNinja.targets` (not `.axaml`); embedded resource logical names follow
+`{RootNamespace}.{Path.To.File}.xaml`.
 
 ### Type Converters
 

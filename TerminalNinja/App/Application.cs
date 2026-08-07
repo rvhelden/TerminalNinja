@@ -34,6 +34,10 @@ public sealed class Application : IDisposable
     private bool _running;
     private bool _invalidated = true;
     private bool _disposed;
+
+    // Signalled by Dispatcher.Post and Exit so the Run loop wakes immediately
+    // instead of sleeping out the remainder of the frame delay.
+    private readonly ManualResetEventSlim _frameSignal = new(false);
     
     // Overlay / modal stack
     private readonly List<OverlayEntry> _overlayStack = [];
@@ -59,6 +63,15 @@ public sealed class Application : IDisposable
     /// Gets the focus manager for this application.
     /// </summary>
     public FocusManager FocusManager { get; }
+
+    /// <summary>
+    /// Gets the dispatcher used to marshal work onto the UI thread.
+    /// Work posted from background threads (timers, await continuations) is drained at the
+    /// top of each frame, before input processing and rendering — the only point where the
+    /// visual tree is known not to be rendering. A post also wakes the <see cref="Run"/> loop,
+    /// so queued work never waits out the frame delay.
+    /// </summary>
+    public Dispatcher Dispatcher { get; }
 
     /// <summary>
     /// Clipboard accessor. Defaults to a <see cref="ProcessClipboard"/> so
@@ -378,6 +391,11 @@ public sealed class Application : IDisposable
             Renderer = new Renderer();
             _inputReader = new InputReader();
 
+            // A real terminal gets a real clipboard: OSC 52 asks the emulator itself to set the
+            // system clipboard, so copy works without platform binaries and over SSH. Headless
+            // and embedded hosts keep the in-process default (or wire their own).
+            Clipboard = new Osc52Clipboard();
+
             // Safety net: if Ctrl+C somehow gets delivered as a POSIX signal
             // (e.g. TreatControlCAsInput wasn't effective), cancel the default
             // process termination and request a graceful exit instead.
@@ -385,6 +403,7 @@ public sealed class Application : IDisposable
         }
 
         FocusManager = new FocusManager();
+        Dispatcher = new Dispatcher(WakeLoop);
 
         if (_options.EnableMouseTracking)
         {
@@ -415,6 +434,12 @@ public sealed class Application : IDisposable
     /// </summary>
     public bool ProcessTick()
     {
+        // Apply pending cross-thread work before input and rendering, never during.
+        if (Dispatcher.Drain())
+        {
+            Invalidate();
+        }
+
         ProcessInput();
 
         if (!_invalidated || _rootControl is null)
@@ -470,7 +495,33 @@ public sealed class Application : IDisposable
     public void Exit()
     {
         _running = false;
+        WakeLoop();
     }
+
+    /// <summary>
+    /// Wakes the <see cref="Run"/> loop. Safe to call from any thread, including after
+    /// Dispose — a straggling background post must not crash on the disposed wait handle.
+    /// </summary>
+    private void WakeLoop()
+    {
+        try
+        {
+            _frameSignal.Set();
+        }
+        catch (ObjectDisposedException)
+        {
+            // Disposed mid-post; the loop is gone, nothing to wake.
+        }
+    }
+
+    /// <summary>
+    /// Installs a <see cref="DispatcherSynchronizationContext"/> on the calling thread, so
+    /// continuations of awaits started on that thread resume through the <see cref="Dispatcher"/>
+    /// instead of the thread pool. <see cref="Run"/> does this automatically; call it yourself
+    /// when driving <see cref="ProcessTick"/> from your own loop.
+    /// </summary>
+    public void InstallSynchronizationContext() =>
+        SynchronizationContext.SetSynchronizationContext(new DispatcherSynchronizationContext(Dispatcher));
     
     /// <summary>
     /// Safety-net handler for Console.CancelKeyPress (Ctrl+C delivered as a signal).
@@ -484,56 +535,46 @@ public sealed class Application : IDisposable
     
     /// <summary>
     /// Runs the application event loop.
-    /// Blocks until Exit() is called or an Escape key is pressed.
+    /// Blocks until Exit() is called.
     /// </summary>
     public void Run()
     {
         _running = true;
-        
-        while (_running)
-        {
-            // Process input events
-            ProcessInput();
-            
-            // Render if needed
-            if (_invalidated && _rootControl is not null)
-            {
-                Renderer.Clear();
-                Renderer.Draw(_rootControl);
-                
-                // Render overlays on top (bottom to top order)
-                foreach (var overlay in _overlayStack)
-                {
-                    if (overlay.DimBackground)
-                    {
-                        Renderer.DimBackground();
-                    }
 
-                    Renderer.DrawOverlay(overlay.Element);
-                }
-                
-                Renderer.Present();
-                _invalidated = false;
-                
-                // Capture time to first render
-                TimeToFirstRender ??= DateTime.UtcNow - _startTime;
-                
-                // Track frame for FPS calculation
-                _frameCount++;
-            }
-            
-            // Update FPS counter every second
-            var now = DateTime.UtcNow;
-            var elapsed = (now - _lastFpsUpdate).TotalSeconds;
-            if (elapsed >= 1.0)
+        // Continuations of awaits started on this thread resume through the Dispatcher.
+        // Restored on exit: leaving the context installed on a thread that outlives the loop
+        // (a test worker, a re-used host thread) would strand later continuations on a
+        // dispatcher nobody drains.
+        var previousContext = SynchronizationContext.Current;
+        InstallSynchronizationContext();
+
+        try
+        {
+            while (_running)
             {
-                CurrentFps = (int)(_frameCount / elapsed);
-                _frameCount = 0;
-                _lastFpsUpdate = now;
+                // Drain dispatcher work, process input and render (one frame).
+                ProcessTick();
+
+                // Update FPS counter every second
+                var now = DateTime.UtcNow;
+                var elapsed = (now - _lastFpsUpdate).TotalSeconds;
+                if (elapsed >= 1.0)
+                {
+                    CurrentFps = (int)(_frameCount / elapsed);
+                    _frameCount = 0;
+                    _lastFpsUpdate = now;
+                }
+
+                // Limit frame rate, but wake immediately when work is posted or Exit is called.
+                // Reset AFTER the wait: a Set that lands between the drain above and this wait
+                // makes the wait return immediately instead of being lost.
+                _frameSignal.Wait(_options.FrameDelayMs);
+                _frameSignal.Reset();
             }
-            
-            // Limit frame rate
-            Thread.Sleep(_options.FrameDelayMs);
+        }
+        finally
+        {
+            SynchronizationContext.SetSynchronizationContext(previousContext);
         }
     }
     
@@ -887,5 +928,6 @@ public sealed class Application : IDisposable
         _hotReloadWatcher?.Dispose();
         _inputReader.Dispose();
         Renderer.Dispose();
+        _frameSignal.Dispose();
     }
 }

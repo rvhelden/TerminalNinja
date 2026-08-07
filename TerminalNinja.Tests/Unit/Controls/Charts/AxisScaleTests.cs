@@ -74,4 +74,16 @@ public class AxisScaleTests
     {
         await Assert.That(AxisScale.FormatTick(value)).IsEqualTo(expected);
     }
+
+    [Test]
+    [Arguments(0.0, "0ms")]
+    [Arguments(42.5, "42.5ms")]
+    [Arguments(996.0, "996ms")]
+    [Arguments(3996.7, "4s")]
+    [Arguments(90_000.0, "1.5m")]
+    [Arguments(7_200_000.0, "2h")]
+    public async Task FormatDurationMs_PromotesToTimeUnits(double ms, string expected)
+    {
+        await Assert.That(AxisScale.FormatDurationMs(ms)).IsEqualTo(expected);
+    }
 }

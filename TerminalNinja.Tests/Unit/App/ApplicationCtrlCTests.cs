@@ -103,6 +103,7 @@ public class ApplicationCtrlCTests
         {
             Headless = true,
             InputBackend = backend,
+            EscapeQuits = true, // the queued Escape is this test's exit hatch
         });
         app.RootControl = new TextBlock { Text = "Test" };
         app.KeyDown += (keyEvent, args) =>
@@ -137,6 +138,7 @@ public class ApplicationCtrlCTests
         {
             Headless = true,
             InputBackend = backend,
+            EscapeQuits = true, // the queued Escape is this test's exit hatch
         });
         app.RootControl = new TextBlock { Text = "Test" };
         app.KeyDown += (keyEvent, _) =>
@@ -167,6 +169,7 @@ public class ApplicationCtrlCTests
         {
             Headless = true,
             InputBackend = backend,
+            EscapeQuits = true, // the queued Escape is this test's exit hatch
         });
         app.RootControl = new TextBlock { Text = "Test" };
         app.KeyDown += (keyEvent, _) =>
@@ -184,12 +187,12 @@ public class ApplicationCtrlCTests
         await Assert.That(ctrlAltCReceived).IsTrue();
     }
 
-    // ─── Escape still works after Ctrl+C support ─────────────────────
+    // ─── Escape exits when opted in via EscapeQuits ──────────────────
 
     [Test]
     public async Task Run_Escape_StillExitsApp()
     {
-        // Arrange: Escape should continue to work as before
+        // Arrange: EscapeQuits now defaults to false; opting in restores the old behavior
         var backend = new QueuedInputBackend();
         backend.Enqueue(new KeyEvent(ConsoleKey.Escape, '\x1b', Shift: false, Alt: false, Ctrl: false));
 
@@ -197,6 +200,7 @@ public class ApplicationCtrlCTests
         {
             Headless = true,
             InputBackend = backend,
+            EscapeQuits = true,
         });
         app.RootControl = new TextBlock { Text = "Test" };
 

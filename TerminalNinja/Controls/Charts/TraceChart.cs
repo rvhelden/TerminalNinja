@@ -277,7 +277,7 @@ public sealed class TraceChart : ChartBase
         {
             DrawString(buffer, bounds.X, rowTop, "span", Foreground, Background, gutter);
             DrawString(buffer, timeX, rowTop, "0", AxisColor, Background, timeW);
-            var maxLabel = AxisScale.FormatTick(tMax) + "ms";
+            var maxLabel = AxisScale.FormatDurationMs(tMax);
             DrawString(buffer, bounds.Right - maxLabel.Length, rowTop, maxLabel, AxisColor, Background, maxLabel.Length);
             rowTop += 1;
         }

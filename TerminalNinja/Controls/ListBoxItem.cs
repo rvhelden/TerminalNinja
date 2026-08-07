@@ -152,8 +152,10 @@ public class ListBoxItem : ContentControl, ISelectableContainer
 
         if (visualChild != null)
         {
-            // Override child foreground/background if it's a TextBlock
-            if (visualChild is TextBlock tb)
+            // Override child foreground/background when a selected item's content is a TextBlock,
+            // so selection colours win. An UNSELECTED item leaves its content alone — a per-row
+            // bound Foreground must render, not be flattened to the item default.
+            if (IsSelected && visualChild is TextBlock tb)
             {
                 var origFg = tb.Foreground;
                 var origBg = tb.Background;

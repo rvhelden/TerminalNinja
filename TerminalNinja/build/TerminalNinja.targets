@@ -24,6 +24,14 @@
 
   <PropertyGroup>
     <EnableTerminalNinjaXamlAutoInclude Condition="'$(EnableTerminalNinjaXamlAutoInclude)' == ''">true</EnableTerminalNinjaXamlAutoInclude>
+    <!--
+      Resource names and the generated XamlLayouts namespace follow RootNamespace (the
+      namespace the project's code actually lives in), not AssemblyName. They only differ
+      when a project sets a custom AssemblyName (e.g. a lowercase binary name), and in that
+      case a namespace named after the binary is the wrong one.
+    -->
+    <TerminalNinjaXamlRootNamespace Condition="'$(TerminalNinjaXamlRootNamespace)' == ''">$(RootNamespace)</TerminalNinjaXamlRootNamespace>
+    <TerminalNinjaXamlRootNamespace Condition="'$(TerminalNinjaXamlRootNamespace)' == ''">$(AssemblyName)</TerminalNinjaXamlRootNamespace>
   </PropertyGroup>
 
   <!--
@@ -32,6 +40,8 @@
   -->
   <ItemGroup>
     <CompilerVisibleItemMetadata Include="AdditionalFiles" MetadataName="TerminalNinjaResourceName" />
+    <!-- Surface RootNamespace to the generators so XamlLayouts lands in the code's namespace. -->
+    <CompilerVisibleProperty Include="RootNamespace" />
   </ItemGroup>
 
   <!--
@@ -62,10 +72,10 @@
   -->
   <ItemGroup Condition="'$(EnableTerminalNinjaXamlAutoInclude)' == 'true'">
     <EmbeddedResource Update="**/*.xaml">
-      <LogicalName>$(AssemblyName).$([System.String]::new('%(RecursiveDir)%(Filename)%(Extension)').Replace('\','.').Replace('/','.'))</LogicalName>
+      <LogicalName>$(TerminalNinjaXamlRootNamespace).$([System.String]::new('%(RecursiveDir)%(Filename)%(Extension)').Replace('\','.').Replace('/','.'))</LogicalName>
     </EmbeddedResource>
     <AdditionalFiles Update="**/*.xaml">
-      <TerminalNinjaResourceName>$(AssemblyName).$([System.String]::new('%(RecursiveDir)%(Filename)%(Extension)').Replace('\','.').Replace('/','.'))</TerminalNinjaResourceName>
+      <TerminalNinjaResourceName>$(TerminalNinjaXamlRootNamespace).$([System.String]::new('%(RecursiveDir)%(Filename)%(Extension)').Replace('\','.').Replace('/','.'))</TerminalNinjaResourceName>
     </AdditionalFiles>
   </ItemGroup>
 
