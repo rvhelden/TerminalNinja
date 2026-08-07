@@ -211,17 +211,17 @@ public sealed class NodeGraph : ChartBase
         {
             case ConsoleKey.UpArrow:
             case ConsoleKey.LeftArrow:
-                SelectedIndex = current < 0 ? count - 1 : Math.Max(0, current - 1);
+                SetCurrentValue(SelectedIndexProperty, current < 0 ? count - 1 : Math.Max(0, current - 1));
                 return true;
             case ConsoleKey.DownArrow:
             case ConsoleKey.RightArrow:
-                SelectedIndex = current < 0 ? 0 : Math.Min(count - 1, current + 1);
+                SetCurrentValue(SelectedIndexProperty, current < 0 ? 0 : Math.Min(count - 1, current + 1));
                 return true;
             case ConsoleKey.Home:
-                SelectedIndex = 0;
+                SetCurrentValue(SelectedIndexProperty, 0);
                 return true;
             case ConsoleKey.End:
-                SelectedIndex = count - 1;
+                SetCurrentValue(SelectedIndexProperty, count - 1);
                 return true;
             default:
                 return false;
@@ -242,7 +242,7 @@ public sealed class NodeGraph : ChartBase
             var box = _renderedBoxes[i];
             if (e.X >= box.X && e.X < box.Right && e.Y >= box.Y && e.Y < box.Bottom)
             {
-                SelectedIndex = i;
+                SetCurrentValue(SelectedIndexProperty, i);
                 return;
             }
         }

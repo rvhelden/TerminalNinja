@@ -30,4 +30,15 @@ public sealed class GraphNode
     /// chart palette supplies the color.
     /// </summary>
     public Color Color { get; set; } = Color.Transparent;
+
+    /// <summary>
+    /// Arbitrary payload for the application, ignored by the control.
+    /// </summary>
+    /// <remarks>
+    /// The way back from a selected box to the domain object it stands for. Without it the only
+    /// carrier is <see cref="Id"/>, which <see cref="GraphEdge"/> endpoints also match on — so an
+    /// application ended up choosing between an id that reads well in the graph and one it can
+    /// look its own object up by, and generally smuggled the latter through <see cref="Id"/>.
+    /// </remarks>
+    public object? Tag { get; set; }
 }

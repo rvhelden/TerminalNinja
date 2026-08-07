@@ -311,6 +311,21 @@ public class NodeGraphTests
     }
 
     [Test]
+    public async Task Tag_CarriesTheApplicationsOwnObject()
+    {
+        // Id belongs to the graph — GraphEdge endpoints match on it — so it is not somewhere an
+        // application should have to hide a domain key just to find its way back from a selection.
+        var payload = new { Resource = "app-x" };
+
+        var graph = new NodeGraph();
+        graph.GraphNodes.Add(new GraphNode { Id = "a", Name = "a", Tag = payload });
+
+        graph.OnKeyEvent(Key(ConsoleKey.DownArrow));
+
+        await Assert.That((graph.SelectedNode as GraphNode)?.Tag).IsSameReferenceAs(payload);
+    }
+
+    [Test]
     public async Task Xaml_WithNodesAndEdges_ParsesBoth()
     {
         const string xaml = """

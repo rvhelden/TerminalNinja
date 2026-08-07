@@ -192,22 +192,22 @@ public sealed class TraceChart : ChartBase
         switch (e.Key)
         {
             case ConsoleKey.UpArrow:
-                SelectedIndex = current < 0 ? count - 1 : Math.Max(0, current - 1);
+                SetCurrentValue(SelectedIndexProperty, current < 0 ? count - 1 : Math.Max(0, current - 1));
                 return true;
             case ConsoleKey.DownArrow:
-                SelectedIndex = current < 0 ? 0 : Math.Min(count - 1, current + 1);
+                SetCurrentValue(SelectedIndexProperty, current < 0 ? 0 : Math.Min(count - 1, current + 1));
                 return true;
             case ConsoleKey.PageUp:
-                SelectedIndex = Math.Max(0, (current < 0 ? 0 : current) - page);
+                SetCurrentValue(SelectedIndexProperty, Math.Max(0, (current < 0 ? 0 : current) - page));
                 return true;
             case ConsoleKey.PageDown:
-                SelectedIndex = Math.Min(count - 1, (current < 0 ? 0 : current) + page);
+                SetCurrentValue(SelectedIndexProperty, Math.Min(count - 1, (current < 0 ? 0 : current) + page));
                 return true;
             case ConsoleKey.Home:
-                SelectedIndex = 0;
+                SetCurrentValue(SelectedIndexProperty, 0);
                 return true;
             case ConsoleKey.End:
-                SelectedIndex = count - 1;
+                SetCurrentValue(SelectedIndexProperty, count - 1);
                 return true;
             default:
                 return false;
@@ -234,7 +234,7 @@ public sealed class TraceChart : ChartBase
         if (row < _rowCount)
         {
             // Offset by the scroll position: row 0 on screen is not span 0 once scrolled.
-            SelectedIndex = _firstVisible + row;
+            SetCurrentValue(SelectedIndexProperty, _firstVisible + row);
         }
     }
 

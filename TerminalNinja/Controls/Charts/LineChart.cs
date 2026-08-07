@@ -141,16 +141,16 @@ public sealed class LineChart : ChartBase
         switch (e.Key)
         {
             case ConsoleKey.LeftArrow:
-                SelectedIndex = current < 0 ? count - 1 : Math.Max(0, current - 1);
+                SetCurrentValue(SelectedIndexProperty, current < 0 ? count - 1 : Math.Max(0, current - 1));
                 return true;
             case ConsoleKey.RightArrow:
-                SelectedIndex = current < 0 ? 0 : Math.Min(count - 1, current + 1);
+                SetCurrentValue(SelectedIndexProperty, current < 0 ? 0 : Math.Min(count - 1, current + 1));
                 return true;
             case ConsoleKey.Home:
-                SelectedIndex = 0;
+                SetCurrentValue(SelectedIndexProperty, 0);
                 return true;
             case ConsoleKey.End:
-                SelectedIndex = count - 1;
+                SetCurrentValue(SelectedIndexProperty, count - 1);
                 return true;
             default:
                 return false;
@@ -170,7 +170,7 @@ public sealed class LineChart : ChartBase
         var index = (int)Math.Round(Math.Clamp(fx, 0, 1) * (_pointCount - 1));
         if (index >= 0 && index < _pointCount)
         {
-            SelectedIndex = index;
+            SetCurrentValue(SelectedIndexProperty, index);
         }
     }
 

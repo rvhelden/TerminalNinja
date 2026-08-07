@@ -93,9 +93,15 @@ public class AsyncRelayCommandTests
 
     private static async Task WaitForCompletion(AsyncRelayCommand command)
     {
-        // Completion is scheduled on the default task scheduler in tests
-        // (no SynchronizationContext installed), so poll briefly.
-        for (var i = 0; i < 200 && command.IsExecuting; i++)
+        // Completion is scheduled on the default task scheduler in tests (no
+        // SynchronizationContext installed), so poll for it.
+        //
+        // The budget is generous on purpose. The whole suite runs in parallel and most of it
+        // polls with Task.Delay, so the pool can be busy enough that a continuation which is
+        // ready immediately still takes a while to be picked up — a two-second ceiling made this
+        // fail roughly one run in ten, which reads as a product bug and is not one.
+        var deadline = DateTime.UtcNow + TimeSpan.FromSeconds(30);
+        while (command.IsExecuting && DateTime.UtcNow < deadline)
         {
             await Task.Delay(10);
         }

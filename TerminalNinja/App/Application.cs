@@ -359,6 +359,14 @@ public sealed class Application : IDisposable
         // Record start time for time-to-first-render measurement
         _startTime = DateTime.UtcNow;
         
+        // Everything reachable through the singleton must exist before the singleton does.
+        // Publishing `Current` first left a window in which another thread could see this
+        // instance with a null FocusManager — which is exactly what made GridSplitter's
+        // Application.Current?.FocusManager.CaptureMouse(...) throw intermittently under the
+        // parallel test runner.
+        FocusManager = new FocusManager();
+        Dispatcher = new Dispatcher(WakeLoop);
+
         // Set singleton (allow replacement for testing scenarios)
         Current = this;
         
@@ -401,9 +409,6 @@ public sealed class Application : IDisposable
             // process termination and request a graceful exit instead.
             System.Console.CancelKeyPress += OnCancelKeyPress;
         }
-
-        FocusManager = new FocusManager();
-        Dispatcher = new Dispatcher(WakeLoop);
 
         if (_options.EnableMouseTracking)
         {
@@ -619,6 +624,18 @@ public sealed class Application : IDisposable
         }
     }
     
+    /// <summary>
+    /// Feeds one key through the real input pipeline, exactly as the terminal backend would.
+    /// </summary>
+    /// <remarks>
+    /// For headless hosts and tests that need to drive the keyboard without a terminal. Going
+    /// through this rather than calling <see cref="FocusManager.HandleKeyEvent"/> directly is what
+    /// makes such a test meaningful: the ordering — text input, then the application's KeyDown
+    /// hook, then Ctrl+C, Escape and Tab, then the focused element — <em>is</em> the behaviour, and
+    /// a caller reimplementing it tests its own copy instead of the real thing.
+    /// </remarks>
+    public void ProcessKey(KeyEvent keyEvent) => HandleKeyEvent(keyEvent);
+
     /// <summary>
     /// Handles keyboard input events.
     /// </summary>

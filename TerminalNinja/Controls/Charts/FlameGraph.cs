@@ -69,7 +69,7 @@ public sealed class FlameGraph : ChartBase
 
         if (SelectedNode is not FlameNode sel || FindEntry(sel) is not { } entry)
         {
-            SelectedNode = Root;
+            SetCurrentValue(SelectedNodeProperty, Root);
             return true;
         }
 
@@ -78,7 +78,7 @@ public sealed class FlameGraph : ChartBase
             case ConsoleKey.UpArrow:
                 if (entry.Parent != null)
                 {
-                    SelectedNode = entry.Parent;
+                    SetCurrentValue(SelectedNodeProperty, entry.Parent);
                 }
 
                 return true;
@@ -86,7 +86,7 @@ public sealed class FlameGraph : ChartBase
                 var child = FirstChildOf(entry.Node);
                 if (child != null)
                 {
-                    SelectedNode = child;
+                    SetCurrentValue(SelectedNodeProperty, child);
                 }
 
                 return true;
@@ -94,7 +94,7 @@ public sealed class FlameGraph : ChartBase
                 var prev = SiblingAtDepth(entry, -1);
                 if (prev != null)
                 {
-                    SelectedNode = prev;
+                    SetCurrentValue(SelectedNodeProperty, prev);
                 }
 
                 return true;
@@ -102,7 +102,7 @@ public sealed class FlameGraph : ChartBase
                 var next = SiblingAtDepth(entry, +1);
                 if (next != null)
                 {
-                    SelectedNode = next;
+                    SetCurrentValue(SelectedNodeProperty, next);
                 }
 
                 return true;
@@ -124,7 +124,7 @@ public sealed class FlameGraph : ChartBase
         {
             if (f.Depth == depth && e.X >= f.X && e.X < f.X + f.W)
             {
-                SelectedNode = f.Node;
+                SetCurrentValue(SelectedNodeProperty, f.Node);
                 return;
             }
         }

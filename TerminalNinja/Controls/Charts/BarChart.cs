@@ -164,19 +164,19 @@ public sealed class BarChart : ChartBase
 
         if (e.Key == prev)
         {
-            SelectedIndex = current < 0 ? count - 1 : Math.Max(0, current - 1);
+            SetCurrentValue(SelectedIndexProperty, current < 0 ? count - 1 : Math.Max(0, current - 1));
         }
         else if (e.Key == next)
         {
-            SelectedIndex = current < 0 ? 0 : Math.Min(count - 1, current + 1);
+            SetCurrentValue(SelectedIndexProperty, current < 0 ? 0 : Math.Min(count - 1, current + 1));
         }
         else if (e.Key == ConsoleKey.Home)
         {
-            SelectedIndex = 0;
+            SetCurrentValue(SelectedIndexProperty, 0);
         }
         else if (e.Key == ConsoleKey.End)
         {
-            SelectedIndex = count - 1;
+            SetCurrentValue(SelectedIndexProperty, count - 1);
         }
         else
         {
@@ -198,7 +198,7 @@ public sealed class BarChart : ChartBase
         var index = (coord - _slotOrigin) / _slotSize;
         if (index >= 0 && index < _catCount)
         {
-            SelectedIndex = index;
+            SetCurrentValue(SelectedIndexProperty, index);
         }
     }
 

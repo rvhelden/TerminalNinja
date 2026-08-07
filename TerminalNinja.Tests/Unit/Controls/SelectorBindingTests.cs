@@ -125,6 +125,37 @@ public class SelectorBindingTests
     }
 
     [Test]
+    public async Task LineChart_TwoWaySelectedIndex_SurvivesArrowKeys()
+    {
+        // A chart is not a Selector — it declares its own SelectedIndex — so it needs the same
+        // treatment separately. Its SelectedItem-style sync already used the internal path, which
+        // hid this: only a binding on SelectedIndex itself was affected.
+        var vm = new IndexViewModel();
+        const string xaml = """
+            <LineChart xmlns="http://schemas.terminalninja.dev/xaml"
+                       SelectedIndex="{Binding Selected, Mode=TwoWay}" />
+            """;
+
+        var chart = TerminalXaml.Load<TerminalNinja.Controls.Charts.LineChart>(xaml, vm);
+
+        var series = new TerminalNinja.Controls.Charts.ChartSeries { Name = "s" };
+        foreach (var value in (double[])[1, 2, 3])
+        {
+            series.Values.Add(new TerminalNinja.Controls.Charts.ChartDataPoint { Value = value });
+        }
+
+        chart.Series.Add(series);
+
+        chart.OnKeyEvent(Key(ConsoleKey.RightArrow));
+        chart.OnKeyEvent(Key(ConsoleKey.RightArrow));
+
+        await Assert.That(vm.Selected).IsEqualTo(2);
+
+        vm.Selected = 0;
+        await Assert.That(chart.SelectedIndex).IsEqualTo(0);
+    }
+
+    [Test]
     public async Task DataGrid_TwoWaySelectedIndex_SurvivesArrowKeys()
     {
         var vm = new IndexViewModel();
