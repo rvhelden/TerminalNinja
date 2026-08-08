@@ -1,0 +1,142 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Shared Size - TerminalNinja</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/styles/github-dark-dimmed.min.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@xterm/xterm@5.5.0/css/xterm.css">
+  <link rel="stylesheet" href="../styles.css">
+</head>
+<body>
+  <div class="bg-grid" aria-hidden="true"></div>
+  <div class="bg-glow bg-glow-a" aria-hidden="true"></div>
+  <div class="bg-glow bg-glow-b" aria-hidden="true"></div>
+  <main class="shell">
+    <nav class="breadcrumb"><a href="../index.html">Docs</a> / <span>Shared Size</span></nav>
+    <header class="panel">
+      <h1>Shared Size</h1>
+      <p class="section-copy">Columns in separate grids agreeing on one width, so a list of rows lines up.</p>
+      <div class="hero-actions" style="margin-top:14px">
+        <a class="btn btn-primary" href="../playground.html?sample=shared-size">Try in Playground</a>
+      </div>
+    </header>
+    <section class="panel doc-section">
+      <h2>Overview</h2>
+      <p class="section-copy">
+        A key column beside a description column is one of the most common shapes in a terminal UI,
+        and the obvious way to build it &mdash; one <code>Grid</code> per row &mdash; does not line
+        up, because each grid sizes its <code>Auto</code> column to its own content alone. The usual
+        workaround is to pad the text to a guessed width in code, which then has to be re-guessed
+        every time the longest entry changes.
+      </p>
+      <p class="section-copy">
+        <code>SharedSizeGroup</code> names a row or column definition; every definition sharing that
+        name takes the width of the widest of them. <code>Grid.IsSharedSizeScope</code> on an
+        ancestor is what bounds the name, so two screens can both call a group
+        <code>"keys"</code> without one setting the other's width.
+      </p>
+      <p class="section-copy">
+        A definition in a group is sized from its content whatever its <code>Width</code> says.
+        Sharing a proportional width between grids means nothing, so a <code>*</code> in a group
+        behaves like <code>Auto</code> and is left out of the star distribution.
+      </p>
+    </section>
+    <section class="panel doc-section">
+      <h2>Properties</h2>
+      <table>
+        <thead><tr><th>Property</th><th>Type</th><th>Default</th><th>Description</th></tr></thead>
+        <tbody>
+          <tr><td>ColumnDefinition.SharedSizeGroup</td><td>string?</td><td>null</td><td>Name of the group this column belongs to.</td></tr>
+          <tr><td>RowDefinition.SharedSizeGroup</td><td>string?</td><td>null</td><td>Name of the group this row belongs to.</td></tr>
+          <tr><td>Grid.IsSharedSizeScope</td><td>bool (attached)</td><td>false</td><td>Marks an element as the boundary within which group names are matched. Set it on any ancestor.</td></tr>
+        </tbody>
+      </table>
+      <p class="section-copy">
+        A group with no scope above it falls back to sizing on its own content, which is what
+        <code>Auto</code> would have done &mdash; rather than silently doing nothing at all.
+      </p>
+    </section>
+    <section class="panel doc-section">
+      <h2>Auto sizing</h2>
+      <p class="section-copy">
+        Shared sizing is built on <code>Auto</code>, which measures the largest preferred size among
+        the children in that row or column, floored by <code>MinWidth</code>/<code>MinHeight</code>.
+        Only children spanning a single row or column contribute: a spanned child cannot be
+        attributed to one definition without deciding how to split it. Children with
+        <code>Visibility="Collapsed"</code> contribute nothing.
+      </p>
+    </section>
+    <section class="panel doc-section" style="padding:0;overflow:hidden">
+      <div class="preview-tabs">
+        <button class="preview-tab active" data-tab="preview">Preview</button>
+        <button class="preview-tab" data-tab="source">XAML Source</button>
+      </div>
+      <div class="preview-tab-content active" data-tab="preview">
+        <div class="preview-terminal" id="preview-terminal"></div>
+      </div>
+      <div class="preview-tab-content" data-tab="source">
+        <div class="preview-source">
+          <pre><code class="language-xml">&lt;!-- The scope bounds the group name --&gt;
+&lt;Border Grid.IsSharedSizeScope="True"&gt;
+    &lt;StackPanel&gt;
+
+        &lt;!-- Each row is its own Grid, yet the key columns agree --&gt;
+        &lt;Grid ColumnSpacing="2"&gt;
+            &lt;Grid.ColumnDefinitions&gt;
+                &lt;ColumnDefinition Width="auto" SharedSizeGroup="keys" /&gt;
+                &lt;ColumnDefinition Width="*" /&gt;
+            &lt;/Grid.ColumnDefinitions&gt;
+            &lt;TextBlock Grid.Column="0" Text="enter" /&gt;
+            &lt;TextBlock Grid.Column="1" Text="open the selected row" /&gt;
+        &lt;/Grid&gt;
+
+        &lt;Grid ColumnSpacing="2"&gt;
+            &lt;Grid.ColumnDefinitions&gt;
+                &lt;ColumnDefinition Width="auto" SharedSizeGroup="keys" /&gt;
+                &lt;ColumnDefinition Width="*" /&gt;
+            &lt;/Grid.ColumnDefinitions&gt;
+            &lt;TextBlock Grid.Column="0" Text="backspace" /&gt;
+            &lt;TextBlock Grid.Column="1" Text="back to the previous centre" /&gt;
+        &lt;/Grid&gt;
+
+    &lt;/StackPanel&gt;
+&lt;/Border&gt;</code></pre>
+        </div>
+      </div>
+    </section>
+    <section class="panel doc-section">
+      <h2>Key Concepts</h2>
+      <ul>
+        <li><code>SharedSizeGroup</code> goes on the row or column definition; <code>Grid.IsSharedSizeScope</code> goes on an ancestor</li>
+        <li>The nearest scope wins, so the same group name in two scopes stays independent</li>
+        <li>A grouped definition is content-sized whatever its <code>Width</code>/<code>Height</code> says, and takes no part in star distribution</li>
+        <li>The group follows its content down as well as up &mdash; it does not stick at a high-water mark</li>
+        <li>Definitions are declared in <code>&lt;Grid.ColumnDefinitions&gt;</code>; the <code>Columns="auto *"</code> shorthand cannot name a group</li>
+        <li>Resolved within a single frame, so a headless capture shows the settled layout</li>
+      </ul>
+    </section>
+    <footer class="footer"><a href="../index.html">&larr; Back to Docs</a></footer>
+  </main>
+  <script src="https://cdn.jsdelivr.net/npm/@xterm/xterm@5.5.0/lib/xterm.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@xterm/addon-fit@0.10.0/lib/addon-fit.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/highlight.min.js"></script>
+  <script>hljs.highlightAll();</script>
+  <script type="module">
+    import { renderPreview } from '../sample-preview.js';
+    renderPreview('shared-size', 'preview-terminal');
+    document.querySelectorAll('.preview-tab').forEach(tab => {
+      tab.addEventListener('click', () => {
+        const panel = tab.closest('.doc-section');
+        panel.querySelectorAll('.preview-tab').forEach(t => t.classList.remove('active'));
+        panel.querySelectorAll('.preview-tab-content').forEach(c => c.classList.remove('active'));
+        tab.classList.add('active');
+        panel.querySelector(`.preview-tab-content[data-tab="${tab.dataset.tab}"]`).classList.add('active');
+      });
+    });
+  </script>
+</body>
+</html>

@@ -211,8 +211,26 @@ public sealed class Grid : Panel
     /// </summary>
     public override Size2D GetPreferredSize(Rect parent)
     {
-        // For now, return the parent size (grid fills available space)
-        return new Size2D(parent.Width, parent.Height);
+        // Width still fills: a grid's columns are mostly proportional, and a star column has no
+        // natural width to report. Height is measured, because a grid used as an item template has
+        // to be able to say it is one row tall. Reporting the parent height — as this did — meant
+        // the first row of a list swallowed the whole panel and nothing after it drew at all,
+        // which is what made grids unusable inside an items panel.
+        var rows = _rowDefinitions.Count > 0 ? _rowDefinitions : [new RowDefinition()];
+
+        var content = MeasureContent(rows.Count, parent, horizontal: false, _ => true);
+        var height = rows.Count > 1 ? RowSpacing * (rows.Count - 1) : 0;
+
+        for (var i = 0; i < rows.Count; i++)
+        {
+            var length = rows[i].Height;
+
+            height += length.IsAbsolute
+                ? Math.Clamp((int)length.Value, rows[i].MinHeight, rows[i].MaxHeight)
+                : Math.Clamp(Math.Max(rows[i].MinHeight, content[i]), rows[i].MinHeight, rows[i].MaxHeight);
+        }
+
+        return new Size2D(parent.Width, Math.Min(height, parent.Height));
     }
 
     /// <summary>
@@ -327,7 +345,7 @@ public sealed class Grid : Panel
     }
 
     /// <summary>The nearest ancestor scope, this grid included, or null when there is none.</summary>
-    private SharedSizeScope? FindScope()
+    private (SharedSizeScope Scope, Visual Root)? FindScope()
     {
         for (Visual? visual = this; visual is not null; visual = visual.Parent)
         {
@@ -338,15 +356,59 @@ public sealed class Grid : Panel
 
             if (element.GetValue(SharedSizeScopeProperty) is SharedSizeScope existing)
             {
-                return existing;
+                return (existing, visual);
             }
 
             var created = new SharedSizeScope();
             element.SetValue(SharedSizeScopeProperty, created);
-            return created;
+            return (created, visual);
         }
 
         return null;
+    }
+
+    /// <summary>The scope key for a group, kept distinct per axis.</summary>
+    private static string Key(string group, bool horizontal) => horizontal ? "c:" + group : "r:" + group;
+
+    /// <summary>
+    /// Casts this grid's vote for every group it takes part in. Called on each grid under a scope
+    /// before any of them reads a result, so no grid lays out against a half-collected answer.
+    /// </summary>
+    internal void PublishSharedContributions(SharedSizeScope scope, Rect bounds)
+    {
+        Publish(_columnDefinitions, bounds, horizontal: true, c => c.Width, c => c.SharedSizeGroup);
+        Publish(_rowDefinitions, bounds, horizontal: false, r => r.Height, r => r.SharedSizeGroup);
+
+        void Publish<T>(IList<T> definitions, Rect area, bool horizontal, Func<T, GridLength> getLength,
+            Func<T, string?> getGroup)
+        {
+            var any = false;
+            for (var i = 0; i < definitions.Count; i++)
+            {
+                if (!string.IsNullOrEmpty(getGroup(definitions[i])))
+                {
+                    any = true;
+                    break;
+                }
+            }
+
+            if (!any)
+            {
+                return;
+            }
+
+            var measured = MeasureContent(definitions.Count, area, horizontal,
+                i => getLength(definitions[i]).IsAuto || !string.IsNullOrEmpty(getGroup(definitions[i])));
+
+            for (var i = 0; i < definitions.Count; i++)
+            {
+                var group = getGroup(definitions[i]);
+                if (!string.IsNullOrEmpty(group))
+                {
+                    scope.Publish(this, Key(group, horizontal), measured[i]);
+                }
+            }
+        }
     }
 
     /// <summary>
@@ -416,14 +478,29 @@ public sealed class Grid : Panel
             return sizes;
         }
 
-        if (FindScope() is not { } scope)
+        if (FindScope() is not { } found)
         {
             // A SharedSizeGroup with no scope above it sizes to its own content, which is what
             // Auto would have done. Silently doing nothing at all would be harder to notice.
             return sizes;
         }
 
-        var restale = false;
+        // Everyone votes before anyone reads, so the first grid to lay out in a frame already
+        // knows what its widest peer needs. Without this the frame would be a cell short and only
+        // settle on the next one, which a single-frame capture never gets.
+        found.Scope.Collect(found.Root, bounds);
+
+        // Vote for ourselves as well. The walk only knows the containers it can reach, and a grid
+        // hosted by a control it does not understand would otherwise read back a width of zero
+        // and collapse the column rather than merely failing to align it.
+        for (var i = 0; i < definitions.Count; i++)
+        {
+            var own = getGroup(definitions[i]);
+            if (!string.IsNullOrEmpty(own))
+            {
+                found.Scope.Publish(this, Key(own, horizontal), sizes[i]);
+            }
+        }
 
         for (var i = 0; i < definitions.Count; i++)
         {
@@ -433,16 +510,7 @@ public sealed class Grid : Panel
                 continue;
             }
 
-            var key = horizontal ? "c:" + group : "r:" + group;
-            sizes[i] = scope.Publish(this, key, sizes[i], out var changed);
-            restale |= changed;
-        }
-
-        if (restale)
-        {
-            // Grids that already drew this frame used a smaller width. Ask for another frame
-            // rather than leaving them a cell short until the next keystroke.
-            App.Application.Current?.Invalidate();
+            sizes[i] = found.Scope.Largest(Key(group, horizontal));
         }
 
         return sizes;

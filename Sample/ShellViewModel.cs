@@ -1,4 +1,4 @@
-using System.Diagnostics;
+﻿using System.Diagnostics;
 using TerminalNinja.Controls;
 using TerminalNinja.Xaml;
 using TerminalNinja.Xaml.Mvvm;
@@ -109,6 +109,7 @@ public class ShellViewModel : ViewModelBase, IDisposable
             "StackPanel Layout" => TerminalXaml.Load<Border>(XamlLayouts.StackLayoutScreen),
             "Dock Layout" => TerminalXaml.Load<Border>(XamlLayouts.DockLayoutScreen),
             "UniformGrid Layout" => TerminalXaml.Load<Border>(XamlLayouts.UniformGridLayoutScreen),
+            "Shared Size" => TerminalXaml.Load<Border>(XamlLayouts.SharedSizeLayoutScreen),
             "Wrap Layout" => TerminalXaml.Load<Border>(XamlLayouts.WrapLayoutScreen),
             "Data Binding" => TerminalXaml.Load<Border>(XamlLayouts.DataBindingScreen, new DataBindingViewModel()),
             "Dialogs" => TerminalXaml.Load<Border>(XamlLayouts.DialogsScreen, new DialogsViewModel()),

@@ -1,4 +1,4 @@
-using System.Collections.ObjectModel;
+﻿using System.Collections.ObjectModel;
 using TerminalNinja.Xaml.Mvvm;
 
 namespace Sample.Samples.MainMenu;
@@ -36,6 +36,7 @@ public class MainMenuViewModel : ViewModelBase
         "StackPanel Layout",
         "Dock Layout",
         "UniformGrid Layout",
+        "Shared Size",
         "Wrap Layout",
         "Data Binding",
         "Dialogs",

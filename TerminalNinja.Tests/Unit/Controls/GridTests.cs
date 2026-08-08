@@ -541,18 +541,44 @@ public class GridTests
     }
 
     [Test]
-    public async Task GetPreferredSize_ReturnsParentSize()
+    public async Task GetPreferredSize_FillsTheWidthAndMeasuresTheHeight()
     {
-        // Arrange
+        // Arrange - one implicit row holding a single line of text.
         var grid = new Grid();
-        var parent = new Rect(0, 0, 100, 50);
-        
+        grid.Children.Add(new TextBlock { Text = "one line" });
+
         // Act
-        var size = grid.GetPreferredSize(parent);
-        
-        // Assert
+        var size = grid.GetPreferredSize(new Rect(0, 0, 100, 50));
+
+        // Assert - width still fills, since a star column has no natural width to report, but the
+        // height is what the content needs. Reporting the parent height made a grid unusable as an
+        // item template: the first row swallowed the whole panel.
         await Assert.That(size.Width).IsEqualTo(100);
-        await Assert.That(size.Height).IsEqualTo(50);
+        await Assert.That(size.Height).IsEqualTo(1);
+    }
+
+    [Test]
+    public async Task GetPreferredSize_EmptyGrid_HasNoHeight()
+    {
+        var grid = new Grid();
+
+        var size = grid.GetPreferredSize(new Rect(0, 0, 100, 50));
+
+        await Assert.That(size.Width).IsEqualTo(100);
+        await Assert.That(size.Height).IsEqualTo(0);
+    }
+
+    [Test]
+    public async Task GetPreferredSize_SumsFixedRowsAndSpacing()
+    {
+        var grid = new Grid { RowSpacing = 1 };
+        grid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Pixel(2) });
+        grid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Pixel(3) });
+
+        var size = grid.GetPreferredSize(new Rect(0, 0, 100, 50));
+
+        // 2 + 3, plus the single row of spacing between them.
+        await Assert.That(size.Height).IsEqualTo(6);
     }
 
     #endregion

@@ -1,4 +1,5 @@
-using System.Runtime.CompilerServices;
+﻿using System.Runtime.CompilerServices;
+using TerminalNinja.Primitives;
 
 namespace TerminalNinja.Controls;
 
@@ -8,11 +9,14 @@ namespace TerminalNinja.Controls;
 /// </summary>
 /// <remarks>
 /// WPF resolves this with a second measure pass over the scope. There is no measure pass here —
-/// layout happens during render — so grids publish what they want and read back the largest
-/// contribution. A grid that laid out earlier in the frame with a smaller value would be a cell
-/// short, so a contribution that moves a group's maximum invalidates the application and the next
-/// frame settles it. The maximum only moves when content changes, so this converges rather than
-/// looping.
+/// layout happens during render — so the first grid to ask collects everyone's vote before
+/// answering, by walking down from the scope element. Waiting for a second frame instead would
+/// have been simpler, but a headless single-frame capture is how layouts get verified, and a
+/// feature that is wrong in exactly that mode is worse than no feature.
+///
+/// The walk uses the children each container already exposes as plain properties rather than
+/// <c>GetChildrenWithBounds</c>, which would run layout and re-enter the grid sizing that asked
+/// the question in the first place.
 ///
 /// Contributions are held in a <see cref="ConditionalWeakTable{TKey,TValue}"/>, keyed weakly on
 /// the grid. Templated rows come and go constantly — an ItemsControl regenerates its containers —
@@ -23,37 +27,75 @@ internal sealed class SharedSizeScope
 {
     private readonly ConditionalWeakTable<Grid, Dictionary<string, int>> _contributions = new();
 
-    /// <summary>
-    /// Records what one grid wants for a group and returns the largest anyone in the scope wants.
-    /// </summary>
-    /// <param name="grid">The grid casting a vote; held weakly.</param>
-    /// <param name="group">The group name, already qualified by axis.</param>
-    /// <param name="desired">What this grid's own content needs.</param>
-    /// <param name="changed">
-    /// True when this call moved the group's maximum, meaning grids already laid out this frame
-    /// are now stale and the frame needs drawing again.
-    /// </param>
-    public int Publish(Grid grid, string group, int desired, out bool changed)
+    /// <summary>Records what one grid needs for a group, keeping the largest claim.</summary>
+    public void Publish(Grid grid, string group, int desired)
     {
-        var before = Largest(group);
-
         var forGrid = _contributions.GetOrCreateValue(grid);
-        forGrid[group] = desired;
 
-        var after = Math.Max(before, desired);
-
-        // Shrinking matters too: the grid that was holding the group wide may have just got
-        // narrower, and nothing else recomputes the maximum for us.
-        if (desired < before)
+        if (!forGrid.TryGetValue(group, out var existing) || desired > existing)
         {
-            after = Largest(group);
+            forGrid[group] = desired;
         }
-
-        changed = after != before;
-        return after;
     }
 
-    private int Largest(string group)
+    /// <summary>
+    /// Has every grid under <paramref name="root"/> publish its own content sizes, so the first
+    /// one to lay out already knows what the widest of its peers needs.
+    /// </summary>
+    public void Collect(Visual root, Rect bounds)
+    {
+        // Cleared first: a grid that has left the tree must stop holding the group open. Only
+        // what the walk finds now gets a vote.
+        _contributions.Clear();
+
+        foreach (var descendant in Descendants(root))
+        {
+            if (descendant is Grid grid)
+            {
+                grid.PublishSharedContributions(this, bounds);
+            }
+        }
+    }
+
+    private static IEnumerable<Visual> Descendants(Visual root)
+    {
+        var pending = new Stack<Visual>();
+        pending.Push(root);
+
+        while (pending.Count > 0)
+        {
+            var current = pending.Pop();
+            yield return current;
+
+            switch (current)
+            {
+                case Panel panel:
+                    foreach (var child in panel.Children)
+                    {
+                        pending.Push(child);
+                    }
+
+                    break;
+
+                case Border { Child: { } child }:
+                    pending.Push(child);
+                    break;
+
+                // An ItemsControl is a Control, not a Panel, so its generated rows hang off its
+                // ItemsPanel rather than off itself. Missing this branch is missing the whole
+                // point: a list of rows is exactly what shared sizing is for.
+                case ItemsControl { ItemsPanel: { } itemsPanel }:
+                    pending.Push(itemsPanel);
+                    break;
+
+                case ContentControl { Content: Visual content }:
+                    pending.Push(content);
+                    break;
+            }
+        }
+    }
+
+    public int Largest(string group)
     {
         var largest = 0;
 

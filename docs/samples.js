@@ -574,6 +574,79 @@ export const SAMPLES = [
   },
 
   {
+    id: "shared-size",
+    title: "Shared Size",
+    description: "Columns in separate grids agreeing on one width, so a list of rows lines up.",
+    docPage: "./samples/shared-size.html",
+    xaml: `<Window xmlns="http://schemas.terminalninja.dev/xaml"
+        Title="Shared Size">
+    <Border BorderStyle="Rounded" Grid.IsSharedSizeScope="True">
+    <StackPanel Orientation="Vertical">
+        <TextBlock StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1"
+                   Text=" Shared Size" Padding="2,0,0,0" />
+
+        <TextBlock StackPanel.SizeMode="Fixed" StackPanel.FixedSize="2"
+                   Text="  Separate grids agreeing on one column width. The border above carries&#10;  Grid.IsSharedSizeScope, which is what bounds the group."
+                   Padding="2,0,0,0" />
+
+        <TextBlock StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1"
+                   Text="  Each row below is its own Grid — yet the keys line up:" Padding="2,0,0,0" />
+
+        <Grid StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1" ColumnSpacing="2">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="auto" SharedSizeGroup="keys" />
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+            <TextBlock Grid.Column="0" Text="enter" Padding="2,0,0,0" />
+            <TextBlock Grid.Column="1" Text="open the selected row" />
+        </Grid>
+
+        <Grid StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1" ColumnSpacing="2">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="auto" SharedSizeGroup="keys" />
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+            <TextBlock Grid.Column="0" Text="backspace" Padding="2,0,0,0" />
+            <TextBlock Grid.Column="1" Text="back to the previous centre" />
+        </Grid>
+
+        <Grid StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1" ColumnSpacing="2">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="auto" SharedSizeGroup="keys" />
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+            <TextBlock Grid.Column="0" Text="q" Padding="2,0,0,0" />
+            <TextBlock Grid.Column="1" Text="quit" />
+        </Grid>
+
+        <TextBlock StackPanel.SizeMode="Fixed" StackPanel.FixedSize="2"
+                   Text="&#10;  Without a group, each Auto column sizes to its own content only:" Padding="2,0,0,0" />
+
+        <Grid StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1" ColumnSpacing="2">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="auto" />
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+            <TextBlock Grid.Column="0" Text="enter" Padding="2,0,0,0" />
+            <TextBlock Grid.Column="1" Text="ragged — starts right after the key" />
+        </Grid>
+
+        <Grid StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1" ColumnSpacing="2">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="auto" />
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+            <TextBlock Grid.Column="0" Text="backspace" Padding="2,0,0,0" />
+            <TextBlock Grid.Column="1" Text="ragged — starts further along" />
+        </Grid>
+
+        <TextBlock StackPanel.SizeMode="Stretch" Text="" />
+    </StackPanel>
+    </Border>
+</Window>`
+  },
+
+  {
     id: "uniformgrid-layout",
     title: "UniformGrid Layout",
     description: "Equal cells filled row by row, with the shape derived from the child count.",
