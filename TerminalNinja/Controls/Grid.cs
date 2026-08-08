@@ -1,4 +1,4 @@
-using System.Windows.Markup;
+﻿using System.Windows.Markup;
 using TerminalNinja.Buffers;
 using TerminalNinja.Primitives;
 
@@ -242,8 +242,10 @@ public sealed class Grid : Panel
         var cols = _columnDefinitions.Count > 0 ? _columnDefinitions : [new ColumnDefinition()];
 
         // Calculate row heights and column widths (spacing reduces available space)
-        CalculateSizes(rows, bounds.Height, r => r.Height, (r, s) => r.ActualHeight = s, r => r.MinHeight, r => r.MaxHeight, rowSpacing);
-        CalculateSizes(cols, bounds.Width, c => c.Width, (c, s) => c.ActualWidth = s, c => c.MinWidth, c => c.MaxWidth, columnSpacing);
+        var rowContent = ResolveContentSizes(rows, bounds, horizontal: false, r => r.Height, r => r.SharedSizeGroup);
+        var colContent = ResolveContentSizes(cols, bounds, horizontal: true, c => c.Width, c => c.SharedSizeGroup);
+        CalculateSizes(rows, bounds.Height, r => r.Height, (r, s) => r.ActualHeight = s, r => r.MinHeight, r => r.MaxHeight, rowSpacing, rowContent);
+        CalculateSizes(cols, bounds.Width, c => c.Width, (c, s) => c.ActualWidth = s, c => c.MinWidth, c => c.MaxWidth, columnSpacing, colContent);
 
         // Calculate offsets (spacing inserted between items)
         CalculateOffsets(rows, bounds.Y, (r, o) => r.Offset = o, r => r.ActualHeight, rowSpacing);
@@ -276,8 +278,10 @@ public sealed class Grid : Panel
         var rows = _rowDefinitions.Count > 0 ? _rowDefinitions : [new RowDefinition()];
         var cols = _columnDefinitions.Count > 0 ? _columnDefinitions : [new ColumnDefinition()];
 
-        CalculateSizes(rows, myBounds.Height, r => r.Height, (r, s) => r.ActualHeight = s, r => r.MinHeight, r => r.MaxHeight, rowSpacing);
-        CalculateSizes(cols, myBounds.Width, c => c.Width, (c, s) => c.ActualWidth = s, c => c.MinWidth, c => c.MaxWidth, columnSpacing);
+        var rowContent = ResolveContentSizes(rows, myBounds, horizontal: false, r => r.Height, r => r.SharedSizeGroup);
+        var colContent = ResolveContentSizes(cols, myBounds, horizontal: true, c => c.Width, c => c.SharedSizeGroup);
+        CalculateSizes(rows, myBounds.Height, r => r.Height, (r, s) => r.ActualHeight = s, r => r.MinHeight, r => r.MaxHeight, rowSpacing, rowContent);
+        CalculateSizes(cols, myBounds.Width, c => c.Width, (c, s) => c.ActualWidth = s, c => c.MinWidth, c => c.MaxWidth, columnSpacing, colContent);
         CalculateOffsets(rows, myBounds.Y, (r, o) => r.Offset = o, r => r.ActualHeight, rowSpacing);
         CalculateOffsets(cols, myBounds.X, (c, o) => c.Offset = o, c => c.ActualWidth, columnSpacing);
 
@@ -291,12 +295,165 @@ public sealed class Grid : Panel
         }
     }
 
+    // ─── Shared sizing ───────────────────────────────────────────────
+
+    /// <summary>
+    /// Marks an element as the boundary within which <c>SharedSizeGroup</c> names are matched.
+    /// </summary>
+    /// <remarks>
+    /// Attached rather than a Grid property because the grids that need to agree are siblings —
+    /// typically rows of an ItemsControl — and the thing they have in common is an ancestor.
+    /// The name is only shared within the nearest such ancestor, so two screens can both use
+    /// "keys" without one setting the other's column width.
+    /// </remarks>
+    public static readonly DependencyProperty IsSharedSizeScopeProperty =
+        DependencyProperty.RegisterAttached("IsSharedSizeScope", typeof(bool), typeof(Grid),
+            new PropertyMetadata(false));
+
+    private static readonly DependencyProperty SharedSizeScopeProperty =
+        DependencyProperty.RegisterAttached("SharedSizeScope", typeof(SharedSizeScope), typeof(Grid),
+            new PropertyMetadata(null!));
+
+    public static bool GetIsSharedSizeScope(DependencyObject element)
+    {
+        ArgumentNullException.ThrowIfNull(element);
+        return (bool)element.GetValue(IsSharedSizeScopeProperty)!;
+    }
+
+    public static void SetIsSharedSizeScope(DependencyObject element, bool value)
+    {
+        ArgumentNullException.ThrowIfNull(element);
+        element.SetValue(IsSharedSizeScopeProperty, value);
+    }
+
+    /// <summary>The nearest ancestor scope, this grid included, or null when there is none.</summary>
+    private SharedSizeScope? FindScope()
+    {
+        for (Visual? visual = this; visual is not null; visual = visual.Parent)
+        {
+            if (visual is not DependencyObject element || !GetIsSharedSizeScope(element))
+            {
+                continue;
+            }
+
+            if (element.GetValue(SharedSizeScopeProperty) is SharedSizeScope existing)
+            {
+                return existing;
+            }
+
+            var created = new SharedSizeScope();
+            element.SetValue(SharedSizeScopeProperty, created);
+            return created;
+        }
+
+        return null;
+    }
+
+    /// <summary>
+    /// What each row or column needs for its own content, before the shared groups have their say.
+    /// </summary>
+    /// <remarks>
+    /// Only children spanning a single row or column contribute. A spanned child's size cannot be
+    /// attributed to any one definition without deciding how to split it, and guessing there is
+    /// worse than ignoring it — WPF resolves spans in a later pass this layout has no room for.
+    /// </remarks>
+    private int[] MeasureContent(int count, Rect bounds, bool horizontal, Func<int, bool> participates)
+    {
+        var sizes = new int[count];
+
+        foreach (var child in Children)
+        {
+            if (child is UIElement { Visibility: Visibility.Collapsed })
+            {
+                continue;
+            }
+
+            var span = horizontal ? GetColumnSpan(child) : GetRowSpan(child);
+            if (span != 1)
+            {
+                continue;
+            }
+
+            var index = Math.Clamp(horizontal ? GetColumn(child) : GetRow(child), 0, count - 1);
+            if (!participates(index))
+            {
+                continue;
+            }
+
+            var margin = child is FrameworkElement fe ? fe.Margin : new Thickness(0);
+            var preferred = child.GetPreferredSize(bounds);
+
+            sizes[index] = Math.Max(sizes[index], horizontal
+                ? preferred.Width + margin.HorizontalTotal
+                : preferred.Height + margin.VerticalTotal);
+        }
+
+        return sizes;
+    }
+
+    /// <summary>
+    /// Measures the content of every Auto or shared definition, then lets the scope raise the
+    /// shared ones to the widest anybody under it asked for.
+    /// </summary>
+    private int[] ResolveContentSizes<T>(IList<T> definitions, Rect bounds, bool horizontal,
+        Func<T, GridLength> getLength, Func<T, string?> getGroup)
+    {
+        var groups = false;
+        for (var i = 0; i < definitions.Count; i++)
+        {
+            if (!string.IsNullOrEmpty(getGroup(definitions[i])))
+            {
+                groups = true;
+                break;
+            }
+        }
+
+        var sizes = MeasureContent(definitions.Count, bounds, horizontal,
+            i => getLength(definitions[i]).IsAuto || !string.IsNullOrEmpty(getGroup(definitions[i])));
+
+        if (!groups)
+        {
+            return sizes;
+        }
+
+        if (FindScope() is not { } scope)
+        {
+            // A SharedSizeGroup with no scope above it sizes to its own content, which is what
+            // Auto would have done. Silently doing nothing at all would be harder to notice.
+            return sizes;
+        }
+
+        var restale = false;
+
+        for (var i = 0; i < definitions.Count; i++)
+        {
+            var group = getGroup(definitions[i]);
+            if (string.IsNullOrEmpty(group))
+            {
+                continue;
+            }
+
+            var key = horizontal ? "c:" + group : "r:" + group;
+            sizes[i] = scope.Publish(this, key, sizes[i], out var changed);
+            restale |= changed;
+        }
+
+        if (restale)
+        {
+            // Grids that already drew this frame used a smaller width. Ask for another frame
+            // rather than leaving them a cell short until the next keystroke.
+            App.Application.Current?.Invalidate();
+        }
+
+        return sizes;
+    }
+
     /// <summary>
     /// Calculates sizes for rows or columns based on their GridLength definitions.
     /// Uses a three-pass algorithm: Pixel -> Auto -> Star.
     /// </summary>
     private static void CalculateSizes<T>(IList<T> definitions, int availableSize, Func<T, GridLength> getLength, Action<T, int> setActualSize, Func<T, int> getMin,
-        Func<T, int> getMax, int spacing = 0)
+        Func<T, int> getMax, int spacing = 0, int[]? contentSizes = null)
     {
         // Subtract total spacing from available size (gaps between items only)
         var totalSpacing = definitions.Count > 1 ? spacing * (definitions.Count - 1) : 0;
@@ -304,42 +461,63 @@ public sealed class Grid : Panel
         var totalStarWeight = 0.0;
 
         // First pass: allocate Pixel sizes
-        foreach (var def in definitions)
+        for (var i = 0; i < definitions.Count; i++)
         {
+            var def = definitions[i];
             var length = getLength(def);
-            if (length.IsAbsolute)
+
+            // A shared-size definition is content-sized whatever its GridLength says: sharing a
+            // proportional width between grids means nothing, so the group drives it instead.
+            var shared = contentSizes is not null && contentSizes[i] > 0 && !length.IsAuto;
+
+            if (length.IsAbsolute && !shared)
             {
                 var size = Math.Clamp((int)length.Value, getMin(def), getMax(def));
                 size = Math.Min(size, remaining);
                 setActualSize(def, size);
                 remaining -= size;
             }
-            else if (length.IsStar)
+            else if (length.IsStar && !shared)
             {
                 totalStarWeight += length.Value;
                 setActualSize(def, 0); // Will be set in third pass
             }
-            else // Auto
+            else // Auto, or a member of a shared-size group
             {
-                // For Auto, we'd ideally measure children, but for simplicity
-                // we'll treat Auto as min size for now
-                var size = Math.Clamp(getMin(def), getMin(def), getMax(def));
+                // Auto is what the content asked for, floored by MinWidth/MinHeight. contentSizes
+                // carries that measurement — and, for a shared group, the largest measurement
+                // anyone under the scope asked for.
+                var content = contentSizes is not null ? contentSizes[i] : 0;
+                var size = Math.Clamp(Math.Max(getMin(def), content), getMin(def), getMax(def));
                 size = Math.Min(size, remaining);
                 setActualSize(def, size);
                 remaining -= size;
             }
         }
 
-        // Second pass: For Auto rows/columns, we should measure children
-        // This is simplified - in a full implementation we'd need to measure children
-        // For now, Auto is treated as minimum size (handled above)
+        // Second pass: Auto and shared-size definitions were measured from their content in
+        // ResolveContentSizes and allocated above.
 
         // Third pass: distribute remaining space to Star definitions
         if (totalStarWeight > 0 && remaining > 0)
         {
             var sizePerStar = remaining / totalStarWeight;
             var allocated = 0;
-            var starDefs = definitions.Where(d => getLength(d).IsStar).ToList();
+
+            // A star definition that belongs to a shared-size group was already sized from the
+            // group above; letting it back into this pass would overwrite that with a share of
+            // the leftovers, which is the whole thing the group exists to prevent.
+            var starDefs = new List<T>();
+            for (var j = 0; j < definitions.Count; j++)
+            {
+                var candidate = definitions[j];
+                var isShared = contentSizes is not null && contentSizes[j] > 0 && !getLength(candidate).IsAuto;
+
+                if (getLength(candidate).IsStar && !isShared)
+                {
+                    starDefs.Add(candidate);
+                }
+            }
 
             for (var i = 0; i < starDefs.Count; i++)
             {

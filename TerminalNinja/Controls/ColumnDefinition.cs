@@ -1,4 +1,4 @@
-using TerminalNinja.Primitives;
+﻿using TerminalNinja.Primitives;
 
 namespace TerminalNinja.Controls;
 
@@ -34,6 +34,17 @@ public class ColumnDefinition
         set => _maxWidth = Math.Max(0, value);
     }
     
+    /// <summary>
+    /// Groups this column with others of the same name, so they all take the size of the widest.
+    /// </summary>
+    /// <remarks>
+    /// Only meaningful inside an element carrying <c>Grid.IsSharedSizeScope="True"</c>, which is
+    /// what bounds the group — two unrelated screens using the name "keys" do not affect each
+    /// other. A column in a group is measured from its content like Auto, whatever its
+    /// <see cref="Width"/> says, because sharing a proportional size means nothing.
+    /// </remarks>
+    public string? SharedSizeGroup { get; set; }
+
     /// <summary>
     /// Gets or sets the actual width of this column after layout calculation.
     /// This is set during the Grid's measure/arrange pass.
