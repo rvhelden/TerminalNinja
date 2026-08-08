@@ -237,12 +237,15 @@ public sealed class ListView : Selector
         }
 
         // ── Data rows ──
-        var items = GetEffectiveItemsList();
+        // The effective items, not the container map's keys: the map is keyed by row index and a
+        // list is free to hold equal items, so walking containers would draw one row per distinct
+        // item rather than one row per item.
+        var items = GetEffectiveItems();
         for (var row = 0; row < items.Count && bounds.Y + HeaderRows + row < bounds.Bottom; row++)
         {
             var item = items[row];
-            var dataItem = GetDataItem(item);
-            var isSelected = IsItemSelected(item);
+            var dataItem = GetDataItem(row, item);
+            var isSelected = IsRowSelected(row);
             var fg = isSelected ? SelectedForeground : Foreground;
             var bg = isSelected ? SelectedBackground : Background;
 
@@ -310,35 +313,18 @@ public sealed class ListView : Selector
         }
     }
 
-    private List<object> GetEffectiveItemsList()
+    private object? GetDataItem(int row, object item)
     {
-        var result = new List<object>();
-        foreach (var kvp in _itemContainers)
+        if (ContainerFromIndex(row) is ListViewItem lvi)
         {
-            result.Add(kvp.Key);
+            return lvi.Content ?? item;
         }
-        return result;
-    }
 
-    private object? GetDataItem(object item)
-    {
-        if (_itemContainers.TryGetValue(item, out var container))
-        {
-            if (container is ListViewItem lvi)
-                return lvi.Content ?? item;
-        }
         return item;
     }
 
-    private bool IsItemSelected(object item)
-    {
-        if (_itemContainers.TryGetValue(item, out var container))
-        {
-            if (container is ISelectableContainer sc)
-                return sc.IsSelected;
-        }
-        return false;
-    }
+    private bool IsRowSelected(int row) =>
+        ContainerFromIndex(row) is ISelectableContainer { IsSelected: true };
 
     // ─── Input ───────────────────────────────────────────────────────
 

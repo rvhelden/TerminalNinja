@@ -255,9 +255,9 @@ public sealed class DataGrid : Selector
         }
 
         // Data rows — delegate cell rendering to each column.
-        // Iterated in effective-items order (the order SelectedIndex indexes), not
-        // _itemContainers order: the containers live in a plain Dictionary whose order
-        // is not guaranteed once items have been removed and re-added.
+        // Iterated in effective-items order (the order SelectedIndex indexes), not container
+        // order: virtualized the realised containers are an unordered window over the list, and
+        // they answer per index, so they cannot be the row sequence.
         var items = GetEffectiveItems();
         var viewportHeight = bounds.Height - HeaderRowCount;
 

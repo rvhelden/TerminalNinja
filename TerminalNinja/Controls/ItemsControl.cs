@@ -91,9 +91,9 @@ public class ItemsControl : Control
     /// The items to display, in order, materialised as a list.
     /// </summary>
     /// <remarks>
-    /// This is the order <c>SelectedIndex</c> indexes and the order rows render in — not
-    /// <see cref="_itemContainers"/>, whose dictionary order is not guaranteed, and not
-    /// <c>ItemsPanel.Children</c>, which under virtualization holds only the realised window.
+    /// This is the order <c>SelectedIndex</c> indexes, the order rows render in, and the order the
+    /// container index space is defined against. <c>ItemsPanel.Children</c> matches it exactly
+    /// while unvirtualized; under virtualization it holds only the realised window.
     /// </remarks>
     protected List<object> EffectiveItems
     {
@@ -123,12 +123,29 @@ public class ItemsControl : Control
         }
     }
 
-    
     /// <summary>
-    /// Maps data items to their generated UI containers.
-    /// Protected so subclasses (e.g., Selector) can look up containers for items.
+    /// The containers realised under virtualization, keyed by the item's index in
+    /// <see cref="EffectiveItems"/>.
     /// </summary>
-    protected readonly Dictionary<object, UIElement> _itemContainers = new();
+    /// <remarks>
+    /// Containers are identified by <b>index</b>, never by the item. A collection is free to
+    /// contain equal elements — two identical strings, two equal records, repeated spacer rows —
+    /// and an item-keyed map cannot tell them apart, so it collapses all of them onto a single
+    /// container. Virtualized, that one container was then added to the panel once per duplicate
+    /// row: a single control living in several places at once, with one <c>IsSelected</c>, one
+    /// parent and one set of layout bookkeeping shared between rows that are meant to be
+    /// independent. Unvirtualized each row did get its own container, but the map kept only the
+    /// last of them, so every lookup from an item — selection, <see cref="ContainerFromItem"/>,
+    /// scroll-into-view — answered with the wrong row's control. The index is the only identity a
+    /// data item is guaranteed to have.
+    ///
+    /// Only used while <see cref="IsVirtualizing"/>. Unvirtualized there is nothing to store:
+    /// every item has a container and <c>ItemsPanel.Children[i]</c> <i>is</i> the container for
+    /// item <c>i</c>, so the children collection is the map. Keeping a parallel dictionary in that
+    /// mode would only be a second thing to get out of step, and would turn an append into an
+    /// index-shifting walk of the whole list.
+    /// </remarks>
+    private readonly Dictionary<int, UIElement> _realizedContainers = new();
 
     /// <summary>
     /// Gets the collection of items directly added to this control.
@@ -225,25 +242,25 @@ public class ItemsControl : Control
         start = Math.Clamp(start, 0, Math.Max(0, items.Count - 1));
         count = Math.Clamp(count, 0, Math.Max(0, items.Count - start));
 
-        // Drop containers for items that have scrolled out of the window. Done first so a long
-        // jump does not hold both windows at once.
-        if (_itemContainers.Count > 0)
+        // Drop containers for rows that have scrolled out of the window. Done first so a long
+        // jump does not hold both windows at once. Eviction is by index, so two equal items in
+        // and out of the window no longer evict each other.
+        if (_realizedContainers.Count > 0)
         {
-            List<object>? evicted = null;
-            foreach (var item in _itemContainers.Keys)
+            List<int>? evicted = null;
+            foreach (var index in _realizedContainers.Keys)
             {
-                var index = items.IndexOf(item);
                 if (index < start || index >= start + count)
                 {
-                    (evicted ??= []).Add(item);
+                    (evicted ??= []).Add(index);
                 }
             }
 
             if (evicted is not null)
             {
-                foreach (var item in evicted)
+                foreach (var index in evicted)
                 {
-                    if (_itemContainers.Remove(item, out var container))
+                    if (_realizedContainers.Remove(index, out var container))
                     {
                         ItemsPanel.Children.Remove(container);
                     }
@@ -257,9 +274,10 @@ public class ItemsControl : Control
 
         for (var i = 0; i < count; i++)
         {
-            var item = items[start + i];
+            var index = start + i;
+            var item = items[index];
 
-            if (!_itemContainers.TryGetValue(item, out var container))
+            if (!_realizedContainers.TryGetValue(index, out var container))
             {
                 container = GenerateContainer(item);
                 if (container is null)
@@ -267,7 +285,7 @@ public class ItemsControl : Control
                     continue;
                 }
 
-                _itemContainers[item] = container;
+                _realizedContainers[index] = container;
             }
             else
             {
@@ -348,110 +366,114 @@ public class ItemsControl : Control
 
         // Virtualized, there is no per-item container to insert, move or drop — the next render
         // realises whatever window is current. Incremental patching here would be work spent on
-        // containers that mostly do not exist.
+        // containers that mostly do not exist. The realised ones are dropped rather than kept,
+        // because they are keyed by index and every index at or after the change now names a
+        // different item; reusing them would repaint the window one row out of step.
         if (IsVirtualizing)
         {
+            DiscardRealizedContainers();
             InvalidateVisual();
             return;
         }
+
+        // Unvirtualized, ItemsPanel.Children is the container map: child i belongs to item i.
+        // Every branch below therefore patches Children at the index the notification carries,
+        // never at "wherever this item's container happened to be" — with equal items in the
+        // collection that lookup answers for the wrong row.
+        var children = ItemsPanel.Children;
 
         switch (e.Action)
         {
             case NotifyCollectionChangedAction.Add:
                 if (e.NewItems != null)
                 {
-                    var insertIndex = e.NewStartingIndex >= 0 ? e.NewStartingIndex : ItemsPanel.Children.Count;
+                    var insertIndex = e.NewStartingIndex >= 0 ? e.NewStartingIndex : children.Count;
+                    insertIndex = Math.Clamp(insertIndex, 0, children.Count);
+
                     foreach (var item in e.NewItems)
                     {
+                        if (item is null)
+                        {
+                            // EffectiveItems drops nulls, so a container here would shift every
+                            // later child off its item.
+                            continue;
+                        }
+
                         var container = GenerateContainer(item);
                         if (container != null)
                         {
-                            _itemContainers[item] = container;
-                            if (insertIndex >= 0 && insertIndex <= ItemsPanel.Children.Count)
-                            {
-                                ItemsPanel.Children.Insert(insertIndex++, container);
-                            }
-                            else
-                            {
-                                ItemsPanel.Children.Add(container);
-                            }
+                            children.Insert(insertIndex++, container);
                         }
                     }
                 }
                 break;
 
             case NotifyCollectionChangedAction.Remove:
-                if (e.OldItems != null)
+                if (e.OldItems != null && e.OldStartingIndex >= 0)
                 {
-                    foreach (var item in e.OldItems)
+                    for (var i = 0; i < e.OldItems.Count; i++)
                     {
-                        if (_itemContainers.TryGetValue(item, out var container))
+                        if (e.OldStartingIndex < children.Count)
                         {
-                            ItemsPanel.Children.Remove(container);
-                            _itemContainers.Remove(item);
+                            children.RemoveAt(e.OldStartingIndex);
                         }
                     }
+                }
+                else
+                {
+                    // A source that will not say where — the positions are unknowable, so rebuild.
+                    RefreshItems();
+                    return;
                 }
                 break;
 
             case NotifyCollectionChangedAction.Replace:
-                if (e is { OldItems: not null, NewItems: not null })
+                if (e is { OldItems: not null, NewItems: not null } && e.NewStartingIndex >= 0)
                 {
-                    for (var i = 0; i < e.OldItems.Count; i++)
+                    for (var i = 0; i < e.NewItems.Count; i++)
                     {
-                        var oldItem = e.OldItems[i]!;
-                        var newItem = e.NewItems[i]!;
-
-                        if (_itemContainers.TryGetValue(oldItem, out var oldContainer))
+                        var index = e.NewStartingIndex + i;
+                        if (index >= children.Count || e.NewItems[i] is not { } newItem)
                         {
-                            var index = ItemsPanel.Children.IndexOf(oldContainer);
-                            ItemsPanel.Children.Remove(oldContainer);
-                            _itemContainers.Remove(oldItem);
+                            continue;
+                        }
 
-                            var newContainer = GenerateContainer(newItem);
-                            if (newContainer != null)
-                            {
-                                _itemContainers[newItem] = newContainer;
-                                if (index >= 0)
-                                {
-                                    ItemsPanel.Children.Insert(index, newContainer);
-                                }
-                                else
-                                {
-                                    ItemsPanel.Children.Add(newContainer);
-                                }
-                            }
+                        var newContainer = GenerateContainer(newItem);
+                        if (newContainer != null)
+                        {
+                            children.RemoveAt(index);
+                            children.Insert(index, newContainer);
                         }
                     }
+                }
+                else
+                {
+                    RefreshItems();
+                    return;
                 }
                 break;
 
             case NotifyCollectionChangedAction.Move:
-                if (e.OldItems != null)
+                if (e is { OldStartingIndex: >= 0, NewStartingIndex: >= 0 }
+                    && e.OldStartingIndex < children.Count)
                 {
-                    foreach (var item in e.OldItems)
-                    {
-                        if (_itemContainers.TryGetValue(item, out var container))
-                        {
-                            ItemsPanel.Children.Remove(container);
-                            if (e.NewStartingIndex >= 0 && e.NewStartingIndex <= ItemsPanel.Children.Count)
-                            {
-                                ItemsPanel.Children.Insert(e.NewStartingIndex, container);
-                            }
-                            else
-                            {
-                                ItemsPanel.Children.Add(container);
-                            }
-                        }
-                    }
+                    var moved = children[e.OldStartingIndex];
+                    children.RemoveAt(e.OldStartingIndex);
+                    children.Insert(Math.Clamp(e.NewStartingIndex, 0, children.Count), moved);
+                }
+                else
+                {
+                    RefreshItems();
+                    return;
                 }
                 break;
 
             case NotifyCollectionChangedAction.Reset:
                 RefreshItems();
-                break;
+                return;
         }
 
+        OnContainersChanged();
         InvalidateVisual();
     }
 
@@ -468,7 +490,7 @@ public class ItemsControl : Control
         InvalidateItems();
 
         ItemsPanel.Children.Clear();
-        _itemContainers.Clear();
+        _realizedContainers.Clear();
         RealizedStart = 0;
 
         // Virtualized, the containers are the render pass's business: it calls RealizeRange for
@@ -480,23 +502,47 @@ public class ItemsControl : Control
             return;
         }
 
-        var source = ItemsSource ?? Items;
-        if (source == null)
-        {
-            return;
-        }
-
-        foreach (var item in source)
+        // EffectiveItems, not the raw source: it is the list every index in this control is
+        // measured against, so generating from it is what keeps child i and item i the same row.
+        foreach (var item in EffectiveItems)
         {
             var container = GenerateContainer(item);
             if (container != null)
             {
-                _itemContainers[item] = container;
                 ItemsPanel.Children.Add(container);
             }
         }
 
         InvalidateVisual();
+    }
+
+    /// <summary>
+    /// Drops every realised container. Virtualized only; unvirtualized the containers are the
+    /// panel's children and are patched in place.
+    /// </summary>
+    private void DiscardRealizedContainers()
+    {
+        if (_realizedContainers.Count == 0)
+        {
+            return;
+        }
+
+        _realizedContainers.Clear();
+        ItemsPanel.Children.Clear();
+        RealizedStart = 0;
+    }
+
+    /// <summary>
+    /// Called after the containers have been patched positionally by a collection change, so a
+    /// subclass can re-apply anything it keys off the row index — selection, most obviously.
+    /// </summary>
+    /// <remarks>
+    /// Needed because containers now stay where they are and the items move past them: after a
+    /// removal, child <c>i</c> is the control that used to sit at <c>i + 1</c> and still carries
+    /// that row's state.
+    /// </remarks>
+    protected virtual void OnContainersChanged()
+    {
     }
 
     /// <summary>
@@ -633,13 +679,114 @@ public class ItemsControl : Control
     }
 
     /// <summary>
+    /// Every container that currently exists, paired with the index of the item it shows.
+    /// </summary>
+    /// <remarks>
+    /// The one way for a subclass to walk containers without inventing an identity for the items.
+    /// Virtualized this is the realised window in no particular order; unvirtualized it is every
+    /// row, in order.
+    /// </remarks>
+    protected IEnumerable<(int Index, UIElement Container)> RealizedContainers()
+    {
+        if (IsVirtualizing)
+        {
+            foreach (var (index, container) in _realizedContainers)
+            {
+                yield return (index, container);
+            }
+
+            yield break;
+        }
+
+        var children = ItemsPanel.Children;
+        for (var i = 0; i < children.Count; i++)
+        {
+            yield return (i, children[i]);
+        }
+    }
+
+    /// <summary>
+    /// Gets the container element generated for the item at <paramref name="index"/> in
+    /// <see cref="EffectiveItems"/>, or null when that row has no container.
+    /// </summary>
+    /// <param name="index">The item's index.</param>
+    /// <returns>The container element, or null.</returns>
+    /// <remarks>
+    /// This is the lookup that always answers exactly: an index names one row even when several
+    /// rows hold equal items. Virtualized, only realised rows have a container, so a row outside
+    /// the window returns null.
+    /// </remarks>
+    public UIElement? ContainerFromIndex(int index)
+    {
+        if (index < 0)
+        {
+            return null;
+        }
+
+        if (IsVirtualizing)
+        {
+            return _realizedContainers.GetValueOrDefault(index);
+        }
+
+        var children = ItemsPanel.Children;
+        return index < children.Count ? children[index] : null;
+    }
+
+    /// <summary>
+    /// Gets the index of the item whose container is <paramref name="container"/>, or -1.
+    /// </summary>
+    /// <param name="container">The container element.</param>
+    /// <returns>The item's index in <see cref="EffectiveItems"/>, or -1.</returns>
+    /// <remarks>
+    /// Matched by reference: a container is a specific control instance, and two containers built
+    /// from equal items are still two different rows.
+    /// </remarks>
+    public int IndexFromContainer(UIElement container)
+    {
+        ArgumentNullException.ThrowIfNull(container);
+
+        if (IsVirtualizing)
+        {
+            foreach (var (index, realised) in _realizedContainers)
+            {
+                if (ReferenceEquals(realised, container))
+                {
+                    return index;
+                }
+            }
+
+            return -1;
+        }
+
+        var children = ItemsPanel.Children;
+        for (var i = 0; i < children.Count; i++)
+        {
+            if (ReferenceEquals(children[i], container))
+            {
+                return i;
+            }
+        }
+
+        return -1;
+    }
+
+    /// <summary>
     /// Gets the container element for the specified data item, or null if not found.
     /// </summary>
     /// <param name="item">The data item.</param>
     /// <returns>The container element, or null.</returns>
+    /// <remarks>
+    /// An item does not identify a row: a collection may hold equal items — two identical strings,
+    /// two equal records, a repeated spacer — and each of them is its own row with its own
+    /// container. This returns the container of the <b>first</b> item that compares equal
+    /// (<see cref="EqualityComparer{T}.Default"/>, so <c>Equals</c>, not reference identity), which
+    /// is only unambiguous when the items are distinct. Use <see cref="ContainerFromIndex"/> when
+    /// the row matters.
+    /// </remarks>
     public UIElement? ContainerFromItem(object item)
     {
-        return _itemContainers.TryGetValue(item, out var container) ? container : null;
+        var index = EffectiveItems.IndexOf(item);
+        return index < 0 ? null : ContainerFromIndex(index);
     }
 
     /// <summary>
@@ -649,14 +796,9 @@ public class ItemsControl : Control
     /// <returns>The data item, or null.</returns>
     public object? ItemFromContainer(UIElement container)
     {
-        foreach (var kvp in _itemContainers)
-        {
-            if (kvp.Value == container)
-            {
-                return kvp.Key;
-            }
-        }
-        return null;
+        var index = IndexFromContainer(container);
+        var items = EffectiveItems;
+        return index >= 0 && index < items.Count ? items[index] : null;
     }
 
     /// <inheritdoc />

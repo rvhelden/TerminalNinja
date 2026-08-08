@@ -59,13 +59,13 @@ public abstract class Selector : ItemsControl
             if (newIndex < 0 || newIndex >= items.Count)
             {
                 selector.SetValueInternal(SelectedItemProperty, null);
-                selector.UpdateContainerSelection(null);
+                selector.UpdateContainerSelection(-1);
             }
             else
             {
                 var item = items[newIndex];
                 selector.SetValueInternal(SelectedItemProperty, item);
-                selector.UpdateContainerSelection(item);
+                selector.UpdateContainerSelection(newIndex);
             }
 
             selector.OnSelectionChanged(
@@ -97,7 +97,7 @@ public abstract class Selector : ItemsControl
             var newItem = e.NewValue;
             var newIndex = newItem != null ? items.IndexOf(newItem) : -1;
             selector.SetValueInternal(SelectedIndexProperty, newIndex);
-            selector.UpdateContainerSelection(newItem);
+            selector.UpdateContainerSelection(newIndex);
 
             var removed = e.OldValue != null ? [e.OldValue] : Array.Empty<object>();
             var added = newItem != null ? [newItem] : Array.Empty<object>();
@@ -178,12 +178,16 @@ public abstract class Selector : ItemsControl
     /// <summary>
     /// Called internally to select a specific container element.
     /// </summary>
+    /// <remarks>
+    /// Resolved to an index directly rather than via the item: clicking the second of two equal
+    /// rows has to select that row, and the round trip through the item would land on the first.
+    /// </remarks>
     internal void NotifyContainerClicked(UIElement container)
     {
-        var item = ItemFromContainer(container);
-        if (item != null)
+        var index = IndexFromContainer(container);
+        if (index >= 0)
         {
-            NotifyItemClicked(item);
+            SetCurrentSelectedIndex(index);
         }
     }
 
@@ -198,15 +202,31 @@ public abstract class Selector : ItemsControl
     /// <summary>
     /// Updates the IsSelected state on all item containers to reflect the current selection.
     /// </summary>
-    private void UpdateContainerSelection(object? selectedItem)
+    /// <param name="selectedIndex">The selected row, or -1 for none.</param>
+    /// <remarks>
+    /// Driven by the row index, not by the item. Comparing items marks every row holding an equal
+    /// item as selected — a list with a repeated spacer string lit up all of them — and where the
+    /// items were equal but not the same reference it marked none.
+    /// </remarks>
+    private void UpdateContainerSelection(int selectedIndex)
     {
-        foreach (var kvp in _itemContainers)
+        foreach (var (index, element) in RealizedContainers())
         {
-            if (kvp.Value is ISelectableContainer container)
+            if (element is ISelectableContainer container)
             {
-                container.IsSelected = kvp.Key == selectedItem && selectedItem != null;
+                container.IsSelected = index == selectedIndex && selectedIndex >= 0;
             }
         }
+    }
+
+    /// <inheritdoc />
+    protected override void OnContainersChanged()
+    {
+        base.OnContainersChanged();
+
+        // The containers stayed put while the items moved past them, so the highlight has to be
+        // reapplied against the indices as they now stand.
+        UpdateContainerSelection(SelectedIndex);
     }
 
     /// <inheritdoc />
@@ -226,7 +246,7 @@ public abstract class Selector : ItemsControl
                 try
                 {
                     SetValueInternal(SelectedIndexProperty, idx);
-                    UpdateContainerSelection(selectedItem);
+                    UpdateContainerSelection(idx);
                 }
                 finally
                 {
@@ -241,7 +261,7 @@ public abstract class Selector : ItemsControl
                 {
                     SetValueInternal(SelectedIndexProperty, -1);
                     SetValueInternal(SelectedItemProperty, null);
-                    UpdateContainerSelection(null);
+                    UpdateContainerSelection(-1);
                 }
                 finally
                 {
