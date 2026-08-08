@@ -2,6 +2,31 @@
 
 All notable changes to this project will be documented in this file. See [versionize](https://github.com/versionize/versionize) for commit guidelines.
 
+<a name="1.5.0"></a>
+## [1.5.0](https://www.github.com/rvhelden/TerminalNinja/releases/tag/v1.5.0) (2026-08-08)
+
+### Features
+
+* accept WPF enum spellings in XAML and explain the ones that are wrong ([46f716b](https://www.github.com/rvhelden/TerminalNinja/commit/46f716b32c240fc9bdca42b2e36bb64a7afdec65))
+* add DockPanel, UniformGrid and WrapPanel ([e8f9d55](https://www.github.com/rvhelden/TerminalNinja/commit/e8f9d550d956c1b16fc6f3aa225c50bdd3b880d4))
+* add zoom and pan to NodeGraph, and parse XAML doubles invariantly ([699a070](https://www.github.com/rvhelden/TerminalNinja/commit/699a070cfab8a6f4211249dd98ffe80e0e706202))
+* make Grid Auto measure its content, and add SharedSizeGroup ([8f6e0ff](https://www.github.com/rvhelden/TerminalNinja/commit/8f6e0ffe924ec8b6e6549a6651038ae4d82351c5))
+* make NodeGraph navigable — arrowheads, selection reset, non-overlapping boxes ([787865b](https://www.github.com/rvhelden/TerminalNinja/commit/787865b00208b34441eba1c82aa184d77bde7222))
+* opt-in container virtualization, and stop rebuilding the item list per frame ([3b4a355](https://www.github.com/rvhelden/TerminalNinja/commit/3b4a3554afe2a8fffcf133a1225b8ce42549dc38))
+* resolve shared sizes in one frame, measure Grid height, document it ([785555a](https://www.github.com/rvhelden/TerminalNinja/commit/785555ace4638e59808f6f1ab737754ab7ac2db2))
+* select DataTemplates implicitly by DataType ([744b099](https://www.github.com/rvhelden/TerminalNinja/commit/744b09902078cd78e0d28aaf43b4f6e68fcffcfc))
+* support {Binding} with no path, bound to the DataContext itself ([06a3797](https://www.github.com/rvhelden/TerminalNinja/commit/06a3797e1b4ac556f23c6c9cd17385f73f1f42df))
+
+### Bug Fixes
+
+* carry the stretch remainder instead of discarding it ([f2f7174](https://www.github.com/rvhelden/TerminalNinja/commit/f2f71748e03f336c433ecf5e59de634677238ad9))
+* chart selection bindings, half-built singleton, and a headless key path ([8359a2f](https://www.github.com/rvhelden/TerminalNinja/commit/8359a2fed14db52fd455967f9d4dfb891dccacd7))
+* clone a DataTemplate's attached properties and grid definitions ([bbb8dd1](https://www.github.com/rvhelden/TerminalNinja/commit/bbb8dd1a257f64c6574ce57832aa55101b8e6683))
+* draw a StackPanel from the children it measured ([1544203](https://www.github.com/rvhelden/TerminalNinja/commit/1544203488f0849c3bda11728dc5ee42ada20f8f))
+* keep bindings alive through input, and let a focused field claim its keys ([d1a7d25](https://www.github.com/rvhelden/TerminalNinja/commit/d1a7d250e28112196a1d01f2ae626415350ceda4))
+* key generated containers by index, not by the item ([1806bc7](https://www.github.com/rvhelden/TerminalNinja/commit/1806bc7e28d738e543203f37d6f940218ab6aa92))
+* **focus:** draw the focus visual on Border instead of over a list's own content ([4841c22](https://www.github.com/rvhelden/TerminalNinja/commit/4841c22675fe67e25d85a489be4557062bb19cdf))
+
 <a name="1.4.0"></a>
 ## [1.4.0](https://www.github.com/rvhelden/TerminalNinja/releases/tag/v1.4.0) (2026-08-07)
 
