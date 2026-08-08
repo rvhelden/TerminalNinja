@@ -268,6 +268,25 @@ public class DependencyObject : INotifyPropertyChanged
     }
 
     /// <summary>
+    /// Returns the attached-property values set locally on this object.
+    /// </summary>
+    /// <remarks>
+    /// An attached value lives only in this store, never behind a CLR property of the element's
+    /// own type, so anything that copies an element property by property misses it completely.
+    /// That is what made <c>Grid.Column</c>, <c>StackPanel.SizeMode</c> and <c>DockPanel.Dock</c>
+    /// disappear when a DataTemplate was cloned into a row.
+    /// </remarks>
+    internal IEnumerable<KeyValuePair<DependencyProperty, object?>> GetLocalAttachedValues()
+    {
+        if (_localValues == null || _localValues.Count == 0)
+        {
+            return [];
+        }
+
+        return _localValues.Where(pair => pair.Key.IsAttached).ToArray();
+    }
+
+    /// <summary>
     /// Returns all expressions currently attached to this object.
     /// Used for iterating expressions when DataContext or parent changes.
     /// </summary>

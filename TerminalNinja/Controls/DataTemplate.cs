@@ -166,6 +166,47 @@ public class DataTemplate
             }
         }
 
+        // A Grid's row and column definitions are a read-only collection of plain objects, so the
+        // accessor loop above skips them entirely — it only clones read-only collections it
+        // recognises, and those are inlines and child elements. A cloned Grid therefore arrived
+        // with no definitions at all and fell back to a single implicit cell, which stacked every
+        // child on top of its siblings however carefully their Grid.Column had been set.
+        if (source is Grid sourceGrid && clone is Grid cloneGrid)
+        {
+            foreach (var column in sourceGrid.ColumnDefinitions)
+            {
+                cloneGrid.ColumnDefinitions.Add(new ColumnDefinition
+                {
+                    Width = column.Width,
+                    MinWidth = column.MinWidth,
+                    MaxWidth = column.MaxWidth,
+                    SharedSizeGroup = column.SharedSizeGroup,
+                });
+            }
+
+            foreach (var row in sourceGrid.RowDefinitions)
+            {
+                cloneGrid.RowDefinitions.Add(new RowDefinition
+                {
+                    Height = row.Height,
+                    MinHeight = row.MinHeight,
+                    MaxHeight = row.MaxHeight,
+                    SharedSizeGroup = row.SharedSizeGroup,
+                });
+            }
+        }
+
+        // Carry over attached properties — Grid.Row/Column, StackPanel.SizeMode, DockPanel.Dock.
+        // The accessor loop above only sees CLR properties of the element's own type, and an
+        // attached value is not one: it lives in the dependency value store under a property some
+        // other type registered. Without this, every cloned row lost its cell assignment and
+        // collapsed into cell zero, which made a layout panel useless inside an item template —
+        // the one place a row-shaped template is wanted most.
+        foreach (var (dp, value) in source.GetLocalAttachedValues())
+        {
+            clone.SetValue(dp, value);
+        }
+
         // Clone bindings from the prototype to the clone.
         // Iterate all binding expressions on the source, extract the parent Binding description,
         // and set a fresh binding on the clone's corresponding DependencyProperty.
