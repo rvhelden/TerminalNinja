@@ -98,15 +98,20 @@ public class StackPanel : Panel
     /// </summary>
     public override Size2D GetPreferredSize(Rect parent)
     {
-        if (Children.Count == 0)
+        // Snapshot before measuring: GetPreferredSize below runs arbitrary child code, and a
+        // child that mutates Children while being measured would otherwise invalidate the
+        // enumerator mid-walk. See OnRender for why the whole pass works off one snapshot.
+        var children = SnapshotChildren();
+
+        if (children.Length == 0)
         {
             return new Size2D(0, 0);
         }
 
         var totalMainAxis = 0;
         var maxCrossAxis = 0;
-        
-        foreach (var child in Children)
+
+        foreach (var child in children)
         {
             var sizeMode = GetSizeMode(child);
             var preferredSize = child.GetPreferredSize(parent);
@@ -143,26 +148,36 @@ public class StackPanel : Panel
     /// </summary>
     protected override void OnRender(CellBuffer buffer, Rect parentBounds)
     {
-        if (Children.Count == 0)
+        // One snapshot for the whole pass — measure and draw must see the same list.
+        //
+        // Measuring calls GetPreferredSize on every child, and drawing calls Render on every
+        // child; both run arbitrary code that can add to or remove from Children (an
+        // ItemsControl regenerating its containers, a ContentPresenter building a templated
+        // child, a binding that fires while the tree is being walked). Re-reading Children[i]
+        // after measuring pairs each size with whatever child now sits at that index: a single
+        // removal earlier in the list shifts every later child one slot up, so one row is
+        // silently never drawn and the rows below it move up by one — no clipping, no
+        // exception, a list that reads as complete. Clamping the loop to Children.Count, as
+        // this did before, only hid the tail of the same mismatch and still threw when the
+        // shrink happened during the loop itself.
+        var children = SnapshotChildren();
+
+        if (children.Length == 0)
         {
             return;
         }
 
         var bounds = CalculateBounds(parentBounds);
-        
+
         // Calculate sizes for each child
-        var childSizes = CalculateChildSizes(bounds);
-        
+        var childSizes = CalculateChildSizes(bounds, children);
+
         // Render each child at its calculated position
         var position = Orientation == Orientation.Horizontal ? bounds.X : bounds.Y;
-        
-        // Use childSizes.Length (not Children.Count) as the loop bound.
-        // Children.Count can change if a child's Render triggers collection
-        // modifications (e.g., ItemsControl regenerating containers).
-        var count = Math.Min(childSizes.Length, Children.Count);
-        for (var i = 0; i < count; i++)
+
+        for (var i = 0; i < children.Length; i++)
         {
-            var child = Children[i];
+            var child = children[i];
             var size = childSizes[i];
 
             if (size <= 0)
@@ -180,11 +195,11 @@ public class StackPanel : Panel
     /// <inheritdoc />
     public override IEnumerable<(Visual Child, Rect ChildParentBounds)> GetChildrenWithBounds(Rect myBounds)
     {
-        var childSizes = CalculateChildSizes(myBounds);
+        var children = SnapshotChildren();
+        var childSizes = CalculateChildSizes(myBounds, children);
         var position = Orientation == Orientation.Horizontal ? myBounds.X : myBounds.Y;
 
-        var count = Math.Min(childSizes.Length, Children.Count);
-        for (var i = 0; i < count; i++)
+        for (var i = 0; i < children.Length; i++)
         {
             var size = childSizes[i];
             if (size <= 0)
@@ -192,17 +207,40 @@ public class StackPanel : Panel
                 continue;
             }
 
-            yield return (Children[i], CreateChildBounds(myBounds, position, size));
+            yield return (children[i], CreateChildBounds(myBounds, position, size));
             position += size;
         }
     }
-    
+
+    /// <summary>
+    /// Copies <see cref="Panel.Children"/> so a layout pass works off a list that cannot change
+    /// underneath it — measuring and rendering both run child code that may add or remove
+    /// children.
+    /// </summary>
+    private UIElement[] SnapshotChildren()
+    {
+        var children = Children;
+        var snapshot = new UIElement[children.Count];
+        children.CopyTo(snapshot, 0);
+        return snapshot;
+    }
+
     /// <summary>
     /// Calculates the size for each child along the main axis.
     /// </summary>
-    internal int[] CalculateChildSizes(Rect bounds)
+    internal int[] CalculateChildSizes(Rect bounds) => CalculateChildSizes(bounds, SnapshotChildren());
+
+    /// <summary>
+    /// Calculates the size for each child along the main axis, for a fixed list of children.
+    /// </summary>
+    /// <remarks>
+    /// Takes the children as an argument rather than reading <see cref="Panel.Children"/> so the
+    /// caller can measure and then draw the same list: the sizes are positional, and a collection
+    /// that changed in between makes every index after the change point mean a different child.
+    /// </remarks>
+    private int[] CalculateChildSizes(Rect bounds, UIElement[] children)
     {
-        var sizes = new int[Children.Count];
+        var sizes = new int[children.Length];
         var mainAxisSize = Orientation == Orientation.Horizontal ? bounds.Width : bounds.Height;
 
         var totalFixed = 0;
@@ -212,11 +250,11 @@ public class StackPanel : Panel
         // zero regardless of SizeMode so siblings fill the freed slot — Hidden takes its
         // normal allocation (the cells just paint as background because the public Render
         // wrapper on UIElement skips OnRender).
-        for (var i = 0; i < Children.Count; i++)
+        for (var i = 0; i < children.Length; i++)
         {
-            var child = Children[i];
+            var child = children[i];
 
-            if (child is UIElement uie && uie.Visibility == Visibility.Collapsed)
+            if (child.Visibility == Visibility.Collapsed)
             {
                 sizes[i] = 0;
                 continue;
@@ -255,10 +293,10 @@ public class StackPanel : Panel
         var stretchSize = stretchCount > 0 ? remainingSpace / stretchCount : 0;
         var extraCells = stretchCount > 0 ? remainingSpace % stretchCount : 0;
 
-        for (var i = 0; i < Children.Count; i++)
+        for (var i = 0; i < children.Length; i++)
         {
-            var child = Children[i];
-            if (child is UIElement uie && uie.Visibility == Visibility.Collapsed)
+            var child = children[i];
+            if (child.Visibility == Visibility.Collapsed)
             {
                 continue;
             }

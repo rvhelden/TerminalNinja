@@ -1,5 +1,8 @@
 using System.Collections.ObjectModel;
 using System.Text;
+using TerminalNinja.Buffers;
+using TerminalNinja.Controls;
+using TerminalNinja.Primitives;
 using TerminalNinja.Rendering;
 using TerminalNinja.Xaml;
 using TerminalNinja.Xaml.Mvvm;
@@ -436,6 +439,158 @@ public class ItemsControlRowVisibilityTests
         await Assert.That(withEmpty[1].Trim()).IsEqualTo("two");
         await Assert.That(withSpace[2].Trim()).IsEqualTo("two");
     }
+
+    // ─── The collection changing under the layout pass ───────────────
+
+    /// <summary>
+    /// A child that runs a callback the first time it is measured, or the first time it is drawn.
+    /// </summary>
+    private sealed class MutatingChild : FrameworkElement
+    {
+        public Action? OnMeasuring { get; set; }
+
+        public Action? OnRendering { get; set; }
+
+        public override Size2D GetPreferredSize(Rect parent)
+        {
+            var callback = OnMeasuring;
+            OnMeasuring = null;
+            callback?.Invoke();
+
+            return new Size2D(1, 1);
+        }
+
+        public override Rect CalculateBounds(Rect parent) => parent;
+
+        protected override void OnRender(CellBuffer buffer, Rect parentBounds)
+        {
+            var callback = OnRendering;
+            OnRendering = null;
+            callback?.Invoke();
+        }
+    }
+
+    /// <summary>
+    /// Builds the bare list, hands back the panel, and lets the caller plant a child that mutates
+    /// the source collection at a chosen point in the layout pass.
+    /// </summary>
+    private static string[] CaptureWithMutation(
+        int rowCount,
+        Func<ObservableCollection<TextRow>, MutatingChild> plant,
+        int width = 30,
+        int height = 14)
+    {
+        var vm = new RowsViewModel();
+        for (var i = 0; i < rowCount; i++)
+        {
+            vm.Lines.Add(new TextRow { Text = $"{i:D2}|row" });
+        }
+
+        var window = TerminalXaml.Load<Window>(BarePanelLayout, vm);
+        var panel = FindItemsControl(window)!.ItemsPanel;
+
+        // In front of the rows, so the mutation lands before the panel has drawn any of them.
+        panel.Children.Insert(0, plant(vm.Lines));
+
+        var buffer = new CellBuffer(width, height);
+        window.Render(buffer, new Rect(0, 0, width, height));
+
+        var lines = new string[height];
+        for (var y = 0; y < height; y++)
+        {
+            var line = new StringBuilder(width);
+            for (var x = 0; x < width; x++)
+            {
+                var codepoint = buffer[x, y].Codepoint;
+                line.Append(codepoint == 0 ? " " : char.ConvertFromUtf32((int)codepoint));
+            }
+
+            // Column 0 is the template TextBlock's Padding="1,0,0,0".
+            lines[y] = line.ToString().Trim();
+        }
+
+        return lines;
+    }
+
+    private static ItemsControl? FindItemsControl(Visual root)
+    {
+        if (root is ItemsControl itemsControl)
+        {
+            return itemsControl;
+        }
+
+        foreach (var (child, _) in root.GetChildrenWithBounds(new Rect(0, 0, 100, 100)))
+        {
+            if (FindItemsControl(child) is { } found)
+            {
+                return found;
+            }
+        }
+
+        return null;
+    }
+
+    /// <summary>
+    /// A panel measures every child and then draws every child. If the collection shrinks in
+    /// between — an item removed while an earlier sibling is being measured — the sizes and the
+    /// children no longer line up by index, and the row after the removal is drawn in the slot of
+    /// the row before it. Exactly one row is then never emitted and every row below it moves up by
+    /// one: no clipping, no overlap, no exception, and a list that reads as complete.
+    /// </summary>
+    /// <remarks>
+    /// This is the condition behind the vanished shortcut row. The panel now takes one snapshot of
+    /// its children for the whole pass, so the frame is drawn from the list it measured; the
+    /// removal shows up on the next frame, which the mutation has already invalidated.
+    /// </remarks>
+    [Test]
+    public async Task EveryRowIsRendered_WhenAnItemIsRemovedWhileThePanelIsMeasuring()
+    {
+        var lines = CaptureWithMutation(8, rows => new MutatingChild { OnMeasuring = () => rows.RemoveAt(5) });
+
+        // Row 05 is the one that used to vanish, taking 06 and 07 up a line with it.
+        await Assert.That(lines[1..9]).IsEquivalentTo(
+            ["00|row", "01|row", "02|row", "03|row", "04|row", "05|row", "06|row", "07|row"]);
+    }
+
+    /// <summary>
+    /// The same mismatch one phase later: the collection shrinks while the panel is part-way
+    /// through drawing it. Indexing the live collection then walked off the end of it.
+    /// </summary>
+    [Test]
+    public async Task EveryRowIsRendered_WhenAnItemIsRemovedWhileThePanelIsRendering()
+    {
+        var lines = CaptureWithMutation(8, rows => new MutatingChild { OnRendering = () => rows.RemoveAt(6) });
+
+        await Assert.That(lines[1..9]).IsEquivalentTo(
+            ["00|row", "01|row", "02|row", "03|row", "04|row", "05|row", "06|row", "07|row"]);
+    }
+
+    /// <summary>
+    /// Items that are equal to one another share a key in the container map. Each occurrence must
+    /// still get its own row — a list of value-equal records is not a list with duplicates removed.
+    /// </summary>
+    [Test]
+    public async Task ValueEqualItems_EachGetTheirOwnRow()
+    {
+        var items = new ObservableCollection<ValueRow>
+        {
+            new("first"), new("same"), new("same"), new("last"),
+        };
+
+        var control = new ItemsControl { ItemsSource = items };
+        var appended = new ObservableCollection<ValueRow>();
+        var afterBinding = new ItemsControl { ItemsSource = appended };
+
+        foreach (var item in items)
+        {
+            appended.Add(item);
+        }
+
+        await Assert.That(control.ItemsPanel.Children.Count).IsEqualTo(4);
+        await Assert.That(afterBinding.ItemsPanel.Children.Count).IsEqualTo(4);
+    }
+
+    private sealed record ValueRow(string Text);
 
     // ─── The real content ────────────────────────────────────────────
 
