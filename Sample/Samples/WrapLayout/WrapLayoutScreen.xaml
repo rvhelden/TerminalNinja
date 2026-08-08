@@ -1,0 +1,63 @@
+<Border xmlns="http://schemas.terminalninja.dev/xaml"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        BorderStyle="Rounded">
+    <StackPanel Orientation="Vertical">
+        <TextBlock StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1"
+                   Text=" WrapPanel Layout" Padding="2,0,0,0" />
+
+        <TextBlock StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1"
+                   Text="  Children flow until the next one would cross the bound, then a new line starts."
+                   Padding="2,0,0,0" />
+
+        <TextBlock StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1" Text="" />
+
+        <!-- Horizontal wrap -->
+        <TextBlock StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1"
+                   Text="  Horizontal — flows right, wraps down. Resize the terminal to re-flow:" Padding="2,0,0,0" />
+
+        <Border StackPanel.SizeMode="Fixed" StackPanel.FixedSize="8" BorderStyle="Single">
+            <WrapPanel Orientation="Horizontal">
+                <Border Width="22" Height="3" Background="#5F0000"><TextBlock Text=" alpha" VerticalTextAlignment="Center" /></Border>
+                <Border Width="22" Height="3" Background="#00005F"><TextBlock Text=" bravo" VerticalTextAlignment="Center" /></Border>
+                <Border Width="22" Height="3" Background="#005F00"><TextBlock Text=" charlie" VerticalTextAlignment="Center" /></Border>
+                <Border Width="22" Height="3" Background="#5F5F00"><TextBlock Text=" delta" VerticalTextAlignment="Center" /></Border>
+                <Border Width="22" Height="3" Background="#5F005F"><TextBlock Text=" echo" VerticalTextAlignment="Center" /></Border>
+                <Border Width="22" Height="3" Background="#005F5F"><TextBlock Text=" foxtrot" VerticalTextAlignment="Center" /></Border>
+            </WrapPanel>
+        </Border>
+
+        <TextBlock StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1" Text="" />
+
+        <!-- Ragged heights: the line takes the tallest child -->
+        <TextBlock StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1"
+                   Text="  Mixed sizes — every child in a line gets the tallest child's height:" Padding="2,0,0,0" />
+
+        <Border StackPanel.SizeMode="Fixed" StackPanel.FixedSize="8" BorderStyle="Single">
+            <WrapPanel Orientation="Horizontal">
+                <Border Width="24" Height="2" Background="#5F0000"><TextBlock Text=" 24x2" VerticalTextAlignment="Center" /></Border>
+                <Border Width="28" Height="4" Background="#00005F"><TextBlock Text=" 28x4" VerticalTextAlignment="Center" /></Border>
+                <Border Width="22" Height="1" Background="#005F00"><TextBlock Text=" 22x1" /></Border>
+                <Border Width="26" Height="3" Background="#5F5F00"><TextBlock Text=" 26x3" VerticalTextAlignment="Center" /></Border>
+            </WrapPanel>
+        </Border>
+
+        <TextBlock StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1" Text="" />
+
+        <!-- Vertical wrap -->
+        <TextBlock StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1"
+                   Text="  Vertical — flows down, wraps right:" Padding="2,0,0,0" />
+
+        <Border StackPanel.SizeMode="Stretch" BorderStyle="Single">
+            <WrapPanel Orientation="Vertical">
+                <Border Width="16" Height="2" Background="#5F0000"><TextBlock Text=" one" VerticalTextAlignment="Center" /></Border>
+                <Border Width="16" Height="2" Background="#00005F"><TextBlock Text=" two" VerticalTextAlignment="Center" /></Border>
+                <Border Width="16" Height="2" Background="#005F00"><TextBlock Text=" three" VerticalTextAlignment="Center" /></Border>
+                <Border Width="16" Height="2" Background="#5F5F00"><TextBlock Text=" four" VerticalTextAlignment="Center" /></Border>
+                <Border Width="16" Height="2" Background="#5F005F"><TextBlock Text=" five" VerticalTextAlignment="Center" /></Border>
+                <Border Width="16" Height="2" Background="#005F5F"><TextBlock Text=" six" VerticalTextAlignment="Center" /></Border>
+                <Border Width="16" Height="2" Background="#5F2F00"><TextBlock Text=" seven" VerticalTextAlignment="Center" /></Border>
+                <Border Width="16" Height="2" Background="#2F005F"><TextBlock Text=" eight" VerticalTextAlignment="Center" /></Border>
+            </WrapPanel>
+        </Border>
+    </StackPanel>
+</Border>

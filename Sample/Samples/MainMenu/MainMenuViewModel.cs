@@ -34,6 +34,9 @@ public class MainMenuViewModel : ViewModelBase
         "DateTimePicker",
         "Grid Layout",
         "StackPanel Layout",
+        "Dock Layout",
+        "UniformGrid Layout",
+        "Wrap Layout",
         "Data Binding",
         "Dialogs",
         "Terminal"

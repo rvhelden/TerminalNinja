@@ -1,0 +1,69 @@
+<Border xmlns="http://schemas.terminalninja.dev/xaml"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        BorderStyle="Rounded">
+    <StackPanel Orientation="Vertical">
+        <TextBlock StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1"
+                   Text=" DockPanel Layout" Padding="2,0,0,0" />
+
+        <TextBlock StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1"
+                   Text="  Each child is docked to one edge of what is left; the last child fills the rest."
+                   Padding="2,0,0,0" />
+
+        <TextBlock StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1" Text="" />
+
+        <!-- The classic shell: header, footer, sidebar, content -->
+        <TextBlock StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1"
+                   Text="  LastChildFill (default) — header, footer, sidebar, content:" Padding="2,0,0,0" />
+
+        <Border StackPanel.SizeMode="Fixed" StackPanel.FixedSize="10" BorderStyle="Single">
+            <DockPanel>
+                <TextBlock DockPanel.Dock="Top" Text=" Top — header (1 row)" Background="#5F0000" />
+                <TextBlock DockPanel.Dock="Bottom" Text=" Bottom — status bar (1 row)" Background="#00005F" />
+                <Border DockPanel.Dock="Left" Width="18" Background="#005F5F">
+                    <TextBlock Text=" Left (18 cols)" VerticalTextAlignment="Center" />
+                </Border>
+                <Border DockPanel.Dock="Right" Width="14" Background="#5F005F">
+                    <TextBlock Text=" Right (14)" VerticalTextAlignment="Center" />
+                </Border>
+                <Border Background="#005F00">
+                    <TextBlock Text=" Fill — takes every cell left over"
+                               HorizontalTextAlignment="Center" VerticalTextAlignment="Center" />
+                </Border>
+            </DockPanel>
+        </Border>
+
+        <TextBlock StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1" Text="" />
+
+        <!-- Declaration order is the layout -->
+        <TextBlock StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1"
+                   Text="  Order matters — Left first claims the full height; Top first claims the full width:"
+                   Padding="2,0,0,0" />
+
+        <Border StackPanel.SizeMode="Stretch" BorderStyle="Single">
+            <UniformGrid Columns="2">
+                <Border BorderStyle="Rounded">
+                    <DockPanel>
+                        <Border DockPanel.Dock="Left" Width="12" Background="#5F5F00">
+                            <TextBlock Text=" Left first" VerticalTextAlignment="Center" />
+                        </Border>
+                        <TextBlock DockPanel.Dock="Top" Text=" Top second" Background="#5F0000" />
+                        <Border Background="#00005F">
+                            <TextBlock Text=" Fill" VerticalTextAlignment="Center" />
+                        </Border>
+                    </DockPanel>
+                </Border>
+                <Border BorderStyle="Rounded">
+                    <DockPanel>
+                        <TextBlock DockPanel.Dock="Top" Text=" Top first" Background="#5F0000" />
+                        <Border DockPanel.Dock="Left" Width="12" Background="#5F5F00">
+                            <TextBlock Text=" Left second" VerticalTextAlignment="Center" />
+                        </Border>
+                        <Border Background="#00005F">
+                            <TextBlock Text=" Fill" VerticalTextAlignment="Center" />
+                        </Border>
+                    </DockPanel>
+                </Border>
+            </UniformGrid>
+        </Border>
+    </StackPanel>
+</Border>

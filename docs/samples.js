@@ -499,6 +499,219 @@ export const SAMPLES = [
   },
 
   {
+    id: "dock-layout",
+    title: "DockPanel Layout",
+    description: "Dock children to the edges in declaration order; the last child fills the rest.",
+    docPage: "./samples/dock-layout.html",
+    xaml: `<Window xmlns="http://schemas.terminalninja.dev/xaml"
+        Title="DockPanel Layout">
+    <Border BorderStyle="Rounded">
+        <StackPanel Orientation="Vertical">
+            <TextBlock StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1"
+                       Text=" DockPanel Layout" Padding="2,0,0,0" />
+
+            <TextBlock StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1"
+                       Text="  Each child is docked to one edge of what is left; the last child fills the rest."
+                       Padding="2,0,0,0" />
+
+            <TextBlock StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1" Text="" />
+
+            <TextBlock StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1"
+                       Text="  LastChildFill (default) — header, footer, sidebar, content:" Padding="2,0,0,0" />
+
+            <Border StackPanel.SizeMode="Fixed" StackPanel.FixedSize="10" BorderStyle="Single">
+                <DockPanel>
+                    <TextBlock DockPanel.Dock="Top" Text=" Top — header (1 row)" Background="#5F0000" />
+                    <TextBlock DockPanel.Dock="Bottom" Text=" Bottom — status bar (1 row)" Background="#00005F" />
+                    <Border DockPanel.Dock="Left" Width="18" Background="#005F5F">
+                        <TextBlock Text=" Left (18 cols)" VerticalTextAlignment="Center" />
+                    </Border>
+                    <Border DockPanel.Dock="Right" Width="14" Background="#5F005F">
+                        <TextBlock Text=" Right (14)" VerticalTextAlignment="Center" />
+                    </Border>
+                    <Border Background="#005F00">
+                        <TextBlock Text=" Fill — takes every cell left over"
+                                   HorizontalTextAlignment="Center" VerticalTextAlignment="Center" />
+                    </Border>
+                </DockPanel>
+            </Border>
+
+            <TextBlock StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1" Text="" />
+
+            <TextBlock StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1"
+                       Text="  Order matters — Left first claims the full height; Top first claims the full width:"
+                       Padding="2,0,0,0" />
+
+            <Border StackPanel.SizeMode="Stretch" BorderStyle="Single">
+                <UniformGrid Columns="2">
+                    <Border BorderStyle="Rounded">
+                        <DockPanel>
+                            <Border DockPanel.Dock="Left" Width="12" Background="#5F5F00">
+                                <TextBlock Text=" Left first" VerticalTextAlignment="Center" />
+                            </Border>
+                            <TextBlock DockPanel.Dock="Top" Text=" Top second" Background="#5F0000" />
+                            <Border Background="#00005F">
+                                <TextBlock Text=" Fill" VerticalTextAlignment="Center" />
+                            </Border>
+                        </DockPanel>
+                    </Border>
+                    <Border BorderStyle="Rounded">
+                        <DockPanel>
+                            <TextBlock DockPanel.Dock="Top" Text=" Top first" Background="#5F0000" />
+                            <Border DockPanel.Dock="Left" Width="12" Background="#5F5F00">
+                                <TextBlock Text=" Left second" VerticalTextAlignment="Center" />
+                            </Border>
+                            <Border Background="#00005F">
+                                <TextBlock Text=" Fill" VerticalTextAlignment="Center" />
+                            </Border>
+                        </DockPanel>
+                    </Border>
+                </UniformGrid>
+            </Border>
+        </StackPanel>
+    </Border>
+</Window>`
+  },
+
+  {
+    id: "uniformgrid-layout",
+    title: "UniformGrid Layout",
+    description: "Equal cells filled row by row, with the shape derived from the child count.",
+    docPage: "./samples/uniformgrid-layout.html",
+    xaml: `<Window xmlns="http://schemas.terminalninja.dev/xaml"
+        Title="UniformGrid Layout">
+    <Border BorderStyle="Rounded">
+        <StackPanel Orientation="Vertical">
+            <TextBlock StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1"
+                       Text=" UniformGrid Layout" Padding="2,0,0,0" />
+
+            <TextBlock StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1"
+                       Text="  Equal cells. Leftover cells go to the leading columns, so the widths always add up."
+                       Padding="2,0,0,0" />
+
+            <TextBlock StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1" Text="" />
+
+            <TextBlock StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1"
+                       Text="  Rows=2 Columns=3 — six equal cells:" Padding="2,0,0,0" />
+
+            <Border StackPanel.SizeMode="Fixed" StackPanel.FixedSize="8" BorderStyle="Single">
+                <UniformGrid Rows="2" Columns="3">
+                    <Border Background="#5F0000"><TextBlock Text=" 1" VerticalTextAlignment="Center" /></Border>
+                    <Border Background="#00005F"><TextBlock Text=" 2" VerticalTextAlignment="Center" /></Border>
+                    <Border Background="#005F00"><TextBlock Text=" 3" VerticalTextAlignment="Center" /></Border>
+                    <Border Background="#5F5F00"><TextBlock Text=" 4" VerticalTextAlignment="Center" /></Border>
+                    <Border Background="#5F005F"><TextBlock Text=" 5" VerticalTextAlignment="Center" /></Border>
+                    <Border Background="#005F5F"><TextBlock Text=" 6" VerticalTextAlignment="Center" /></Border>
+                </UniformGrid>
+            </Border>
+
+            <TextBlock StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1" Text="" />
+
+            <TextBlock StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1"
+                       Text="  Columns=4, Rows left at 0 — the row count follows the child count:" Padding="2,0,0,0" />
+
+            <Border StackPanel.SizeMode="Fixed" StackPanel.FixedSize="6" BorderStyle="Single">
+                <UniformGrid Columns="4">
+                    <Border Background="#5F0000"><TextBlock Text=" A" VerticalTextAlignment="Center" /></Border>
+                    <Border Background="#00005F"><TextBlock Text=" B" VerticalTextAlignment="Center" /></Border>
+                    <Border Background="#005F00"><TextBlock Text=" C" VerticalTextAlignment="Center" /></Border>
+                    <Border Background="#5F5F00"><TextBlock Text=" D" VerticalTextAlignment="Center" /></Border>
+                    <Border Background="#5F005F"><TextBlock Text=" E" VerticalTextAlignment="Center" /></Border>
+                </UniformGrid>
+            </Border>
+
+            <TextBlock StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1" Text="" />
+
+            <TextBlock StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1"
+                       Text="  Neither set — nine children auto-derive a 3x3 grid:" Padding="2,0,0,0" />
+
+            <Border StackPanel.SizeMode="Stretch" BorderStyle="Single">
+                <UniformGrid>
+                    <Border BorderStyle="Rounded"><TextBlock Text=" 1" VerticalTextAlignment="Center" /></Border>
+                    <Border BorderStyle="Rounded"><TextBlock Text=" 2" VerticalTextAlignment="Center" /></Border>
+                    <Border BorderStyle="Rounded"><TextBlock Text=" 3" VerticalTextAlignment="Center" /></Border>
+                    <Border BorderStyle="Rounded"><TextBlock Text=" 4" VerticalTextAlignment="Center" /></Border>
+                    <Border BorderStyle="Rounded"><TextBlock Text=" 5" VerticalTextAlignment="Center" /></Border>
+                    <Border BorderStyle="Rounded"><TextBlock Text=" 6" VerticalTextAlignment="Center" /></Border>
+                    <Border BorderStyle="Rounded"><TextBlock Text=" 7" VerticalTextAlignment="Center" /></Border>
+                    <Border BorderStyle="Rounded"><TextBlock Text=" 8" VerticalTextAlignment="Center" /></Border>
+                    <Border BorderStyle="Rounded"><TextBlock Text=" 9" VerticalTextAlignment="Center" /></Border>
+                </UniformGrid>
+            </Border>
+        </StackPanel>
+    </Border>
+</Window>`
+  },
+
+  {
+    id: "wrap-layout",
+    title: "WrapPanel Layout",
+    description: "Children flow along one axis and wrap to a new line at the bound.",
+    docPage: "./samples/wrap-layout.html",
+    xaml: `<Window xmlns="http://schemas.terminalninja.dev/xaml"
+        Title="WrapPanel Layout">
+    <Border BorderStyle="Rounded">
+        <StackPanel Orientation="Vertical">
+            <TextBlock StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1"
+                       Text=" WrapPanel Layout" Padding="2,0,0,0" />
+
+            <TextBlock StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1"
+                       Text="  Children flow until the next one would cross the bound, then a new line starts."
+                       Padding="2,0,0,0" />
+
+            <TextBlock StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1" Text="" />
+
+            <TextBlock StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1"
+                       Text="  Horizontal — flows right, wraps down:" Padding="2,0,0,0" />
+
+            <Border StackPanel.SizeMode="Fixed" StackPanel.FixedSize="8" BorderStyle="Single">
+                <WrapPanel Orientation="Horizontal">
+                    <Border Width="22" Height="3" Background="#5F0000"><TextBlock Text=" alpha" VerticalTextAlignment="Center" /></Border>
+                    <Border Width="22" Height="3" Background="#00005F"><TextBlock Text=" bravo" VerticalTextAlignment="Center" /></Border>
+                    <Border Width="22" Height="3" Background="#005F00"><TextBlock Text=" charlie" VerticalTextAlignment="Center" /></Border>
+                    <Border Width="22" Height="3" Background="#5F5F00"><TextBlock Text=" delta" VerticalTextAlignment="Center" /></Border>
+                    <Border Width="22" Height="3" Background="#5F005F"><TextBlock Text=" echo" VerticalTextAlignment="Center" /></Border>
+                    <Border Width="22" Height="3" Background="#005F5F"><TextBlock Text=" foxtrot" VerticalTextAlignment="Center" /></Border>
+                </WrapPanel>
+            </Border>
+
+            <TextBlock StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1" Text="" />
+
+            <TextBlock StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1"
+                       Text="  Mixed sizes — every child in a line gets the tallest child's height:" Padding="2,0,0,0" />
+
+            <Border StackPanel.SizeMode="Fixed" StackPanel.FixedSize="8" BorderStyle="Single">
+                <WrapPanel Orientation="Horizontal">
+                    <Border Width="24" Height="2" Background="#5F0000"><TextBlock Text=" 24x2" VerticalTextAlignment="Center" /></Border>
+                    <Border Width="28" Height="4" Background="#00005F"><TextBlock Text=" 28x4" VerticalTextAlignment="Center" /></Border>
+                    <Border Width="22" Height="1" Background="#005F00"><TextBlock Text=" 22x1" /></Border>
+                    <Border Width="26" Height="3" Background="#5F5F00"><TextBlock Text=" 26x3" VerticalTextAlignment="Center" /></Border>
+                </WrapPanel>
+            </Border>
+
+            <TextBlock StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1" Text="" />
+
+            <TextBlock StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1"
+                       Text="  Vertical — flows down, wraps right:" Padding="2,0,0,0" />
+
+            <Border StackPanel.SizeMode="Stretch" BorderStyle="Single">
+                <WrapPanel Orientation="Vertical">
+                    <Border Width="16" Height="2" Background="#5F0000"><TextBlock Text=" one" VerticalTextAlignment="Center" /></Border>
+                    <Border Width="16" Height="2" Background="#00005F"><TextBlock Text=" two" VerticalTextAlignment="Center" /></Border>
+                    <Border Width="16" Height="2" Background="#005F00"><TextBlock Text=" three" VerticalTextAlignment="Center" /></Border>
+                    <Border Width="16" Height="2" Background="#5F5F00"><TextBlock Text=" four" VerticalTextAlignment="Center" /></Border>
+                    <Border Width="16" Height="2" Background="#5F005F"><TextBlock Text=" five" VerticalTextAlignment="Center" /></Border>
+                    <Border Width="16" Height="2" Background="#005F5F"><TextBlock Text=" six" VerticalTextAlignment="Center" /></Border>
+                    <Border Width="16" Height="2" Background="#5F2F00"><TextBlock Text=" seven" VerticalTextAlignment="Center" /></Border>
+                    <Border Width="16" Height="2" Background="#2F005F"><TextBlock Text=" eight" VerticalTextAlignment="Center" /></Border>
+                </WrapPanel>
+            </Border>
+        </StackPanel>
+    </Border>
+</Window>`
+  },
+
+  {
     id: "scroll-viewer",
     title: "ScrollViewer",
     description: "Scrollable viewport with keyboard and mouse wheel navigation.",

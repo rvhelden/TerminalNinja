@@ -1,0 +1,65 @@
+<Border xmlns="http://schemas.terminalninja.dev/xaml"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        BorderStyle="Rounded">
+    <StackPanel Orientation="Vertical">
+        <TextBlock StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1"
+                   Text=" UniformGrid Layout" Padding="2,0,0,0" />
+
+        <TextBlock StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1"
+                   Text="  Equal cells. Leftover cells go to the leading columns, so the widths always add up."
+                   Padding="2,0,0,0" />
+
+        <TextBlock StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1" Text="" />
+
+        <!-- Explicit shape -->
+        <TextBlock StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1"
+                   Text="  Rows=2 Columns=3 — six equal cells:" Padding="2,0,0,0" />
+
+        <Border StackPanel.SizeMode="Fixed" StackPanel.FixedSize="8" BorderStyle="Single">
+            <UniformGrid Rows="2" Columns="3">
+                <Border Background="#5F0000"><TextBlock Text=" 1" VerticalTextAlignment="Center" /></Border>
+                <Border Background="#00005F"><TextBlock Text=" 2" VerticalTextAlignment="Center" /></Border>
+                <Border Background="#005F00"><TextBlock Text=" 3" VerticalTextAlignment="Center" /></Border>
+                <Border Background="#5F5F00"><TextBlock Text=" 4" VerticalTextAlignment="Center" /></Border>
+                <Border Background="#5F005F"><TextBlock Text=" 5" VerticalTextAlignment="Center" /></Border>
+                <Border Background="#005F5F"><TextBlock Text=" 6" VerticalTextAlignment="Center" /></Border>
+            </UniformGrid>
+        </Border>
+
+        <TextBlock StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1" Text="" />
+
+        <!-- Derived shape -->
+        <TextBlock StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1"
+                   Text="  Columns=4, Rows left at 0 — the row count follows the child count:" Padding="2,0,0,0" />
+
+        <Border StackPanel.SizeMode="Fixed" StackPanel.FixedSize="6" BorderStyle="Single">
+            <UniformGrid Columns="4">
+                <Border Background="#5F0000"><TextBlock Text=" A" VerticalTextAlignment="Center" /></Border>
+                <Border Background="#00005F"><TextBlock Text=" B" VerticalTextAlignment="Center" /></Border>
+                <Border Background="#005F00"><TextBlock Text=" C" VerticalTextAlignment="Center" /></Border>
+                <Border Background="#5F5F00"><TextBlock Text=" D" VerticalTextAlignment="Center" /></Border>
+                <Border Background="#5F005F"><TextBlock Text=" E" VerticalTextAlignment="Center" /></Border>
+            </UniformGrid>
+        </Border>
+
+        <TextBlock StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1" Text="" />
+
+        <!-- Both derived -->
+        <TextBlock StackPanel.SizeMode="Fixed" StackPanel.FixedSize="1"
+                   Text="  Neither set — nine children auto-derive a 3x3 grid:" Padding="2,0,0,0" />
+
+        <Border StackPanel.SizeMode="Stretch" BorderStyle="Single">
+            <UniformGrid>
+                <Border BorderStyle="Rounded"><TextBlock Text=" 1" VerticalTextAlignment="Center" /></Border>
+                <Border BorderStyle="Rounded"><TextBlock Text=" 2" VerticalTextAlignment="Center" /></Border>
+                <Border BorderStyle="Rounded"><TextBlock Text=" 3" VerticalTextAlignment="Center" /></Border>
+                <Border BorderStyle="Rounded"><TextBlock Text=" 4" VerticalTextAlignment="Center" /></Border>
+                <Border BorderStyle="Rounded"><TextBlock Text=" 5" VerticalTextAlignment="Center" /></Border>
+                <Border BorderStyle="Rounded"><TextBlock Text=" 6" VerticalTextAlignment="Center" /></Border>
+                <Border BorderStyle="Rounded"><TextBlock Text=" 7" VerticalTextAlignment="Center" /></Border>
+                <Border BorderStyle="Rounded"><TextBlock Text=" 8" VerticalTextAlignment="Center" /></Border>
+                <Border BorderStyle="Rounded"><TextBlock Text=" 9" VerticalTextAlignment="Center" /></Border>
+            </UniformGrid>
+        </Border>
+    </StackPanel>
+</Border>
