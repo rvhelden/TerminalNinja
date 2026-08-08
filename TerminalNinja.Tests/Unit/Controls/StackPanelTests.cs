@@ -441,6 +441,48 @@ public class StackPanelTests
     }
 
     [Test]
+    public async Task CalculateChildSizes_StretchWithRemainder_SpendsEveryCell()
+    {
+        var stackPanel = new StackPanel { Orientation = Orientation.Vertical };
+        for (var i = 0; i < 3; i++)
+        {
+            var child = new global::TerminalNinja.Controls.Border();
+            StackPanel.SetSizeMode(child, ChildSizeMode.Stretch);
+            stackPanel.Children.Add(child);
+        }
+
+        // Act - 10 rows across 3 children does not divide evenly.
+        var sizes = stackPanel.CalculateChildSizes(new Rect(0, 0, 50, 10));
+
+        // Assert - the leftover row goes to the first child rather than being dropped.
+        await Assert.That(sizes[0]).IsEqualTo(4);
+        await Assert.That(sizes[1]).IsEqualTo(3);
+        await Assert.That(sizes[2]).IsEqualTo(3);
+    }
+
+    [Test]
+    public async Task CalculateChildSizes_MoreStretchChildrenThanCells_StillRendersWhatFits()
+    {
+        var stackPanel = new StackPanel { Orientation = Orientation.Vertical };
+        for (var i = 0; i < 5; i++)
+        {
+            var child = new global::TerminalNinja.Controls.Border();
+            StackPanel.SetSizeMode(child, ChildSizeMode.Stretch);
+            stackPanel.Children.Add(child);
+        }
+
+        // Act - five children, three rows. Truncating alone gives every child zero.
+        var sizes = stackPanel.CalculateChildSizes(new Rect(0, 0, 50, 3));
+
+        // Assert - the first three are drawn; only those with no room left are skipped.
+        await Assert.That(sizes[0]).IsEqualTo(1);
+        await Assert.That(sizes[1]).IsEqualTo(1);
+        await Assert.That(sizes[2]).IsEqualTo(1);
+        await Assert.That(sizes[3]).IsEqualTo(0);
+        await Assert.That(sizes[4]).IsEqualTo(0);
+    }
+
+    [Test]
     public async Task CalculateChildSizes_MixedSizing_DistributesCorrectly()
     {
         // Arrange

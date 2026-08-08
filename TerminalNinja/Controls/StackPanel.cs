@@ -247,8 +247,13 @@ public class StackPanel : Panel
         }
 
         // Second pass: distribute remaining space to Stretch children that aren't collapsed.
+        // The division carries its remainder forward instead of discarding it. Truncating alone
+        // loses up to stretchCount-1 cells, and once there are more stretch children than cells
+        // every child rounds to zero and the panel renders nothing at all — a whole list silently
+        // absent rather than a short one.
         var remainingSpace = Math.Max(0, mainAxisSize - totalFixed);
         var stretchSize = stretchCount > 0 ? remainingSpace / stretchCount : 0;
+        var extraCells = stretchCount > 0 ? remainingSpace % stretchCount : 0;
 
         for (var i = 0; i < Children.Count; i++)
         {
@@ -260,6 +265,12 @@ public class StackPanel : Panel
             if (GetSizeMode(child) == ChildSizeMode.Stretch)
             {
                 sizes[i] = stretchSize;
+
+                if (extraCells > 0)
+                {
+                    sizes[i]++;
+                    extraCells--;
+                }
             }
         }
 
