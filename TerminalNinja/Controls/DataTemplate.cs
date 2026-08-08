@@ -15,7 +15,9 @@ public class DataTemplate
 {
     /// <summary>
     /// Gets or sets the data type for which this template is intended.
-    /// This is primarily used for implicit DataTemplate selection (future feature).
+    /// A template declared in a resource dictionary with a DataType and no x:Key is selected
+    /// implicitly for items of that type — see <see cref="DataTemplateKey"/> and
+    /// <see cref="FrameworkElement.TryFindImplicitDataTemplate"/>.
     /// </summary>
     public Type? DataType { get; set; }
 

@@ -134,10 +134,10 @@ public class ListBox : Selector
             ShowSelectionIndicator = ShowSelectionIndicator
         };
 
-        // If there's an ItemTemplate, use it for the content
-        if (ItemTemplate != null)
+        // Use the explicit ItemTemplate, or an implicit one matched on the item's type
+        if (SelectItemTemplate(item) is { } template)
         {
-            var content = ItemTemplate.CreateContent();
+            var content = template.CreateContent();
             if (content is FrameworkElement fe)
             {
                 fe.DataContext = item;

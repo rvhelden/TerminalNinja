@@ -302,7 +302,15 @@ internal sealed class XamlLoader
                 return;
             }
 
-            // Not a Style and no x:Key — skip
+            if (childType == typeof(DataTemplate) || childType.IsSubclassOf(typeof(DataTemplate)))
+            {
+                var tempFe = new DictionaryBackedFrameworkElement(dict);
+                var template = CreateKeylessDataTemplate(child, childType, tempFe);
+                dict[new DataTemplateKey(template.DataType!)] = template;
+                return;
+            }
+
+            // Not a Style or DataTemplate, and no x:Key — skip
             return;
         }
 
@@ -341,6 +349,39 @@ internal sealed class XamlLoader
             throw new InvalidOperationException(
                 $"No factory registered for resource type '{childType.FullName}'");
         }
+    }
+
+    /// <summary>
+    /// Builds a <see cref="DataTemplate"/> declared without an <c>x:Key</c>, for implicit keying by
+    /// its <see cref="DataTemplate.DataType"/>.
+    /// </summary>
+    /// <remarks>
+    /// A keyless template with no <c>DataType</c> is unreachable — nothing could ever ask for it —
+    /// so it is an error rather than a silently dropped entry, mirroring the same rule for a
+    /// keyless <c>Style</c> without a <c>TargetType</c>.
+    /// </remarks>
+    private DataTemplate CreateKeylessDataTemplate(XElement child, Type childType, FrameworkElement resolveFrom)
+    {
+        if (!ControlFactoryRegistry.TryCreate(childType, out var instance))
+        {
+            throw new InvalidOperationException(
+                $"No factory registered for DataTemplate type '{childType.FullName}'");
+        }
+
+        ProcessAttributes(child, instance, childType, resolveFrom);
+        if (child.HasElements)
+        {
+            ProcessChildElements(child, instance, childType, resolveFrom);
+        }
+
+        var template = (DataTemplate)instance;
+        if (template.DataType == null)
+        {
+            throw new InvalidOperationException(
+                "DataTemplate without x:Key must have a DataType for implicit template keying.");
+        }
+
+        return template;
     }
 
     /// <summary>
@@ -878,7 +919,12 @@ internal sealed class XamlLoader
                             $"No factory registered for Style type '{childType.FullName}'");
                     }
                 }
-                // Not a Style and no x:Key — skip
+                else if (childType == typeof(DataTemplate) || childType.IsSubclassOf(typeof(DataTemplate)))
+                {
+                    var template = CreateKeylessDataTemplate(child, childType, fe);
+                    fe.Resources[new DataTemplateKey(template.DataType!)] = template;
+                }
+                // Not a Style or DataTemplate, and no x:Key — skip
                 continue;
             }
 

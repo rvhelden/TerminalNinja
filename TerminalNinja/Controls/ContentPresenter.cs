@@ -108,7 +108,20 @@ public class ContentPresenter : FrameworkElement
     {
         if (_visualChild != null)
         {
-            return;
+            if (!_templateWasUnresolved || _templateResolveVersion == ResourceScopeVersion)
+            {
+                return;
+            }
+
+            // We fell back to ToString() because no template was reachable, and the tree has
+            // changed shape since — an implicit template may be reachable now. Drop the fallback
+            // and look again.
+            if (_ownsVisualChildParent)
+            {
+                _visualChild.Parent = null;
+            }
+            _visualChild = null;
+            _ownsVisualChildParent = false;
         }
 
         var content = Content;
@@ -148,11 +161,14 @@ public class ContentPresenter : FrameworkElement
         // 1. If content is already a UIElement, use it directly
         if (content is UIElement uiElement)
         {
+            _templateWasUnresolved = false;
             return uiElement;
         }
 
-        // 2. If an explicit ContentTemplate is set, use it
+        // 2. An explicit ContentTemplate, or an implicit one matched by DataType
         var template = ChooseTemplate();
+        _templateWasUnresolved = template == null;
+        _templateResolveVersion = ResourceScopeVersion;
         if (template != null)
         {
             var created = template.CreateContent();
@@ -186,16 +202,26 @@ public class ContentPresenter : FrameworkElement
             return ContentTemplate;
         }
 
-        // Future: implicit DataTemplate by DataType lookup in resources
-        // var content = Content;
-        // if (content != null)
-        // {
-        //     var dt = TryFindResource(content.GetType()) as DataTemplate;
-        //     if (dt != null) return dt;
-        // }
-
-        return null;
+        // Implicit template: a keyless DataTemplate whose DataType matches the content
+        return TryFindImplicitDataTemplate(Content);
     }
+
+    /// <summary>
+    /// Whether the visual child was built without a template because none could be found.
+    /// </summary>
+    /// <remarks>
+    /// Content is usually assigned before the presenter reaches the visual tree, and until it is
+    /// there is no resource chain to search — an implicit template would be missed for good and
+    /// the ToString() fallback cached in its place. Retrying once the tree has grown is what makes
+    /// implicit selection work for a control built bottom-up, which is how the XAML loader builds
+    /// one.
+    /// </remarks>
+    private bool _templateWasUnresolved;
+
+    /// <summary>
+    /// The <see cref="FrameworkElement.ResourceScopeVersion"/> at the last template lookup.
+    /// </summary>
+    private int _templateResolveVersion = -1;
 
     // ─── Layout & Rendering ──────────────────────────────────────────
 

@@ -204,7 +204,24 @@ public abstract class FrameworkElement : UIElement
         // Resolve implicit style now that we are in the visual tree
         // (resources can be looked up via TryFindResource)
         InvalidateImplicitStyle();
+
+        // The reachable resource chain just changed — for this element and for everything
+        // already hanging off it, which gets no notification of its own.
+        ResourceScopeVersion++;
     }
+
+    /// <summary>
+    /// A counter bumped whenever any element's visual parent changes, and with it the set of
+    /// resources reachable from somewhere in the tree.
+    /// </summary>
+    /// <remarks>
+    /// Only the element whose own parent changed is notified, so a control that already failed to
+    /// find a resource cannot tell that an ancestor three levels up has since been grafted onto a
+    /// Window carrying it. Comparing this counter against the one recorded at the failed lookup
+    /// tells it cheaply whether looking again could possibly give a different answer — without it,
+    /// a lookup that failed once either retries on every frame or stays wrong forever.
+    /// </remarks>
+    internal static int ResourceScopeVersion { get; private set; }
 
     /// <summary>
     /// Invalidates all binding expressions that use <c>RelativeSource</c> for source resolution.
@@ -303,6 +320,40 @@ public abstract class FrameworkElement : UIElement
         return result;
     }
     
+    /// <summary>
+    /// Finds the implicit <see cref="DataTemplate"/> for a data item — the template declared in a
+    /// resource dictionary with a <c>DataType</c> and no <c>x:Key</c> — by walking the resource
+    /// chain from this element upwards.
+    /// </summary>
+    /// <param name="item">The data item to find a template for.</param>
+    /// <returns>The matching template, or <c>null</c> when nothing matches.</returns>
+    /// <remarks>
+    /// The item's exact runtime type is tried first, then each base type in turn up to and
+    /// including <see cref="object"/>, so a template on a base view model covers its subclasses.
+    /// Interfaces are deliberately not consulted: a type can implement several, and there would be
+    /// no defensible order in which to prefer one template over another.
+    ///
+    /// A <see cref="UIElement"/> is never templated — it is already a visual and is rendered
+    /// directly by every consumer.
+    /// </remarks>
+    public DataTemplate? TryFindImplicitDataTemplate(object? item)
+    {
+        if (item is null or UIElement)
+        {
+            return null;
+        }
+
+        for (Type? type = item.GetType(); type != null; type = type.BaseType)
+        {
+            if (TryFindResource(new DataTemplateKey(type)) is DataTemplate template)
+            {
+                return template;
+            }
+        }
+
+        return null;
+    }
+
     /// <summary>
     /// Static hook for Application to provide resource lookup.
     /// Set by Application when it's created.

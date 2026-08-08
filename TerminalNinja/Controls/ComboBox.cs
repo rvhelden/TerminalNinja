@@ -138,9 +138,9 @@ public sealed class ComboBox : Selector
             SelectedForeground = SelectedForeground
         };
 
-        if (ItemTemplate != null)
+        if (SelectItemTemplate(item) is { } template)
         {
-            var content = ItemTemplate.CreateContent();
+            var content = template.CreateContent();
             if (content is FrameworkElement fe)
                 fe.DataContext = item;
             cbi.Content = content;

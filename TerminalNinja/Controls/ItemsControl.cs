@@ -515,10 +515,10 @@ public class ItemsControl : Control
     /// <returns>A new container element.</returns>
     protected virtual UIElement CreateContainerForItem(object item)
     {
-        // Use the ItemTemplate if available
-        if (ItemTemplate != null)
+        // Use the explicit ItemTemplate, or an implicit one matched on the item's type
+        if (SelectItemTemplate(item) is { } template)
         {
-            var container = ItemTemplate.CreateContent();
+            var container = template.CreateContent();
             if (container is FrameworkElement fe)
             {
                 fe.DataContext = item;
@@ -528,6 +528,58 @@ public class ItemsControl : Control
 
         // No template — create a simple TextBlock with ToString()
         return new TextBlock { Text = item?.ToString() ?? string.Empty };
+    }
+
+    /// <summary>
+    /// Chooses the template for a data item: the explicitly assigned <see cref="ItemTemplate"/>,
+    /// or failing that a keyless <see cref="DataTemplate"/> from the resource chain whose
+    /// <c>DataType</c> matches the item.
+    /// </summary>
+    /// <param name="item">The data item that needs a container.</param>
+    /// <returns>The template to use, or <c>null</c> to fall back to ToString().</returns>
+    /// <remarks>
+    /// An explicit <see cref="ItemTemplate"/> always wins: it was named for this control, whereas
+    /// an implicit template is a dictionary-wide default.
+    /// </remarks>
+    protected DataTemplate? SelectItemTemplate(object? item)
+    {
+        if (ItemTemplate is { } explicitTemplate)
+        {
+            return explicitTemplate;
+        }
+
+        var implicitTemplate = TryFindImplicitDataTemplate(item);
+        if (implicitTemplate == null)
+        {
+            // Containers were built without a template. Record the tree shape we looked in, so a
+            // later graft onto a Window that does carry one can rebuild them — see
+            // FrameworkElement.ResourceScopeVersion.
+            _templatelessResolveVersion = ResourceScopeVersion;
+        }
+
+        return implicitTemplate;
+    }
+
+    /// <summary>
+    /// The <see cref="FrameworkElement.ResourceScopeVersion"/> at the last container generation
+    /// that found no template, or -1 when every container had one.
+    /// </summary>
+    private int _templatelessResolveVersion = -1;
+
+    /// <inheritdoc />
+    protected override void OnVisualParentChanged(Visual? oldParent)
+    {
+        base.OnVisualParentChanged(oldParent);
+
+        // Items are usually bound before the control reaches the tree, so the first container
+        // generation searches a resource chain that stops at this control. Regenerate once the
+        // chain is longer, but only if something actually went untemplated.
+        if (ItemTemplate == null && _templatelessResolveVersion >= 0
+            && _templatelessResolveVersion != ResourceScopeVersion)
+        {
+            _templatelessResolveVersion = -1;
+            RefreshItems();
+        }
     }
 
     /// <summary>
