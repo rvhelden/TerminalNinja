@@ -928,6 +928,376 @@ public class NodeGraphTests
         await Assert.That(b.RenderedBoxes).IsEquivalentTo(a.RenderedBoxes);
     }
 
+    // ─── Zoom and pan ────────────────────────────────────────────────
+
+    private static KeyEvent ShiftKey(ConsoleKey key) => new(key, '\0', true, false, false);
+
+    private static KeyEvent Char(char c) => new(default, c, false, false, false);
+
+    /// <summary>Renders into a fresh buffer and hands it back for comparison.</summary>
+    private static CellBuffer Draw(NodeGraph graph, int w = W, int h = H)
+    {
+        var buffer = new CellBuffer(w, h);
+        graph.Render(buffer, new Rect(0, 0, w, h));
+        return buffer;
+    }
+
+    private static async Task AssertIdentical(CellBuffer expected, CellBuffer actual)
+    {
+        for (var y = 0; y < expected.Height; y++)
+        {
+            for (var x = 0; x < expected.Width; x++)
+            {
+                await Assert.That(actual.GetCell(x, y)).IsEqualTo(expected.GetCell(x, y));
+            }
+        }
+    }
+
+    /// <summary>The boxes that are at least partly on screen — what the user can actually see.</summary>
+    private static int VisibleBoxes(NodeGraph graph, int w = W, int h = H)
+    {
+        var plot = new Rect(0, 0, w, h);
+        var count = 0;
+        foreach (var box in graph.RenderedBoxes)
+        {
+            if (box.Overlaps(plot))
+            {
+                count++;
+            }
+        }
+
+        return count;
+    }
+
+    [Test]
+    public async Task Zoom_DefaultsToFitAll()
+    {
+        var graph = new NodeGraph();
+
+        await Assert.That(graph.Zoom).IsEqualTo(1.0);
+        await Assert.That(graph.PanX).IsEqualTo(0.0);
+        await Assert.That(graph.PanY).IsEqualTo(0.0);
+    }
+
+    [Test]
+    public async Task Render_ZoomOneNoPan_IsByteIdenticalToFitAll()
+    {
+        // The whole point of the feature's default: every screen that already draws a NodeGraph
+        // must keep drawing exactly the same cells. Anything else is a silent visual regression.
+        using var before = Draw(Estate(12), 80, 24);
+
+        var zoomed = Estate(12);
+        zoomed.Zoom = 1.0;
+        zoomed.PanX = 0.0;
+        zoomed.PanY = 0.0;
+        using var after = Draw(zoomed, 80, 24);
+
+        await AssertIdentical(before, after);
+    }
+
+    [Test]
+    public async Task Render_PanAtZoomOne_IsStillFitAll()
+    {
+        // At fit-all the whole graph is on screen, so there is nowhere to pan to; the clamp turns
+        // any assignment into zero and the picture cannot drift.
+        using var before = Draw(ThreeNodeGraph());
+
+        var panned = ThreeNodeGraph();
+        panned.PanX = 5.0;
+        panned.PanY = -5.0;
+
+        await Assert.That(panned.PanX).IsEqualTo(0.0);
+        await Assert.That(panned.PanY).IsEqualTo(0.0);
+
+        using var after = Draw(panned);
+        await AssertIdentical(before, after);
+    }
+
+    [Test]
+    public async Task Zoom_OutOfRange_IsCoerced()
+    {
+        var graph = new NodeGraph { Zoom = 0.1 };
+        await Assert.That(graph.Zoom).IsEqualTo(1.0);
+
+        graph.Zoom = 1000.0;
+        await Assert.That(graph.Zoom).IsEqualTo(10.0);
+    }
+
+    [Test]
+    public async Task Pan_IsClampedToKeepTheViewportInsideTheGraph()
+    {
+        var graph = new NodeGraph { Zoom = 2.0 };
+
+        // At 2× the viewport is half the graph, so its centre may move a quarter of the graph
+        // either way before its edge reaches the graph's edge.
+        graph.PanX = 10.0;
+        await Assert.That(graph.PanX).IsEqualTo(0.25);
+
+        graph.PanY = -10.0;
+        await Assert.That(graph.PanY).IsEqualTo(-0.25);
+    }
+
+    [Test]
+    public async Task ZoomingBackOut_ReClampsThePan()
+    {
+        // The allowed pan range is a function of zoom, so a pan that was legal at 4× must be
+        // pulled back in when the user zooms out again — otherwise the graph slides off screen.
+        var graph = new NodeGraph { Zoom = 4.0 };
+        graph.PanX = 1.0;
+        await Assert.That(graph.PanX).IsEqualTo(0.375);
+
+        graph.Zoom = 1.0;
+
+        await Assert.That(graph.PanX).IsEqualTo(0.0);
+    }
+
+    [Test]
+    public async Task Render_ZoomedIn_ShowsFewerNodesFurtherApart()
+    {
+        var fit = Estate(12);
+        using (Draw(fit, 80, 24))
+        {
+        }
+
+        var zoomed = Estate(12);
+        zoomed.Zoom = 4.0;
+        using (Draw(zoomed, 80, 24))
+        {
+        }
+
+        await Assert.That(VisibleBoxes(zoomed, 80, 24)).IsLessThan(VisibleBoxes(fit, 80, 24));
+
+        // A terminal cannot draw a bigger glyph, so "zoomed in" means the node positions are
+        // spread out, which is what makes a crowded graph readable.
+        var fitSpan = Spread(fit);
+        var zoomedSpan = Spread(zoomed);
+        await Assert.That(zoomedSpan).IsGreaterThan(fitSpan);
+    }
+
+    /// <summary>Horizontal extent of the projected boxes, on screen or not.</summary>
+    private static int Spread(NodeGraph graph)
+    {
+        var min = int.MaxValue;
+        var max = int.MinValue;
+        foreach (var box in graph.RenderedBoxes)
+        {
+            min = Math.Min(min, box.X);
+            max = Math.Max(max, box.Right);
+        }
+
+        return max - min;
+    }
+
+    [Test]
+    public async Task Render_Panning_MovesTheViewportOverTheGraph()
+    {
+        // Three short labels never overlap, so nothing is packed and the boxes are the pure
+        // projection — any movement here is the pan and only the pan.
+        var left = ThreeNodeGraph();
+        left.Zoom = 3.0;
+        left.PanX = -1.0; // clamped to the left extreme
+        using (Draw(left))
+        {
+        }
+
+        var right = ThreeNodeGraph();
+        right.Zoom = 3.0;
+        right.PanX = 1.0; // clamped to the right extreme
+        using (Draw(right))
+        {
+        }
+
+        // Panning right moves the viewport right, so the content moves left under it.
+        for (var i = 0; i < 3; i++)
+        {
+            await Assert.That(right.RenderedBoxes[i].X).IsLessThan(left.RenderedBoxes[i].X);
+        }
+    }
+
+    [Test]
+    public async Task PlusAndMinus_ZoomAndZeroResets()
+    {
+        var graph = ThreeNodeGraph();
+
+        await Assert.That(graph.OnKeyEvent(Char('+'))).IsTrue();
+        await Assert.That(graph.Zoom).IsEqualTo(1.25);
+
+        await Assert.That(graph.OnKeyEvent(Char('='))).IsTrue(); // the unshifted '+' key
+        await Assert.That(graph.Zoom).IsEqualTo(1.5625);
+
+        await Assert.That(graph.OnKeyEvent(Char('-'))).IsTrue();
+        await Assert.That(graph.Zoom).IsEqualTo(1.25);
+
+        graph.OnKeyEvent(ShiftKey(ConsoleKey.RightArrow));
+        await Assert.That(graph.PanX).IsGreaterThan(0.0);
+
+        await Assert.That(graph.OnKeyEvent(Char('0'))).IsTrue();
+        await Assert.That(graph.Zoom).IsEqualTo(1.0);
+        await Assert.That(graph.PanX).IsEqualTo(0.0);
+    }
+
+    [Test]
+    public async Task ShiftArrows_Pan_AndBareArrowsStillSelect()
+    {
+        // The view keys must coexist with the selection keys that were here first.
+        var graph = ThreeNodeGraph();
+        graph.Zoom = 4.0;
+
+        await Assert.That(graph.OnKeyEvent(ShiftKey(ConsoleKey.RightArrow))).IsTrue();
+        await Assert.That(graph.PanX).IsGreaterThan(0.0);
+        await Assert.That(graph.SelectedIndex).IsEqualTo(-1); // panning never moves the selection
+
+        await Assert.That(graph.OnKeyEvent(ShiftKey(ConsoleKey.DownArrow))).IsTrue();
+        await Assert.That(graph.PanY).IsGreaterThan(0.0);
+
+        graph.OnKeyEvent(Key(ConsoleKey.DownArrow));
+        await Assert.That(graph.SelectedIndex).IsEqualTo(0);
+        graph.OnKeyEvent(Key(ConsoleKey.DownArrow));
+        await Assert.That(graph.SelectedIndex).IsEqualTo(1);
+    }
+
+    [Test]
+    public async Task MouseWheel_Zooms()
+    {
+        var graph = ThreeNodeGraph();
+
+        graph.OnMouseEvent(new MouseEvent(10, 10, MouseButton.None, MouseAction.ScrollUp));
+        await Assert.That(graph.Zoom).IsEqualTo(1.25);
+
+        graph.OnMouseEvent(new MouseEvent(10, 10, MouseButton.None, MouseAction.ScrollDown));
+        await Assert.That(graph.Zoom).IsEqualTo(1.0);
+    }
+
+    [Test]
+    public async Task ResetView_RestoresTheOriginalPicture()
+    {
+        var graph = Estate(12);
+        using var expected = Draw(graph, 80, 24);
+
+        graph.Zoom = 3.5;
+        graph.PanX = 0.2;
+        graph.PanY = -0.2;
+        using (Draw(graph, 80, 24))
+        {
+        }
+
+        graph.ResetView();
+        using var actual = Draw(graph, 80, 24);
+
+        await AssertIdentical(expected, actual);
+    }
+
+    [Test]
+    public async Task Zoom_DoesNotInvalidateTheCachedLayout()
+    {
+        // The signature hashes node ids and edge endpoints only. Zoom and pan are projection-time
+        // concerns exactly like the box packing; letting them in would reshuffle the picture on
+        // every keystroke.
+        var graph = Estate(12);
+        using (Draw(graph, 80, 24))
+        {
+        }
+
+        var signature = graph.LayoutSignature;
+
+        graph.Zoom = 5.0;
+        graph.PanX = 0.3;
+        using (Draw(graph, 80, 24))
+        {
+        }
+
+        await Assert.That(graph.LayoutSignature).IsEqualTo(signature);
+    }
+
+    [Test]
+    public async Task Render_ZoomedIn_ClickStillHitsTheRightNode()
+    {
+        // RenderedBoxes is the mouse hit-test's only source of truth, so it has to hold the
+        // zoomed rects; holding the fit-all ones would select a node the user cannot even see.
+        var graph = Estate(12);
+        graph.Zoom = 2.5;
+        using var buffer = Draw(graph, 80, 24);
+
+        await AssertEveryVisibleLabelSelectsItsOwnNode(graph, buffer, 80, 24);
+    }
+
+    [Test]
+    public async Task Render_Panned_ClickStillHitsTheRightNode()
+    {
+        var graph = Estate(12);
+        graph.Zoom = 2.5;
+        graph.PanX = 0.3;
+        graph.PanY = -0.3;
+        using var buffer = Draw(graph, 80, 24);
+
+        await AssertEveryVisibleLabelSelectsItsOwnNode(graph, buffer, 80, 24);
+    }
+
+    private static async Task AssertEveryVisibleLabelSelectsItsOwnNode(NodeGraph graph, CellBuffer buffer, int w, int h)
+    {
+        var plot = new Rect(0, 0, w, h);
+        var checkedAny = false;
+
+        for (var i = 0; i < graph.GraphNodes.Count; i++)
+        {
+            var box = graph.RenderedBoxes[i];
+            if (box.X < plot.X || box.Right > plot.Right || box.Y < plot.Y || box.Bottom > plot.Bottom)
+            {
+                continue; // only partly on screen; its label is clipped and not searchable
+            }
+
+            var (x, y) = FindText(buffer, $"app-debble-service{i:00}");
+            if (x < 0)
+            {
+                continue;
+            }
+
+            graph.SelectedIndex = -1;
+            graph.OnMouseEvent(new MouseEvent(x, y, MouseButton.Left, MouseAction.Press));
+            await Assert.That(graph.SelectedIndex).IsEqualTo(i);
+            checkedAny = true;
+        }
+
+        await Assert.That(checkedAny).IsTrue();
+    }
+
+    [Test]
+    public async Task Render_ZoomedIn_NothingIsDrawnOutsideThePlot()
+    {
+        // Boxes pushed past the viewport by zoom must be clipped, not scribbled over the title
+        // row or the truncation notice, which live outside the plot.
+        using var buffer = new CellBuffer(40, 12);
+        var graph = new NodeGraph { Title = "Topology", LayoutIterations = 1 };
+        for (var i = 0; i < 520; i++)
+        {
+            graph.GraphNodes.Add(new GraphNode { Id = $"n{i}", Name = $"n{i}" });
+        }
+
+        graph.Zoom = 6.0;
+        graph.PanX = 0.2;
+        graph.Render(buffer, new Rect(0, 0, 40, 12));
+
+        // The title survives intact and the notice row is still the notice.
+        await Assert.That(ContainsText(buffer, "Topology")).IsTrue();
+        await Assert.That(ContainsText(buffer, "20 more")).IsTrue();
+    }
+
+    [Test]
+    public async Task Xaml_ZoomAndPan_Parse()
+    {
+        const string xaml = """
+            <NodeGraph xmlns="http://schemas.terminalninja.dev/xaml" Zoom="2.5" PanX="0.1" PanY="-0.1">
+                <GraphNode Id="a" Name="a" />
+            </NodeGraph>
+            """;
+
+        var graph = TerminalXaml.Load<NodeGraph>(xaml);
+
+        await Assert.That(graph.Zoom).IsEqualTo(2.5);
+        await Assert.That(graph.PanX).IsEqualTo(0.1);
+        await Assert.That(graph.PanY).IsEqualTo(-0.1);
+    }
+
     [Test]
     public async Task Render_ClickAfterPacking_StillHitsTheRightNode()
     {

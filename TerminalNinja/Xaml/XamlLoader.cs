@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Windows.Data;
 using System.Xml.Linq;
 using TerminalNinja.Aot;
@@ -1061,7 +1062,10 @@ internal sealed class XamlLoader
 
         if (targetType == typeof(double))
         {
-            return double.Parse(value);
+            // Invariant, not the current culture: XAML is markup, so "2.5" must mean two and a
+            // half everywhere. On a machine whose culture uses a comma separator the culture-aware
+            // overload read Zoom="2.5" as twenty-five.
+            return double.Parse(value, NumberStyles.Float, CultureInfo.InvariantCulture);
         }
 
         if (targetType == typeof(bool))

@@ -83,6 +83,9 @@
           <tr><td><code>SelectedNode</code></td><td>object</td><td>The selected node, kept in sync with <code>SelectedIndex</code>. Two-way bindable.</td></tr>
           <tr><td><code>LayoutIterations</code></td><td>int</td><td>Force-simulation budget, clamped to 1&ndash;200 (default 60). The layout stops earlier once it converges.</td></tr>
           <tr><td><code>ShowEdgeArrows</code></td><td>bool</td><td>Draw a direction marker (&#9654; &#9664; &#9650; &#9660;) at each edge&rsquo;s target end, in the edge&rsquo;s own color. Default <code>True</code>.</td></tr>
+          <tr><td><code>Zoom</code></td><td>double</td><td>Magnification of the fitted layout, clamped to 1&ndash;10 (default 1 = fit-all). Two-way bindable.</td></tr>
+          <tr><td><code>PanX</code></td><td>double</td><td>Horizontal offset of the viewport centre from the graph centre, in whole-graph widths (default 0). Clamped to &plusmn;(0.5 &minus; 0.5/<code>Zoom</code>). Two-way bindable.</td></tr>
+          <tr><td><code>PanY</code></td><td>double</td><td>Vertical pan; same units and clamp as <code>PanX</code>.</td></tr>
           <tr><td><code>Title</code></td><td>string</td><td>Optional heading drawn along the top edge.</td></tr>
         </tbody>
       </table>
@@ -136,6 +139,32 @@
     </section>
 
     <section class="panel doc-section">
+      <h2>Zoom &amp; Pan</h2>
+      <p class="section-copy">
+        By default the whole graph is fitted to the control, which turns a large topology into a
+        wall of touching boxes. <code>Zoom</code> magnifies the layout and <code>PanX</code>/<code>PanY</code>
+        choose which part of it the control shows, so a big graph can be explored in place instead
+        of being pre-filtered by the application. A terminal cannot draw a bigger glyph, so zoom
+        does not enlarge the boxes — it spreads the node <em>positions</em> apart and shows fewer of
+        them, which is what makes a crowded graph readable.
+      </p>
+      <p class="section-copy">
+        Zoom is anchored on the <strong>viewport centre</strong>: the pan is stored as that centre,
+        so changing the zoom is a pure change of scale and whatever the user is looking at stays
+        put. Pan is clamped so the viewport can never leave the graph, and at <code>Zoom="1"</code>
+        that clamp collapses to zero — fit-all renders exactly as it did before zoom existed, no
+        matter what is assigned to the pan properties.
+      </p>
+      <pre><code class="language-xml">&lt;NodeGraph GraphNodesSource="{Binding Nodes}"
+           Zoom="{Binding Zoom, Mode=TwoWay}"
+           PanX="{Binding PanX, Mode=TwoWay}"
+           PanY="{Binding PanY, Mode=TwoWay}" /&gt;</code></pre>
+      <p class="section-copy">
+        <code>ResetView()</code> puts all three back to fit-all from code.
+      </p>
+    </section>
+
+    <section class="panel doc-section">
       <h2>Keyboard Shortcuts</h2>
       <table>
         <thead><tr><th>Key</th><th>Action</th></tr></thead>
@@ -144,6 +173,11 @@
           <tr><td><code>↓</code> / <code>→</code></td><td>Select the next node.</td></tr>
           <tr><td><code>Home</code> / <code>End</code></td><td>Select the first / last node.</td></tr>
           <tr><td>Left click</td><td>Select the clicked node box.</td></tr>
+          <tr><td><code>+</code> / <code>=</code></td><td>Zoom in one step (&times;1.25), about the viewport centre.</td></tr>
+          <tr><td><code>-</code> / <code>_</code></td><td>Zoom out one step, down to fit-all.</td></tr>
+          <tr><td><code>0</code></td><td>Reset the view to fit-all.</td></tr>
+          <tr><td><code>Shift</code>+<code>↑ ↓ ← →</code></td><td>Pan by a tenth of the viewport. The bare arrows keep moving the selection.</td></tr>
+          <tr><td>Mouse wheel</td><td>Zoom in / out, about the viewport centre.</td></tr>
         </tbody>
       </table>
     </section>
@@ -156,6 +190,8 @@
         <li>Node border colors come from the chart palette, overridable per node with <code>Color</code>; labels are truncated with an ellipsis.</li>
         <li>Edges reference nodes by string <code>Id</code>; edges with unknown endpoints are silently ignored.</li>
         <li>Layout is cached and recomputed only when the node/edge set changes; graphs beyond 500 nodes show a "&hellip; N more" notice instead of hanging on the O(n²) simulation.</li>
+        <li>Zoom and pan are applied when that cached layout is projected onto the plot, alongside the box packing. They never enter the layout signature, so changing the view re-projects the picture without re-running the simulation and without reshuffling it.</li>
+        <li>Box packing, edge labels, arrowheads and the mouse hit-test all operate on the projected rects, so they follow the zoomed view; boxes pushed past the viewport are clipped to the plot rather than drawn over the title row.</li>
       </ul>
     </section>
 

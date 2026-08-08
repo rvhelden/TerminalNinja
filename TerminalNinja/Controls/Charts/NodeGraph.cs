@@ -28,6 +28,11 @@ namespace TerminalNinja.Controls.Charts;
 /// node selection in node order, and a left click selects the clicked box. The
 /// selected node is highlighted and exposed through <see cref="SelectedIndex"/> and
 /// <see cref="SelectedNode"/>, both of which are two-way bindable.
+///
+/// The view is zoomable and pannable through <see cref="Zoom"/>, <see cref="PanX"/> and
+/// <see cref="PanY"/>: <c>+</c>/<c>-</c> (or the mouse wheel) zoom, <c>Shift</c> plus an
+/// arrow key pans, and <c>0</c> resets to fit-all. At <c>Zoom = 1</c> with no pan the whole
+/// graph is fitted to the control exactly as it always was.
 /// </summary>
 [ContentProperty("GraphNodes")]
 public sealed class NodeGraph : ChartBase
@@ -41,6 +46,21 @@ public sealed class NodeGraph : ChartBase
     /// <summary>Iteration displacement below which the layout is considered converged.</summary>
     private const double ConvergenceEpsilon = 1e-4;
 
+    /// <summary>
+    /// Lower bound on <see cref="Zoom"/>. Fit-all is already the whole graph, so there is nothing
+    /// below it to reveal — zooming further out would only shrink the picture into a corner.
+    /// </summary>
+    private const double MinZoom = 1.0;
+
+    /// <summary>Upper bound on <see cref="Zoom"/>.</summary>
+    private const double MaxZoom = 10.0;
+
+    /// <summary>Multiplicative step per zoom keystroke or wheel notch.</summary>
+    private const double ZoomStep = 1.25;
+
+    /// <summary>Pan step per keystroke, as a fraction of the visible viewport.</summary>
+    private const double PanStep = 0.1;
+
     /// <summary>Cached normalized [0,1]² node positions and the data signature they were computed for.</summary>
     private double[] _layoutX = [];
     private double[] _layoutY = [];
@@ -51,6 +71,12 @@ public sealed class NodeGraph : ChartBase
 
     /// <summary>The node boxes as last drawn. Exposed so tests can assert on the packing directly.</summary>
     internal IReadOnlyList<Rect> RenderedBoxes => _renderedBoxes;
+
+    /// <summary>
+    /// The signature the cached simulation was computed for. Exposed so tests can pin that zoom
+    /// and pan never invalidate it — they are projection-time concerns, not layout inputs.
+    /// </summary>
+    internal int LayoutSignature => _layoutSignature;
 
     /// <summary>Guards the SelectedIndex/SelectedNode two-way sync against re-entrancy.</summary>
     private bool _syncing;
@@ -86,6 +112,25 @@ public sealed class NodeGraph : ChartBase
     public static readonly DependencyProperty ShowEdgeArrowsProperty =
         DependencyProperty.Register(nameof(ShowEdgeArrows), typeof(bool), typeof(NodeGraph),
             new FrameworkPropertyMetadata(true, affectsRender: true));
+
+    public static readonly DependencyProperty ZoomProperty =
+        DependencyProperty.Register(nameof(Zoom), typeof(double), typeof(NodeGraph),
+            new FrameworkPropertyMetadata(1.0, affectsRender: true,
+                propertyChangedCallback: (d, _) => ((NodeGraph)d).ClampPanToZoom(),
+                coerceValueCallback: (_, value) => Math.Clamp((double)value!, MinZoom, MaxZoom))
+            { BindsTwoWayByDefault = true });
+
+    public static readonly DependencyProperty PanXProperty =
+        DependencyProperty.Register(nameof(PanX), typeof(double), typeof(NodeGraph),
+            new FrameworkPropertyMetadata(0.0, affectsRender: true, propertyChangedCallback: null,
+                coerceValueCallback: (d, value) => ((NodeGraph)d).ClampPan((double)value!))
+            { BindsTwoWayByDefault = true });
+
+    public static readonly DependencyProperty PanYProperty =
+        DependencyProperty.Register(nameof(PanY), typeof(double), typeof(NodeGraph),
+            new FrameworkPropertyMetadata(0.0, affectsRender: true, propertyChangedCallback: null,
+                coerceValueCallback: (d, value) => ((NodeGraph)d).ClampPan((double)value!))
+            { BindsTwoWayByDefault = true });
 
     public static readonly DependencyProperty SelectedIndexProperty =
         DependencyProperty.Register(nameof(SelectedIndex), typeof(int), typeof(NodeGraph),
@@ -140,6 +185,52 @@ public sealed class NodeGraph : ChartBase
     {
         get => (bool)GetValue(ShowEdgeArrowsProperty)!;
         set => SetValue(ShowEdgeArrowsProperty, value);
+    }
+
+    /// <summary>
+    /// Magnification of the fitted layout. 1.0 (the default) fits the whole graph to the control,
+    /// exactly as this chart has always drawn it; 2.0 shows the middle quarter of it. Clamped to
+    /// [1, 10]. Two-way bindable so a consumer's own zoom control stays in step with the keys.
+    /// </summary>
+    /// <remarks>
+    /// A terminal cannot draw a bigger glyph, so zoom does not enlarge the boxes — it spreads the
+    /// node <em>positions</em> apart and shows fewer of them. That is exactly what a crowded graph
+    /// needs: at fit-all a large estate is a wall of touching boxes that the packer has to squeeze
+    /// into rows, and the same graph at 3× has room to draw the nodes where the layout actually
+    /// put them.
+    ///
+    /// Zoom and pan are applied when the cached layout is projected onto the plot. They are
+    /// deliberately absent from the layout signature, so changing either re-projects the picture
+    /// without re-running the force simulation and without reshuffling it.
+    /// </remarks>
+    public double Zoom
+    {
+        get => (double)GetValue(ZoomProperty)!;
+        set => SetValue(ZoomProperty, value);
+    }
+
+    /// <summary>
+    /// Horizontal pan, as an offset of the viewport centre from the graph centre in units of the
+    /// whole graph's width. 0 (the default) centres the graph. Two-way bindable.
+    /// </summary>
+    /// <remarks>
+    /// Clamped to ±(0.5 − 0.5/<see cref="Zoom"/>), which is the offset at which the viewport edge
+    /// reaches the edge of the graph — so the viewport can never leave the graph and the user
+    /// cannot pan the picture off-screen and be left staring at nothing. At <see cref="Zoom"/> 1
+    /// that range collapses to zero: the whole graph is already visible, so there is nowhere to
+    /// pan to, and fit-all therefore stays pixel-identical no matter what a caller assigns here.
+    /// </remarks>
+    public double PanX
+    {
+        get => (double)GetValue(PanXProperty)!;
+        set => SetValue(PanXProperty, value);
+    }
+
+    /// <summary>Vertical pan. See <see cref="PanX"/> for the units and the clamp.</summary>
+    public double PanY
+    {
+        get => (double)GetValue(PanYProperty)!;
+        set => SetValue(PanYProperty, value);
     }
 
     /// <summary>Index of the selected node in the effective node list (-1 = none). Two-way bindable.</summary>
@@ -294,11 +385,112 @@ public sealed class NodeGraph : ChartBase
         _syncing = false;
     }
 
+    // ─── Zoom and pan ────────────────────────────────────────────────
+
+    /// <summary>True when the view is the plain fit-all one this chart drew before zoom existed.</summary>
+    /// <remarks>
+    /// The identity check is exact rather than epsilon-based on purpose: it is what lets the
+    /// projection reuse the layout arrays untouched instead of running them through a remap whose
+    /// round trip is only <em>almost</em> the identity in floating point. A single ULP there would
+    /// move a box by a cell on some graphs and shift every existing screen.
+    /// </remarks>
+    private bool IsIdentityView => Zoom == 1.0 && PanX == 0.0 && PanY == 0.0;
+
+    /// <summary>The furthest the viewport centre may sit from the graph centre at the current zoom.</summary>
+    private double MaxPan => Math.Max(0.0, 0.5 - 0.5 / Zoom);
+
+    private double ClampPan(double value)
+    {
+        var max = MaxPan;
+        return double.IsNaN(value) ? 0.0 : Math.Clamp(value, -max, max);
+    }
+
+    /// <summary>Re-clamps the pan after a zoom change, since the allowed range is a function of zoom.</summary>
+    private void ClampPanToZoom()
+    {
+        // SetCurrentValue, not SetValue: a two-way {Binding PanX} must survive the user zooming out.
+        SetCurrentValue(PanXProperty, ClampPan(PanX));
+        SetCurrentValue(PanYProperty, ClampPan(PanY));
+    }
+
+    /// <summary>Returns the view to fit-all: the whole graph, centred, at <see cref="Zoom"/> 1.</summary>
+    public void ResetView()
+    {
+        SetCurrentValue(ZoomProperty, 1.0);
+        SetCurrentValue(PanXProperty, 0.0);
+        SetCurrentValue(PanYProperty, 0.0);
+    }
+
+    /// <summary>
+    /// Multiplies the zoom, keeping the viewport centre where it is.
+    /// </summary>
+    /// <remarks>
+    /// The anchor is the viewport centre rather than the selected node because the pan is stored
+    /// <em>as</em> that centre, so zooming is a pure change of scale that moves nothing — the thing
+    /// the user is looking at stays under their eyes. Anchoring on the selection would make zoom
+    /// jump the view whenever the selection moved, and the selection is frequently -1 (nothing
+    /// selected), which leaves no anchor at all.
+    /// </remarks>
+    private void ZoomBy(double factor) => SetCurrentValue(ZoomProperty, Zoom * factor);
+
+    /// <summary>Moves the viewport by a tenth of its own width/height, so a pan step feels the same at any zoom.</summary>
+    private void PanBy(int dx, int dy)
+    {
+        var step = PanStep / Zoom;
+        if (dx != 0)
+        {
+            SetCurrentValue(PanXProperty, PanX + dx * step);
+        }
+
+        if (dy != 0)
+        {
+            SetCurrentValue(PanYProperty, PanY + dy * step);
+        }
+    }
+
     // ─── Input ───────────────────────────────────────────────────────
 
     /// <inheritdoc />
+    /// <remarks>
+    /// The view keys are chosen to coexist with the selection keys that were already here: the
+    /// bare arrows, Home and End keep moving the node selection, panning takes the same arrows
+    /// <em>with Shift</em>, <c>+</c>/<c>=</c> and <c>-</c>/<c>_</c> zoom, and <c>0</c> resets to
+    /// fit-all. Nothing that used to be handled changes meaning.
+    /// </remarks>
     public override bool OnKeyEvent(KeyEvent e)
     {
+        switch (e.KeyChar)
+        {
+            case '+' or '=':
+                ZoomBy(ZoomStep);
+                return true;
+            case '-' or '_':
+                ZoomBy(1.0 / ZoomStep);
+                return true;
+            case '0':
+                ResetView();
+                return true;
+        }
+
+        if (e.Shift)
+        {
+            switch (e.Key)
+            {
+                case ConsoleKey.LeftArrow:
+                    PanBy(-1, 0);
+                    return true;
+                case ConsoleKey.RightArrow:
+                    PanBy(1, 0);
+                    return true;
+                case ConsoleKey.UpArrow:
+                    PanBy(0, -1);
+                    return true;
+                case ConsoleKey.DownArrow:
+                    PanBy(0, 1);
+                    return true;
+            }
+        }
+
         var count = SelectableNodes.Count;
         if (count <= 0)
         {
@@ -330,6 +522,18 @@ public sealed class NodeGraph : ChartBase
     /// <inheritdoc />
     public override void OnMouseEvent(MouseEvent e)
     {
+        // The wheel zooms about the viewport centre, the same anchor the keys use. Anchoring on
+        // the pointer would need the plot rect, which only exists inside a render.
+        switch (e.Action)
+        {
+            case MouseAction.ScrollUp:
+                ZoomBy(ZoomStep);
+                return;
+            case MouseAction.ScrollDown:
+                ZoomBy(1.0 / ZoomStep);
+                return;
+        }
+
         if (e is not { Action: MouseAction.Press, Button: MouseButton.Left })
         {
             return;
@@ -552,19 +756,26 @@ public sealed class NodeGraph : ChartBase
 
         EnsureLayout(nodes, edges);
 
-        // Project normalized positions to box rects fully inside the plot area.
+        // Zoom and pan are a projection-time remap of the cached layout — like the box packing
+        // below, and for the same reason: they must never touch the signature or the simulation.
+        var (viewX, viewY) = ProjectView(nodes.Count);
+
+        // Project normalized positions to box rects. At fit-all every box lands inside the plot;
+        // zoomed in, the ones outside the viewport are meant to fall outside it.
         var boxes = new Rect[nodes.Count];
         for (var i = 0; i < nodes.Count; i++)
         {
             var label = Label(nodes[i]);
             var boxW = Math.Min(label.Length + 2, plot.Width);
             var boxH = Math.Min(3, plot.Height);
-            var boxX = plot.X + (int)Math.Round(_layoutX[i] * (plot.Width - boxW));
-            var boxY = plot.Y + (int)Math.Round(_layoutY[i] * (plot.Height - boxH));
+            var boxX = plot.X + (int)Math.Round(viewX[i] * (plot.Width - boxW));
+            var boxY = plot.Y + (int)Math.Round(viewY[i] * (plot.Height - boxH));
             boxes[i] = new Rect(boxX, boxY, boxW, boxH);
         }
 
-        SeparateBoxes(boxes, plot, _layoutX, _layoutY);
+        // Only the boxes that are on screen get packed; dragging an off-viewport node back into
+        // the plot would undo the zoom the user just asked for.
+        SeparateBoxes(boxes, plot, viewX, viewY, VisibleIndexes(boxes, plot));
         _renderedBoxes = boxes;
 
         DrawEdges(buffer, plot, boxes, edges, edgeColors);
@@ -574,8 +785,13 @@ public sealed class NodeGraph : ChartBase
         var selectedBg = EffectiveSelectionBackground;
         for (var i = 0; i < nodes.Count; i++)
         {
+            if (!boxes[i].Overlaps(plot))
+            {
+                continue;
+            }
+
             var selected = i == SelectedIndex;
-            DrawNodeBox(buffer, boxes[i], Label(nodes[i]),
+            DrawNodeBox(buffer, boxes[i], plot, Label(nodes[i]),
                 border: ColorForSeries(i, nodes[i].Color),
                 labelFg: selected ? SelectedForeground : Foreground,
                 bg: selected ? selectedBg : Background);
@@ -589,6 +805,54 @@ public sealed class NodeGraph : ChartBase
     }
 
     private static string Label(GraphNode node) => node.Name.Length > 0 ? node.Name : node.Id;
+
+    /// <summary>
+    /// Remaps the cached [0,1]² layout into view coordinates for the current zoom and pan, where
+    /// [0,1] is still "the plot" — so everything downstream (packing, edges, labels, arrowheads,
+    /// hit-testing) keeps working on ordinary projected rects and automatically operates in the
+    /// zoomed space.
+    /// </summary>
+    /// <remarks>
+    /// A node at layout position <c>u</c> maps to <c>(u − centre) · zoom + 0.5</c>, where the
+    /// centre is <c>0.5 + pan</c>. At fit-all the cached arrays are handed back <em>by reference</em>
+    /// rather than run through the algebra, so the result is bit-for-bit the projection this chart
+    /// has always produced.
+    /// </remarks>
+    private (double[] X, double[] Y) ProjectView(int count)
+    {
+        if (IsIdentityView)
+        {
+            return (_layoutX, _layoutY);
+        }
+
+        var zoom = Zoom;
+        var centerX = 0.5 + ClampPan(PanX);
+        var centerY = 0.5 + ClampPan(PanY);
+        var x = new double[count];
+        var y = new double[count];
+        for (var i = 0; i < count; i++)
+        {
+            x[i] = ((_layoutX[i] - centerX) * zoom) + 0.5;
+            y[i] = ((_layoutY[i] - centerY) * zoom) + 0.5;
+        }
+
+        return (x, y);
+    }
+
+    /// <summary>Indexes of the boxes that are at least partly on screen, in node order.</summary>
+    private static int[] VisibleIndexes(Rect[] boxes, Rect plot)
+    {
+        var visible = new List<int>(boxes.Length);
+        for (var i = 0; i < boxes.Length; i++)
+        {
+            if (boxes[i].Overlaps(plot))
+            {
+                visible.Add(i);
+            }
+        }
+
+        return [.. visible];
+    }
 
     /// <summary>
     /// Draws every edge as a braille line between box centers. Lines are grouped by
@@ -730,6 +994,13 @@ public sealed class NodeGraph : ChartBase
             var source = boxes[from];
             var target = boxes[to];
 
+            // A marker points at a box; if that box is off the viewport there is nothing to point
+            // at, and walking the segment back from a target hundreds of cells away is wasted work.
+            if (!target.Overlaps(plot))
+            {
+                continue;
+            }
+
             var sx = source.X + source.Width / 2.0;
             var sy = source.Y + source.Height / 2.0;
             var tx = target.X + target.Width / 2.0;
@@ -835,15 +1106,15 @@ public sealed class NodeGraph : ChartBase
     /// Deterministic throughout: every decision is a function of the layout, the labels and the
     /// plot size, with node index as the only tie-break.
     /// </remarks>
-    private static void SeparateBoxes(Rect[] boxes, Rect plot, double[] layoutX, double[] layoutY)
+    private static void SeparateBoxes(Rect[] boxes, Rect plot, double[] layoutX, double[] layoutY, int[] subset)
     {
-        var n = boxes.Length;
-        if (n < 2 || !AnyOverlap(boxes))
+        var n = subset.Length;
+        if (n < 2 || !AnyOverlap(boxes, subset))
         {
             return;
         }
 
-        var boxH = boxes[0].Height;
+        var boxH = boxes[subset[0]].Height;
         if (boxH <= 0)
         {
             return;
@@ -854,11 +1125,10 @@ public sealed class NodeGraph : ChartBase
 
         // Preferred band from the layout's own y, then a stable sweep order: band first, then
         // left to right, then node index.
-        var order = new int[n];
-        var band = new int[n];
-        for (var i = 0; i < n; i++)
+        var order = (int[])subset.Clone();
+        var band = new int[boxes.Length];
+        foreach (var i in subset)
         {
-            order[i] = i;
             band[i] = Math.Clamp((int)Math.Round(layoutY[i] * (bandCount - 1)), 0, bandCount - 1);
         }
 
@@ -949,13 +1219,13 @@ public sealed class NodeGraph : ChartBase
         }
     }
 
-    private static bool AnyOverlap(Rect[] boxes)
+    private static bool AnyOverlap(Rect[] boxes, int[] subset)
     {
-        for (var i = 0; i < boxes.Length; i++)
+        for (var i = 0; i < subset.Length; i++)
         {
-            for (var j = i + 1; j < boxes.Length; j++)
+            for (var j = i + 1; j < subset.Length; j++)
             {
-                if (boxes[i].Overlaps(boxes[j]))
+                if (boxes[subset[i]].Overlaps(boxes[subset[j]]))
                 {
                     return true;
                 }
@@ -969,7 +1239,16 @@ public sealed class NodeGraph : ChartBase
 
     private static int PixelY(Rect box, Rect plot) => (box.Y - plot.Y + box.Height / 2) * 4 + 2;
 
-    private static void DrawNodeBox(CellBuffer buffer, Rect box, string label, Color border, Color labelFg, Color bg)
+    /// <summary>
+    /// Draws one node box, clipped to <paramref name="clip"/> (the plot).
+    /// </summary>
+    /// <remarks>
+    /// Clipping only ever bites when the view is zoomed or panned — at fit-all every box is inside
+    /// the plot by construction, so every guard here passes and the output is unchanged. It matters
+    /// once zoom pushes a box half out of the viewport: the plot is not the whole buffer (the title
+    /// row and the truncation notice sit outside it), so an unclipped box would scribble over them.
+    /// </remarks>
+    private static void DrawNodeBox(CellBuffer buffer, Rect box, Rect clip, string label, Color border, Color labelFg, Color bg)
     {
         if (box.Width < 2 || box.Height < 2)
         {
@@ -977,30 +1256,56 @@ public sealed class NodeGraph : ChartBase
         }
 
         // Interior first: overpaints any edge lines passing under the box.
-        buffer.FillRect(box.Intersect(new Rect(0, 0, buffer.Width, buffer.Height)), new Cell(' ', labelFg, bg));
+        buffer.FillRect(box.Intersect(clip).Intersect(new Rect(0, 0, buffer.Width, buffer.Height)), new Cell(' ', labelFg, bg));
 
         var right = box.Right - 1;
         var bottom = box.Bottom - 1;
         for (var xx = box.X + 1; xx < right; xx++)
         {
-            buffer.SetChar(xx, box.Y, '─', border, bg);
-            buffer.SetChar(xx, bottom, '─', border, bg);
+            SetClipped(buffer, clip, xx, box.Y, '─', border, bg);
+            SetClipped(buffer, clip, xx, bottom, '─', border, bg);
         }
 
         for (var yy = box.Y + 1; yy < bottom; yy++)
         {
-            buffer.SetChar(box.X, yy, '│', border, bg);
-            buffer.SetChar(right, yy, '│', border, bg);
+            SetClipped(buffer, clip, box.X, yy, '│', border, bg);
+            SetClipped(buffer, clip, right, yy, '│', border, bg);
         }
 
-        buffer.SetChar(box.X, box.Y, '┌', border, bg);
-        buffer.SetChar(right, box.Y, '┐', border, bg);
-        buffer.SetChar(box.X, bottom, '└', border, bg);
-        buffer.SetChar(right, bottom, '┘', border, bg);
+        SetClipped(buffer, clip, box.X, box.Y, '┌', border, bg);
+        SetClipped(buffer, clip, right, box.Y, '┐', border, bg);
+        SetClipped(buffer, clip, box.X, bottom, '└', border, bg);
+        SetClipped(buffer, clip, right, bottom, '┘', border, bg);
 
-        if (box.Height >= 3)
+        if (box.Height < 3)
         {
-            DrawString(buffer, box.X + 1, box.Y + 1, label, labelFg, bg, box.Width - 2);
+            return;
+        }
+
+        var labelX = box.X + 1;
+        var labelY = box.Y + 1;
+        if (labelY < clip.Y || labelY >= clip.Bottom)
+        {
+            return;
+        }
+
+        // Clip the label horizontally by skipping the characters that fall left of the plot and
+        // shortening the run that falls right of it.
+        var skip = Math.Max(0, clip.X - labelX);
+        var width = Math.Min(box.Width - 2, clip.Right - labelX) - skip;
+        if (width <= 0 || skip >= label.Length)
+        {
+            return;
+        }
+
+        DrawString(buffer, labelX + skip, labelY, skip == 0 ? label : label[skip..], labelFg, bg, width);
+    }
+
+    private static void SetClipped(CellBuffer buffer, Rect clip, int x, int y, char c, Color fg, Color bg)
+    {
+        if (clip.Contains(x, y))
+        {
+            buffer.SetChar(x, y, c, fg, bg);
         }
     }
 }
