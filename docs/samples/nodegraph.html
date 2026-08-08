@@ -82,6 +82,7 @@
           <tr><td><code>SelectedIndex</code></td><td>int</td><td>Index of the selected node (-1 = none). Two-way bindable.</td></tr>
           <tr><td><code>SelectedNode</code></td><td>object</td><td>The selected node, kept in sync with <code>SelectedIndex</code>. Two-way bindable.</td></tr>
           <tr><td><code>LayoutIterations</code></td><td>int</td><td>Force-simulation budget, clamped to 1&ndash;200 (default 60). The layout stops earlier once it converges.</td></tr>
+          <tr><td><code>ShowEdgeArrows</code></td><td>bool</td><td>Draw a direction marker (&#9654; &#9664; &#9650; &#9660;) at each edge&rsquo;s target end, in the edge&rsquo;s own color. Default <code>True</code>.</td></tr>
           <tr><td><code>Title</code></td><td>string</td><td>Optional heading drawn along the top edge.</td></tr>
         </tbody>
       </table>
@@ -89,7 +90,8 @@
         <strong>GraphNode</strong> fields: <code>Id</code>, <code>Name</code> (the box label; also
         the text content), <code>Value</code>, <code>Color</code>. <strong>GraphEdge</strong>
         fields: <code>From</code>, <code>To</code> (matching a node <code>Id</code> — unknown ids
-        are ignored) and <code>Color</code> (defaults to the axis color).
+        are ignored) and <code>Color</code> (defaults to the axis color). <code>GraphNode.Tag</code>
+        carries an arbitrary payload so a selection leads straight back to the domain object.
         <code>ShowAxes</code>, <code>ShowGrid</code> and <code>ShowLegend</code> have no effect on
         this chart.
       </p>

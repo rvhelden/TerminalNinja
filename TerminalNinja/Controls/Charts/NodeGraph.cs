@@ -1,5 +1,6 @@
 using System.Collections;
 using System.Collections.ObjectModel;
+using System.Collections.Specialized;
 using System.Windows.Markup;
 using TerminalNinja.Buffers;
 using TerminalNinja.Input;
@@ -48,6 +49,9 @@ public sealed class NodeGraph : ChartBase
     /// <summary>Node box rects from the last render, used to map clicks to nodes.</summary>
     private Rect[] _renderedBoxes = [];
 
+    /// <summary>The node boxes as last drawn. Exposed so tests can assert on the packing directly.</summary>
+    internal IReadOnlyList<Rect> RenderedBoxes => _renderedBoxes;
+
     /// <summary>Guards the SelectedIndex/SelectedNode two-way sync against re-entrancy.</summary>
     private bool _syncing;
 
@@ -55,6 +59,7 @@ public sealed class NodeGraph : ChartBase
     {
         DefaultStyleKey = typeof(NodeGraph);
         _nodes.CollectionChanged += OnDataCollectionChanged;
+        _nodes.CollectionChanged += OnNodesSourceCollectionChanged;
         _edges.CollectionChanged += OnDataCollectionChanged;
     }
 
@@ -66,7 +71,7 @@ public sealed class NodeGraph : ChartBase
     public static readonly DependencyProperty GraphNodesSourceProperty =
         DependencyProperty.Register(nameof(GraphNodesSource), typeof(IEnumerable), typeof(NodeGraph),
             new FrameworkPropertyMetadata(null, affectsRender: true,
-                propertyChangedCallback: (d, e) => ((NodeGraph)d).RebindCollection(e.OldValue, e.NewValue)));
+                propertyChangedCallback: (d, e) => ((NodeGraph)d).RebindNodesSource(e.OldValue, e.NewValue)));
 
     public static readonly DependencyProperty GraphEdgesSourceProperty =
         DependencyProperty.Register(nameof(GraphEdgesSource), typeof(IEnumerable), typeof(NodeGraph),
@@ -77,6 +82,10 @@ public sealed class NodeGraph : ChartBase
         DependencyProperty.Register(nameof(LayoutIterations), typeof(int), typeof(NodeGraph),
             new FrameworkPropertyMetadata(60, affectsRender: true, propertyChangedCallback: null,
                 coerceValueCallback: (_, value) => Math.Clamp((int)value!, 1, MaxIterations)));
+
+    public static readonly DependencyProperty ShowEdgeArrowsProperty =
+        DependencyProperty.Register(nameof(ShowEdgeArrows), typeof(bool), typeof(NodeGraph),
+            new FrameworkPropertyMetadata(true, affectsRender: true));
 
     public static readonly DependencyProperty SelectedIndexProperty =
         DependencyProperty.Register(nameof(SelectedIndex), typeof(int), typeof(NodeGraph),
@@ -118,6 +127,19 @@ public sealed class NodeGraph : ChartBase
     {
         get => (int)GetValue(LayoutIterationsProperty)!;
         set => SetValue(LayoutIterationsProperty, value);
+    }
+
+    /// <summary>
+    /// Whether each edge gets a direction marker at its target end. Default true.
+    /// </summary>
+    /// <remarks>
+    /// <see cref="GraphEdge"/> is directional, but a braille line is not: without the marker the
+    /// only place the direction shows is a detail pane the graph does not own.
+    /// </remarks>
+    public bool ShowEdgeArrows
+    {
+        get => (bool)GetValue(ShowEdgeArrowsProperty)!;
+        set => SetValue(ShowEdgeArrowsProperty, value);
     }
 
     /// <summary>Index of the selected node in the effective node list (-1 = none). Two-way bindable.</summary>
@@ -193,6 +215,83 @@ public sealed class NodeGraph : ChartBase
         graph._syncing = true;
         graph.SetValueInternal(SelectedIndexProperty, index);
         graph._syncing = false;
+    }
+
+    /// <summary>
+    /// Subscribes to <see cref="GraphNodesSource"/> like the base class does, and additionally
+    /// brings the selection back in line with whatever the new collection holds.
+    /// </summary>
+    private void RebindNodesSource(object? oldValue, object? newValue)
+    {
+        if (oldValue is INotifyCollectionChanged oldObservable)
+        {
+            oldObservable.CollectionChanged -= OnNodesSourceCollectionChanged;
+        }
+
+        if (newValue is INotifyCollectionChanged newObservable)
+        {
+            newObservable.CollectionChanged += OnNodesSourceCollectionChanged;
+        }
+
+        RebindCollection(oldValue, newValue);
+        CoerceSelectionToNodes();
+    }
+
+    private void OnNodesSourceCollectionChanged(object? sender, NotifyCollectionChangedEventArgs e) =>
+        CoerceSelectionToNodes();
+
+    /// <summary>
+    /// Re-points <see cref="SelectedIndex"/> and <see cref="SelectedNode"/> at the current node
+    /// list after that list has been replaced or mutated.
+    /// </summary>
+    /// <remarks>
+    /// Without this the index survived a wholesale rebuild and kept addressing an ordinal in a
+    /// list that no longer exists, so <see cref="SelectedNode"/> pointed at a node the graph was
+    /// not drawing and every consumer had to reassign it by hand after each refresh. The order of
+    /// preference is: the same node instance if the new list still contains it (a rebuild that
+    /// reuses its objects keeps the user where they were), otherwise the same ordinal, otherwise
+    /// nothing.
+    ///
+    /// Both writes go through <see cref="DependencyObject.SetValueInternal"/> for the same reason
+    /// the two-way sync does — <see cref="DependencyObject.SetValue"/> would drop a two-way
+    /// <c>{Binding SelectedNode}</c> on the first rebuild.
+    /// </remarks>
+    private void CoerceSelectionToNodes()
+    {
+        if (_syncing)
+        {
+            return;
+        }
+
+        var nodes = SelectableNodes;
+        var selected = SelectedNode;
+
+        var index = -1;
+        for (var i = 0; i < nodes.Count; i++)
+        {
+            if (ReferenceEquals(nodes[i], selected))
+            {
+                index = i;
+                break;
+            }
+        }
+
+        if (index < 0)
+        {
+            var current = SelectedIndex;
+            index = current >= 0 && current < nodes.Count ? current : -1;
+        }
+
+        var node = index >= 0 ? nodes[index] : null;
+        if (index == SelectedIndex && ReferenceEquals(node, selected))
+        {
+            return;
+        }
+
+        _syncing = true;
+        SetValueInternal(SelectedIndexProperty, index);
+        SetValueInternal(SelectedNodeProperty, node);
+        _syncing = false;
     }
 
     // ─── Input ───────────────────────────────────────────────────────
@@ -465,10 +564,12 @@ public sealed class NodeGraph : ChartBase
             boxes[i] = new Rect(boxX, boxY, boxW, boxH);
         }
 
+        SeparateBoxes(boxes, plot, _layoutX, _layoutY);
         _renderedBoxes = boxes;
 
         DrawEdges(buffer, plot, boxes, edges, edgeColors);
-        DrawEdgeLabels(buffer, plot, boxes, edges, edgeColors, edgeLabels);
+        var arrows = DrawEdgeArrows(buffer, plot, boxes, edges, edgeColors);
+        DrawEdgeLabels(buffer, plot, boxes, edges, edgeColors, edgeLabels, arrows);
 
         var selectedBg = EffectiveSelectionBackground;
         for (var i = 0; i < nodes.Count; i++)
@@ -553,9 +654,10 @@ public sealed class NodeGraph : ChartBase
         Rect[] boxes,
         List<(int From, int To)> edges,
         List<Color> edgeColors,
-        List<string> edgeLabels)
+        List<string> edgeLabels,
+        List<Rect>? occupied)
     {
-        List<Rect>? placed = null;
+        var placed = occupied;
 
         for (var e = 0; e < edges.Count; e++)
         {
@@ -589,6 +691,278 @@ public sealed class NodeGraph : ChartBase
             placed.Add(rect);
             DrawString(buffer, rect.X, rect.Y, label, edgeColors[e], Background, label.Length);
         }
+    }
+
+    /// <summary>
+    /// Draws a direction marker for every edge in the cell nearest its target box, in the edge's
+    /// own colour, and returns the cells it took so the labels can steer around them.
+    /// </summary>
+    /// <remarks>
+    /// The marker is a single full-cell triangle (◀ ▶ ▲ ▼) rather than anything assembled out of
+    /// braille: the line is drawn on a <see cref="BrailleCanvas"/> whose cells hold 2×4 dots, so a
+    /// head built from dots is four times finer than the eye can resolve at this size and just
+    /// thickens the last cell. A whole cell replaced by a triangle reads as an arrow. None of the
+    /// four is wide (<c>WidthTable.IsWide</c>), so the marker cannot push a neighbouring cell out
+    /// of column.
+    ///
+    /// Placement walks back along the segment from the target's centre and takes the first cell
+    /// clear of every box, so the head sits against the box it points at. Following the edge-label
+    /// convention, a marker with nowhere to go — boxes flush against each other, or a target
+    /// pushed off the plot — is dropped whole rather than drawn somewhere misleading.
+    /// </remarks>
+    private List<Rect>? DrawEdgeArrows(
+        CellBuffer buffer,
+        Rect plot,
+        Rect[] boxes,
+        List<(int From, int To)> edges,
+        List<Color> edgeColors)
+    {
+        if (!ShowEdgeArrows || edges.Count == 0)
+        {
+            return null;
+        }
+
+        List<Rect>? placed = null;
+
+        for (var e = 0; e < edges.Count; e++)
+        {
+            var (from, to) = edges[e];
+            var source = boxes[from];
+            var target = boxes[to];
+
+            var sx = source.X + source.Width / 2.0;
+            var sy = source.Y + source.Height / 2.0;
+            var tx = target.X + target.Width / 2.0;
+            var ty = target.Y + target.Height / 2.0;
+
+            var dx = tx - sx;
+            var dy = ty - sy;
+            var length = Math.Sqrt(dx * dx + dy * dy);
+            if (length < 1e-9)
+            {
+                continue;
+            }
+
+            var cell = default(Rect);
+            var found = false;
+            for (var travelled = 0.0; travelled <= length; travelled += 0.25)
+            {
+                var candidate = new Rect(
+                    (int)Math.Round(tx - dx / length * travelled),
+                    (int)Math.Round(ty - dy / length * travelled),
+                    1, 1);
+
+                if (Array.Exists(boxes, box => box.Overlaps(candidate)))
+                {
+                    continue;
+                }
+
+                cell = candidate;
+                found = true;
+                break;
+            }
+
+            if (!found || cell.X < plot.X || cell.X >= plot.Right || cell.Y < plot.Y || cell.Y >= plot.Bottom)
+            {
+                continue;
+            }
+
+            buffer.SetChar(cell.X, cell.Y, ArrowGlyph(cell, target), edgeColors[e], Background);
+            placed ??= [];
+            placed.Add(cell);
+        }
+
+        return placed;
+    }
+
+    /// <summary>
+    /// Picks the triangle that points from <paramref name="cell"/> into <paramref name="target"/>,
+    /// by whichever side of the box the marker ended up furthest outside.
+    /// </summary>
+    /// <remarks>
+    /// Taking the glyph from the edge's own direction instead looks right only for edges that run
+    /// along an axis: an edge arriving from the lower right of its target is more vertical than
+    /// horizontal as often as not, and the marker then sits under the box pointing sideways past
+    /// it. The side the marker landed on is what a reader actually sees. Only the four axis
+    /// directions are used — a diagonal glyph at this resolution is a corner block, which reads as
+    /// a fragment of a box rather than as an arrow.
+    /// </remarks>
+    private static char ArrowGlyph(Rect cell, Rect target)
+    {
+        var left = target.X - cell.X;             // marker is left of the box
+        var right = cell.X - (target.Right - 1);  // marker is right of the box
+        var above = target.Y - cell.Y;            // marker is above the box
+        var below = cell.Y - (target.Bottom - 1); // marker is below the box
+
+        // Horizontal wins ties: the boxes are far wider than they are tall, so a marker level
+        // with one is overwhelmingly more likely to be beside it than above or below it.
+        var best = Math.Max(Math.Max(left, right), Math.Max(above, below));
+        if (left == best)
+        {
+            return '▶';
+        }
+
+        if (right == best)
+        {
+            return '◀';
+        }
+
+        return above == best ? '▼' : '▲';
+    }
+
+    /// <summary>
+    /// Nudges the projected boxes apart until none of them overlaps, leaving them exactly where
+    /// the force layout put them when they already fit.
+    /// </summary>
+    /// <remarks>
+    /// The force layout spaces node <em>centres</em> in a unit square and knows nothing of the
+    /// box drawn around each one, so a dozen nodes with real-world labels in an 80-column plot
+    /// produce a pile of half-overwritten boxes. It cannot be fixed inside the layout: box widths
+    /// come from the labels, and the layout signature deliberately excludes labels so that
+    /// relabelling or recolouring never moves the picture. So the fix belongs here, at projection
+    /// time, and it runs only when there is something to fix — a graph that already fits renders
+    /// exactly as it did before.
+    ///
+    /// The repair packs boxes into rows. Every box is three rows tall, so the plot holds a whole
+    /// number of them; each node keeps the row band its layout y put it in, and within a band the
+    /// boxes keep their layout x order and are pushed apart just enough to leave a column between
+    /// them. A band with no room left hands the node to the nearest band that has some, so the
+    /// result preserves the layout's up/down and left/right structure while guaranteeing clear
+    /// boxes — for as long as the plot has room at all. Past that (hundreds of nodes in a pane
+    /// this size) boxes are stacked in their preferred band and will still overlap; nothing
+    /// legible exists at that density and dropping nodes would break selection by index.
+    ///
+    /// Deterministic throughout: every decision is a function of the layout, the labels and the
+    /// plot size, with node index as the only tie-break.
+    /// </remarks>
+    private static void SeparateBoxes(Rect[] boxes, Rect plot, double[] layoutX, double[] layoutY)
+    {
+        var n = boxes.Length;
+        if (n < 2 || !AnyOverlap(boxes))
+        {
+            return;
+        }
+
+        var boxH = boxes[0].Height;
+        if (boxH <= 0)
+        {
+            return;
+        }
+
+        var bandCount = Math.Max(1, plot.Height / boxH);
+        var bandStride = bandCount > 1 ? (plot.Height - boxH) / (bandCount - 1) : 0;
+
+        // Preferred band from the layout's own y, then a stable sweep order: band first, then
+        // left to right, then node index.
+        var order = new int[n];
+        var band = new int[n];
+        for (var i = 0; i < n; i++)
+        {
+            order[i] = i;
+            band[i] = Math.Clamp((int)Math.Round(layoutY[i] * (bandCount - 1)), 0, bandCount - 1);
+        }
+
+        Array.Sort(order, (a, b) =>
+        {
+            var byBand = band[a].CompareTo(band[b]);
+            if (byBand != 0)
+            {
+                return byBand;
+            }
+
+            var byX = layoutX[a].CompareTo(layoutX[b]);
+            return byX != 0 ? byX : a.CompareTo(b);
+        });
+
+        // Fill bands, spilling to the nearest band with room. A band's cost is the widths it
+        // already carries plus one separating column per box after the first.
+        var used = new int[bandCount];
+        var counts = new int[bandCount];
+        var members = new List<int>[bandCount];
+        for (var b = 0; b < bandCount; b++)
+        {
+            members[b] = [];
+        }
+
+        foreach (var i in order)
+        {
+            var width = boxes[i].Width;
+            var chosen = -1;
+            for (var offset = 0; offset < bandCount && chosen < 0; offset++)
+            {
+                // Below first, then above, so the choice is a function of the data alone.
+                for (var sign = 0; sign < 2; sign++)
+                {
+                    if (offset == 0 && sign == 1)
+                    {
+                        break; // the preferred band is one band, not two
+                    }
+
+                    var candidate = band[i] + (sign == 0 ? offset : -offset);
+                    if (candidate < 0 || candidate >= bandCount)
+                    {
+                        continue;
+                    }
+
+                    var cost = used[candidate] + width + (counts[candidate] > 0 ? 1 : 0);
+                    if (cost <= plot.Width)
+                    {
+                        chosen = candidate;
+                        break;
+                    }
+                }
+            }
+
+            if (chosen < 0)
+            {
+                chosen = band[i]; // genuinely out of room; stack it where it wanted to be
+            }
+
+            used[chosen] += boxes[i].Width + (counts[chosen] > 0 ? 1 : 0);
+            counts[chosen]++;
+            members[chosen].Add(i);
+        }
+
+        for (var b = 0; b < bandCount; b++)
+        {
+            var y = plot.Y + b * bandStride;
+            var row = members[b];
+
+            // Left to right: keep each box at its projected x unless the previous one is in the
+            // way, then walk back from the right edge so the last box still fits.
+            var cursor = plot.X;
+            foreach (var i in row)
+            {
+                var x = Math.Max(boxes[i].X, cursor);
+                boxes[i] = new Rect(x, y, boxes[i].Width, boxes[i].Height);
+                cursor = x + boxes[i].Width + 1;
+            }
+
+            var limit = plot.Right;
+            for (var k = row.Count - 1; k >= 0; k--)
+            {
+                var i = row[k];
+                var x = Math.Max(plot.X, Math.Min(boxes[i].X, limit - boxes[i].Width));
+                boxes[i] = new Rect(x, y, boxes[i].Width, boxes[i].Height);
+                limit = x - 1;
+            }
+        }
+    }
+
+    private static bool AnyOverlap(Rect[] boxes)
+    {
+        for (var i = 0; i < boxes.Length; i++)
+        {
+            for (var j = i + 1; j < boxes.Length; j++)
+            {
+                if (boxes[i].Overlaps(boxes[j]))
+                {
+                    return true;
+                }
+            }
+        }
+
+        return false;
     }
 
     private static int PixelX(Rect box, Rect plot) => (box.X - plot.X + box.Width / 2) * 2 + 1;

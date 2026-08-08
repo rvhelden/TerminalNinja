@@ -497,4 +497,451 @@ public class NodeGraphTests
 
         await Assert.That(graph.GraphEdges[0].Label).IsEqualTo("1.2%");
     }
+
+    // ─── Edge direction markers ──────────────────────────────────────
+
+    private const string Arrows = "▶◀▲▼"; // ▶ ◀ ▲ ▼
+
+    /// <summary>Every cell holding one of the four direction glyphs, in reading order.</summary>
+    private static List<(int X, int Y, Color Fg, char Glyph)> FindArrows(CellBuffer buffer)
+    {
+        var found = new List<(int, int, Color, char)>();
+        for (var y = 0; y < buffer.Height; y++)
+        {
+            for (var x = 0; x < buffer.Width; x++)
+            {
+                var cell = buffer.GetCell(x, y);
+                if (cell.Codepoint <= char.MaxValue && Arrows.Contains((char)cell.Codepoint))
+                {
+                    found.Add((x, y, cell.Foreground, (char)cell.Codepoint));
+                }
+            }
+        }
+
+        return found;
+    }
+
+    private static NodeGraph DirectedPair(string from, string to, Color color = default)
+    {
+        var graph = new NodeGraph();
+        graph.GraphNodes.Add(new GraphNode { Id = "a", Name = "aaa" });
+        graph.GraphNodes.Add(new GraphNode { Id = "b", Name = "bbb" });
+        graph.GraphEdges.Add(new GraphEdge { From = from, To = to, Color = color });
+        return graph;
+    }
+
+    [Test]
+    public async Task Render_DirectedEdge_DrawsADirectionMarker()
+    {
+        using var buffer = new CellBuffer(W, H);
+
+        DirectedPair("a", "b").Render(buffer, new Rect(0, 0, W, H));
+
+        await Assert.That(FindArrows(buffer)).IsNotEmpty();
+    }
+
+    [Test]
+    public async Task Render_ReversedEdge_MovesTheMarkerToTheOtherEnd()
+    {
+        // Same nodes in the same order, so the layout signature — and with it every box — is
+        // identical. Only the direction differs, so anything that moves is the direction marker.
+        using var forward = new CellBuffer(W, H);
+        using var backward = new CellBuffer(W, H);
+
+        DirectedPair("a", "b").Render(forward, new Rect(0, 0, W, H));
+        DirectedPair("b", "a").Render(backward, new Rect(0, 0, W, H));
+
+        var one = FindArrows(forward);
+        var other = FindArrows(backward);
+
+        await Assert.That(one).IsNotEmpty();
+        await Assert.That(other).IsNotEmpty();
+        await Assert.That((one[0].X, one[0].Y)).IsNotEqualTo((other[0].X, other[0].Y));
+    }
+
+    [Test]
+    public async Task Render_DirectionMarker_PointsAtTheTargetBox()
+    {
+        using var buffer = new CellBuffer(W, H);
+        var graph = DirectedPair("a", "b");
+
+        graph.Render(buffer, new Rect(0, 0, W, H));
+
+        var target = graph.RenderedBoxes[1];
+        var arrows = FindArrows(buffer);
+        await Assert.That(arrows).IsNotEmpty();
+
+        var (x, y, _, glyph) = arrows[0];
+
+        // The marker sits clear of every box — a marker inside one would be painted over by it —
+        // and the glyph names the side of the target it arrived on.
+        foreach (var box in graph.RenderedBoxes)
+        {
+            await Assert.That(box.Contains(x, y)).IsFalse();
+        }
+
+        var expected = glyph switch
+        {
+            '▶' => x < target.X,
+            '◀' => x >= target.Right,
+            '▼' => y < target.Y,
+            _ => y >= target.Bottom,
+        };
+        await Assert.That(expected).IsTrue();
+    }
+
+    [Test]
+    public async Task Render_DirectionMarker_UsesTheEdgeColor()
+    {
+        using var buffer = new CellBuffer(W, H);
+        var red = new Color(255, 0, 0);
+
+        DirectedPair("a", "b", red).Render(buffer, new Rect(0, 0, W, H));
+
+        var arrows = FindArrows(buffer);
+        await Assert.That(arrows).IsNotEmpty();
+        await Assert.That(arrows[0].Fg).IsEqualTo(red);
+    }
+
+    [Test]
+    public async Task Render_ShowEdgeArrowsFalse_DrawsNoMarker()
+    {
+        using var buffer = new CellBuffer(W, H);
+        var graph = DirectedPair("a", "b");
+        graph.ShowEdgeArrows = false;
+
+        graph.Render(buffer, new Rect(0, 0, W, H));
+
+        await Assert.That(FindArrows(buffer)).IsEmpty();
+    }
+
+    [Test]
+    public async Task Render_DirectionMarkersNeverEscapeThePlot()
+    {
+        // The title row and the truncation row are outside the plot; a marker landing on either
+        // is dropped, exactly as an edge label would be.
+        using var buffer = new CellBuffer(40, 12);
+        var graph = new NodeGraph { Title = "Topology", LayoutIterations = 1 };
+        for (var i = 0; i < 520; i++)
+        {
+            graph.GraphNodes.Add(new GraphNode { Id = $"n{i}", Name = $"n{i}" });
+            if (i > 0)
+            {
+                graph.GraphEdges.Add(new GraphEdge { From = "n0", To = $"n{i}" });
+            }
+        }
+
+        graph.Render(buffer, new Rect(0, 0, 40, 12));
+
+        foreach (var (_, y, _, _) in FindArrows(buffer))
+        {
+            await Assert.That(y).IsGreaterThanOrEqualTo(1);  // below the title
+            await Assert.That(y).IsLessThan(11);             // above the "… N more" notice
+        }
+    }
+
+    [Test]
+    public async Task Render_DirectionMarkers_StayDeterministic()
+    {
+        using var first = new CellBuffer(W, H);
+        using var second = new CellBuffer(W, H);
+
+        DirectedPair("a", "b").Render(first, new Rect(0, 0, W, H));
+        DirectedPair("a", "b").Render(second, new Rect(0, 0, W, H));
+
+        await Assert.That(FindArrows(second)).IsEquivalentTo(FindArrows(first));
+    }
+
+    [Test]
+    public async Task Xaml_ShowEdgeArrows_Parses()
+    {
+        const string xaml = """
+            <NodeGraph xmlns="http://schemas.terminalninja.dev/xaml" ShowEdgeArrows="False">
+                <GraphNode Id="a" Name="a" />
+            </NodeGraph>
+            """;
+
+        var graph = TerminalXaml.Load<NodeGraph>(xaml);
+
+        await Assert.That(graph.ShowEdgeArrows).IsFalse();
+    }
+
+    // ─── Selection across a source replacement ───────────────────────
+
+    private static List<GraphNode> Nodes(params string[] ids)
+    {
+        var list = new List<GraphNode>();
+        foreach (var id in ids)
+        {
+            list.Add(new GraphNode { Id = id, Name = id });
+        }
+
+        return list;
+    }
+
+    [Test]
+    public async Task ReplacingNodesSource_WithAShorterList_ClampsTheSelection()
+    {
+        var graph = new NodeGraph { GraphNodesSource = Nodes("a", "b", "c") };
+        graph.SelectedIndex = 2;
+
+        graph.GraphNodesSource = Nodes("x");
+
+        await Assert.That(graph.SelectedIndex).IsEqualTo(-1);
+        await Assert.That(graph.SelectedNode).IsNull();
+    }
+
+    [Test]
+    public async Task ReplacingNodesSource_LeavesNoStaleSelectedNode()
+    {
+        // The bug: SelectedIndex survived the swap and kept addressing the old list, so
+        // SelectedNode still pointed at a node the graph was no longer drawing.
+        var first = Nodes("a", "b", "c");
+        var graph = new NodeGraph { GraphNodesSource = first };
+        graph.SelectedIndex = 1;
+        await Assert.That(graph.SelectedNode).IsSameReferenceAs(first[1]);
+
+        var second = Nodes("d", "e", "f");
+        graph.GraphNodesSource = second;
+
+        await Assert.That(graph.SelectedNode).IsSameReferenceAs(second[1]);
+        await Assert.That(graph.SelectedIndex).IsEqualTo(1);
+    }
+
+    [Test]
+    public async Task ReplacingNodesSource_KeepsTheSelectedNodeWhenItSurvivesTheRebuild()
+    {
+        var kept = new GraphNode { Id = "b", Name = "b" };
+        var first = new List<GraphNode> { new() { Id = "a", Name = "a" }, kept };
+        var graph = new NodeGraph { GraphNodesSource = first };
+        graph.SelectedIndex = 1;
+
+        // A refresh that reuses its node objects but reorders them must keep the user on the
+        // node they picked, not on the ordinal it happened to have.
+        graph.GraphNodesSource = new List<GraphNode> { kept, new() { Id = "c", Name = "c" }, new() { Id = "a", Name = "a" } };
+
+        await Assert.That(graph.SelectedNode).IsSameReferenceAs(kept);
+        await Assert.That(graph.SelectedIndex).IsEqualTo(0);
+    }
+
+    [Test]
+    public async Task ReplacingNodesSource_WithAnEmptyList_ClearsTheSelection()
+    {
+        var graph = new NodeGraph { GraphNodesSource = Nodes("a", "b") };
+        graph.SelectedIndex = 0;
+
+        graph.GraphNodesSource = new List<GraphNode>();
+
+        await Assert.That(graph.SelectedIndex).IsEqualTo(-1);
+        await Assert.That(graph.SelectedNode).IsNull();
+    }
+
+    [Test]
+    public async Task RemovingTheSelectedNodeFromABoundCollection_ClampsTheSelection()
+    {
+        var source = new System.Collections.ObjectModel.ObservableCollection<GraphNode>(Nodes("a", "b", "c"));
+        var graph = new NodeGraph { GraphNodesSource = source };
+        graph.SelectedIndex = 2;
+
+        source.RemoveAt(2);
+
+        await Assert.That(graph.SelectedIndex).IsEqualTo(-1);
+        await Assert.That(graph.SelectedNode).IsNull();
+    }
+
+    internal sealed class GraphViewModel : TerminalNinja.Xaml.Mvvm.ViewModelBase
+    {
+        private object? _selected;
+        private System.Collections.Generic.List<GraphNode> _nodes = [];
+
+        public object? Selected
+        {
+            get => _selected;
+            set => SetProperty(ref _selected, value);
+        }
+
+        public System.Collections.Generic.List<GraphNode> Nodes
+        {
+            get => _nodes;
+            set => SetProperty(ref _nodes, value);
+        }
+    }
+
+    [Test]
+    public async Task ReplacingNodesSource_KeepsATwoWaySelectedNodeBinding()
+    {
+        var vm = new GraphViewModel { Nodes = Nodes("a", "b", "c") };
+        const string xaml = """
+            <NodeGraph xmlns="http://schemas.terminalninja.dev/xaml"
+                       GraphNodesSource="{Binding Nodes}"
+                       SelectedNode="{Binding Selected}" />
+            """;
+        var graph = TerminalXaml.Load<NodeGraph>(xaml, vm);
+
+        graph.OnKeyEvent(Key(ConsoleKey.DownArrow));
+        await Assert.That(vm.Selected).IsSameReferenceAs(vm.Nodes[0]);
+
+        // The reset writes through SetValueInternal; SetValue would drop the binding here and the
+        // view model would never hear about the selection again.
+        var rebuilt = Nodes("d", "e");
+        vm.Nodes = rebuilt;
+        await Assert.That(vm.Selected).IsSameReferenceAs(rebuilt[0]);
+
+        graph.OnKeyEvent(Key(ConsoleKey.DownArrow));
+        await Assert.That(vm.Selected).IsSameReferenceAs(rebuilt[1]);
+    }
+
+    // ─── Box collision avoidance ─────────────────────────────────────
+
+    private static NodeGraph Estate(int count)
+    {
+        var graph = new NodeGraph();
+        for (var i = 0; i < count; i++)
+        {
+            var id = $"app-debble-service{i:00}";
+            graph.GraphNodes.Add(new GraphNode { Id = id, Name = id });
+            if (i > 0)
+            {
+                graph.GraphEdges.Add(new GraphEdge { From = "app-debble-service00", To = id });
+            }
+        }
+
+        return graph;
+    }
+
+    private static (int A, int B) FirstOverlap(IReadOnlyList<Rect> boxes)
+    {
+        for (var i = 0; i < boxes.Count; i++)
+        {
+            for (var j = i + 1; j < boxes.Count; j++)
+            {
+                if (boxes[i].Overlaps(boxes[j]))
+                {
+                    return (i, j);
+                }
+            }
+        }
+
+        return (-1, -1);
+    }
+
+    [Test]
+    public async Task Render_ADozenLongLabels_DrawsNoOverlappingBoxes()
+    {
+        // The force layout spaces centres, not boxes, so twelve real-world labels in an
+        // 80-column plot used to land in a pile of half-overwritten boxes.
+        using var buffer = new CellBuffer(80, 24);
+        var graph = Estate(12);
+
+        graph.Render(buffer, new Rect(0, 0, 80, 24));
+
+        await Assert.That(FirstOverlap(graph.RenderedBoxes)).IsEqualTo((-1, -1));
+    }
+
+    [Test]
+    public async Task Render_ADozenLongLabels_KeepsEveryLabelReadable()
+    {
+        using var buffer = new CellBuffer(80, 24);
+        var graph = Estate(12);
+
+        graph.Render(buffer, new Rect(0, 0, 80, 24));
+
+        for (var i = 0; i < 12; i++)
+        {
+            await Assert.That(ContainsText(buffer, $"app-debble-service{i:00}")).IsTrue();
+        }
+    }
+
+    [Test]
+    public async Task Render_EveryBox_StaysInsideThePlot()
+    {
+        using var buffer = new CellBuffer(80, 24);
+        var graph = Estate(12);
+        graph.Title = "Topology";
+
+        graph.Render(buffer, new Rect(0, 0, 80, 24));
+
+        foreach (var box in graph.RenderedBoxes)
+        {
+            await Assert.That(box.X).IsGreaterThanOrEqualTo(0);
+            await Assert.That(box.Y).IsGreaterThanOrEqualTo(1); // the title row is not the plot
+            await Assert.That(box.Right).IsLessThanOrEqualTo(80);
+            await Assert.That(box.Bottom).IsLessThanOrEqualTo(24);
+        }
+    }
+
+    [Test]
+    public async Task Render_BoxesThatAlreadyFit_AreNotMoved()
+    {
+        // The repair must be a no-op on a graph that never had a problem: a picture that shifts
+        // when nothing was wrong is a regression in its own right.
+        using var buffer = new CellBuffer(W, H);
+        var graph = ThreeNodeGraph();
+
+        graph.Render(buffer, new Rect(0, 0, W, H));
+        var boxes = graph.RenderedBoxes.ToArray();
+
+        await Assert.That(FirstOverlap(boxes)).IsEqualTo((-1, -1));
+
+        // Three short labels in a 60×24 plot are laid out on a wide circle; the y coordinates
+        // are the raw projection, not a row band.
+        var distinctRows = boxes.Select(b => b.Y).Distinct().Count();
+        await Assert.That(distinctRows).IsGreaterThan(1);
+    }
+
+    [Test]
+    public async Task Render_BoxPacking_StaysDeterministic()
+    {
+        using var first = new CellBuffer(80, 24);
+        using var second = new CellBuffer(80, 24);
+
+        var a = Estate(12);
+        var b = Estate(12);
+        a.Render(first, new Rect(0, 0, 80, 24));
+        b.Render(second, new Rect(0, 0, 80, 24));
+
+        await Assert.That(b.RenderedBoxes).IsEquivalentTo(a.RenderedBoxes);
+        for (var y = 0; y < 24; y++)
+        {
+            for (var x = 0; x < 80; x++)
+            {
+                await Assert.That(second.GetCell(x, y)).IsEqualTo(first.GetCell(x, y));
+            }
+        }
+    }
+
+    [Test]
+    public async Task Render_RecoloringANode_DoesNotMoveTheBoxes()
+    {
+        // The layout signature hashes ids and edge endpoints only. The packing must not smuggle
+        // color back in through the projection step.
+        using var plain = new CellBuffer(80, 24);
+        using var colored = new CellBuffer(80, 24);
+
+        var a = Estate(12);
+        var b = Estate(12);
+        b.GraphNodes[3].Color = new Color(220, 100, 100);
+
+        a.Render(plain, new Rect(0, 0, 80, 24));
+        b.Render(colored, new Rect(0, 0, 80, 24));
+
+        await Assert.That(b.RenderedBoxes).IsEquivalentTo(a.RenderedBoxes);
+    }
+
+    [Test]
+    public async Task Render_ClickAfterPacking_StillHitsTheRightNode()
+    {
+        // The packing rewrites the boxes the mouse hit-test uses; if it ran after they were
+        // captured, every click in a crowded graph would select the wrong node.
+        using var buffer = new CellBuffer(80, 24);
+        var graph = Estate(12);
+        graph.Render(buffer, new Rect(0, 0, 80, 24));
+
+        var (x, y) = FindText(buffer, "app-debble-service07");
+        await Assert.That(x).IsGreaterThanOrEqualTo(0);
+
+        graph.OnMouseEvent(new MouseEvent(x, y, MouseButton.Left, MouseAction.Press));
+
+        await Assert.That(graph.SelectedNode).IsSameReferenceAs(graph.GraphNodes[7]);
+    }
 }
