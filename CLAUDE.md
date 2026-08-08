@@ -188,6 +188,22 @@ await Assert.That(action).ThrowsExactly<ExceptionType>();
 4. All properties as DependencyProperties
 5. Override `GetPreferredSize`, `CalculateBounds`, `Render`, `OnKeyEvent`/`OnMouseEvent`
 
+### Focus visuals
+
+A terminal has no adorner layer: nothing can be drawn outside a control's own bounds, and every
+cell inside them is already carrying content. **A control must not show focus by recolouring its
+own cells.** `DataGrid`, `ListBox`, `ListView` and `TreeView` used to draw a "focus border" along
+their bounds' edges, which in practice tinted the header row and the first and last character of
+every row — it reads as a mnemonic, not as a frame.
+
+Focus visuals belong on the element whose cells are chrome rather than content:
+
+- Wrap the control in a `Border`. `Border.ContainsFocus` (the equivalent of WPF's
+  `IsKeyboardFocusWithin`) switches the frame to `FocusBorderBrush`, themed from
+  `ThemeAccentColor`, and `Border.ShowFocusBorder="False"` opts a decorative frame out.
+- A control that draws its *own* frame — `Button`, `TextBox`, `ComboBox`, the pickers — keeps
+  using its `FocusColor` on that frame. Those cells are chrome the control owns.
+
 ### Theming Checklist
 
 When adding a new control that needs theme support:

@@ -1,4 +1,4 @@
-using System.Windows.Markup;
+﻿using System.Windows.Markup;
 using TerminalNinja.Buffers;
 using TerminalNinja.Controls.Primitives;
 using TerminalNinja.Input;
@@ -33,17 +33,6 @@ public class ListBox : Selector
 
     // ─── Dependency Properties ───────────────────────────────────────
 
-    public static readonly DependencyProperty FocusColorProperty =
-        DependencyProperty.Register(nameof(FocusColor), typeof(Color), typeof(ListBox),
-            new FrameworkPropertyMetadata(Color.Cyan, affectsRender: true));
-
-    /// <summary>Gets or sets the border color when the ListBox has focus.</summary>
-    public Color FocusColor
-    {
-        get => (Color)GetValue(FocusColorProperty)!;
-        set => SetValue(FocusColorProperty, value);
-    }
-
     public static readonly DependencyProperty SelectedBackgroundProperty =
         DependencyProperty.Register(nameof(SelectedBackground), typeof(Color), typeof(ListBox),
             new FrameworkPropertyMetadata(Color.Blue, affectsRender: true));
@@ -58,10 +47,6 @@ public class ListBox : Selector
 
     public static readonly DependencyProperty ShowSelectionIndicatorProperty =
         DependencyProperty.Register(nameof(ShowSelectionIndicator), typeof(bool), typeof(ListBox),
-            new FrameworkPropertyMetadata(true, affectsRender: true));
-
-    public static readonly DependencyProperty ShowFocusBorderProperty =
-        DependencyProperty.Register(nameof(ShowFocusBorder), typeof(bool), typeof(ListBox),
             new FrameworkPropertyMetadata(true, affectsRender: true));
 
     /// <summary>
@@ -102,18 +87,6 @@ public class ListBox : Selector
     {
         get => (bool)GetValue(ShowSelectionIndicatorProperty)!;
         set => SetValue(ShowSelectionIndicatorProperty, value);
-    }
-
-    /// <summary>
-    /// Gets or sets whether a focus border is drawn around the list when it is focused. Default is
-    /// true. The border recolours the cells on the list's edges, which overpaints content sitting
-    /// in the first/last row or column; set false when the list is already framed by an outer
-    /// Border so the focus rule does not tint edge content.
-    /// </summary>
-    public bool ShowFocusBorder
-    {
-        get => (bool)GetValue(ShowFocusBorderProperty)!;
-        set => SetValue(ShowFocusBorderProperty, value);
     }
 
     // ─── Container generation overrides ──────────────────────────────
@@ -357,49 +330,9 @@ public class ListBox : Selector
             child.Render(buffer, itemBounds);
         }
 
-        // Draw focus border when focused
-        if (IsFocused && ShowFocusBorder && bounds is { Width: >= 2, Height: >= 2 })
-        {
-            DrawFocusBorder(buffer, bounds, FocusColor);
-        }
-    }
-
-    private static void DrawFocusBorder(CellBuffer buffer, Rect bounds, Color color)
-    {
-        // Top and bottom edges
-        for (var x = bounds.X; x < bounds.Right; x++)
-        {
-            if (x >= 0 && x < buffer.Width)
-            {
-                if (bounds.Y >= 0 && bounds.Y < buffer.Height)
-                {
-                    var cell = buffer.GetCell(x, bounds.Y);
-                    buffer.SetCell(x, bounds.Y, new Cell(cell.Codepoint, color, cell.Background));
-                }
-                if (bounds.Bottom - 1 >= 0 && bounds.Bottom - 1 < buffer.Height)
-                {
-                    var cell = buffer.GetCell(x, bounds.Bottom - 1);
-                    buffer.SetCell(x, bounds.Bottom - 1, new Cell(cell.Codepoint, color, cell.Background));
-                }
-            }
-        }
-
-        // Left and right edges
-        for (var y = bounds.Y; y < bounds.Bottom; y++)
-        {
-            if (y >= 0 && y < buffer.Height)
-            {
-                if (bounds.X >= 0 && bounds.X < buffer.Width)
-                {
-                    var cell = buffer.GetCell(bounds.X, y);
-                    buffer.SetCell(bounds.X, y, new Cell(cell.Codepoint, color, cell.Background));
-                }
-                if (bounds.Right - 1 >= 0 && bounds.Right - 1 < buffer.Width)
-                {
-                    var cell = buffer.GetCell(bounds.Right - 1, y);
-                    buffer.SetCell(bounds.Right - 1, y, new Cell(cell.Codepoint, color, cell.Background));
-                }
-            }
-        }
+        // No focus visual here on purpose: the list owns every cell in its bounds for content,
+        // so anything it drew to show focus would overpaint the first and last row and the first
+        // and last character of every row between. Focus is shown by the Border around it — see
+        // Border.ContainsFocus.
     }
 }

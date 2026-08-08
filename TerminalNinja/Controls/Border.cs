@@ -29,6 +29,14 @@ public sealed class Border : FrameworkElement
         DependencyProperty.Register(nameof(BorderBrush), typeof(Color), typeof(Border),
             new FrameworkPropertyMetadata(Color.White, affectsRender: true));
 
+    public static readonly DependencyProperty FocusBorderBrushProperty =
+        DependencyProperty.Register(nameof(FocusBorderBrush), typeof(Color), typeof(Border),
+            new FrameworkPropertyMetadata(Color.Cyan, affectsRender: true));
+
+    public static readonly DependencyProperty ShowFocusBorderProperty =
+        DependencyProperty.Register(nameof(ShowFocusBorder), typeof(bool), typeof(Border),
+            new FrameworkPropertyMetadata(true, affectsRender: true));
+
     public static readonly DependencyProperty BorderStyleProperty =
         DependencyProperty.Register(nameof(BorderStyle), typeof(Styling.BorderStyle), typeof(Border),
             new FrameworkPropertyMetadata(Styling.BorderStyle.None, affectsRender: true));
@@ -76,6 +84,59 @@ public sealed class Border : FrameworkElement
         set => SetValue(BorderBrushProperty, value);
     }
     
+    /// <summary>
+    /// Gets or sets the colour the border lines take while focus is somewhere inside this border.
+    /// </summary>
+    /// <remarks>
+    /// This is the framework's focus visual. A terminal has no adorner layer — nothing can be drawn
+    /// outside a control's own bounds — so a control that tries to show focus itself has no choice
+    /// but to recolour cells it is already using for content: on an unframed list that lands on the
+    /// header row and the first and last character of every row. The border is the one place in a
+    /// layout that owns cells purely as chrome, so it is where a focus visual belongs.
+    /// </remarks>
+    public Color FocusBorderBrush
+    {
+        get => (Color)GetValue(FocusBorderBrushProperty)!;
+        set => SetValue(FocusBorderBrushProperty, value);
+    }
+
+    /// <summary>
+    /// Gets or sets whether the border switches to <see cref="FocusBorderBrush"/> while it contains
+    /// focus. Default is true. Set false for a border that is decoration only — a panel frame that
+    /// happens to contain an editable field, say — where lighting up would say nothing.
+    /// </summary>
+    public bool ShowFocusBorder
+    {
+        get => (bool)GetValue(ShowFocusBorderProperty)!;
+        set => SetValue(ShowFocusBorderProperty, value);
+    }
+
+    /// <summary>
+    /// Gets whether the focused element is this border or a descendant of it. The equivalent of
+    /// WPF's <c>IsKeyboardFocusWithin</c>, walked over the visual parent chain because focus here is
+    /// a single element held by the <see cref="Input.FocusManager"/> rather than a routed state.
+    /// </summary>
+    public bool ContainsFocus
+    {
+        get
+        {
+            if (App.Application.Current?.FocusManager.FocusedElement is not { } focused)
+            {
+                return false;
+            }
+
+            for (Visual? visual = focused; visual is not null; visual = visual.Parent)
+            {
+                if (ReferenceEquals(visual, this))
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+    }
+
     /// <summary>Gets or sets the border style and color.</summary>
     public Styling.BorderStyle BorderStyle
     {
@@ -204,7 +265,7 @@ public sealed class Border : FrameworkElement
     private void RenderBorder(CellBuffer buffer, Rect bounds)
     {
         var chars = BorderStyle.Chars;
-        var color = BorderBrush;
+        var color = ShowFocusBorder && ContainsFocus ? FocusBorderBrush : BorderBrush;
         var bg = Background;
         
         // Draw corners

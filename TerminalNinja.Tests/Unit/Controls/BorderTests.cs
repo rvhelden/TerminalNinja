@@ -1,4 +1,4 @@
-namespace TerminalNinja.Tests.Unit.Controls;
+﻿namespace TerminalNinja.Tests.Unit.Controls;
 
 /// <summary>
 /// Comprehensive tests for Border control covering:
@@ -1028,6 +1028,85 @@ public class BorderTests
 
         rect.Child = null;
         await Assert.That(secondChild.Parent).IsNull();
+    }
+
+    #endregion
+
+    #region Focus visual
+
+    [Test]
+    [NotInParallel("ApplicationSingleton")]
+    public async Task Render_ContainsFocus_DrawsBorderInFocusBrush()
+    {
+        using var app = new global::TerminalNinja.App.Application(
+            new global::TerminalNinja.App.ApplicationOptions { Headless = true });
+
+        var child = new TextBox { Focusable = true };
+        var rect = new global::TerminalNinja.Controls.Border
+        {
+            Width = Size.Absolute(10),
+            Height = Size.Absolute(5),
+            BorderStyle = global::TerminalNinja.Styling.BorderStyle.Single(Color.White),
+            BorderBrush = Color.White,
+            FocusBorderBrush = Color.Cyan,
+            Child = child
+        };
+
+        app.FocusManager.SetFocus(child);
+        rect.Render(_buffer, new Rect(0, 0, BufferWidth, BufferHeight));
+
+        await Assert.That(rect.ContainsFocus).IsTrue();
+        await Assert.That(_buffer.GetCell(0, 0).Foreground).IsEqualTo(Color.Cyan);
+        await Assert.That(_buffer.GetCell(9, 4).Foreground).IsEqualTo(Color.Cyan);
+    }
+
+    [Test]
+    [NotInParallel("ApplicationSingleton")]
+    public async Task Render_FocusElsewhere_DrawsBorderInBorderBrush()
+    {
+        using var app = new global::TerminalNinja.App.Application(
+            new global::TerminalNinja.App.ApplicationOptions { Headless = true });
+
+        var outsider = new TextBox { Focusable = true };
+        var rect = new global::TerminalNinja.Controls.Border
+        {
+            Width = Size.Absolute(10),
+            Height = Size.Absolute(5),
+            BorderStyle = global::TerminalNinja.Styling.BorderStyle.Single(Color.White),
+            BorderBrush = Color.White,
+            FocusBorderBrush = Color.Cyan
+        };
+
+        app.FocusManager.SetFocus(outsider);
+        rect.Render(_buffer, new Rect(0, 0, BufferWidth, BufferHeight));
+
+        await Assert.That(rect.ContainsFocus).IsFalse();
+        await Assert.That(_buffer.GetCell(0, 0).Foreground).IsEqualTo(Color.White);
+    }
+
+    [Test]
+    [NotInParallel("ApplicationSingleton")]
+    public async Task Render_ShowFocusBorderFalse_KeepsBorderBrushWhileFocused()
+    {
+        using var app = new global::TerminalNinja.App.Application(
+            new global::TerminalNinja.App.ApplicationOptions { Headless = true });
+
+        var child = new TextBox { Focusable = true };
+        var rect = new global::TerminalNinja.Controls.Border
+        {
+            Width = Size.Absolute(10),
+            Height = Size.Absolute(5),
+            BorderStyle = global::TerminalNinja.Styling.BorderStyle.Single(Color.White),
+            BorderBrush = Color.White,
+            FocusBorderBrush = Color.Cyan,
+            ShowFocusBorder = false,
+            Child = child
+        };
+
+        app.FocusManager.SetFocus(child);
+        rect.Render(_buffer, new Rect(0, 0, BufferWidth, BufferHeight));
+
+        await Assert.That(_buffer.GetCell(0, 0).Foreground).IsEqualTo(Color.White);
     }
 
     #endregion
