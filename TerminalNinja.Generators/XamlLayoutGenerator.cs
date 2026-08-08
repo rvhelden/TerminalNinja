@@ -83,6 +83,10 @@ public sealed class XamlLayoutGenerator : IIncrementalGenerator
 
         foreach (var xamlFile in xamlFiles)
         {
+            // A misspelled enum value is a load-time exception, not a build error — catch what we
+            // can here so it surfaces while the XAML is being written instead of when it opens.
+            XamlEnumAttributeChecker.Check(context, compilation, xamlFile);
+
             try
             {
                 var model = ParseXamlFile(xamlFile, rootNamespace);

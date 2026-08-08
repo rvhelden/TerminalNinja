@@ -975,14 +975,16 @@ internal sealed class XamlLoader
             return;
         }
 
-        var converted = ConvertValue(trimmedValue, propType);
+        var converted = ConvertValue(trimmedValue, propType, propertyName, type.Name);
         accessor.Value.Setter!(instance, converted);
     }
 
     /// <summary>
     /// Converts a string value to the target property type using TypeDescriptor converters.
+    /// <paramref name="propertyName"/> and <paramref name="ownerTypeName"/> are only used to make
+    /// a conversion failure name the attribute the author has to fix.
     /// </summary>
-    private static object? ConvertValue(string value, Type targetType)
+    private static object? ConvertValue(string value, Type targetType, string? propertyName = null, string? ownerTypeName = null)
     {
         if (targetType == typeof(string))
         {
@@ -997,10 +999,12 @@ internal sealed class XamlLoader
             return value;
         }
 
-        // Handle enums directly (faster than TypeDescriptor for enums)
+        // Handle enums directly (faster than TypeDescriptor for enums). This accepts the WPF
+        // spellings as aliases and, on a bad value, reports the property and the valid values
+        // rather than Enum.Parse's bare "Requested value 'X' was not found".
         if (targetType.IsEnum)
         {
-            return Enum.Parse(targetType, value, ignoreCase: true);
+            return XamlEnumValues.Parse(targetType, value, propertyName, ownerTypeName);
         }
 
         // Handle common primitive types
@@ -1089,7 +1093,7 @@ internal sealed class XamlLoader
         }
 
         // Convert the string value to the parameter type
-        var converted = ConvertValue(value, setter.ParameterType);
+        var converted = ConvertValue(value, setter.ParameterType, propertyName, ownerType.Name);
         setter.Setter(instance, converted);
     }
 

@@ -1,6 +1,7 @@
 using System.Collections.Concurrent;
 using System.ComponentModel;
 using System.Diagnostics.CodeAnalysis;
+using TerminalNinja.Xaml.TypeConverters;
 
 namespace TerminalNinja.Aot;
 
@@ -51,10 +52,12 @@ public static class TypeConverterRegistry
             return converter;
         }
 
-        // Auto-create EnumConverter for any enum type
+        // Auto-create an enum converter for any enum type. It is the XAML-aware one so that
+        // WPF spellings resolve and a bad value reports what is actually accepted, no matter
+        // which path reached the conversion (attribute, style setter, resource entry).
         if (type.IsEnum)
         {
-            var enumConverter = new EnumConverter(type);
+            var enumConverter = new XamlEnumTypeConverter(type);
             Converters[type] = enumConverter;
             return enumConverter;
         }

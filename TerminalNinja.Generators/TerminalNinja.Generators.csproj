@@ -25,4 +25,10 @@
     <EmbeddedResource Include="Templates\*.sbn" />
   </ItemGroup>
 
+  <ItemGroup>
+    <!-- Release tracking for the analyzer diagnostics this project reports (RS2008). -->
+    <AdditionalFiles Include="AnalyzerReleases.Shipped.md" />
+    <AdditionalFiles Include="AnalyzerReleases.Unshipped.md" />
+  </ItemGroup>
+
 </Project>

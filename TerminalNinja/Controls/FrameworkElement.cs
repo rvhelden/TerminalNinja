@@ -2,6 +2,7 @@ using TerminalNinja.Aot;
 using TerminalNinja.Primitives;
 using TerminalNinja.Resources;
 using TerminalNinja.Styling;
+using TerminalNinja.Xaml;
 using TerminalNinja.Xaml.Binding;
 
 namespace TerminalNinja.Controls;
@@ -478,6 +479,16 @@ public abstract class FrameworkElement : UIElement
             var value = setter.Value;
             if (value != null && !accessor.PropertyType.IsInstanceOfType(value))
             {
+                // Enums go through the XAML parser directly rather than the converter, purely so
+                // a bad <Setter Value="..."/> names the property it belongs to — the converter
+                // only ever sees the value.
+                if (accessor.PropertyType.IsEnum && value is string enumText)
+                {
+                    accessor.Setter!(this,
+                        XamlEnumValues.Parse(accessor.PropertyType, enumText, setter.Property, controlType.Name));
+                    continue;
+                }
+
                 // Try to use TypeConverterRegistry (AOT-safe)
                 var converter = TypeConverterRegistry.GetConverterOrEnum(accessor.PropertyType);
                 if (converter != null && converter.CanConvertFrom(value.GetType()))
