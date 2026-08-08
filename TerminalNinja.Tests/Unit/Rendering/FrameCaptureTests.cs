@@ -28,6 +28,28 @@ public class FrameCaptureTests
         await Assert.That(ansi).Contains("\e[38;2;");
     }
 
+    /// <summary>
+    /// TextBlock's plain-text path writes UTF-16 code units, so an astral character lands in the
+    /// buffer as two lone surrogates. Capturing such a frame used to throw out of
+    /// <c>char.ConvertFromUtf32</c> — no frame at all, because one log line held an emoji.
+    /// </summary>
+    [Test]
+    public async Task ToText_DoesNotThrowOnALoneSurrogate()
+    {
+        var text = FrameCapture.ToText(new TextBlock { Text = "ok \U0001F680 go" }, 20, 1);
+
+        await Assert.That(text).Contains("ok ");
+        await Assert.That(text).Contains(" go");
+    }
+
+    [Test]
+    public async Task ToAnsi_DoesNotThrowOnALoneSurrogate()
+    {
+        var ansi = FrameCapture.ToAnsi(new TextBlock { Text = "\U0001F680" }, 4, 1);
+
+        await Assert.That(ansi).Contains("\e[38;2;");
+    }
+
     [Test]
     public async Task ToText_RejectsNonPositiveDimensions()
     {

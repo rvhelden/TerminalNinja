@@ -33,11 +33,7 @@ public static class FrameCapture
 
             for (var x = 0; x < width; x++)
             {
-                var codepoint = buffer[x, y].Codepoint;
-
-                // A zero codepoint is an untouched cell, and the right-hand half of a wide
-                // glyph is recorded as zero too; both read as a space.
-                line.Append(codepoint == 0 ? ' ' : char.ConvertFromUtf32((int)codepoint));
+                line.Append(Glyph(buffer[x, y].Codepoint));
             }
 
             text.AppendLine(line.ToString().TrimEnd());
@@ -62,7 +58,7 @@ public static class FrameCapture
             {
                 var cell = buffer[x, y];
                 var fg = cell.Foreground;
-                var glyph = cell.Codepoint == 0 ? " " : char.ConvertFromUtf32((int)cell.Codepoint);
+                var glyph = Glyph(cell.Codepoint);
                 text.Append($"\e[38;2;{fg.R};{fg.G};{fg.B}m{glyph}");
             }
 
@@ -71,6 +67,28 @@ public static class FrameCapture
 
         return text.ToString();
     }
+
+    /// <summary>
+    /// Renders one cell's codepoint as text.
+    /// </summary>
+    /// <remarks>
+    /// A zero codepoint is an untouched cell, and the right-hand half of a wide glyph is
+    /// recorded as zero too; both read as a space.
+    /// <para>
+    /// A cell can also hold a lone surrogate: <see cref="Controls.TextBlock"/>'s plain-text path
+    /// writes UTF-16 code units, so an astral character — an emoji in a log line, say — arrives
+    /// as two half-cells. <c>char.ConvertFromUtf32</c> throws on those, which turned a capture of
+    /// any frame containing one into an exception instead of a frame. The capture is the only way
+    /// to inspect a layout headlessly, so it renders what is actually in the buffer rather than
+    /// refusing to render at all.
+    /// </para>
+    /// </remarks>
+    private static string Glyph(uint codepoint) => codepoint switch
+    {
+        0 => " ",
+        >= 0xD800 and <= 0xDFFF => ((char)codepoint).ToString(),
+        _ => char.ConvertFromUtf32((int)codepoint),
+    };
 
     private static CellBuffer RenderToBuffer(UIElement root, int width, int height)
     {
