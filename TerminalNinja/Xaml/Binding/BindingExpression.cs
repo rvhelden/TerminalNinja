@@ -31,12 +31,11 @@ public sealed class BindingExpression : BindingExpressionBase, IDisposable
     {
         _binding = binding ?? throw new ArgumentNullException(nameof(binding));
 
-        if (string.IsNullOrWhiteSpace(binding.Path))
-        {
-            throw new InvalidOperationException("Binding.Path must be set.");
-        }
-
-        _sourcePath = new PropertyPath(binding.Path);
+        // A missing path (or an explicit "."), as written by {Binding}, binds to the source
+        // object itself. That is the only way to template a collection of plain strings.
+        _sourcePath = PropertyPath.IsSelfPath(binding.Path)
+            ? PropertyPath.Self
+            : new PropertyPath(binding.Path);
     }
 
     /// <summary>

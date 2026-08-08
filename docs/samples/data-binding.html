@@ -103,6 +103,9 @@
       <h2>Key Concepts</h2>
       <ul>
         <li><code>{Binding Path}</code> with automatic <code>DataContext</code> resolution</li>
+        <li><code>{Binding}</code> — equivalently <code>{Binding Path=.}</code> — binds to the
+            <code>DataContext</code> object itself, which is how a <code>DataTemplate</code> over a
+            collection of plain strings works without a wrapper view model</li>
         <li><code>Mode=TwoWay</code> for bidirectional binding</li>
         <li><code>ViewModelBase.SetProperty</code> for <code>INotifyPropertyChanged</code></li>
         <li><code>Color.FromOklch</code> for perceptually uniform color animation</li>

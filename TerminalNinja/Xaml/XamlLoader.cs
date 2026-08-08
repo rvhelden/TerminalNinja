@@ -1284,7 +1284,9 @@ internal sealed class XamlLoader
 
     /// <summary>
     /// Parses a {Binding ...} markup extension and stores it for later activation.
-    /// Syntax: {Binding Path=PropertyName} or {Binding PropertyName}
+    /// Syntax: {Binding Path=PropertyName} or {Binding PropertyName}.
+    /// A pathless {Binding} (or {Binding Path=.}) binds to the DataContext object itself,
+    /// which is what makes a DataTemplate over a collection of plain strings possible.
     /// Supports: Path, Mode, Converter={StaticResource Key}, ConverterParameter=Value,
     ///           RelativeSource={RelativeSource Self|FindAncestor, AncestorType=TypeName, AncestorLevel=N}
     /// </summary>
@@ -1304,11 +1306,6 @@ internal sealed class XamlLoader
         IValueConverter? converter = null;
         object? converterParameter = null;
         RelativeSource? relativeSource = null;
-
-        if (string.IsNullOrEmpty(inner))
-        {
-            throw new InvalidOperationException("Binding markup extension requires at least a Path");
-        }
 
         // Parse key=value pairs, or a single positional value (the path)
         var parts = SplitMarkupExtensionArgs(inner);
@@ -1352,12 +1349,12 @@ internal sealed class XamlLoader
             }
         }
 
-        if (string.IsNullOrWhiteSpace(path))
-        {
-            throw new InvalidOperationException("Binding markup extension requires a Path");
-        }
+        // No path at all — "{Binding}", or "{Binding Converter=...}" — is the self path: bind to
+        // the DataContext object itself. Normalise it to "." so everything downstream sees one
+        // spelling, and so "{Binding}" and "{Binding Path=.}" are literally the same binding.
+        var effectivePath = PropertyPath.IsSelfPath(path) ? "." : path!;
 
-        _pendingBindings.Add(new PendingBinding(target, targetPropertyName, path, mode, converter, converterParameter)
+        _pendingBindings.Add(new PendingBinding(target, targetPropertyName, effectivePath, mode, converter, converterParameter)
         {
             Context = context,
             RelativeSource = relativeSource,
